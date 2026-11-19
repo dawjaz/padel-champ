@@ -21,16 +21,26 @@ export function drawPanel(
   hover: boolean,
   fill: number = COLORS.panel,
 ): void {
-  const r = Math.min(14, h / 2);
+  // 3D-ish: an extruded rounded slab (visible side), a gradient face and a glossy top highlight.
+  const r = Math.min(12, h / 2);
+  const depth = 5;
   g.clear();
   g.fillStyle(0x000000, 0.35);
-  g.fillRoundedRect(-w / 2 + 1, -h / 2 + 4, w, h, r);
-  g.fillStyle(hover ? COLORS.panelHover : fill, 1);
+  g.fillRoundedRect(-w / 2 + 2, -h / 2 + depth + 3, w, h, r);
+  g.fillStyle(0x10113a, 1);
+  g.fillRoundedRect(-w / 2, -h / 2 + depth, w, h, r);
+  const top = hover ? COLORS.panelHover : fill;
+  g.fillGradientStyle(lighten(top, 1.45), lighten(top, 1.45), top, top, 1);
   g.fillRoundedRect(-w / 2, -h / 2, w, h, r);
-  g.fillStyle(0xffffff, hover ? 0.2 : 0.12);
-  g.fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w - 6, h * 0.45, { tl: r - 2, tr: r - 2, bl: 4, br: 4 });
+  g.fillStyle(0xffffff, hover ? 0.28 : 0.2);
+  g.fillRoundedRect(-w / 2 + 4, -h / 2 + 3, w - 8, h * 0.32, { tl: r - 3, tr: r - 3, bl: 6, br: 6 });
   g.lineStyle(2, accent, 0.95);
   g.strokeRoundedRect(-w / 2, -h / 2, w, h, r);
+}
+
+function lighten(c: number, k: number): number {
+  const ch = (v: number): number => Math.min(255, Math.round(v * k));
+  return (ch((c >> 16) & 255) << 16) | (ch((c >> 8) & 255) << 8) | ch(c & 255);
 }
 
 /** Menu button: rounded, glossy, with a hover state. Plays a select beep and calls `onClick`. */

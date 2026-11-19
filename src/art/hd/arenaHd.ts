@@ -2,7 +2,7 @@ import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
 import { BACK_WALL, sideWallSegments } from '../walls';
 
 /**
- * The broadcast court as a smooth, lit, high-resolution picture (Canvas2D, pure and browser-testable).
+ * STYLIZED 2D/3D look: a faux-3D court (raised slab with visible thickness, ambient occlusion, cast shadows, specular sheen, thick glass, cylindrical posts) drawn as a high-resolution picture (Canvas2D, pure and browser-testable).
  * `back` is everything behind the players (stands, floor, glass and mesh walls); `net` is a separate
  * strip that the scene draws between the far and the near players. Coordinates are the 360x640 logical
  * screen of art/camera.ts, multiplied by `scale` (2 = 720x1280 pixels).
@@ -51,68 +51,73 @@ function makeRng(seed: number): () => number {
 }
 
 function drawStands(g: Ctx, rnd: () => number): void {
-  const sky = g.createLinearGradient(0, 0, 0, 110);
-  sky.addColorStop(0, '#070a1c');
-  sky.addColorStop(1, '#16204a');
+  // Dusk arena: soft gradient and an out-of-focus crowd made of bokeh blobs (cheap: no filters).
+  const sky = g.createLinearGradient(0, 0, 0, 112);
+  sky.addColorStop(0, '#0d1633');
+  sky.addColorStop(1, '#2a3f78');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, 112);
-
-  const shirts = ['#3b3f7a', '#7a3b5f', '#2f6f86', '#8a7a3a', '#7d3a3a', '#3a6a4a', '#9a9ab8', '#5a3a8a'];
-  const skins = ['#f1c9a5', '#d9a273', '#b9774a', '#8a5530', '#5c3920', '#f4d6bd'];
-  for (let row = 0; row < 6; row++) {
-    const y = 26 + row * 12;
-    const r = 2 + row * 0.18;
-    const dim = 0.55 + row * 0.08;
-    for (let x = -4 + (row % 2) * 3; x < W + 4; x += 5.2 + row * 0.2) {
-      const jx = x + (rnd() - 0.5) * 1.6;
-      g.globalAlpha = dim;
-      g.fillStyle = shirts[Math.floor(rnd() * shirts.length)];
-      g.beginPath();
-      g.ellipse(jx, y + r * 2.1, r * 1.5, r * 1.3, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = skins[Math.floor(rnd() * skins.length)];
-      g.beginPath();
-      g.arc(jx, y, r, 0, Math.PI * 2);
-      g.fill();
+  const tones = ['#ff9f6e', '#ffd36e', '#6ec8ff', '#b58cff', '#ff6e9a', '#8affc1'];
+  for (let row = 0; row < 5; row++) {
+    for (let x = -6; x < W + 6; x += 7 - row * 0.4) {
+      const y = 30 + row * 14 + (rnd() - 0.5) * 3;
+      const r = 3.2 + row * 0.5 + rnd() * 1.2;
+      const gl = g.createRadialGradient(x, y, 0, x, y, r);
+      const col = tones[Math.floor(rnd() * tones.length)];
+      gl.addColorStop(0, col + 'cc');
+      gl.addColorStop(1, col + '00');
+      g.fillStyle = gl;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
     }
   }
-  g.globalAlpha = 1;
-  // Tier railings
-  g.strokeStyle = 'rgba(160,175,215,0.25)';
-  g.lineWidth = 1;
-  for (let row = 0; row < 6; row++) line(g, { x: 0, y: 33 + row * 12 }, { x: W, y: 33 + row * 12 });
-  // Push the crowd back into the dark
-  const shade = g.createLinearGradient(0, 14, 0, 112);
-  shade.addColorStop(0, 'rgba(4,6,20,0.62)');
-  shade.addColorStop(1, 'rgba(4,6,20,0.18)');
-  g.fillStyle = shade;
-  g.fillRect(0, 14, W, 98);
-  // Stadium lights
-  for (const x of [28, W - 28]) {
-    const glow = g.createRadialGradient(x, 0, 2, x, 0, 190);
-    glow.addColorStop(0, 'rgba(255,246,220,0.55)');
-    glow.addColorStop(0.25, 'rgba(255,240,200,0.18)');
-    glow.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = glow;
-    g.fillRect(0, 0, W, 200);
+  // Big warm spotlights with soft cones
+  for (const x of [34, W - 34]) {
+    const cone = g.createRadialGradient(x, -4, 2, x, -4, 230);
+    cone.addColorStop(0, 'rgba(255,236,190,0.75)');
+    cone.addColorStop(0.3, 'rgba(255,226,170,0.22)');
+    cone.addColorStop(1, 'rgba(255,226,170,0)');
+    g.fillStyle = cone;
+    g.fillRect(0, 0, W, 240);
   }
 }
 
 function drawFloor(g: Ctx, rnd: () => number): void {
   const P = project;
-  // The area around the court
+  // Ground: dark soft studio floor with a pool of light
   const ground = g.createLinearGradient(0, 96, 0, 400);
-  ground.addColorStop(0, '#16303a');
-  ground.addColorStop(1, '#0c1a26');
+  ground.addColorStop(0, '#1b2748');
+  ground.addColorStop(1, '#0b1226');
   g.fillStyle = ground;
   g.fillRect(0, 96, W, 304);
+
+  // Slab: the court is a raised block. Front and side faces first.
+  const T = -0.45;
+  const slabFront = [P(-5, 20, 0), P(5, 20, 0), P(5, 20, T), P(-5, 20, T)];
+  const front = g.createLinearGradient(0, slabFront[0].y, 0, slabFront[3].y);
+  front.addColorStop(0, '#1d4f9a');
+  front.addColorStop(1, '#0d2757');
+  g.fillStyle = front;
+  poly(g, slabFront);
+  g.fill();
+  for (const sg of [-1, 1]) {
+    g.fillStyle = sg < 0 ? '#163f7e' : '#112f63';
+    poly(g, [P(sg * 5, 0, 0), P(sg * 5, 20, 0), P(sg * 5, 20, T), P(sg * 5, 0, T)]);
+    g.fill();
+  }
+  // Contact shadow under the slab
+  const sh = P(0, 20, T);
+  const under = g.createRadialGradient(sh.x, sh.y + 3, 10, sh.x, sh.y + 3, 230);
+  under.addColorStop(0, 'rgba(0,0,10,0.55)');
+  under.addColorStop(1, 'rgba(0,0,10,0)');
+  g.fillStyle = under;
+  g.fillRect(0, sh.y - 6, W, 60);
 
   const floor = [P(-5, 0), P(5, 0), P(5, 20), P(-5, 20)];
   const far = floor[0].y;
   const near = floor[3].y;
   const body = g.createLinearGradient(0, far, 0, near);
-  body.addColorStop(0, '#4585ea');
-  body.addColorStop(1, '#2457b4');
+  body.addColorStop(0, '#4f93f2');
+  body.addColorStop(1, '#2a62c4');
   g.fillStyle = body;
   poly(g, floor);
   g.fill();
@@ -120,45 +125,81 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   g.save();
   poly(g, floor);
   g.clip();
-  // Cut-turf stripes
-  g.fillStyle = 'rgba(255,255,255,0.05)';
+  // Soft stripes (mowing pattern)
+  g.fillStyle = 'rgba(255,255,255,0.045)';
   for (let z = 0; z < 20; z += 4) {
     poly(g, [P(-5, z), P(5, z), P(5, z + 2), P(-5, z + 2)]);
     g.fill();
   }
-  // Turf grain
-  for (let i = 0; i < 2600; i++) {
-    const p = P(rnd() * 10 - 5, rnd() * 20);
-    g.fillStyle = rnd() < 0.5 ? 'rgba(0,10,40,0.09)' : 'rgba(255,255,255,0.06)';
-    g.fillRect(p.x, p.y, 0.9, 0.6);
+  // Ambient occlusion: the floor darkens where it meets the walls
+  const ao = (a: Projected, b: Projected, dx: number, dy: number): void => {
+    const gr = g.createLinearGradient(a.x, a.y, a.x + dx, a.y + dy);
+    gr.addColorStop(0, 'rgba(0,8,40,0.38)');
+    gr.addColorStop(1, 'rgba(0,8,40,0)');
+    g.fillStyle = gr;
+    g.fillRect(Math.min(a.x, b.x) - 40, far - 4, Math.abs(b.x - a.x) + 80, near - far + 8);
+  };
+  ao(P(-5, 10), P(-5, 10), 34, 0);
+  ao(P(5, 10), P(5, 10), -34, 0);
+  const aoBack = g.createLinearGradient(0, far, 0, far + 26);
+  aoBack.addColorStop(0, 'rgba(0,8,40,0.4)');
+  aoBack.addColorStop(1, 'rgba(0,8,40,0)');
+  g.fillStyle = aoBack;
+  g.fillRect(0, far, W, 30);
+  // Cast shadows of the side glass panels (long soft parallelograms)
+  g.fillStyle = 'rgba(0,10,50,0.14)';
+  for (const sg of [-1, 1]) {
+    poly(g, [P(sg * 5, 0), P(sg * 5, 20), P(sg * 4.1, 20), P(sg * 4.1, 0)]);
+    g.fill();
   }
-  // Light pool under the stadium lights
+  // Specular sheen: a broad diagonal highlight on the glossy surface
+  const sheen = g.createLinearGradient(40, far, W - 40, near);
+  sheen.addColorStop(0, 'rgba(255,255,255,0)');
+  sheen.addColorStop(0.42, 'rgba(255,255,255,0.0)');
+  sheen.addColorStop(0.5, 'rgba(255,255,255,0.13)');
+  sheen.addColorStop(0.58, 'rgba(255,255,255,0)');
+  g.fillStyle = sheen;
+  g.fillRect(0, far, W, near - far);
+  // Light pool
   const c = P(0, 10);
   const pool = g.createRadialGradient(c.x, c.y, 8, c.x, c.y + 20, 230);
-  pool.addColorStop(0, 'rgba(255,255,255,0.20)');
+  pool.addColorStop(0, 'rgba(255,245,225,0.24)');
   pool.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = pool;
   g.fillRect(0, far, W, near - far);
-  // Net shadow
-  g.fillStyle = 'rgba(0,10,40,0.28)';
-  poly(g, [P(-5, NET_Z), P(5, NET_Z), P(5, NET_Z - 0.9), P(-5, NET_Z - 0.9)]);
-  g.fill();
+  // Net shadow, soft
+  const ns = P(0, NET_Z - 0.4);
+  const nsg = g.createLinearGradient(0, ns.y - 7, 0, ns.y + 7);
+  nsg.addColorStop(0, 'rgba(0,10,50,0)');
+  nsg.addColorStop(0.5, 'rgba(0,10,50,0.34)');
+  nsg.addColorStop(1, 'rgba(0,10,50,0)');
+  g.fillStyle = nsg;
+  g.fillRect(0, ns.y - 7, W, 14);
+  for (let i = 0; i < 900; i++) {
+    const q = P(rnd() * 10 - 5, rnd() * 20);
+    g.fillStyle = 'rgba(255,255,255,0.05)';
+    g.fillRect(q.x, q.y, 0.8, 0.5);
+  }
   g.restore();
 
-  // Court lines with a soft glow
+  // Court lines: painted on, slightly raised (soft shadow below, highlight above)
   g.save();
-  g.strokeStyle = 'rgba(255,255,255,0.96)';
-  g.lineWidth = 1.7;
-  g.shadowColor = 'rgba(255,255,255,0.7)';
-  g.shadowBlur = 3;
   g.lineCap = 'round';
-  line(g, P(-5, 0), P(5, 0));
-  line(g, P(-5, 20), P(5, 20));
-  line(g, P(-5, 0), P(-5, 20));
-  line(g, P(5, 0), P(5, 20));
-  line(g, P(-5, 3.05), P(5, 3.05));
-  line(g, P(-5, 16.95), P(5, 16.95));
-  line(g, P(0, 3.05), P(0, 16.95));
+  const lines: Array<[Projected, Projected]> = [
+    [P(-5, 0), P(5, 0)],
+    [P(-5, 20), P(5, 20)],
+    [P(-5, 0), P(-5, 20)],
+    [P(5, 0), P(5, 20)],
+    [P(-5, 3.05), P(5, 3.05)],
+    [P(-5, 16.95), P(5, 16.95)],
+    [P(0, 3.05), P(0, 16.95)],
+  ];
+  g.strokeStyle = 'rgba(0,12,50,0.35)';
+  g.lineWidth = 2.4;
+  for (const [a, b] of lines) line(g, { x: a.x, y: a.y + 1 }, { x: b.x, y: b.y + 1 });
+  g.strokeStyle = '#fbfdff';
+  g.lineWidth = 1.7;
+  for (const [a, b] of lines) line(g, a, b);
   g.restore();
 }
 
@@ -170,7 +211,6 @@ function bounds(pts: Array<{ x: number; y: number }>): { x: number; y: number; w
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
 }
 
-/** A pane of glass: tinted, with reflections, panel joints and steel rails. */
 function glassBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: number, step: number, seed: number): void {
   const q = [at(u0, h0), at(u1, h0), at(u1, h1), at(u0, h1)];
   const bb = bounds(q);
@@ -178,88 +218,126 @@ function glassBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: numbe
   poly(g, q);
   g.clip();
   const tint = g.createLinearGradient(0, bb.y, 0, bb.y + bb.h);
-  tint.addColorStop(0, 'rgba(200,236,255,0.20)');
-  tint.addColorStop(1, 'rgba(110,175,240,0.08)');
+  tint.addColorStop(0, 'rgba(190,235,255,0.30)');
+  tint.addColorStop(0.7, 'rgba(120,190,255,0.12)');
+  tint.addColorStop(1, 'rgba(60,130,230,0.2)');
   g.fillStyle = tint;
   g.fillRect(bb.x, bb.y, bb.w, bb.h);
-  // Diagonal reflections
+  // Strong specular streaks
   const rnd = makeRng(seed);
   for (let k = 0; k < 3; k++) {
-    const x0 = bb.x + (0.1 + 0.3 * k + rnd() * 0.15) * bb.w;
-    const wd = bb.w * (0.04 + rnd() * 0.05);
-    g.fillStyle = `rgba(255,255,255,${0.07 + rnd() * 0.06})`;
+    const x0 = bb.x + (0.08 + 0.32 * k + rnd() * 0.12) * bb.w;
+    const wd = bb.w * (0.05 + rnd() * 0.07);
+    const sg = g.createLinearGradient(x0, bb.y, x0 + wd, bb.y);
+    sg.addColorStop(0, 'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, `rgba(255,255,255,${0.22 + rnd() * 0.12})`);
+    sg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = sg;
     g.beginPath();
     g.moveTo(x0, bb.y);
     g.lineTo(x0 + wd, bb.y);
-    g.lineTo(x0 + wd - bb.h * 0.5, bb.y + bb.h);
-    g.lineTo(x0 - bb.h * 0.5, bb.y + bb.h);
+    g.lineTo(x0 + wd - bb.h * 0.55, bb.y + bb.h);
+    g.lineTo(x0 - bb.h * 0.55, bb.y + bb.h);
     g.closePath();
     g.fill();
   }
+  // Bottom glow where the glass meets the lit floor
+  const low = g.createLinearGradient(0, bb.y + bb.h * 0.75, 0, bb.y + bb.h);
+  low.addColorStop(0, 'rgba(120,200,255,0)');
+  low.addColorStop(1, 'rgba(120,200,255,0.22)');
+  g.fillStyle = low;
+  g.fillRect(bb.x, bb.y + bb.h * 0.75, bb.w, bb.h * 0.25);
   g.restore();
-  // Panel joints
+  // Panel edges with thickness: dark inner line, bright edge highlight
   for (let u = u0; u <= u1 + 1e-6; u += step) {
-    g.strokeStyle = 'rgba(15,35,80,0.6)';
-    g.lineWidth = 1.5;
-    line(g, at(u, h0), at(u, h1));
-    g.strokeStyle = 'rgba(235,248,255,0.5)';
-    g.lineWidth = 0.7;
     const a = at(u, h0);
     const b = at(u, h1);
-    line(g, { x: a.x + 0.9, y: a.y }, { x: b.x + 0.9, y: b.y });
+    g.strokeStyle = 'rgba(10,30,80,0.55)';
+    g.lineWidth = 2;
+    line(g, a, b);
+    g.strokeStyle = 'rgba(240,250,255,0.85)';
+    g.lineWidth = 0.9;
+    line(g, { x: a.x + 1.1, y: a.y }, { x: b.x + 1.1, y: b.y });
   }
-  // Steel rails top and bottom
-  g.strokeStyle = '#aab6cc';
-  g.lineWidth = 1.8;
+  // Metal frame (top rail with a lit upper edge)
+  g.strokeStyle = '#7e8aa6';
+  g.lineWidth = 3;
   line(g, at(u0, h1), at(u1, h1));
-  g.strokeStyle = 'rgba(20,30,60,0.7)';
+  g.strokeStyle = 'rgba(245,250,255,0.9)';
+  g.lineWidth = 1;
+  const t0 = at(u0, h1);
+  const t1 = at(u1, h1);
+  line(g, { x: t0.x, y: t0.y - 1 }, { x: t1.x, y: t1.y - 1 });
+  g.strokeStyle = 'rgba(15,25,60,0.8)';
+  g.lineWidth = 1.8;
   line(g, at(u0, h0), at(u1, h0));
 }
 
-/** Wire mesh: a dark backing, a fine bright grid and a top rail. */
 function meshBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: number): void {
   const q = [at(u0, h0), at(u1, h0), at(u1, h1), at(u0, h1)];
-  g.fillStyle = 'rgba(6,10,28,0.38)';
+  g.fillStyle = 'rgba(8,14,40,0.3)';
   poly(g, q);
   g.fill();
-  g.strokeStyle = 'rgba(205,216,238,0.55)';
-  g.lineWidth = 0.55;
-  const step = 0.25;
+  g.strokeStyle = 'rgba(215,226,246,0.5)';
+  g.lineWidth = 0.5;
+  const step = 0.22;
   for (let u = u0; u <= u1 + 1e-6; u += step) line(g, at(u, h0), at(u, h1));
   for (let h = h0; h <= h1 + 1e-6; h += step) line(g, at(u0, h), at(u1, h));
-  g.strokeStyle = '#8f9ab2';
-  g.lineWidth = 2.2;
+  g.strokeStyle = '#7e8aa6';
+  g.lineWidth = 2.6;
   line(g, at(u0, h1), at(u1, h1));
   line(g, at(u0, h0), at(u1, h0));
+  g.strokeStyle = 'rgba(245,250,255,0.8)';
+  g.lineWidth = 0.8;
+  const a = at(u0, h1);
+  const b = at(u1, h1);
+  line(g, { x: a.x, y: a.y - 1 }, { x: b.x, y: b.y - 1 });
 }
 
 function post(g: Ctx, at: At, u: number, h1: number): void {
   const a = at(u, 0);
   const b = at(u, h1);
-  g.strokeStyle = '#6f7a94';
-  g.lineWidth = 2.6;
+  // A steel cylinder: dark edge, mid body, light stripe, shadow on the floor
+  g.strokeStyle = 'rgba(0,10,40,0.3)';
+  g.lineWidth = 4;
+  line(g, { x: a.x + 1.2, y: a.y + 0.6 }, { x: a.x + 5, y: a.y + 1.4 });
+  g.lineCap = 'round';
+  g.strokeStyle = '#4b546e';
+  g.lineWidth = 3.4;
   line(g, a, b);
-  g.strokeStyle = 'rgba(225,232,248,0.75)';
-  g.lineWidth = 0.9;
-  line(g, { x: a.x - 0.6, y: a.y }, { x: b.x - 0.6, y: b.y });
+  g.strokeStyle = '#9aa6c0';
+  g.lineWidth = 2;
+  line(g, { x: a.x - 0.3, y: a.y }, { x: b.x - 0.3, y: b.y });
+  g.strokeStyle = '#f2f6ff';
+  g.lineWidth = 0.8;
+  line(g, { x: a.x - 0.8, y: a.y }, { x: b.x - 0.8, y: b.y });
+  g.lineCap = 'butt';
 }
 
 function drawAds(g: Ctx): void {
   const P = project;
   const strip = [P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.55), P(-5, 0, 0.55)];
   const grad = g.createLinearGradient(0, strip[3].y, 0, strip[0].y);
-  grad.addColorStop(0, '#173a8f');
-  grad.addColorStop(1, '#0c2258');
+  grad.addColorStop(0, '#1f55c4');
+  grad.addColorStop(0.5, '#173f98');
+  grad.addColorStop(1, '#0b2160');
   g.fillStyle = grad;
   poly(g, strip);
   g.fill();
+  // Glossy LED board: bright top edge and a soft highlight
+  g.fillStyle = 'rgba(255,255,255,0.16)';
+  g.fillRect(strip[0].x, strip[3].y, strip[1].x - strip[0].x, (strip[0].y - strip[3].y) * 0.4);
+  g.fillStyle = 'rgba(255,255,255,0.7)';
+  g.fillRect(strip[0].x, strip[3].y, strip[1].x - strip[0].x, 0.9);
   const base = P(0, 0, 0.27);
-  g.fillStyle = '#ffe066';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.font = `italic 800 ${Math.round(base.scale * 0.34)}px "Trebuchet MS", "Segoe UI", Arial, sans-serif`;
   for (const x of [-3.3, 0, 3.3]) {
     const p = P(x, 0, 0.27);
+    g.fillStyle = 'rgba(0,0,30,0.6)';
+    g.fillText('PADEL CHAMP 26', p.x + 0.7, p.y + 1);
+    g.fillStyle = '#ffe066';
     g.fillText('PADEL CHAMP 26', p.x, p.y);
   }
 }
@@ -332,9 +410,9 @@ function drawNearWall(g: Ctx): void {
 }
 
 function drawVignette(g: Ctx): void {
-  const v = g.createRadialGradient(W / 2, 250, 120, W / 2, 250, 420);
+  const v = g.createRadialGradient(W / 2, 250, 130, W / 2, 250, 430);
   v.addColorStop(0, 'rgba(0,0,10,0)');
-  v.addColorStop(1, 'rgba(0,0,10,0.5)');
+  v.addColorStop(1, 'rgba(0,0,10,0.55)');
   g.fillStyle = v;
   g.fillRect(0, 0, W, 400);
 }
