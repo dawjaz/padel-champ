@@ -28,6 +28,8 @@ describe('buildFlight: general', () => {
   });
 
   it('keeps the ball inside the court, above the floor, and clear of the net, for every shot and outcome', () => {
+    // Violations are collected and checked once: an expect() per sample would make this test very slow.
+    const problems: string[] = [];
     for (const s of SHOTS) {
       for (const outcome of OUTCOMES) {
         for (const hitterSide of [0, 1] as const) {
@@ -37,19 +39,21 @@ describe('buildFlight: general', () => {
               const f = buildFlight({ from, startH: 1, hitterSide, shot: s, landX: -hx, outcome, receive });
               const label = `${s.id}/${outcome}/${hitterSide}/${receive}/${hx}`;
               for (const p of f.path) {
-                expect(Math.abs(p.x), label).toBeLessThanOrEqual(5.0001);
-                expect(p.z, label).toBeGreaterThanOrEqual(-1e-6);
-                expect(p.z, label).toBeLessThanOrEqual(20.0001);
-                expect(p.h, label).toBeGreaterThanOrEqual(-1e-9);
-                expect(Number.isFinite(p.x + p.z + p.h), label).toBe(true);
+                const ok =
+                  Math.abs(p.x) <= 5.0001 && p.z >= -1e-6 && p.z <= 20.0001 && p.h >= -1e-9 && Number.isFinite(p.x + p.z + p.h);
+                if (!ok) {
+                  problems.push(`${label}: out of bounds at ${JSON.stringify(p)}`);
+                  break;
+                }
               }
-              if (!NO_PLAY.includes(outcome)) {
-                // On the receiving half, and over the net
-                expect(hitterSide === 0 ? f.hit.z < 10 : f.hit.z > 10, label).toBe(true);
-                for (let i = 1; i < f.path.length; i++) {
-                  const a = f.path[i - 1];
-                  const b = f.path[i];
-                  if ((a.z - 10) * (b.z - 10) < 0) expect(Math.min(a.h, b.h), label).toBeGreaterThan(0.92);
+              if (NO_PLAY.includes(outcome)) continue;
+              if (!(hitterSide === 0 ? f.hit.z < 10 : f.hit.z > 10)) problems.push(`${label}: hit on the wrong half`);
+              for (let i = 1; i < f.path.length; i++) {
+                const a = f.path[i - 1];
+                const b = f.path[i];
+                if ((a.z - 10) * (b.z - 10) < 0 && Math.min(a.h, b.h) <= 0.92) {
+                  problems.push(`${label}: hits the net`);
+                  break;
                 }
               }
             }
@@ -57,7 +61,8 @@ describe('buildFlight: general', () => {
         }
       }
     }
-  });
+    expect(problems).toEqual([]);
+  }, 30000);
 
   it('dies in the net on a fault or an error', () => {
     for (const outcome of NO_PLAY) {
