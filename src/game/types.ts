@@ -144,6 +144,11 @@ export interface ShotDef {
   menuLabel?: string;
   /** Relative weights of how a mistake with this shot ends (default: net 0.6, glass 0.25, mesh 0.15). */
   errorKinds?: ErrorKinds;
+  /**
+   * The ball comes off the opponent's back glass after this shot (the bajada): the defender can still run it down. Speed counts for
+   * more than usual and so does where he stands (at the back he is well placed, at the net he has no chance).
+   */
+  reboundChase?: boolean;
   /** A defender at the net blocks this shot out of the air (it does not bounce, he does not let it go). */
   blockAtNet?: boolean;
   /** Half-range of the random landing depths around `landDepth` in metres (default 1.5). */

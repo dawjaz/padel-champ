@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.15)_
+_Last updated: 2026-11-19 (v0.16)_
+
+## v0.16: bajada can be run down, smaller characters
+- **Bajada rebound** (`ShotDef.reboundChase`): the defender's rating counts speed more (4 defence + 8 speed) and his position
+  (`REBOUND_POSITION`: back 1.25, mid 1.0, net 0.75). A fast player at the back can return a bajada; a player at the net hardly can.
+- Characters shrunk from 2.0 to 1.75 m on screen (`VISUAL_HEIGHT_M` in MatchScene): the scale was physically right for a 10x20 m court,
+  but the comic big head and the wide racket sprite made players fill too much of it. Change the constant to taste.
+- Checked: vibora and bandeja are never offered after the back glass (`requires.glass: false`) and a flight with `glass: false` never touches
+  the back glass before the hit (swept over 1,680 random flights).
 
 ## v0.15: ball height banner, lob/net rules, rulo stays in court, sound samples
 - **Height banner**: big HIGH (green) / MID (blue) / LOW (yellow) BALL text in the lower court while the human chooses a shot.

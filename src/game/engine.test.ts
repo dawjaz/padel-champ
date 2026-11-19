@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DIRECTIONS, SHOTS, shotsOfKind } from './catalog';
 import {
   ACE_MARGIN,
+  DEFENSE_SCALE,
   defenseRating,
   errorChance,
   faultChance,
@@ -223,5 +224,26 @@ describe('shot data', () => {
 
   it('gives every serve a landing spot', () => {
     for (const s of shotsOfKind('serve')) expect(s.landX, s.id).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('running down a bajada', () => {
+  const runner = (speed: number, defense: number): PlayerDef => player({ speed, defense });
+  const bajada = SHOTS.find((x) => x.id === 'bajada_fast')!;
+  const dir = DIRECTIONS.cross;
+
+  it('rates a fast defender at the back higher than a slow one, and than anyone at the net', () => {
+    const fastBack = defenseRating(runner(9, 5), dir, 'back');
+    const slowBack = defenseRating(runner(3, 5), dir, 'back');
+    const fastNet = defenseRating(runner(9, 5), dir, 'net');
+    expect(fastBack).toBeGreaterThan(slowBack);
+    expect(fastBack).toBeGreaterThan(fastNet);
+    expect(defenseRating(runner(9, 5), dir, 'mid')).toBeGreaterThan(fastNet);
+  });
+
+  it('leaves speed worth more than defence for the bajada, and the normal rating untouched', () => {
+    expect(defenseRating(runner(9, 3), dir, 'mid')).toBeGreaterThan(defenseRating(runner(3, 9), dir, 'mid'));
+    expect(defenseRating(runner(5, 5), dir)).toBe((5 * 7 + 5 * 3) * DEFENSE_SCALE);
+    expect(bajada.reboundChase).toBe(true);
   });
 });

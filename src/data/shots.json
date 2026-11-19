@@ -591,7 +591,8 @@
       "net": 0.5,
       "glass": 0.5,
       "mesh": 0
-    }
+    },
+    "reboundChase": true
   },
   {
     "id": "bajada_slow",
@@ -634,7 +635,8 @@
       "low": 0.85,
       "mid": 0.15,
       "high": 0
-    }
+    },
+    "reboundChase": true
   },
   {
     "id": "rally_chiquita",

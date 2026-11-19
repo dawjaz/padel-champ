@@ -1,4 +1,4 @@
-import type { BallState, DirectionDef, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
+import type { BallState, DirectionDef, Formation, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 /** Default score lead needed to win the point outright (a shot can override it). */
 export const WINNER_MARGIN = 24;
@@ -36,8 +36,14 @@ export const BOUNCE_PRESSURE_RELIEF = 0.5;
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
 /** How well a player defends a ball. Middle balls confuse the receiver (direction.hesitation < 1). */
-export function defenseRating(defender: PlayerDef, direction: DirectionDef): number {
-  const base = (defender.stats.defense * 7 + defender.stats.speed * 3) * DEFENSE_SCALE;
+/** How well placed a defender is to run down a ball that comes off the back glass. */
+export const REBOUND_POSITION: Record<Formation, number> = { back: 1.25, mid: 1.0, net: 0.75 };
+
+export function defenseRating(defender: PlayerDef, direction: DirectionDef, chase?: Formation): number {
+  // After a bajada the ball rebounds off the back glass: a fast player who stands well can still get to it.
+  const weights = chase ? { defense: 4, speed: 8 } : { defense: 7, speed: 3 };
+  const place = chase ? REBOUND_POSITION[chase] : 1;
+  const base = (defender.stats.defense * weights.defense + defender.stats.speed * weights.speed) * DEFENSE_SCALE * place;
   return direction.id === 'middle' ? base * direction.hesitation : base;
 }
 
@@ -60,6 +66,8 @@ export interface HitInput {
   direction: DirectionDef;
   incoming: BallState;
   defender: PlayerDef;
+  /** Where the defender's team stands (only matters for shots with `reboundChase`). */
+  defenderFormation?: Formation;
   /** Hits so far in this rally, not counting the serve. */
   rallyLength: number;
   rng: Rng;
@@ -95,7 +103,8 @@ export function resolveHit(i: HitInput): HitResult {
     i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (1 - i.incoming.pressure) +
     i.rng() * RANDOM_SPREAD;
   if (tired) attackScore *= TIRED_FACTOR;
-  const defenseScore = defenseRating(i.defender, i.direction) + i.rng() * RANDOM_SPREAD;
+  const defenseScore =
+    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined) + i.rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;

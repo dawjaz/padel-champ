@@ -41,7 +41,7 @@ const SIDE_NAME = ['YOU', 'CPU'] as const;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
-const VISUAL_HEIGHT_M = 2.0;
+const VISUAL_HEIGHT_M = 1.75;
 
 type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
 

@@ -308,6 +308,7 @@ export function stepHit(
     direction: DIRECTIONS[direction],
     incoming: state.ball,
     defender,
+    defenderFormation: state.formation[defSide],
     rallyLength: state.hits,
     rng,
   });
