@@ -60,7 +60,7 @@ automatically from their stats.
   (30% of lobs; the other 70% are deep) that did not come off the glass. *Por Tres*: hard into the back glass, with spin it
   kicks towards the side glass/mesh; a skilled hit leaves over the fence (winner). *Por Cuatro*: hard into the court; a winner
   flies over the back glass, otherwise it comes back off the glass or the mesh.
-- **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** is possible. Low: only Lob (risky),
+- **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** (High Speed or Low Speed) is possible. Low: only Lob (risky),
   Flat shot or Chiquita.
 - **Vibora** and **Bandeja**: a high ball (or lob) falling to mid or back court, not after the glass. **Volley**: only if the ball
   has not come off the back glass.

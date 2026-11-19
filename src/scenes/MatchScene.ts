@@ -93,6 +93,7 @@ export class MatchScene extends Phaser.Scene {
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
   private ballH = HIT_HEIGHT_M;
   private coastTween: Phaser.Tweens.Tween | null = null;
+  private coastRunning = false;
   /** Orientation and angular velocity of the ball, and when it was last turned (scene clock, ms). */
   private ballR: Mat3 = IDENTITY;
   private ballOmega: Vec3 = [0, 0, 0];
@@ -548,10 +549,18 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
-      this.stopCoast();
-      this.ballH = HIT_HEIGHT_M;
-      this.setBall(setup.server.x, setup.server.z, this.ballH, false);
-      this.serveTurn();
+      // The ball of the last point is never stopped: it is put down for the serve only when it has finished rolling.
+      const place = (): void => {
+        if (this.coastRunning) {
+          this.time.delayedCall(80, place);
+          return;
+        }
+        this.stopCoast();
+        this.ballH = HIT_HEIGHT_M;
+        this.setBall(setup.server.x, setup.server.z, this.ballH, false);
+        this.serveTurn();
+      };
+      place();
     });
   }
 
@@ -633,7 +642,10 @@ export class MatchScene extends Phaser.Scene {
     const kind = st.hits === 0 ? 'return' : 'rally';
     const context = st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : st.ball.lob === 'deep' ? ', deep lob' : '';
     const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()}${context})`;
-    const label = (sh: ShotDef): string => `${sh.name}\n[${sh.cost}]${this.guts[hitter.id] < sh.cost ? ' tired' : ''}`;
+    const label = (sh: ShotDef): string => {
+      const tired = this.guts[hitter.id] < sh.cost ? ' tired' : '';
+      return sh.menuLabel ? `${sh.menuLabel} [${sh.cost}]${tired}` : `${sh.name}\n[${sh.cost}]${tired}`;
+    };
     // Only the shots that can be played now are offered.
     const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => ({
       label: label(sh),
@@ -698,6 +710,7 @@ export class MatchScene extends Phaser.Scene {
       arrival: step.arrival,
       landDepth: step.landDepth,
       block: step.block,
+      errorKind: step.errorKind,
       airHit: step.lob === 'weak',
     });
     const duration = flightDuration(flight);
@@ -775,7 +788,7 @@ export class MatchScene extends Phaser.Scene {
         this.drawTrail();
         this.ballH = flight.hitH;
         // When the point is over the ball is not stopped: it falls, bounces and rolls on.
-        const over = ['winner', 'ace', 'error', 'double-fault'].includes(step.outcome);
+        const over = ['winner', 'ace', 'error', 'double-fault', 'fault'].includes(step.outcome);
         const coast = over ? this.playCoast(flight, step.shot.flight.spin) : { ms: 0, end: null };
         // A defender who has lost the point still runs after the ball until it has stopped.
         if (coast.end && (step.outcome === 'winner' || step.outcome === 'ace')) this.chaseBall(defender.id, other(step.side), coast.end, coast.ms);
@@ -788,7 +801,8 @@ export class MatchScene extends Phaser.Scene {
   private playCoast(flight: Flight, spin: number): { ms: number; end: CourtPos | null } {
     const coast = buildCoast(flight, spin);
     if (coast.duration <= 0) return { ms: 0, end: null };
-    const ms = Math.min(2600, coast.duration * TIME_SCALE * 1000);
+    const ms = Math.min(3400, coast.duration * TIME_SCALE * 1000);
+    this.coastRunning = true;
     for (const e of coast.events) {
       this.time.delayedCall((e.t / coast.duration) * ms, () => this.impactFx(e, coast.path));
     }
@@ -800,6 +814,9 @@ export class MatchScene extends Phaser.Scene {
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const p = ballPoint(asFlight.path, tween.getValue() ?? 0);
         this.setBall(p.x, p.z, p.h);
+      },
+      onComplete: () => {
+        this.coastRunning = false;
       },
     });
     const last = coast.path[coast.path.length - 1];
@@ -818,9 +835,17 @@ export class MatchScene extends Phaser.Scene {
     this.movePlayers({ [id]: target }, Math.max(300, ms));
   }
 
+  /** What happened to a lost ball, for the log. */
+  private errorText(step: Step): string {
+    if (step.errorKind === 'glass') return 'sends it into the back glass without a bounce: out';
+    if (step.errorKind === 'mesh') return 'sends it into the fence above the glass: out';
+    return 'hits the net';
+  }
+
   private stopCoast(): void {
     this.coastTween?.stop();
     this.coastTween = null;
+    this.coastRunning = false;
   }
 
   private afterStep(step: Step, next: PointState, headline: string, coastMs = 0): void {
@@ -828,7 +853,7 @@ export class MatchScene extends Phaser.Scene {
     const defender = TEAMS[other(step.side)][step.defenderIdx];
     this.point = next;
 
-    const endPoint = (text: string, delay = Math.max(POINT_PAUSE + 500, coastMs + 350)): void => {
+    const endPoint = (text: string, delay = Math.max(POINT_PAUSE + 500, Math.min(coastMs + 350, 2200))): void => {
       this.say(`${headline}\n${text}`);
       const banner: Partial<Record<string, [string, string]>> = {
         'double-fault': ['DOUBLE FAULT', '#ff9a6a'],
@@ -841,7 +866,10 @@ export class MatchScene extends Phaser.Scene {
       const how: Partial<Record<string, string>> = {
         ace: step.shot.name,
         winner: step.shot.name,
-        error: step.shot.wall === 'fence' ? `${step.shot.name} into the fence` : `${step.shot.name} into the net`,
+        error:
+          step.shot.wall === 'fence'
+            ? `${step.shot.name} into the fence`
+            : `${step.shot.name}: ${step.errorKind === 'glass' ? 'out, back glass' : step.errorKind === 'mesh' ? 'out, fence' : 'net'}`,
       };
       if (b) this.announce(b[0], b[1], how[step.outcome]);
       if (step.outcome === 'ace' || step.outcome === 'winner') {
@@ -853,7 +881,7 @@ export class MatchScene extends Phaser.Scene {
 
     switch (step.outcome) {
       case 'fault':
-        this.say(`${headline}\nFAULT! Second serve.`);
+        this.say(`${headline}\nFAULT (${step.errorKind === 'glass' ? 'into the back glass' : step.errorKind === 'mesh' ? 'into the fence' : 'net'})! Second serve.`);
         this.announce('FAULT', '#ff9a6a');
         this.time.delayedCall(FAULT_PAUSE, () => this.serveTurn());
         break;
@@ -878,7 +906,7 @@ export class MatchScene extends Phaser.Scene {
         endPoint(
           step.shot.wall === 'fence'
             ? `${attacker.name} mishits the rulo straight into the fence. Error!`
-            : `${attacker.name} hits the net. Error!`,
+            : `${attacker.name} ${this.errorText(step)}. Error!`,
         );
         break;
       case 'intercept':

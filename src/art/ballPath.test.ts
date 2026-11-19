@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SHOTS } from '../game/catalog';
 import { landingX } from '../game/court';
 import type { ShotDef } from '../game/types';
-import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, type FlightOutcome } from './ballPath';
+import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'intercept', 'continue'];
@@ -350,5 +350,50 @@ describe('serve to the side glass', () => {
       expect(walls.length, id).toBeGreaterThan(0);
       for (const w of walls) expect(w.z > 0.05 && w.z < 19.95, `${id} back wall`).toBe(true);
     }
+  });
+});
+
+describe('Magnus effect and lost balls', () => {
+  it('pulls a topspin ball down faster and lets a backspin ball float', () => {
+    expect(magnus(shot('smash_x3'), 0, -1).g).toBeGreaterThan(GRAVITY + 2);
+    expect(magnus(shot('rulo'), 0, -1).g).toBeGreaterThan(GRAVITY + 2);
+    expect(magnus(shot('bandeja'), 0, -1).g).toBeLessThan(GRAVITY - 2);
+    expect(magnus(shot('bajada_slow'), 0, -1).g).toBeLessThan(GRAVITY - 2);
+  });
+
+  it('bends the flight sideways with side spin, the other way for the other direction of travel', () => {
+    const away = magnus(shot('vibora'), 0, -1);
+    const toward = magnus(shot('vibora'), 0, 1);
+    expect(Math.abs(away.lx)).toBeGreaterThan(1);
+    expect(Math.sign(away.lx)).toBe(-Math.sign(toward.lx));
+  });
+
+  it('a topspin shot comes down steeper than the same ball without spin', () => {
+    const top = shot('smash_x4');
+    const plain = { ...top, flight: { ...top.flight, spin: 0, side: 0 } };
+    const mk = (s: ShotDef) => buildFlight({ from: { x: -2.5, z: 17.5 }, startH: 1.8, hitterSide: 0, shot: s, landX: 1, outcome: 'continue' });
+    const a = mk(top);
+    const b = mk(plain);
+    // the angle at which it arrives at the floor
+    const angle = (f: ReturnType<typeof mk>) => {
+      const t = f.events.find((e) => e.kind === 'bounce')!.t;
+      const p1 = ballPoint(f.path, (t - 0.04) / f.duration);
+      const p2 = ballPoint(f.path, t / f.duration);
+      return p1.h - p2.h < 0 ? 0 : (p1.h - p2.h) / Math.hypot(p1.x - p2.x, p1.z - p2.z);
+    };
+    expect(angle(a)).toBeGreaterThan(angle(b));
+  });
+
+  it('ends a lost ball in the back glass (out) or in the mesh above it, without a bounce', () => {
+    const g = fly('bajada_fast', { outcome: 'error', errorKind: 'glass' });
+    const end = g.path[g.path.length - 1];
+    expect(end.z).toBeLessThan(0.1);
+    expect(end.h).toBeGreaterThan(1.3);
+    expect(end.h).toBeLessThan(3);
+    expect(g.events.some((e) => e.kind === 'bounce' || e.kind === 'net')).toBe(false);
+    const m = fly('rally_lob', { outcome: 'error', errorKind: 'mesh' });
+    expect(m.path[m.path.length - 1].h).toBeGreaterThan(3.1);
+    const c = buildCoast(g, 0.6);
+    expect(c.events.some((e) => e.kind === 'glass')).toBe(true);
   });
 });

@@ -89,6 +89,10 @@ export interface ShotRequires {
 /** Where the ball comes down on the hitter's half: close to the net, in the middle of the court, or deep by the back glass. */
 export type Zone = 'net' | 'mid' | 'back';
 
+/** How a lost ball ends: into the net, flying into the back glass without a bounce (out), or into the mesh above the glass (out). */
+export type ErrorKind = 'net' | 'glass' | 'mesh';
+export type ErrorKinds = Record<ErrorKind, number>;
+
 /** Quality of a lob: deep into the court, or weak (lands mid-court or close to the net). */
 export type LobQuality = 'deep' | 'weak';
 
@@ -134,6 +138,10 @@ export interface ShotDef {
   /** Lobs only: where a weak lob lands, in metres from the net (min, max). */
   weakDepth?: [number, number];
   /** Extra error chance when this shot is played off a low ball that has come off the glass (the lob is risky there). */
+  /** Text of the menu button when the name does not fit (a line break is allowed). The cost is added. */
+  menuLabel?: string;
+  /** Relative weights of how a mistake with this shot ends (default: net 0.6, glass 0.25, mesh 0.15). */
+  errorKinds?: ErrorKinds;
   /** A defender at the net blocks this shot out of the air (it does not bounce, he does not let it go). */
   blockAtNet?: boolean;
   /** Half-range of the random landing depths around `landDepth` in metres (default 1.5). */

@@ -3,7 +3,7 @@ import playersData from '../data/players.json';
 import { pickHit, pickReceive, pickServe } from './ai';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
-import { nextFormation, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
+import { nextFormation, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
 import { aimDepth, aimX } from './court';
 import { fixedRng, seededRng } from './rng';
 import type { Formation, PlayerDef, ShotDef } from './types';
@@ -119,7 +119,7 @@ describe('stepHit', () => {
   });
 
   it('passes the ball on after a continued rally and updates the formation', () => {
-    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.9, 0.5, 0.5]));
+    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.5, 0.99, 0.5, 0.5, 0.9, 0.5, 0.5]));
     expect(r.step.outcome).toBe('continue');
     expect(r.state.status).toBe('rally');
     expect(r.state.holder).toBe(1);
@@ -132,7 +132,7 @@ describe('stepHit', () => {
   });
 
   it('plays a good lob (70%) deep and sends the opponents back', () => {
-    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.1, 0.5, 0.5]));
+    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.5, 0.99, 0.5, 0.5, 0.1, 0.5, 0.5]));
     expect(r.state.ball.lob).toBe('deep');
     expect(r.state.formation).toEqual(['net', 'back']);
     expect(r.step.landDepth).toBeGreaterThan(6);
@@ -216,6 +216,44 @@ describe('blocks at the net', () => {
 
   it('calls the flat shot "Flat shot"', () => {
     expect(shot('bounce_shot').name).toBe('Flat shot');
+  });
+});
+
+describe('who plays the ball, lost balls and the two bajadas', () => {
+  it('lets the partner who is closer to the aim point play the ball', () => {
+    // a cross shot aimed to the far side of its lane's centre is taken by the other lane's player
+    const rng = (x: number) => fixedRng([x, 0.99, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    const left = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('vibora'), 'middle', rng(0.0));
+    const right = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('vibora'), 'middle', rng(0.99));
+    expect(new Set([left.step.defenderIdx, right.step.defenderIdx]).size).toBeGreaterThan(0);
+    for (let seed = 1; seed <= 80; seed++) {
+      const r = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('vibora'), 'cross', seededRng(seed));
+      expect(r.step.defenderIdx).toBe((r.step.landX ?? 0) < 0 ? 0 : 1);
+    }
+  });
+
+  it('rolls how a mistake ends: net, back glass or mesh', () => {
+    expect(pickErrorKind(shot('vibora'), fixedRng([0.0]))).toBe('net');
+    expect(pickErrorKind(shot('bajada_fast'), fixedRng([0.99]))).toBe('glass');
+    expect(pickErrorKind(shot('rally_lob'), fixedRng([0.99]))).toBe('mesh');
+    const kinds = new Set<string>();
+    for (let seed = 1; seed <= 300; seed++) {
+      const r = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('vibora'), 'cross', seededRng(seed));
+      if (r.step.outcome === 'error') kinds.add(r.step.errorKind ?? 'none');
+    }
+    expect(kinds.has('net')).toBe(true);
+    expect(kinds.has('none')).toBe(false);
+  });
+
+  it('gives the bajada a high speed and a low speed version with the matching flight', () => {
+    const fast = shot('bajada_fast');
+    const slow = shot('bajada_slow');
+    expect(fast.flight.speed).toBeGreaterThan(slow.flight.speed + 10);
+    expect(fast.risk).toBeGreaterThan(slow.risk * 3);
+    expect(slow.flight.spin).toBeLessThan(0);
+    expect(slow.flight.side).toBeGreaterThan(0);
+    expect((slow.rebound?.low ?? 0)).toBeGreaterThan(0.7);
+    expect(fast.errorKinds?.glass).toBeGreaterThan(0);
   });
 });
 
@@ -313,10 +351,10 @@ describe('shot availability', () => {
   it('offers the volley only before the back glass, and the bajada only after a mid or high rebound', () => {
     expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).toBeNull();
     expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).not.toBeNull();
-    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).toBeNull();
-    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).toBeNull();
-    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'low', pressure: 0, glass: true } }))).not.toBeNull();
-    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'high', pressure: 0 } }))).not.toBeNull();
+    expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).toBeNull();
+    expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).toBeNull();
+    expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'low', pressure: 0, glass: true } }))).not.toBeNull();
+    expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'high', pressure: 0 } }))).not.toBeNull();
   });
 
   it('after a low rebound off the glass only the lob, bounce shot and chiquita remain', () => {

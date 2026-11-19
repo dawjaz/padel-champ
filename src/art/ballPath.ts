@@ -1,5 +1,5 @@
 import { NET_Z } from '../game/court';
-import type { CourtPos, Height, ReceiveMode, ShotDef, SideIndex } from '../game/types';
+import type { CourtPos, ErrorKind, Height, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { NET_HEIGHT_M } from './camera';
 import { BACK_WALL, sideWallSegments } from './walls';
 
@@ -67,6 +67,8 @@ export interface FlightOpts {
   block?: boolean;
   /** A weak lob: the defender hits it out of the air (smash, vibora, bandeja) instead of letting it bounce. */
   airHit?: boolean;
+  /** How a lost ball ends (fault or error): the net, the back glass without a bounce, or the mesh above the glass. */
+  errorKind?: ErrorKind;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
 }
@@ -128,10 +130,32 @@ interface Arc {
   vx: number;
   vz: number;
   vy: number;
+  /** Effective gravity: topspin pulls the ball down faster, backspin keeps it up (Magnus effect). */
+  g: number;
+  /** Sideways acceleration from side spin (m/s^2); the path bows out and back to the aim point. */
+  lx: number;
+  lz: number;
+}
+
+/**
+ * The Magnus effect on a shot. A padel ball spins at 20-40 rev/s and flies at 15-30 m/s: the force of a topspin shot is
+ * about 0.3-0.5 g downwards (it dips steeply and kicks), a slice or backspin lifts it by a similar amount (it floats, stays
+ * flatter and travels further), and side spin bends the flight by half a metre or more over a court length.
+ */
+export const MAGNUS_LIFT = 6;
+export const MAGNUS_SIDE = 4.0;
+export function magnus(shot: ShotDef, dx: number, dz: number): { g: number; lx: number; lz: number } {
+  const f = shot.flight.speed / 25;
+  const g = clamp(GRAVITY + MAGNUS_LIFT * shot.flight.spin * f, 5.5, 19);
+  const len = Math.hypot(dx, dz) || 1;
+  const a = MAGNUS_SIDE * shot.flight.side * f;
+  // the force is w x v: for side spin w = (0, -side, 0) it points along (-dz, dx)
+  return { g, lx: (-dz / len) * a, lz: (dx / len) * a };
 }
 
 /** Ballistic arc from `from` (at height h0) to the floor at `to`, as fast as `speed` allows while still clearing the net. */
-function solveArc(from: Vec, to: { x: number; z: number }, speed: number, apex: number): Arc {
+function solveArc(from: Vec, to: { x: number; z: number }, speed: number, apex: number, mag?: { g: number; lx: number; lz: number }): Arc {
+  const g = mag?.g ?? GRAVITY;
   const dx = to.x - from.x;
   const dz = to.z - from.z;
   let T = Math.max(Math.hypot(dx, dz) / speed, 0.2);
@@ -140,20 +164,21 @@ function solveArc(from: Vec, to: { x: number; z: number }, speed: number, apex: 
   const f = dz !== 0 ? (NET_Z - from.z) / dz : -1;
   if (f > 0.02 && f < 0.98) {
     const need = NET_HEIGHT_M + NET_CLEARANCE - from.h * (1 - f);
-    if (need > 0) T = Math.max(T, Math.sqrt((2 * need) / (GRAVITY * f * (1 - f))));
+    if (need > 0) T = Math.max(T, Math.sqrt((2 * need) / (g * f * (1 - f))));
   }
   // A lob: arc at least `apex` metres high (apex above the chord is about g T^2 / 8).
-  if (apex > 0) T = Math.max(T, Math.sqrt((8 * apex) / GRAVITY));
+  if (apex > 0) T = Math.max(T, Math.sqrt((8 * apex) / g));
   T = Math.min(T, 3.5);
 
-  return { T, vx: dx / T, vz: dz / T, vy: -from.h / T + 0.5 * GRAVITY * T };
+  return { T, vx: dx / T, vz: dz / T, vy: -from.h / T + 0.5 * g * T, g, lx: mag?.lx ?? 0, lz: mag?.lz ?? 0 };
 }
 
 function arcPoint(from: Vec, a: Arc, t: number): Vec {
+  const bow = 0.5 * t * (a.T - t);
   return {
-    x: from.x + a.vx * t,
-    z: from.z + a.vz * t,
-    h: Math.max(0, from.h + a.vy * t - 0.5 * GRAVITY * t * t),
+    x: from.x + a.vx * t + a.lx * bow,
+    z: from.z + a.vz * t + a.lz * bow,
+    h: Math.max(0, from.h + a.vy * t - 0.5 * a.g * t * t),
   };
 }
 
@@ -433,6 +458,29 @@ export function buildFlight(o: FlightOpts): Flight {
   // side mesh instead (no bounce first) and drops down dead.
   if (o.outcome === 'fault' || o.outcome === 'double-fault' || o.outcome === 'error') {
     const fence = o.shot.wall === 'fence' && o.outcome === 'error';
+    // A ball that is too hard or too long flies into the back glass (out), or into the mesh above it, without a bounce.
+    if (!fence && (o.errorKind === 'glass' || o.errorKind === 'mesh')) {
+      const r = makeRand(o.seed ?? Math.round(Math.abs(o.from.x * 977 + o.landX * 131) * 1000) + 11);
+      const wallZ = away === -1 ? 0.02 : 19.98;
+      const x = clamp(o.from.x + (o.landX - o.from.x) * (0.7 + 0.3 * r()), -4.2, 4.2);
+      const targetH = o.errorKind === 'glass' ? 1.4 + 1.3 * r() : 3.15 + 0.6 * r();
+      const dist = Math.hypot(x - from.x, wallZ - from.z);
+      const T = Math.max(0.3, dist / fl.speed);
+      const g = magnus(o.shot, x - from.x, wallZ - from.z).g;
+      const a: Arc = {
+        T,
+        vx: (x - from.x) / T,
+        vz: (wallZ - from.z) / T,
+        vy: (targetH - from.h) / T + 0.5 * g * T,
+        g,
+        lx: 0,
+        lz: 0,
+      };
+      sampleArc(from, a, 0);
+      // The contact with the wall itself is played by the ball's free flight after the point (one sound, one flash).
+      const end = path[path.length - 1];
+      return { path, hit: { x: end.x, z: end.z }, hitH: end.h, events: [], duration: end.t };
+    }
     const wallSign = o.landX < 0 ? -1 : 1;
     const x = fence ? wallSign * 5 : (o.from.x + o.landX) / 2;
     const tz = fence ? NET_Z + away * Math.min(o.shot.landDepth, 6) : NET_Z - away * 0.1;
@@ -444,6 +492,9 @@ export function buildFlight(o: FlightOpts): Flight {
       vx: (x - from.x) / T,
       vz: (tz - from.z) / T,
       vy: (targetH - from.h) / T + 0.5 * GRAVITY * T,
+      g: GRAVITY,
+      lx: 0,
+      lz: 0,
     };
     const steps = Math.max(2, Math.ceil(T / DT));
     for (let i = 0; i <= steps; i++) {
@@ -476,7 +527,7 @@ export function buildFlight(o: FlightOpts): Flight {
   const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
   const depth = o.landDepth ?? o.shot.landDepth;
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
-  const arc = solveArc(from, land, fl.speed, fl.apex);
+  const arc = solveArc(from, land, fl.speed, fl.apex, magnus(o.shot, land.x - from.x, land.z - from.z));
   sampleArc(from, arc, 0);
   // A ball that is played out of the air (a block at the net, or a weak lob taken overhead) ends where it is hit.
   if ((o.block || o.airHit) && (o.outcome === 'continue' || o.outcome === 'in')) {
@@ -487,9 +538,9 @@ export function buildFlight(o: FlightOpts): Flight {
       if (t > 0 && t < arc.T) tHit = t;
     } else {
       const level = ARRIVAL_HEIGHT.high;
-      const disc = arc.vy * arc.vy - 2 * GRAVITY * (level - from.h);
+      const disc = arc.vy * arc.vy - 2 * arc.g * (level - from.h);
       if (disc > 0) {
-        const t = (arc.vy + Math.sqrt(disc)) / GRAVITY;
+        const t = (arc.vy + Math.sqrt(disc)) / arc.g;
         if (t > 0 && t < arc.T) tHit = t;
       }
     }
@@ -507,7 +558,14 @@ export function buildFlight(o: FlightOpts): Flight {
       return { path, hit: { x: spot.x, z: spot.z }, hitH: end.h, events: [], duration: end.t };
     }
   }
-  const touch = { x: land.x, z: land.z, vx: arc.vx, vz: arc.vz, vy: arc.vy - GRAVITY * arc.T };
+  // After the bounce the ball is simulated with the ordinary speeds of the arc (the spin of the shot is handled there).
+  const touch = {
+    x: land.x,
+    z: land.z,
+    vx: arc.vx,
+    vz: arc.vz,
+    vy: -from.h / arc.T - 0.5 * GRAVITY * arc.T,
+  };
 
   const isServe = o.shot.kind === 'serve';
   const rulo = o.shot.wall === 'fence';
@@ -604,11 +662,11 @@ export function buildFlight(o: FlightOpts): Flight {
 }
 
 /** Rolling resistance of the court floor (m/s^2) and of the ground outside it. */
-const ROLL_DECEL = 1.1;
-const OUTSIDE_ROLL_DECEL = 2.2;
+const ROLL_DECEL = 1.6;
+const OUTSIDE_ROLL_DECEL = 2.8;
 /** Below this vertical speed after a bounce the ball stops bouncing and rolls. */
 const ROLL_VY = 1.2;
-const COAST_MAX_TIME = 5;
+const COAST_MAX_TIME = 6;
 
 export interface Coast {
   /** Samples, t = 0 at the end of the flight. */
@@ -703,9 +761,10 @@ export function buildCoast(flight: Flight, spin: number): Coast {
 
     if (!rolling && h <= 0 && vy < 0) {
       h = 0;
-      vy = -vy * e;
-      vx *= keep;
-      vz *= keep;
+      // The ground outside the court is softer (grass, paving): the ball bounces less and loses more speed.
+      vy = -vy * (inside ? e : e * 0.7);
+      vx *= inside ? keep : keep * 0.75;
+      vz *= inside ? keep : keep * 0.75;
       events.push({ kind: 'bounce', t, x, z, h: 0 });
       if (vy < ROLL_VY) {
         vy = 0;

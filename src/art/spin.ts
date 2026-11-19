@@ -11,9 +11,9 @@ export type Vec3 = [number, number, number];
 export type Mat3 = [number, number, number, number, number, number, number, number, number];
 
 /** Angular speed on screen for a spin of 1 (rad/s). A real ball spins much faster (30+ rev/s); this reads well at 60 fps. */
-export const SPIN_RATE = 26;
+export const SPIN_RATE = 52;
 /** Even a "flat" shot turns a little. */
-const MIN_TOP = 0.12;
+const MIN_TOP = 0.3;
 
 export const IDENTITY: Mat3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
 

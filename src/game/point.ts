@@ -1,7 +1,7 @@
 import { DIRECTIONS } from './catalog';
 import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
-import type { BallState, Direction, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
+import type { BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
@@ -66,6 +66,8 @@ export interface Step {
   landX?: number;
   /** The defender at the net blocks the ball out of the air. */
   block?: boolean;
+  /** How a mistake or a fault ends (the net, the back glass, the mesh above it). */
+  errorKind?: ErrorKind;
 }
 
 export interface StepResult {
@@ -151,6 +153,21 @@ export function playableShots(shots: ShotDef[], state: PointState): ShotDef[] {
   return shots.filter((s) => unavailableReason(s, state) === null);
 }
 
+const DEFAULT_ERRORS: Record<ErrorKind, number> = { net: 0.6, glass: 0.25, mesh: 0.15 };
+
+/** How a lost ball ends: a roll on the weights of the shot. */
+export function pickErrorKind(shot: ShotDef, rng: Rng): ErrorKind {
+  const w = shot.errorKinds ?? DEFAULT_ERRORS;
+  const order: ErrorKind[] = ['net', 'glass', 'mesh'];
+  const total = order.reduce((a, k) => a + w[k], 0);
+  let roll = rng() * total;
+  for (const k of order) {
+    roll -= w[k];
+    if (roll <= 0) return k;
+  }
+  return 'net';
+}
+
 function pickRebound(weights: Record<Height, number>, rng: Rng): Height {
   const order: Height[] = ['low', 'mid', 'high'];
   const total = order.reduce((a, h) => a + weights[h], 0);
@@ -217,12 +234,13 @@ export function stepServe(
   };
 
   if (res.outcome === 'fault') {
+    const errorKind = pickErrorKind(shot, rng);
     if (state.attempt === 1) {
-      return { state: { ...state, guts, attempt: 2 }, step: { ...base, outcome: 'fault', pointWinner: null } };
+      return { state: { ...state, guts, attempt: 2 }, step: { ...base, outcome: 'fault', pointWinner: null, errorKind } };
     }
     return {
       state: { ...state, guts, status: 'done', winner: recvSide },
-      step: { ...base, outcome: 'double-fault', pointWinner: recvSide },
+      step: { ...base, outcome: 'double-fault', pointWinner: recvSide, errorKind },
     };
   }
   if (res.outcome === 'ace') {
@@ -251,12 +269,13 @@ export function stepServe(
 }
 
 /**
- * Where the ball is aimed: one of 10 points across the chosen direction and one of 20 depths, at random (the rulo and the
- * smashes that leave the court keep their fixed targets). `depth` is a depth that is already set (a weak lob).
+ * Where the ball is aimed: one of 10 points across the chosen direction (rolled first, it decides who plays the ball) and
+ * one of 20 depths, at random. The rulo and the smashes that leave the court keep their fixed targets. `depth` is a depth
+ * that is already set (a weak lob).
  */
-function aim(shot: ShotDef, direction: Direction, defIdx: number, rng: Rng, depth?: number): { landX?: number; landDepth?: number } {
-  if (shot.overFence === true || shot.wall === 'fence') return depth === undefined ? {} : { landDepth: depth };
-  return { landX: aimX(direction, defIdx, rng), landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread) };
+function aimDepthFor(shot: ShotDef, rng: Rng, landX: number | undefined, depth?: number): { landX?: number; landDepth?: number } {
+  if (landX === undefined) return depth === undefined ? {} : { landDepth: depth };
+  return { landX, landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread) };
 }
 
 export function stepHit(
@@ -272,7 +291,11 @@ export function stepHit(
   const defSide = other(side);
   const direction: Direction = shot.fixedDirection ?? chosenDirection;
   const attacker = teams[side][state.hitterIdx];
-  const defIdx = defenderIndex(state.hitterIdx, direction, rng);
+  const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
+  // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
+  const fixedAim = shot.overFence === true || shot.wall === 'fence';
+  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng);
+  const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
   const defender = teams[defSide][defIdx];
 
   const res = resolveHit({
@@ -311,7 +334,7 @@ export function stepHit(
       next.glass = false;
       next.arrival = 'mid';
     }
-    const aimed = aim(shot, direction, defIdx, rng, next.landDepth);
+    const aimed = aimDepthFor(shot, rng, landX, next.landDepth);
     next.ball = { ...next.ball, zone: block ? 'net' : zoneOf(aimed.landDepth ?? shot.landDepth) };
     return {
       state: {
@@ -331,6 +354,11 @@ export function stepHit(
   const winner = res.outcome === 'winner' ? side : defSide;
   return {
     state: { ...state, guts, hits: state.hits + 1, status: 'done', winner },
-    step: { ...step, pointWinner: winner, ...aim(shot, direction, defIdx, rng) },
+    step: {
+      ...step,
+      pointWinner: winner,
+      ...aimDepthFor(shot, rng, landX),
+      errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng) : undefined,
+    },
   };
 }

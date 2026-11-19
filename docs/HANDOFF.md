@@ -1,6 +1,17 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.13)_
+_Last updated: 2026-11-19 (v0.14)_
+
+## v0.14: Magnus flight, bajada speeds, lost-ball variety, nearest partner, ball never stops
+- **Magnus effect** (`magnus()` in ballPath): topspin raises the effective gravity (steeper dip), backspin lowers it (float), side spin bows the
+  flight sideways, the aim point stays the same. Constants `MAGNUS_LIFT`, `MAGNUS_SIDE` (stronger than reality on purpose, as asked).
+  Rotation on screen doubled (`SPIN_RATE` 52, flat shots turn too).
+- **Bajada** split in `bajada_fast` (33 m/s, topspin, risk 0.3, mistakes go into the net or the back glass: out) and `bajada_slow` (15 m/s,
+  backspin + side spin, always off the back glass, 85% low rebound). Menu buttons use `menuLabel`.
+- **Lost balls** (`errorKind`): net / back glass without bounce (out) / mesh above the glass (out), weights per shot (`errorKinds`).
+  Also for serve faults. The contact itself is played by the free-flight (`buildCoast`).
+- **Who plays the ball**: the aim x is rolled first and the player on that side of the court takes it (partner closer to the ball).
+- **The ball is never stopped** after a point: it rolls out (outside ground is softer) and the next serve ball is put down only afterwards.
 
 ## v0.13: win banner, padel sounds, rulo rule, side views, chasing
 - **Point banner**: WINNER / ACE / ERROR plus a yellow chip with the shot name (e.g. "Por Cuatro"), a camera flash and shock rings.
