@@ -39,8 +39,8 @@ automatically from their stats.
 ### Serve
 - Always **cross** (diagonal). The serving side alternates every point of a game: **left first**, then right,
   and so on (like tennis). A second serve after a fault is taken from the same side.
-- The server's partner stands in the **middle of their own quarter** (the lane the server is not in, halfway
-  between the net and the baseline) during the serve.
+- The server's partner stands in the **middle of their own quarter** (the lane the server is not in) during the serve,
+  a third of a half-court from the net (about 3.3 m, the middle of the service box). This holds for every server.
 - **Receiving a glass serve:** the receiver chooses to take it **on the bounce** (defence x0.9, but the serve's
   pressure is halved) or **off the glass** (defence x1.1, full pressure). Serves that do not touch a wall have no choice.
 - Choices: **Hard glass** (fast, kicks off the side glass, risky), **Spin glass** (spin off the glass, safer),
@@ -54,7 +54,7 @@ automatically from their stats.
 - Then a **direction**: Parallel (down the line), Middle, Cross.
 
 ### Rally shots (every later hit)
-- **Vibora**, **Bandeja**, **Volley**, **Bounce shot**, **Rulo**, each with a direction.
+- **Vibora**, **Bandeja**, **Volley**, **Bounce shot**, **Rulo**, **Lob** (defensive, best from a low ball), each with a direction.
 - **Rulo** has no direction choice: it is always played cross into the **mesh fence**.
 - Later (owner's plan): **Smash** and **Bajada**, which depend on several factors (ball height, position...).
 
@@ -80,6 +80,14 @@ each shot **green (good fit)**, **orange (poor fit)** or **red (too tired)** for
 ### Positions
 Formation is **net** or **back** per team and changes with the shot (`advance` in the data):
 volley/bandeja/vibora/chiquita and a good serve take the net; a lob sends the opponents back.
+Ball flight is simulated with real physics (src/art/ballPath.ts, no rules impact): a ballistic arc from the racket
+to the first bounce (gravity, enough loft to clear the 0.92 m net; a lob needs a 5 m+ arc), then step-by-step
+bounces. Floor: keeps ~50% of horizontal speed, topspin kicks forward and up, slice/backspin skids short and low.
+Glass is lively (75%), mesh dead (30%), air drag slows the ball. Per-shot values (`flight` in shots.json: speed in
+m/s, apex, spin, wallKick) follow real play: serve 100 km/h, vibora 85, volley 75, bandeja 65 with heavy backspin
+(dies on the glass), chiquita 32 (short, low), lob 5+ m high, rulo 90 with heavy topspin. The ball reaches the next
+player at the height of the shot's height class (LOW about 0.5 m, MID 1 m, HIGH 2 m) and the next shot starts from there.
+
 Where the ball is hit: the flight decides the hitting spot. After a plain bounce the next player takes it just past
 the bounce. If the ball goes to a wall (side glass, back glass, rulo into the fence) the defender waits where it comes
 down after the wall. Every player walks to the hitting spot while the ball flies. `landDepth` in shots.json is the

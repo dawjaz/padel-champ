@@ -32,8 +32,8 @@ export function defenderIndex(hitterIdx: number, direction: Direction, rng: Rng)
 /** Where the ball first lands (x) for a rally shot, given who it is aimed at. */
 export function landingX(direction: Direction, defenderIdx: number): number {
   const sign = laneSign(defenderIdx);
-  if (direction === 'parallel') return sign * 3.8;
-  if (direction === 'cross') return sign * 3;
+  if (direction === 'parallel') return sign * 3.6;
+  if (direction === 'cross') return sign * 2.5;
   return sign * 0.3;
 }
 
@@ -68,6 +68,9 @@ export interface ServeSetup {
   receiverPartner: CourtPos;
 }
 
+/** How far from the net the server's partner stands during the serve: a third of a half-court (the middle of the service box). */
+export const SERVE_PARTNER_DEPTH = 10 / 3;
+
 export function serveSetup(servingSide: SideIndex, pointsPlayed: number): ServeSetup {
   const lane = serveLane(servingSide, pointsPlayed);
   const recvSide: SideIndex = servingSide === 0 ? 1 : 0;
@@ -77,7 +80,7 @@ export function serveSetup(servingSide: SideIndex, pointsPlayed: number): ServeS
     lane,
     receiverIdx: indexOfLane(receiverLane),
     server: { x: lane * LANE_X, z: servingSide === 0 ? 18.5 : 1.5 },
-    partner: { x: -lane * LANE_X, z: servingSide === 0 ? 15 : 5 },
+    partner: { x: -lane * LANE_X, z: servingSide === 0 ? NET_Z + SERVE_PARTNER_DEPTH : NET_Z - SERVE_PARTNER_DEPTH },
     receiver: { x: receiverLane * LANE_X, z: backZ },
     receiverPartner: { x: -receiverLane * LANE_X, z: backZ },
   };

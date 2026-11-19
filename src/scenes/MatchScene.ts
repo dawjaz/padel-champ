@@ -71,6 +71,8 @@ export class MatchScene extends Phaser.Scene {
   private pos: Record<string, CourtPos> = {};
   private activeId: string | null = null;
   private ballFloor: CourtPos = { x: 0, z: NET_Z };
+  /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
+  private ballH = HIT_HEIGHT_M;
   private overlay!: Phaser.GameObjects.Graphics;
   private ball!: Phaser.GameObjects.Arc;
   private scoreText!: Phaser.GameObjects.Text;
@@ -439,7 +441,8 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
-      this.setBall(setup.server.x, setup.server.z, HIT_HEIGHT_M);
+      this.ballH = HIT_HEIGHT_M;
+      this.setBall(setup.server.x, setup.server.z, this.ballH);
       this.serveTurn();
     });
   }
@@ -452,6 +455,10 @@ export class MatchScene extends Phaser.Scene {
     const st = this.point;
     const server = TEAMS[st.servingSide][st.serverIdx];
     const tag = st.attempt === 2 ? ' (2nd serve)' : '';
+
+    // The ball is back in the server's hand (after a fault it lay at the net).
+    this.ballH = HIT_HEIGHT_M;
+    this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH);
 
     if (this.isHuman(st.servingSide, st.serverIdx)) {
       this.setActive(server.id);
@@ -563,13 +570,14 @@ export class MatchScene extends Phaser.Scene {
         : landingX(step.direction, step.defenderIdx);
     const flight = buildFlight({
       from: { ...this.pos[attacker.id] },
+      startH: this.ballH,
       hitterSide: step.side,
       shot: step.shot,
       landX,
       outcome: step.outcome,
       receive: step.receive,
     });
-    const duration = flightDuration(flight.path);
+    const duration = flightDuration(flight);
 
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
@@ -599,7 +607,10 @@ export class MatchScene extends Phaser.Scene {
         const p = ballPoint(flight.path, tween.getValue() ?? 0);
         this.setBall(p.x, p.z, p.h);
       },
-      onComplete: () => this.afterStep(step, next, headline),
+      onComplete: () => {
+        this.ballH = flight.hitH;
+        this.afterStep(step, next, headline);
+      },
     });
   }
 

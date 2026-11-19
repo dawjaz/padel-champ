@@ -14,10 +14,16 @@
       "low": 1
     },
     "advance": "net",
-    "landDepth": 6.5,
-    "landX": 3.5,
+    "landDepth": 6.0,
+    "landX": 4.1,
     "wall": "side",
-    "desc": "Fast serve that kicks off the side glass. Risky."
+    "desc": "Fast serve that kicks off the side glass. Risky.",
+    "flight": {
+      "speed": 28,
+      "apex": 0,
+      "spin": 0.2,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "spin_glass",
@@ -34,10 +40,16 @@
       "low": 1
     },
     "advance": "net",
-    "landDepth": 6,
-    "landX": 3,
+    "landDepth": 5.6,
+    "landX": 3.9,
     "wall": "side",
-    "desc": "Spin makes the ball jump off the glass. Safer."
+    "desc": "Spin makes the ball jump off the glass. Safer.",
+    "flight": {
+      "speed": 21,
+      "apex": 0,
+      "spin": 0.5,
+      "wallKick": 1.25
+    }
   },
   {
     "id": "at_opponent",
@@ -58,7 +70,13 @@
     "landX": 2.5,
     "wall": "none",
     "pressureMult": 1.5,
-    "desc": "Straight at the receiver's body. Cramps the return."
+    "desc": "Straight at the receiver's body. Cramps the return.",
+    "flight": {
+      "speed": 25,
+      "apex": 0,
+      "spin": 0.0,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "t_serve",
@@ -79,7 +97,13 @@
     "landX": 0.6,
     "wall": "none",
     "pressureMult": 0.8,
-    "desc": "Low serve to the centre line. Safe and free."
+    "desc": "Low serve to the centre line. Safe and free.",
+    "flight": {
+      "speed": 19,
+      "apex": 0,
+      "spin": -0.6,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "chiquita",
@@ -98,7 +122,13 @@
     "advance": "net",
     "landDepth": 2.5,
     "wall": "none",
-    "desc": "Soft, low and short. Lets you move up to the net."
+    "desc": "Soft, low and short. Lets you move up to the net.",
+    "flight": {
+      "speed": 9,
+      "apex": 0,
+      "spin": -0.7,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "lob",
@@ -117,7 +147,13 @@
     "advance": "back",
     "landDepth": 8.5,
     "wall": "back",
-    "desc": "High and deep. Free. Pushes the net players back."
+    "desc": "High and deep. Free. Pushes the net players back.",
+    "flight": {
+      "speed": 12,
+      "apex": 5.5,
+      "spin": 0.2,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "flat",
@@ -136,7 +172,13 @@
     "advance": "stay",
     "landDepth": 5,
     "wall": "none",
-    "desc": "Fast and flat straight back."
+    "desc": "Fast and flat straight back.",
+    "flight": {
+      "speed": 21,
+      "apex": 0,
+      "spin": 0.0,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "vibora",
@@ -155,7 +197,13 @@
     "advance": "net",
     "landDepth": 6,
     "wall": "side",
-    "desc": "Sliced overhead with side spin. Needs a high ball."
+    "desc": "Sliced overhead with side spin. Needs a high ball.",
+    "flight": {
+      "speed": 23,
+      "apex": 0,
+      "spin": -0.4,
+      "wallKick": 1.35
+    }
   },
   {
     "id": "bandeja",
@@ -174,7 +222,38 @@
     "advance": "net",
     "landDepth": 7,
     "wall": "back",
-    "desc": "Controlled, deep overhead. Holds the net."
+    "desc": "Controlled, deep overhead. Holds the net.",
+    "flight": {
+      "speed": 17,
+      "apex": 0,
+      "spin": -0.9,
+      "wallKick": 0.7
+    }
+  },
+  {
+    "id": "rally_lob",
+    "name": "Lob",
+    "kind": "rally",
+    "stat": "technique",
+    "power": 0.8,
+    "cost": 0,
+    "risk": 0.05,
+    "out": "high",
+    "fit": {
+      "high": 0.85,
+      "mid": 1.0,
+      "low": 1.15
+    },
+    "advance": "back",
+    "landDepth": 8.5,
+    "wall": "back",
+    "desc": "Defensive lob from any ball. Best from a low one. Pushes the net players back.",
+    "flight": {
+      "speed": 12,
+      "apex": 5.0,
+      "spin": 0.2,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "volley",
@@ -193,7 +272,13 @@
     "advance": "net",
     "landDepth": 5.5,
     "wall": "none",
-    "desc": "Hit it out of the air. Best on mid-height balls."
+    "desc": "Hit it out of the air. Best on mid-height balls.",
+    "flight": {
+      "speed": 21,
+      "apex": 0,
+      "spin": -0.2,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "bounce_shot",
@@ -212,7 +297,13 @@
     "advance": "stay",
     "landDepth": 5,
     "wall": "none",
-    "desc": "Let it bounce, then drive it. Good on low balls."
+    "desc": "Let it bounce, then drive it. Good on low balls.",
+    "flight": {
+      "speed": 22,
+      "apex": 0,
+      "spin": 0.4,
+      "wallKick": 1.0
+    }
   },
   {
     "id": "rulo",
@@ -233,6 +324,12 @@
     "landDepth": 6.5,
     "wall": "fence",
     "winnerMargin": 16,
-    "desc": "Heavy topspin, always cross into the mesh fence."
+    "desc": "Heavy topspin, always cross into the mesh fence.",
+    "flight": {
+      "speed": 25,
+      "apex": 1.2,
+      "spin": 1.0,
+      "wallKick": 1.0
+    }
   }
 ]

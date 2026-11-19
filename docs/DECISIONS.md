@@ -60,5 +60,11 @@ Serve to the side glass: the receiver picks bounce (faster, riskier, less pressu
 Player parameters that ease or complicate these choices come later (owner's plan).
 `buildFlight` owns the geometry of the hitting spot; the engine only knows `ReceiveMode`.
 
+## 2026-11-19: Ball flight is simulated, not drawn by hand
+Owner asked for real-world trajectories per shot. `ballPath.ts` simulates gravity, spin-dependent floor bounces, glass,
+mesh and drag; shot data (`flight`) holds real speeds, apex and spin. The hitting spot of the next player comes out of
+the simulation instead of fixed offsets. The physics is cosmetic plus positioning: win/lose is still decided in
+`engine.ts`. Tuned by eye with a script (constants at the top of ballPath.ts); a player-skill layer comes later.
+
 ## Secrets
 Android keystore, Apple certificates and `.env` files are git-ignored. Back them up in a password manager.

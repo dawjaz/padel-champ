@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.5)_
+_Last updated: 2026-11-19 (v0.6)_
 
 ## State
 Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
@@ -54,6 +54,17 @@ Owner wanted a faster, more believable game. Done:
   menu for your receiver, `pickReceive` for the CPU).
 - 91 tests pass; MatchScene typechecks against a Phaser stub; balance re-simulated (avg ~4.9 hits, aces ~0.8%).
 - Still NOT seen in a browser by the agent. Later: per-player parameters that ease or complicate these shots.
+
+## v0.6: ball physics, lob, partner position (this session)
+- `rally_lob` ("Lob") added to the rally menu (owner missed it on LOW balls); 6 rally shots now.
+- Server's partner stands 10/3 m from the net (`SERVE_PARTNER_DEPTH`), for both teams and every server.
+- `src/art/ballPath.ts` is now a small physics simulation (see docs/GDD.md): arcs with gravity and net clearance,
+  floor bounce with spin, glass vs mesh, drag. `buildFlight` returns `{path (time samples), hit, hitH, events,
+  duration}`; the scene passes `startH` (ball height when hit) and keeps `ballH`. Shot data has a `flight` block.
+  `ARRIVAL_HEIGHT` sets the height the next player meets the ball at. Rally balls that reach the glass are played
+  after it; serves to the glass follow the receiver's choice. Cross landing x is now +-2.5 (parallel 3.6).
+- 93 tests, balance re-simulated (avg ~4.9 hits, server wins ~52%). Visuals not seen in a browser by the agent:
+  check lob height on screen (apex 6 m) and defenders near the glass corners.
 
 ## Verification status
 The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session

@@ -50,6 +50,21 @@ export type LaneSign = -1 | 1;
  */
 export type ReceiveMode = 'bounce' | 'wall';
 
+/**
+ * Real-world ball flight of a shot (used by src/art/ballPath.ts, not by the rules).
+ * Speeds are what a decent amateur/pro hits, in metres per second (km/h / 3.6).
+ */
+export interface FlightDef {
+  /** Horizontal ball speed off the racket, m/s. The ball is slowed (a higher arc) if it needs more time to clear the net. */
+  speed: number;
+  /** Minimum height of the arc above the higher end of the flight, in metres (a lob needs 5-6 m, a flat shot 0). */
+  apex: number;
+  /** -1 = heavy backspin/slice (bounces short and low, dies against the wall), 0 = flat, +1 = heavy topspin (kicks forward). */
+  spin: number;
+  /** Multiplier of the ball's speed along a wall after it bounces off it (side-spin shots such as the vibora run along the glass). */
+  wallKick: number;
+}
+
 export interface ShotDef {
   id: string;
   name: string;
@@ -75,6 +90,7 @@ export interface ShotDef {
   /** Serves only: how far from the centre line the ball lands, in metres. */
   landX?: number;
   wall: WallHit;
+  flight: FlightDef;
   /** Overrides the default margin needed to win the point outright. */
   winnerMargin?: number;
   /** Serves only: scales the pressure put on the receiver. */

@@ -72,10 +72,10 @@ describe('serve', () => {
     for (const points of [0, 1]) {
       const near = serveSetup(0, points);
       expect(near.partner.x).toBe(-near.lane * 2.5);
-      expect(near.partner.z).toBe(15);
+      expect(near.partner.z).toBeCloseTo(10 + 10 / 3);
       const far = serveSetup(1, points);
       expect(far.partner.x).toBe(-far.lane * 2.5);
-      expect(far.partner.z).toBe(5);
+      expect(far.partner.z).toBeCloseTo(10 - 10 / 3);
       expect(Math.sign(near.partner.x)).toBe(-Math.sign(near.server.x));
     }
   });
