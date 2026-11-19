@@ -198,3 +198,36 @@ describe('ballPoint and flightDuration', () => {
     expect(flightDuration(fly('lob'))).toBeGreaterThan(flightDuration(fly('flat'))* 2);
   });
 });
+
+describe('smash', () => {
+  const lands = [-3.6, -2.5, -0.3, 0.3, 2.5, 3.6];
+
+  it('flies out over the back glass when a winning smash x4 is hit', () => {
+    for (const x of lands) {
+      const f = fly('smash_x4', { startH: 2, landX: x, outcome: 'winner' });
+      const out = f.events.find((e) => e.kind === 'out');
+      expect(out, `landX ${x}`).toBeDefined();
+      expect(out!.z).toBeCloseTo(0);
+      expect(out!.h).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('kicks a winning smash x3 off the back glass and out over the side wall or mesh', () => {
+    for (const x of lands) {
+      const f = fly('smash_x3', { startH: 2, landX: x, outcome: 'winner' });
+      expect(f.events.some((e) => e.kind === 'glass'), `landX ${x} glass`).toBe(true);
+      expect(f.events.some((e) => e.kind === 'out'), `landX ${x} out`).toBe(true);
+    }
+  });
+
+  it('keeps a smash in play (back glass or mesh, then the next hit) when it does not win', () => {
+    for (const id of ['smash_x3', 'smash_x4']) {
+      for (const x of lands) {
+        const f = fly(id, { startH: 2, landX: x, outcome: 'continue' });
+        expect(f.events.some((e) => e.kind === 'out'), `${id} ${x}`).toBe(false);
+        expect(f.events.some((e) => e.kind === 'glass' || e.kind === 'mesh'), `${id} ${x} wall`).toBe(true);
+        expect(f.hit.z).toBeLessThan(10);
+      }
+    }
+  });
+});

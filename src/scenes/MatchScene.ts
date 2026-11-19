@@ -11,7 +11,7 @@ import { pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
-import { startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
+import { startPoint, stepHit, stepServe, unavailableReason, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { CourtPos, Direction, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
@@ -35,10 +35,10 @@ const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
 const VISUAL_HEIGHT_M = 2.0;
 
-type Tone = 'normal' | 'good' | 'poor' | 'tired';
+type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
 
-const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666 };
-const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999' };
+const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666, off: 0x555566 };
+const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999', off: '#777788' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
@@ -52,6 +52,8 @@ interface PlayerView {
 interface ButtonSpec {
   label: string;
   tone: Tone;
+  /** Greyed out and not clickable (the shot is not possible now). */
+  disabled?: boolean;
   onPick: () => void;
 }
 
@@ -144,6 +146,7 @@ export class MatchScene extends Phaser.Scene {
     h1: number,
     kind: 'glass' | 'mesh',
     step: number,
+    fade = 1,
   ): void {
     const a = at(u0, h0);
     const b = at(u1, h0);
@@ -151,20 +154,20 @@ export class MatchScene extends Phaser.Scene {
     const d = at(u0, h1);
 
     if (kind === 'glass') {
-      g.fillStyle(0x9fd8ff, 0.17);
+      g.fillStyle(0x9fd8ff, 0.17 * fade);
       this.fillQuad(g, a, b, c, d);
-      g.lineStyle(2, 0xdff3ff, 0.7);
+      g.lineStyle(2, 0xdff3ff, 0.7 * fade);
       for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
       this.line(g, d, c);
       return;
     }
 
-    g.fillStyle(0x06081a, 0.3);
+    g.fillStyle(0x06081a, 0.3 * fade);
     this.fillQuad(g, a, b, c, d);
-    g.lineStyle(1, 0xc9d3e6, 0.45);
+    g.lineStyle(1, 0xc9d3e6, 0.45 * fade);
     for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
     for (let h = h0; h <= h1 + 1e-6; h += step) this.line(g, at(u0, h), at(u1, h));
-    g.lineStyle(2, 0x9aa5bd, 0.9);
+    g.lineStyle(2, 0x9aa5bd, 0.9 * fade);
     this.line(g, a, d);
     this.line(g, b, c);
     this.line(g, d, c);
@@ -220,6 +223,25 @@ export class MatchScene extends Phaser.Scene {
         if (seg.mesh > 0) this.wallBand(walls, sideAt, seg.z0, seg.z1, seg.glass, seg.glass + seg.mesh, 'mesh', 0.5);
       }
     }
+    // The near back wall would hide the court, so only mark it: faint glass up to 3 m, faint mesh from 3 m to 4 m,
+    // with a dashed line and a label where the glass ends and the mesh begins.
+    const near = this.add.graphics().setDepth(-3);
+    const nearAt = (x: number, h: number): Projected => P(x, 20, h);
+    this.wallBand(near, nearAt, -5, 5, 0, BACK_WALL.glass, 'glass', 2, 0.3);
+    this.wallBand(near, nearAt, -5, 5, BACK_WALL.glass, BACK_WALL.glass + BACK_WALL.mesh, 'mesh', 0.5, 0.45);
+    near.lineStyle(2, 0xffe066, 0.85);
+    for (let x = -5; x < 5; x += 0.8) this.line(near, nearAt(x, BACK_WALL.glass), nearAt(x + 0.4, BACK_WALL.glass));
+    const tag = (h: number, text: string, color: string): void => {
+      const q = nearAt(5, h);
+      this.add
+        .text(q.x - 3, q.y, text, { fontFamily: FONT, fontSize: '9px', color })
+        .setOrigin(1, 1)
+        .setStroke('#000000', 2)
+        .setDepth(-2.8);
+    };
+    tag(BACK_WALL.glass, 'GLASS to 3 m', '#bfe6ff');
+    tag(BACK_WALL.glass + BACK_WALL.mesh, 'MESH to 4 m', '#ffe066');
+
     const board = P(0, 0, 0.45);
     this.add
       .text(board.x, board.y, 'PADEL CHAMP 26', {
@@ -385,28 +407,35 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(
       this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
     );
+    // Up to 6 buttons: 2 big columns; more: 3 compact columns.
+    const compact = items.length > 6;
+    const cols = compact ? 3 : 2;
+    const w = compact ? 112 : 160;
+    const h = compact ? 44 : 48;
+    const gapY = compact ? 52 : 58;
+    const y0 = compact ? 478 : 485;
     items.forEach((item, i) => {
-      const x = 95 + (i % 2) * 170;
-      const y = 485 + Math.floor(i / 2) * 58;
-      const bg = this.add
-        .rectangle(x, y, 160, 48, 0x2b2b5e)
-        .setStrokeStyle(2, TONE_STROKE[item.tone])
-        .setInteractive({ useHandCursor: true });
+      const x = compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
+      const y = y0 + Math.floor(i / cols) * gapY;
+      const bg = this.add.rectangle(x, y, w, h, item.disabled ? 0x1a1a33 : 0x2b2b5e).setStrokeStyle(2, TONE_STROKE[item.tone]);
       const text = this.add
         .text(x, y, item.label, {
           fontFamily: FONT,
-          fontSize: '14px',
+          fontSize: compact ? '11px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
         })
         .setOrigin(0.5);
-      bg.on('pointerdown', () => {
-        if (this.busy) return;
-        this.busy = true;
-        sfx('select');
-        this.clearMenu();
-        item.onPick();
-      });
+      if (!item.disabled) {
+        bg.setInteractive({ useHandCursor: true });
+        bg.on('pointerdown', () => {
+          if (this.busy) return;
+          this.busy = true;
+          sfx('select');
+          this.clearMenu();
+          item.onPick();
+        });
+      }
       this.menu.push(bg, text);
     });
     this.busy = false;
@@ -429,7 +458,7 @@ export class MatchScene extends Phaser.Scene {
     this.point = startPoint(this.guts, this.server, idx, pointsPlayed);
 
     // Serve set-up: the server stands in their serving lane, the partner in the middle of their half.
-    const setup = serveSetup(this.server, pointsPlayed);
+    const setup = serveSetup(this.server, pointsPlayed, idx);
     const recvSide = other(this.server);
     const targets: Record<string, CourtPos> = {
       [TEAMS[this.server][idx].id]: setup.server,
@@ -521,14 +550,48 @@ export class MatchScene extends Phaser.Scene {
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
     const kind = st.hits === 0 ? 'return' : 'rally';
-    this.showButtons(
-      `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`,
-      shotsOfKind(kind).map((s) => ({
-        label: `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`,
-        tone: this.toneFor(s, hitter),
-        onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
-      })),
-    );
+    const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`;
+    const label = (s: ShotDef): string => `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`;
+    const items: ButtonSpec[] = [];
+    const smashes: ShotDef[] = [];
+    for (const s of shotsOfKind(kind)) {
+      if (s.id.startsWith('smash_')) {
+        smashes.push(s);
+        continue;
+      }
+      const why = unavailableReason(s, st);
+      items.push(
+        why
+          ? { label: `${s.name}\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
+          : {
+              label: label(s),
+              tone: this.toneFor(s, hitter),
+              onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
+            },
+      );
+    }
+    if (smashes.length > 0) {
+      const why = unavailableReason(smashes[0], st);
+      items.push(
+        why
+          ? { label: `Smash\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
+          : { label: 'Smash\nx3 or x4', tone: this.toneFor(smashes[0], hitter), onPick: () => this.showSmashMenu(smashes) },
+      );
+    }
+    this.showButtons(title, items);
+  }
+
+  /** Smash: hit it through 3 (into the back glass, kicks to the side) or through 4 (hard into the court, over or off the back glass). */
+  private showSmashMenu(smashes: ShotDef[]): void {
+    const st = this.point;
+    const hitter = TEAMS[0][st.hitterIdx];
+    const items: ButtonSpec[] = smashes.map((s) => ({
+      label: `${s.id === 'smash_x3' ? 'PRZEZ 3' : 'PRZEZ 4'} [${s.cost}]\n${s.id === 'smash_x3' ? 'back glass' : 'hard, court'}`,
+      tone: this.toneFor(s, hitter),
+      onPick: () => this.showDirectionMenu(s),
+    }));
+    items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
+    this.showButtons(`${hitter.name}: smash, which one?`, items);
   }
 
   private showDirectionMenu(shot: ShotDef): void {
@@ -640,7 +703,11 @@ export class MatchScene extends Phaser.Scene {
         this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
         break;
       case 'winner':
-        endPoint(`${attacker.name} wins the point with a winner!`);
+        endPoint(
+          step.shot.overFence
+            ? `${attacker.name} smashes it out over the fence!`
+            : `${attacker.name} wins the point with a winner!`,
+        );
         break;
       case 'error':
         endPoint(`${attacker.name} hits the net. Error!`);

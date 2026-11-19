@@ -56,7 +56,12 @@ automatically from their stats.
 ### Rally shots (every later hit)
 - **Vibora**, **Bandeja**, **Volley**, **Bounce shot**, **Rulo**, **Lob** (defensive, best from a low ball), each with a direction.
 - **Rulo** has no direction choice: it is always played cross into the **mesh fence**.
-- Later (owner's plan): **Smash** and **Bajada**, which depend on several factors (ball height, position...).
+- **Smash** (v0.7): only when your team is at the net or mid-court and the ball is high or mid. *Przez 3* (x3): hit hard
+  into the back glass, with spin it kicks high towards the side glass/mesh; a skilled hit leaves over the fence (winner),
+  otherwise it stays in play. *Przez 4* (x4): hard into the court; a winning hit flies over the back glass, otherwise it
+  comes back off the glass or the mesh. Mid-court happens after a short lob (one that did not beat its defender).
+- **Bandeja** (v0.7) is the answer to a lob you had time for (the lob did not rush you); it is greyed out otherwise.
+- Later: **Bajada** (conditions to be defined with the owner).
 
 ### Directions
 - **Parallel:** goes to the opponent in the same lane. Strongest attack, riskiest (narrow, near the glass).
@@ -108,7 +113,7 @@ You: Toro (male, power) and Mia (female, technique/speed). Rivals: Bruno (male, 
 Stats are 1-10: power, technique, speed, defense.
 
 ## Planned
-- Smash and bajada (conditions to be defined with the owner)
+- Bajada (conditions to be defined with the owner)
 - More realistic positions and partner movement, glass rebounds that change where the ball ends up
 - Special moves per character with short cutscenes (cost: a lot of guts, big effect)
 - Career mode: tournament bracket, rivals with dialogue, upgrading players between matches

@@ -202,7 +202,7 @@ describe('shot data', () => {
   it('has the shots the owner asked for', () => {
     expect(shotsOfKind('serve').map((s) => s.id).sort()).toEqual(['at_opponent', 'hard_glass', 'spin_glass', 't_serve']);
     expect(shotsOfKind('return').map((s) => s.id).sort()).toEqual(['chiquita', 'flat', 'lob']);
-    expect(shotsOfKind('rally').map((s) => s.id).sort()).toEqual(['bandeja', 'bounce_shot', 'rally_lob', 'rulo', 'vibora', 'volley']);
+    expect(shotsOfKind('rally').map((s) => s.id).sort()).toEqual(['bandeja', 'bounce_shot', 'rally_lob', 'rulo', 'smash_x3', 'smash_x4', 'vibora', 'volley']);
   });
 
   it('has unique ids, a free shot per kind and fit values for every height', () => {

@@ -68,3 +68,9 @@ the simulation instead of fixed offsets. The physics is cosmetic plus positionin
 
 ## Secrets
 Android keystore, Apple certificates and `.env` files are git-ignored. Back them up in a password manager.
+
+## 2026-11-19: partners keep their halves on serve (v0.7)
+The owner asked that, when the point is served from the side opposite to where the human player normally plays,
+the partners do not swap halves. Chosen reading: nobody leaves their own lane; the server steps to the centre mark
+on the correct side (`CENTRE_SERVE_X`) and serves cross from there. Alternative if this is not what was meant:
+let the partner serve those points.

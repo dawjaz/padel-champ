@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.6)_
+_Last updated: 2026-11-19 (v0.7)_
 
 ## State
 Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
@@ -66,6 +66,27 @@ Owner wanted a faster, more believable game. Done:
 - 93 tests, balance re-simulated (avg ~4.9 hits, server wins ~52%). Visuals not seen in a browser by the agent:
   check lob height on screen (apex 6 m) and defenders near the glass corners.
 
+## v0.7: smash, bandeja after a lob, partners, version label (this session)
+- Title screen showed a hardcoded "v0.2" (the owner thought the old build was running). Now `GAME_VERSION` +
+  `BUILD_ID` (git hash from `GITHUB_SHA`, set in `vite.config.ts`) are shown; `index.html` has a no-cache meta.
+- New shots `smash_x3` ("przez 3") and `smash_x4` ("przez 4"), menu button "Smash" opens the x3/x4 choice, then
+  the direction. Allowed only when the hitter's team is at the net or mid-court AND the ball is high or mid
+  (`ShotDef.requires`, `unavailableReason`, `playableShots` in point.ts; CPU respects it). New formation `mid`:
+  a lob that did not beat its defender (`attackScore < defenseScore`) only pushes the opponents to mid-court.
+  x3: lands next to the back glass, kicks high to the side glass/mesh; a winning x3 leaves over the side wall.
+  x4: hard into the court; a winning x4 clears the back glass (`exitVia: 'back'`); otherwise both come back off
+  the glass or mesh and stay in play. Winning smash/rulo flights are boosted until the ball really leaves
+  (`overFence`, `exitVia`, `boost` in ballPath.ts). Balance: smash wins ~57-62% of points where used.
+- Bandeja now needs an incoming lob that did not rush the hitter (`ball.lob`, pressure <= 0.12), else the
+  button is greyed out with a hint. Unavailable shots are shown greyed instead of hidden. With more than 6
+  buttons the menu uses 3 compact columns.
+- Serve set-up: partners keep their own halves. `serveSetup(side, points, serverIdx)`: the partner always stays
+  in their own lane; a server who must serve from the other half stands beside the centre mark
+  (`CENTRE_SERVE_X`) instead of swapping with the partner. (Owner's wording was ambiguous: confirm.)
+- Near back wall: drawn faint, with a dashed line + labels where the glass (3 m) ends and the mesh (to 4 m) begins.
+- HD branch: the per-element canvas blur on the crowd froze browsers (2.6 s per arena render); removed.
+- 101 tests.
+
 ## Verification status
 The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session
 without network access, so only the Phaser-free files were typechecked locally; the rest relies on CI.
@@ -78,7 +99,7 @@ title -> match -> result -> rematch once.
 - No `package-lock.json` yet (CI uses `npm install`). Generate it on first install, commit it, then use `npm ci`.
 
 ## Next steps
-1. Collect the owner's feedback on the v0.4 shots; add smash and bajada (BACKLOG)
+1. Collect the owner's feedback on the v0.7 shots (smash, bandeja); bajada is still in the BACKLOG
 2. Art direction with the owner (character look, palette, pixel font), then sprites
 3. Capacitor (Android/iOS) once network is available
 4. Career mode, special moves

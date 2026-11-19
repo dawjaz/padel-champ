@@ -1,6 +1,6 @@
 import { DIRECTIONS, shotsOfKind } from './catalog';
 import { defenseRating, faultChance } from './engine';
-import type { PointState, Teams } from './point';
+import { playableShots, type PointState, type Teams } from './point';
 import type { Direction, ReceiveMode, Rng, ShotDef } from './types';
 
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
@@ -30,7 +30,7 @@ export function pickServe(teams: Teams, state: PointState, rng: Rng): ShotDef {
 export function pickHit(teams: Teams, state: PointState, rng: Rng): { shot: ShotDef; direction: Direction } {
   const side = state.holder;
   const hitter = teams[side][state.hitterIdx];
-  const options = shotsOfKind(state.hits === 0 ? 'return' : 'rally');
+  const options = playableShots(shotsOfKind(state.hits === 0 ? 'return' : 'rally'), state);
 
   const weights = options.map((s) => {
     const affordable = state.guts[hitter.id] >= s.cost ? 1 : 0.15;

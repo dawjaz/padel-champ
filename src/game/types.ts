@@ -35,8 +35,8 @@ export type SideIndex = 0 | 1;
 /** Ball height after a shot. */
 export type Height = 'high' | 'mid' | 'low';
 export type Direction = 'parallel' | 'middle' | 'cross';
-/** A team plays either up at the net or back at the baseline. */
-export type Formation = 'net' | 'back';
+/** A team plays up at the net, in the middle of its half (after a short lob), or back at the baseline. */
+export type Formation = 'net' | 'mid' | 'back';
 export type ShotKind = 'serve' | 'return' | 'rally';
 /** What the ball hits after its first bounce in the opponent's court. */
 export type WallHit = 'none' | 'side' | 'back' | 'fence';
@@ -63,6 +63,18 @@ export interface FlightDef {
   spin: number;
   /** Multiplier of the ball's speed along a wall after it bounces off it (side-spin shots such as the vibora run along the glass). */
   wallKick: number;
+}
+
+/** When a shot can be played (all listed conditions must hold). Missing = always. */
+export interface ShotRequires {
+  /** The hitter's team must be in one of these formations. */
+  formations?: Formation[];
+  /** The incoming ball must have one of these heights. */
+  heights?: Height[];
+  /** The incoming ball must be a lob that has come off the glass in time for the hitter to set up. */
+  afterLob?: boolean;
+  /** Hint shown on the disabled button. */
+  hint: string;
 }
 
 export interface ShotDef {
@@ -93,6 +105,11 @@ export interface ShotDef {
   flight: FlightDef;
   /** Overrides the default margin needed to win the point outright. */
   winnerMargin?: number;
+  /** Smash/rulo: a winning ball flies out over the glass or the fence instead of staying in play. */
+  overFence?: boolean;
+  /** Where a winning overFence ball should leave the court, when it matters: over the back glass or the side wall. */
+  exitVia?: 'back' | 'side';
+  requires?: ShotRequires;
   /** Serves only: scales the pressure put on the receiver. */
   pressureMult?: number;
   desc: string;
@@ -113,6 +130,8 @@ export interface BallState {
   height: Height;
   /** 0..0.4: how much the previous shot has weakened the next hit. */
   pressure: number;
+  /** The ball comes from a lob (a high, slow arc). */
+  lob?: boolean;
 }
 
 /** Position on the court in metres: x across (-5..5), z along (0 = far baseline, 10 = net, 20 = near baseline). */

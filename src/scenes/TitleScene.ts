@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
-import { COLORS, css, FONT, GAME_TITLE, HEIGHT, WIDTH } from '../config';
+import { BUILD_ID, COLORS, css, FONT, GAME_TITLE, GAME_VERSION, HEIGHT, WIDTH } from '../config';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
@@ -64,7 +64,7 @@ export class TitleScene extends Phaser.Scene {
       .text(WIDTH / 2, 580, statsLine, { fontFamily: FONT, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
-      .text(WIDTH / 2, HEIGHT - 20, `${GAME_TITLE}  v0.2`, { fontFamily: FONT, fontSize: '10px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, HEIGHT - 20, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, fontSize: '10px', color: css(COLORS.gray) })
       .setOrigin(0.5);
   }
 
