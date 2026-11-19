@@ -1,6 +1,21 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.9)_
+_Last updated: 2026-11-19 (v0.10)_
+
+## v0.10: rules rework, free ball, slower pace
+- **Ball state** (`BallState`): height, pressure, `lob` (`'deep' | 'weak'`) and `glass` (the ball is played after it came off the back glass).
+- **Lob** is random: 70% good (deep), 30% weak (lands 2.5-5.5 m past the net, `weakDepth` in shots.json). A weak lob does not push
+  the opponents back: players at the net stay there, the others come to mid-court.
+- **Back glass**: shots with `glassChance` can reach it; the rebound is low/mid/high (`rebound` weights per shot). The flight
+  steers the rebound peak (`REBOUND_PEAK`) so the next ball really has that height.
+- **Availability** (`ShotDef.requires`, only playable shots are shown in the menu, the CPU obeys the same rules):
+  Por Tres / Por Cuatro (renamed smashes): net or mid-court + weak lob, not off the glass. Vibora and Bandeja: high ball, not off the glass.
+  Volley: not off the glass. Bajada (new): off the glass, mid or high rebound. After a low rebound: Lob (risky, `lowGlassRisk`),
+  Bounce shot or Chiquita (new rally shot `rally_chiquita`).
+- **Free ball**: after a point `buildCoast` lets the ball fall, bounce (spin decides how much it keeps), hit glass/mesh/net, fly on
+  over the fence or roll out. `MatchScene.playCoast` plays it before the next point.
+- **Pace**: `TIME_SCALE` 0.62, flight 450-2000 ms, longer CPU/point/game pauses.
+- Next: play-test the balance (glassChance, rebound weights, weak lob share) and tune in `src/data/shots.json`.
 
 ## v0.9: rulo physics, player animation, labels removed
 - Removed the GLASS/MESH text labels on the near back wall (the faint wall and the dashed 3 m line stay).

@@ -84,7 +84,8 @@ export interface HitResult {
 export function resolveHit(i: HitInput): HitResult {
   const tired = i.attackerGuts < i.shot.cost;
   const fit = i.shot.fit[i.incoming.height];
-  const chance = errorChance(i.attacker, i.shot, i.direction, i.rallyLength);
+  const lowOffGlass = i.incoming.glass === true && i.incoming.height === 'low' ? (i.shot.lowGlassRisk ?? 0) : 0;
+  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength) + lowOffGlass, MIN_ERROR, MAX_ERROR);
 
   if (i.rng() < chance) {
     return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };

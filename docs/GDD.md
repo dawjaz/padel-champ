@@ -56,14 +56,16 @@ automatically from their stats.
 ### Rally shots (every later hit)
 - **Vibora**, **Bandeja**, **Volley**, **Bounce shot**, **Rulo**, **Lob** (defensive, best from a low ball), each with a direction.
 - **Rulo** has no direction choice: it is always played cross into the **mesh fence**.
-- **Smash** (v0.7): only when your team is at the net or mid-court and the ball is high or mid. *Przez 3* (x3): hit hard
-  into the back glass, with spin it kicks high towards the side glass/mesh; a skilled hit leaves over the fence (winner),
-  otherwise it stays in play. *Przez 4* (x4): hard into the court; a winning hit flies over the back glass, otherwise it
-  comes back off the glass or the mesh. Mid-court happens after a short lob (one that did not beat its defender).
+- **Por Tres** (x3) and **Por Cuatro** (x4) are the smashes. Offered only at the net or mid-court, after a **weak lob**
+  (30% of lobs; the other 70% are deep) that did not come off the glass. *Por Tres*: hard into the back glass, with spin it
+  kicks towards the side glass/mesh; a skilled hit leaves over the fence (winner). *Por Cuatro*: hard into the court; a winner
+  flies over the back glass, otherwise it comes back off the glass or the mesh.
+- **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** is possible. Low: only Lob (risky),
+  Bounce shot or Chiquita.
+- **Vibora** and **Bandeja**: a high ball (or lob) falling to mid or back court, not after the glass. **Volley**: only if the ball
+  has not come off the back glass.
 - **Rulo**: topspin ball that bounces right beside the side fence and then hits the mesh. Clean: it comes off the mesh
   unpredictably, or climbs the fence and leaves over the top (winner). Mishit: straight into the mesh, an error.
-- **Bandeja** (v0.7) is the answer to a lob you had time for (the lob did not rush you); it is greyed out otherwise.
-- Later: **Bajada** (conditions to be defined with the owner).
 
 ### Directions
 - **Parallel:** goes to the opponent in the same lane. Strongest attack, riskiest (narrow, near the glass).

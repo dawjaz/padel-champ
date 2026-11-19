@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M, type FlightEvent } from '../art/ballPath';
+import { ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, TIME_SCALE, type Flight, type FlightEvent } from '../art/ballPath';
 import { project } from '../art/camera';
 import { SPRITE_H } from '../art/character';
 import { poseOf, type PoseName, type Stance } from '../art/character';
@@ -16,7 +16,7 @@ import { pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
-import { startPoint, stepHit, stepServe, unavailableReason, type PointState, type Step, type Teams } from '../game/point';
+import { playableShots, startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { CourtPos, Direction, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
@@ -28,12 +28,12 @@ const GUTS_RECOVERY_PER_POINT = 2;
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
 const HUMAN_SIDE: SideIndex = 0;
 const HUMAN_IDX = 0;
-/** Pauses in milliseconds: kept short so the game feels quick. */
-const CPU_DELAY = 120;
-const NEXT_HIT_DELAY = 100;
-const FAULT_PAUSE = 600;
-const POINT_PAUSE = 700;
-const GAME_PAUSE = 1000;
+/** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
+const CPU_DELAY = 450;
+const NEXT_HIT_DELAY = 350;
+const FAULT_PAUSE = 900;
+const POINT_PAUSE = 1100;
+const GAME_PAUSE = 1500;
 const SIDE_NAME = ['YOU', 'CPU'] as const;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -85,6 +85,7 @@ export class MatchScene extends Phaser.Scene {
   private ballFloor: CourtPos = { x: 0, z: NET_Z };
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
   private ballH = HIT_HEIGHT_M;
+  private coastTween: Phaser.Tweens.Tween | null = null;
   private overlay!: Phaser.GameObjects.Graphics;
   private ball!: Phaser.GameObjects.Image;
   private ballGlow!: Phaser.GameObjects.Image;
@@ -456,6 +457,7 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
+      this.stopCoast();
       this.ballH = HIT_HEIGHT_M;
       this.setBall(setup.server.x, setup.server.z, this.ballH, false);
       this.serveTurn();
@@ -538,48 +540,16 @@ export class MatchScene extends Phaser.Scene {
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
     const kind = st.hits === 0 ? 'return' : 'rally';
-    const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`;
-    const label = (s: ShotDef): string => `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`;
-    const items: ButtonSpec[] = [];
-    const smashes: ShotDef[] = [];
-    for (const s of shotsOfKind(kind)) {
-      if (s.id.startsWith('smash_')) {
-        smashes.push(s);
-        continue;
-      }
-      const why = unavailableReason(s, st);
-      items.push(
-        why
-          ? { label: `${s.name}\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
-          : {
-              label: label(s),
-              tone: this.toneFor(s, hitter),
-              onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
-            },
-      );
-    }
-    if (smashes.length > 0) {
-      const why = unavailableReason(smashes[0], st);
-      items.push(
-        why
-          ? { label: `Smash\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
-          : { label: 'Smash\nx3 or x4', tone: this.toneFor(smashes[0], hitter), onPick: () => this.showSmashMenu(smashes) },
-      );
-    }
-    this.showButtons(title, items);
-  }
-
-  /** Smash: hit it through 3 (into the back glass, kicks to the side) or through 4 (hard into the court, over or off the back glass). */
-  private showSmashMenu(smashes: ShotDef[]): void {
-    const st = this.point;
-    const hitter = TEAMS[0][st.hitterIdx];
-    const items: ButtonSpec[] = smashes.map((s) => ({
-      label: `${s.id === 'smash_x3' ? 'PRZEZ 3' : 'PRZEZ 4'} [${s.cost}]\n${s.id === 'smash_x3' ? 'back glass' : 'hard, court'}`,
-      tone: this.toneFor(s, hitter),
-      onPick: () => this.showDirectionMenu(s),
+    const context = st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : st.ball.lob === 'deep' ? ', deep lob' : '';
+    const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()}${context})`;
+    const label = (sh: ShotDef): string => `${sh.name}\n[${sh.cost}]${this.guts[hitter.id] < sh.cost ? ' tired' : ''}`;
+    // Only the shots that can be played now are offered.
+    const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => ({
+      label: label(sh),
+      tone: this.toneFor(sh, hitter),
+      onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
     }));
-    items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
-    this.showButtons(`${hitter.name}: smash, which one?`, items);
+    this.showButtons(title, items);
   }
 
   private showDirectionMenu(shot: ShotDef): void {
@@ -612,6 +582,7 @@ export class MatchScene extends Phaser.Scene {
   private playStep(step: Step, next: PointState): void {
     const attacker = TEAMS[step.side][step.attackerIdx];
     const defender = TEAMS[other(step.side)][step.defenderIdx];
+    this.stopCoast();
     this.guts = { ...next.guts };
     this.refreshGuts();
 
@@ -630,6 +601,9 @@ export class MatchScene extends Phaser.Scene {
       outcome: step.outcome,
       receive: step.receive,
       seed: Math.floor(Math.random() * 1e9),
+      glass: step.kind === 'serve' ? undefined : step.glass,
+      arrival: step.arrival,
+      landDepth: step.landDepth,
     });
     const duration = flightDuration(flight);
 
@@ -676,17 +650,46 @@ export class MatchScene extends Phaser.Scene {
         this.trail = [];
         this.drawTrail();
         this.ballH = flight.hitH;
-        this.afterStep(step, next, headline);
+        // When the point is over the ball is not stopped: it falls, bounces and rolls on.
+        const over = ['winner', 'ace', 'error', 'double-fault'].includes(step.outcome);
+        const coastMs = over ? this.playCoast(flight, step.shot.flight.spin) : 0;
+        this.afterStep(step, next, headline, coastMs);
       },
     });
   }
 
-  private afterStep(step: Step, next: PointState, headline: string): void {
+  /** Lets the ball carry on freely after the flight: bounces, rolls, glass, outside the court. Returns its length in ms. */
+  private playCoast(flight: Flight, spin: number): number {
+    const coast = buildCoast(flight, spin);
+    if (coast.duration <= 0) return 0;
+    const ms = Math.min(2600, coast.duration * TIME_SCALE * 1000);
+    for (const e of coast.events) {
+      this.time.delayedCall((e.t / coast.duration) * ms, () => this.impactFx(e));
+    }
+    const asFlight: Flight = { ...flight, path: coast.path, duration: coast.duration };
+    this.coastTween = this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: ms,
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const p = ballPoint(asFlight.path, tween.getValue() ?? 0);
+        this.setBall(p.x, p.z, p.h);
+      },
+    });
+    return ms;
+  }
+
+  private stopCoast(): void {
+    this.coastTween?.stop();
+    this.coastTween = null;
+  }
+
+  private afterStep(step: Step, next: PointState, headline: string, coastMs = 0): void {
     const attacker = TEAMS[step.side][step.attackerIdx];
     const defender = TEAMS[other(step.side)][step.defenderIdx];
     this.point = next;
 
-    const endPoint = (text: string, delay = POINT_PAUSE): void => {
+    const endPoint = (text: string, delay = Math.max(POINT_PAUSE, coastMs + 350)): void => {
       this.say(`${headline}\n${text}`);
       const banner: Partial<Record<string, [string, string]>> = {
         'double-fault': ['DOUBLE FAULT', '#ff9a6a'],
@@ -720,7 +723,7 @@ export class MatchScene extends Phaser.Scene {
       case 'winner':
         endPoint(
           step.shot.overFence
-            ? `${attacker.name} smashes it out over the fence!`
+            ? `${attacker.name} hits it out over the fence!`
             : `${attacker.name} wins the point with a winner!`,
         );
         break;

@@ -69,13 +69,18 @@ export interface FlightDef {
 export interface ShotRequires {
   /** The hitter's team must be in one of these formations. */
   formations?: Formation[];
-  /** The incoming ball must have one of these heights. */
+  /** The incoming ball must have one of these heights when it is played. */
   heights?: Height[];
-  /** The incoming ball must be a lob that has come off the glass in time for the hitter to set up. */
-  afterLob?: boolean;
-  /** Hint shown on the disabled button. */
+  /** true: the ball must have come off the back glass; false: it must be played before it reaches the glass. */
+  glass?: boolean;
+  /** The incoming ball must be a weak lob (one that lands in the middle of the court or near the net). */
+  weakLob?: boolean;
+  /** Hint (why this shot is not possible now). */
   hint: string;
 }
+
+/** Quality of a lob: deep into the court, or weak (lands mid-court or close to the net). */
+export type LobQuality = 'deep' | 'weak';
 
 export interface ShotDef {
   id: string;
@@ -112,6 +117,14 @@ export interface ShotDef {
   /** Where a winning overFence ball should leave the court, when it matters: over the back glass or the side wall. */
   exitVia?: 'back' | 'side';
   requires?: ShotRequires;
+  /** Chance (0..1) that the ball reaches the back glass and is played after it (default 0). */
+  glassChance?: number;
+  /** Weights of the height at which the ball comes off the back glass (default low 0.3, mid 0.4, high 0.3). */
+  rebound?: Record<Height, number>;
+  /** Lobs only: where a weak lob lands, in metres from the net (min, max). */
+  weakDepth?: [number, number];
+  /** Extra error chance when this shot is played off a low ball that has come off the glass (the lob is risky there). */
+  lowGlassRisk?: number;
   /** Serves only: scales the pressure put on the receiver. */
   pressureMult?: number;
   desc: string;
@@ -132,8 +145,10 @@ export interface BallState {
   height: Height;
   /** 0..0.4: how much the previous shot has weakened the next hit. */
   pressure: number;
-  /** The ball comes from a lob (a high, slow arc). */
-  lob?: boolean;
+  /** The ball comes from a lob: deep, or weak (lands mid-court or near the net). */
+  lob?: LobQuality;
+  /** The ball has come off (or will come off) the back glass before it is played. */
+  glass?: boolean;
 }
 
 /** Position on the court in metres: x across (-5..5), z along (0 = far baseline, 10 = net, 20 = near baseline). */

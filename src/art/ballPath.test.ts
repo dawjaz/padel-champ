@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SHOTS } from '../game/catalog';
 import { landingX } from '../game/court';
 import type { ShotDef } from '../game/types';
-import { ballPoint, buildFlight, flightDuration, type FlightOutcome } from './ballPath';
+import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'intercept', 'continue'];
@@ -192,8 +192,8 @@ describe('ballPoint and flightDuration', () => {
   it('keeps flights quick but gives a lob more time than a flat shot', () => {
     for (const s of SHOTS) {
       const d = flightDuration(fly(s.id));
-      expect(d).toBeGreaterThanOrEqual(280);
-      expect(d).toBeLessThanOrEqual(1400);
+      expect(d).toBeGreaterThanOrEqual(450);
+      expect(d).toBeLessThanOrEqual(2000);
     }
     expect(flightDuration(fly('lob'))).toBeGreaterThan(flightDuration(fly('flat'))* 2);
   });
@@ -272,5 +272,49 @@ describe('rulo', () => {
     expect(f.events[0].h).toBeGreaterThan(1);
     expect(f.path[f.path.length - 1].h).toBeCloseTo(0);
     expect(Math.abs(f.hit.x)).toBeGreaterThan(4.5);
+  });
+});
+
+describe('rules rework: glass, rebound height, weak lob, free ball', () => {
+  it('plays a weak lob short and a deep one long', () => {
+    const weak = fly('rally_lob', { landDepth: 3.5, glass: false, arrival: 'high' });
+    const deep = fly('rally_lob', { glass: false, arrival: 'high' });
+    expect(weak.events.find((e) => e.kind === 'bounce')!.z).toBeGreaterThan(deep.events.find((e) => e.kind === 'bounce')!.z);
+  });
+
+  it('takes a non-glass ball before any wall and a glass ball after the back glass', () => {
+    const plain = fly('vibora', { glass: false, arrival: 'high' });
+    expect(plain.events.filter((e) => e.kind === 'glass' && e.t <= plain.duration).length).toBe(0);
+    for (const arrival of ['low', 'mid', 'high'] as const) {
+      const f = fly('vibora', { glass: true, arrival });
+      const back = f.events.find((e) => (e.kind === 'glass' || e.kind === 'mesh') && e.z <= 0.01);
+      expect(back, arrival).toBeDefined();
+      expect(f.hit.z).toBeGreaterThan(0);
+    }
+  });
+
+  it('rebounds off the back glass to the chosen height class', () => {
+    const hh = (arrival: 'low' | 'mid' | 'high') => fly('bounce_shot', { glass: true, arrival }).hitH;
+    expect(hh('high')).toBeGreaterThan(hh('mid'));
+    expect(hh('mid')).toBeGreaterThan(hh('low'));
+    expect(ARRIVAL_HEIGHT.high).toBeGreaterThan(ARRIVAL_HEIGHT.low);
+  });
+
+  it('lets the ball fall, bounce and roll to a stop after the point', () => {
+    const f = fly('smash_x4', { outcome: 'winner', landX: 1 });
+    const c = buildCoast(f, 1);
+    expect(c.duration).toBeGreaterThan(0);
+    expect(c.path.every((p) => p.h >= -1e-9)).toBe(true);
+    const last = c.path[c.path.length - 1];
+    expect(last.h).toBeLessThan(0.1);
+    const prev = c.path[c.path.length - 2];
+    expect(Math.hypot(last.x - prev.x, last.z - prev.z) / (last.t - prev.t)).toBeLessThan(0.2);
+  });
+
+  it('keeps a dead ball (error in the net) where it is', () => {
+    const c = buildCoast(fly('vibora', { outcome: 'error' }), -0.4);
+    const first = c.path[0];
+    const last = c.path[c.path.length - 1];
+    expect(Math.hypot(last.x - first.x, last.z - first.z)).toBeLessThan(1.5);
   });
 });

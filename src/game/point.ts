@@ -1,12 +1,13 @@
 import { DIRECTIONS } from './catalog';
 import { defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
-import type { BallState, Direction, Formation, LaneSign, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
+import type { BallState, Direction, Formation, Height, LaneSign, LobQuality, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
-/** A bandeja needs a lob that did not rush the hitter (the ball pressure stays below this). */
-export const BANDEJA_MAX_PRESSURE = 0.12;
+/** Share of lobs that are good (deep into the court); the rest are weak (mid-court or close to the net). */
+export const LOB_DEEP_CHANCE = 0.7;
+const DEFAULT_REBOUND: Record<Height, number> = { low: 0.3, mid: 0.4, high: 0.3 };
 
 /**
  * One point as a pure state machine: serve -> return -> rally. The scene (or a simulation) calls
@@ -53,6 +54,14 @@ export interface Step {
   fit: number;
   /** Where the receiver takes the ball: after the first bounce or after the wall. */
   receive: ReceiveMode;
+  /** The next ball is played after it has come off the back glass. */
+  glass?: boolean;
+  /** Height class of the next ball when it is played (after the glass, the height it rebounds to). */
+  arrival?: Height;
+  /** Quality of a lob. */
+  lob?: LobQuality;
+  /** Overrides the shot's landing depth (a weak lob lands short). */
+  landDepth?: number;
 }
 
 export interface StepResult {
@@ -87,19 +96,22 @@ export function startPoint(
 }
 
 /**
- * How formations change after a shot: the hitter's team may move, and a high ball sends the opponents back.
- * A short lob (`shortLob`: the lob did not beat its defender) only pushes them into the middle of their half,
- * where they can still smash it.
+ * How formations change after a shot: the hitter's team may move, and a high ball sends the opponents back. A weak
+ * lob (lands mid-court or close to the net) does not: players at the net stay there, the others come to mid-court,
+ * so they can smash it.
  */
 export function nextFormation(
   current: [Formation, Formation],
   hitterSide: SideIndex,
   shot: ShotDef,
-  shortLob = false,
+  lob?: LobQuality,
 ): [Formation, Formation] {
   const f: [Formation, Formation] = [current[0], current[1]];
   if (shot.advance !== 'stay') f[hitterSide] = shot.advance;
-  if (shot.out === 'high') f[other(hitterSide)] = shortLob && isLob(shot) ? 'mid' : 'back';
+  if (shot.out === 'high') {
+    const def = other(hitterSide);
+    f[def] = lob === 'weak' ? (current[def] === 'net' ? 'net' : 'mid') : 'back';
+  }
   return f;
 }
 
@@ -109,13 +121,50 @@ export function unavailableReason(shot: ShotDef, state: PointState): string | nu
   if (!r) return null;
   if (r.formations && !r.formations.includes(state.formation[state.holder])) return r.hint;
   if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
-  if (r.afterLob && !(state.ball.lob && state.ball.pressure <= BANDEJA_MAX_PRESSURE)) return r.hint;
+  if (r.glass !== undefined && (state.ball.glass === true) !== r.glass) return r.hint;
+  if (r.weakLob && state.ball.lob !== 'weak') return r.hint;
   return null;
 }
 
 /** The shots of this kind that can be played in the current state. */
 export function playableShots(shots: ShotDef[], state: PointState): ShotDef[] {
   return shots.filter((s) => unavailableReason(s, state) === null);
+}
+
+function pickRebound(weights: Record<Height, number>, rng: Rng): Height {
+  const order: Height[] = ['low', 'mid', 'high'];
+  const total = order.reduce((a, h) => a + weights[h], 0);
+  let roll = rng() * total;
+  for (const h of order) {
+    roll -= weights[h];
+    if (roll <= 0) return h;
+  }
+  return 'high';
+}
+
+/**
+ * What the next ball is like: a lob is good (deep) 70% of the time and weak (short) 30%; a ball that reaches the back
+ * glass comes off it low, mid or high. `rng` is called once for the lob quality (lobs only), once for the weak
+ * lob's depth, once for the glass (when the shot can reach it) and once for the rebound height.
+ */
+function nextBall(
+  shot: ShotDef,
+  pressure: number,
+  rng: Rng,
+): { ball: BallState; glass: boolean; arrival: Height; lob?: LobQuality; landDepth?: number } {
+  let lob: LobQuality | undefined;
+  let landDepth: number | undefined;
+  if (isLob(shot)) {
+    lob = rng() < LOB_DEEP_CHANCE ? 'deep' : 'weak';
+    if (lob === 'weak') {
+      const [lo, hi] = shot.weakDepth ?? [2.5, 5.5];
+      landDepth = lo + rng() * (hi - lo);
+    }
+  }
+  const chance = lob === 'weak' ? 0 : shot.glassChance ?? 0;
+  const glass = chance > 0 && rng() < chance;
+  const arrival: Height = glass ? pickRebound(shot.rebound ?? DEFAULT_REBOUND, rng) : shot.out;
+  return { ball: { height: arrival, pressure, lob, glass }, glass, arrival, lob, landDepth };
 }
 
 export function stepServe(
@@ -165,6 +214,7 @@ export function stepServe(
 
   const formation = nextFormation(['back', 'back'], side, shot);
   formation[recvSide] = 'back';
+  const offGlass = shot.wall !== 'none' && base.receive === 'wall';
   return {
     state: {
       ...state,
@@ -173,10 +223,10 @@ export function stepServe(
       hits: 0,
       holder: recvSide,
       hitterIdx: state.receiverIdx,
-      ball: { height: shot.out, pressure: res.pressure, lob: isLob(shot) },
+      ball: { height: shot.out, pressure: res.pressure, glass: offGlass },
       formation,
     },
-    step: { ...base, outcome: 'in', pointWinner: null },
+    step: { ...base, outcome: 'in', pointWinner: null, glass: offGlass, arrival: shot.out },
   };
 }
 
@@ -224,6 +274,7 @@ export function stepHit(
   };
 
   if (res.outcome === 'continue') {
+    const next = nextBall(shot, res.pressure, rng);
     return {
       state: {
         ...state,
@@ -231,10 +282,10 @@ export function stepHit(
         hits: state.hits + 1,
         holder: defSide,
         hitterIdx: defIdx,
-        ball: { height: shot.out, pressure: res.pressure, lob: isLob(shot) },
-        formation: nextFormation(state.formation, side, shot, res.attackScore < res.defenseScore),
+        ball: next.ball,
+        formation: nextFormation(state.formation, side, shot, next.lob),
       },
-      step,
+      step: { ...step, glass: next.glass, arrival: next.arrival, lob: next.lob, landDepth: next.landDepth },
     };
   }
 

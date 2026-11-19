@@ -56,6 +56,15 @@ export interface FlightOpts {
   receive?: ReceiveMode;
   /** Seed for the unpredictable bounce off the mesh (rulo). Visual only: the game outcome never depends on it. */
   seed?: number;
+  /** Where the ball first lands, metres past the net (overrides the shot's own depth: a weak lob lands short). */
+  landDepth?: number;
+  /**
+   * Rally balls: true = the ball is played after it has come off the back glass; false = before any wall.
+   * Left out, the ball is played after the first wall it touches (the old behaviour).
+   */
+  glass?: boolean;
+  /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
+  arrival?: Height;
 }
 
 export interface Flight {
@@ -72,6 +81,9 @@ export interface Flight {
 export const HIT_HEIGHT_M = 0.9;
 /** Height at which the next player meets the ball, by the height class of the shot (ball LOW / MID / HIGH). */
 export const ARRIVAL_HEIGHT: Record<Height, number> = { high: 2.0, mid: 1.0, low: 0.5 };
+
+/** How high the ball rises after the back glass, by rebound class (metres): low / medium / high rebound. */
+export const REBOUND_PEAK: Record<Height, number> = { low: 0.75, mid: 1.5, high: 2.6 };
 
 export const GRAVITY = 9.81;
 const DT = 1 / 90;
@@ -172,6 +184,12 @@ interface SimOpts {
   rulo: boolean;
   /** Keeps the ball on the receiving half (only used while a rulo bounces unpredictably). */
   zRange?: [number, number];
+  /** The ball is played after the back glass (not just any wall). */
+  backGlass?: boolean;
+  /** Highest point of the rebound off the back glass (steers the rebound to low, medium or high). */
+  reboundPeak?: number;
+  /** Extra carry of the first bounce so that the ball really reaches the back glass. */
+  carry?: number;
 }
 
 /** Small seeded generator (mulberry32) so a flight is reproducible for a seed. */
@@ -191,7 +209,7 @@ function simulateAfterBounce(
   start: { x: number; z: number; vx: number; vz: number; vy: number },
   t0: number,
   o: SimOpts,
-): { samples: Sample[]; events: FlightEvent[]; hitIndex: number; end: number } {
+): { samples: Sample[]; events: FlightEvent[]; hitIndex: number; end: number; backContact: number } {
   const { spin, wallKick } = o.shot.flight;
   const boost = o.boost ?? 1;
   const keep = clamp(FLOOR_KEEP + 0.14 * spin, 0.4, 0.95);
@@ -208,12 +226,14 @@ function simulateAfterBounce(
   let kicked = false;
   let climbing = false;
   let chaos = false;
+  let backContact = -1;
 
   const floorBounce = (): void => {
     h = 0;
     vy = -vy * restitution;
-    vx *= keep;
-    vz *= keep;
+    const k = bounces === 0 ? Math.min(keep * (o.carry ?? 1), 1.2) : keep;
+    vx *= k;
+    vz *= k;
     bounces++;
     events.push({ kind: 'bounce', t, x, z, h: 0 });
   };
@@ -321,8 +341,14 @@ function simulateAfterBounce(
       // Backspin makes the ball die against the back glass; topspin keeps it lively.
       const spinKeep = clamp(1 + 0.25 * o.shot.flight.spin, 0.5, 1.2);
       vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
-      vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7) * Math.min(1, spinKeep);
+      if (o.reboundPeak !== undefined && glass && backContact < 0 && !o.exitOverFence) {
+        // The rebound off the back glass is low, medium or high: steer it to the chosen peak.
+        vy = Math.sqrt(2 * GRAVITY * Math.max(o.reboundPeak - h, 0.05));
+      } else {
+        vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7) * Math.min(1, spinKeep);
+      }
       kicked = true;
+      if (backContact < 0) backContact = samples.length;
       if (firstContact < 0) firstContact = samples.length;
       events.push({ kind: mat, t, x, z, h });
     }
@@ -339,7 +365,9 @@ function simulateAfterBounce(
   const lastIndex = Math.max(1, end - (samples[end].h <= 0 ? 1 : 0));
   let from = 1;
   let to = lastIndex;
-  if (firstContact >= 0 && firstContact <= lastIndex) {
+  if (o.needWall && o.backGlass && backContact >= 0 && backContact <= lastIndex) {
+    from = backContact;
+  } else if (firstContact >= 0 && firstContact <= lastIndex) {
     if (o.needWall) from = firstContact;
     else to = Math.max(1, firstContact - 1);
   }
@@ -364,7 +392,7 @@ function simulateAfterBounce(
       }
     }
   }
-  return { samples, events, hitIndex, end };
+  return { samples, events, hitIndex, end, backContact };
 }
 
 /** Where a ball can be played, kept inside the court and on the receiving half. */
@@ -440,7 +468,8 @@ export function buildFlight(o: FlightOpts): Flight {
   // In play: ballistic arc to the first bounce, then the simulation.
   // A winning smash x4 that is meant to clear the back glass is not aimed so close to the side glass that it hits that first.
   const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
-  const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * o.shot.landDepth };
+  const depth = o.landDepth ?? o.shot.landDepth;
+  const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
   const arc = solveArc(from, land, fl.speed, fl.apex);
   sampleArc(from, arc, 0);
   const touch = { x: land.x, z: land.z, vx: arc.vx, vz: arc.vz, vy: arc.vy - GRAVITY * arc.T };
@@ -450,11 +479,13 @@ export function buildFlight(o: FlightOpts): Flight {
   const rand = makeRand(o.seed ?? Math.round(Math.abs(o.from.x * 977 + o.from.z * 313 + o.landX * 131) * 1000) + 7);
   // Serves: the receiver chooses (bounce or glass) when the serve goes to the glass. Rally balls that reach a wall
   // are played after it, because a ball that is about to hit the glass cannot be taken before it.
-  const needWall = isServe ? o.shot.wall !== 'none' && o.receive !== 'bounce' : true;
-  const hitHeight = ARRIVAL_HEIGHT[o.shot.out];
+  const needWall = isServe ? o.shot.wall !== 'none' && o.receive !== 'bounce' : o.glass ?? true;
+  const backGlass = !isServe && o.glass === true;
+  const arrival = o.arrival ?? o.shot.out;
+  const hitHeight = ARRIVAL_HEIGHT[arrival];
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
   const exits = winning && (o.shot.wall === 'fence' || o.shot.overFence === true);
-  const run = (boost: number): ReturnType<typeof simulateAfterBounce> =>
+  const run = (boost: number, carry = 1): ReturnType<typeof simulateAfterBounce> =>
     simulateAfterBounce(touch, arc.T, {
       shot: o.shot,
       hitHeight,
@@ -464,8 +495,19 @@ export function buildFlight(o: FlightOpts): Flight {
       rand,
       rulo,
       zRange: rulo ? (o.hitterSide === 0 ? [0.4, NET_Z - 0.8] : [NET_Z + 0.8, 19.6]) : undefined,
+      backGlass,
+      reboundPeak: backGlass ? REBOUND_PEAK[arrival] : undefined,
+      carry,
     });
   let sim = run(1);
+  // A ball that must come off the back glass has to reach it: give the first bounce more carry if it falls short.
+  if (backGlass && sim.backContact < 0) {
+    for (const carry of [1.25, 1.5, 1.8, 2.2, 2.8]) {
+      const r = run(1, carry);
+      sim = r;
+      if (r.backContact >= 0) break;
+    }
+  }
   // A winning smash is hit hard enough to leave the court: spin it up until it really flies out, preferably the
   // way the shot is meant to (x4 over the back glass, x3 over the side glass or mesh), else any way.
   if (exits && o.shot.overFence === true) {
@@ -526,6 +568,120 @@ export function buildFlight(o: FlightOpts): Flight {
   return { path, hit: { x: hit.x, z: hit.z }, hitH: winning ? hit.h : end.h, events: seen, duration: end.t };
 }
 
+/** Rolling resistance of the court floor (m/s^2) and of the ground outside it. */
+const ROLL_DECEL = 1.1;
+const OUTSIDE_ROLL_DECEL = 2.2;
+/** Below this vertical speed after a bounce the ball stops bouncing and rolls. */
+const ROLL_VY = 1.2;
+const COAST_MAX_TIME = 5;
+
+export interface Coast {
+  /** Samples, t = 0 at the end of the flight. */
+  path: Sample[];
+  events: FlightEvent[];
+  duration: number;
+}
+
+/**
+ * After the point is over the ball is not stopped: it carries on freely from where the flight ended, with the
+ * velocity it had then. It falls, bounces on the floor (less each time; topspin keeps more speed forward,
+ * backspin kills it), hits glass, mesh or the net when it is still inside the court, flies on when it left over
+ * the fence, and finally rolls to a stop. `spin` is the shot's spin (+ topspin, - backspin).
+ */
+export function buildCoast(flight: Flight, spin: number): Coast {
+  const path = flight.path;
+  const n = path.length;
+  const last = path[n - 1];
+  const prev = path[Math.max(0, n - 2)];
+  const dt = last.t - prev.t;
+  const start: Sample = { t: 0, x: last.x, z: last.z, h: last.h };
+  if (n < 2 || dt <= 0) return { path: [start], events: [], duration: 0 };
+
+  let x = last.x;
+  let z = last.z;
+  let h = last.h;
+  let vx = (last.x - prev.x) / dt;
+  let vz = (last.z - prev.z) / dt;
+  let vy = (last.h - prev.h) / dt;
+  let inside = Math.abs(x) <= 5 + 1e-6 && z >= -1e-6 && z <= 20 + 1e-6 && flight.events.every((e) => e.kind !== 'out');
+  let rolling = false;
+  const e = clamp(0.62 + 0.04 * spin, 0.5, 0.7);
+  const keep = clamp(0.62 + 0.14 * spin, 0.35, 0.9);
+
+  const samples: Sample[] = [start];
+  const events: FlightEvent[] = [];
+  let t = 0;
+  for (let i = 0; i < COAST_MAX_TIME / DT; i++) {
+    const speed = Math.hypot(vx, vz);
+    if (rolling && speed < 0.05) break;
+    t += DT;
+    const pz = z;
+    if (!rolling) {
+      vx *= 1 - AIR_DRAG * DT;
+      vz *= 1 - AIR_DRAG * DT;
+      vy -= GRAVITY * DT;
+      h += vy * DT;
+    } else {
+      const decel = (inside ? ROLL_DECEL : OUTSIDE_ROLL_DECEL) * DT;
+      const f = Math.max(0, 1 - decel / Math.max(speed, 1e-6));
+      vx *= f;
+      vz *= f;
+    }
+    x += vx * DT;
+    z += vz * DT;
+
+    if (inside) {
+      // The net stops a low ball.
+      if (((pz - NET_Z) * (z - NET_Z) < 0 || Math.abs(z - NET_Z) < 0.02) && h < NET_HEIGHT_M) {
+        z = pz;
+        vz *= -0.2;
+        vx *= 0.5;
+        events.push({ kind: 'net', t, x, z, h });
+      }
+      if (Math.abs(x) >= 5) {
+        const mat = sideWallMaterial(z, h);
+        if (mat === 'out') inside = false;
+        else {
+          const glass = mat === 'glass';
+          x = Math.sign(x) * 5;
+          vx = -vx * (glass ? GLASS_E : MESH_E);
+          vz *= glass ? GLASS_KEEP : MESH_KEEP;
+          vy *= glass ? 1 : 0.7;
+          rolling = false;
+          events.push({ kind: mat, t, x, z, h });
+        }
+      }
+      if (inside && (z <= 0 || z >= 20)) {
+        const mat = backWallMaterial(h);
+        if (mat === 'out') inside = false;
+        else {
+          const glass = mat === 'glass';
+          z = z <= 0 ? 0 : 20;
+          vz = -vz * (glass ? GLASS_E : MESH_E);
+          vx *= glass ? GLASS_KEEP : MESH_KEEP;
+          vy *= glass ? 1 : 0.7;
+          rolling = false;
+          events.push({ kind: mat, t, x, z, h });
+        }
+      }
+    }
+
+    if (!rolling && h <= 0 && vy < 0) {
+      h = 0;
+      vy = -vy * e;
+      vx *= keep;
+      vz *= keep;
+      events.push({ kind: 'bounce', t, x, z, h: 0 });
+      if (vy < ROLL_VY) {
+        vy = 0;
+        rolling = true;
+      }
+    }
+    samples.push({ t, x, z, h });
+  }
+  return { path: samples, events, duration: t };
+}
+
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 /** Position of the ball at u (0..1) of the flight (real time, scaled to the animation). */
@@ -546,9 +702,9 @@ export function ballPoint(path: Sample[], u: number): { x: number; z: number; h:
 }
 
 /** Animation speed relative to real time: the game should feel quick. */
-export const TIME_SCALE = 0.4;
+export const TIME_SCALE = 0.62;
 
 /** How long a flight takes on screen, in milliseconds. */
 export function flightDuration(flight: Flight): number {
-  return clamp(flight.duration * TIME_SCALE * 1000, 280, 1400);
+  return clamp(flight.duration * TIME_SCALE * 1000, 450, 2000);
 }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
 import { pickHit, pickReceive, pickServe } from './ai';
-import { SHOTS } from './catalog';
+import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
-import { nextFormation, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
+import { nextFormation, playableShots, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
 import { fixedRng, seededRng } from './rng';
 import type { PlayerDef, ShotDef } from './types';
 
@@ -18,7 +18,8 @@ function freshGuts(): Record<string, number> {
 
 /** A point already in the rally, with the given hitter. */
 function rallyState(over: Partial<PointState> = {}): PointState {
-  return { ...startPoint(freshGuts(), 0, 0, 0), status: 'rally', holder: 0, hitterIdx: 0, hits: 0, ...over };
+  return { ...startPoint(freshGuts(), 0, 0, 0), status: 'rally', holder: 0, hitterIdx: 0, hits: 0,
+    ball: { height: 'high', pressure: 0 }, ...over };
 }
 
 describe('startPoint', () => {
@@ -117,15 +118,23 @@ describe('stepHit', () => {
   });
 
   it('passes the ball on after a continued rally and updates the formation', () => {
-    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5]));
+    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.9, 0.5, 0.5]));
     expect(r.step.outcome).toBe('continue');
     expect(r.state.status).toBe('rally');
     expect(r.state.holder).toBe(1);
     expect(r.state.hitterIdx).toBe(r.step.defenderIdx);
     expect(r.state.hits).toBe(1);
-    // a short lob only pushes the opponents to the middle of their half
+    // a weak lob (30%) only brings the opponents to the middle of their half
     expect(r.state.formation).toEqual(['back', 'mid']);
-    expect(r.state.ball.lob).toBe(true);
+    expect(r.state.ball.lob).toBe('weak');
+    expect(r.step.landDepth).toBeGreaterThan(0);
+  });
+
+  it('plays a good lob (70%) deep and sends the opponents back', () => {
+    const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.1, 0.5, 0.5]));
+    expect(r.state.ball.lob).toBe('deep');
+    expect(r.state.formation[1]).toBe('back');
+    expect(r.step.landDepth).toBe(undefined);
   });
 
   it('does not mutate the previous state', () => {
@@ -185,28 +194,46 @@ describe('whole points (CPU vs CPU, seeded)', () => {
   });
 });
 
-describe('shot availability (smash, bandeja)', () => {
-  it('lets a smash through only at the net or mid-court, on a high or mid ball', () => {
+describe('shot availability', () => {
+  const weak = (height: 'high' | 'mid' | 'low' = 'high') => ({ height, pressure: 0, lob: 'weak' as const });
+
+  it('offers a smash only at the net or mid-court after a weak lob', () => {
     for (const id of ['smash_x3', 'smash_x4']) {
       const s = shot(id);
-      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['net', 'back'], ball: { height: 'high', pressure: 0 } }))).toBeNull();
-      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['mid', 'back'], ball: { height: 'mid', pressure: 0 } }))).toBeNull();
-      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['back', 'back'], ball: { height: 'high', pressure: 0 } }))).not.toBeNull();
-      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['net', 'back'], ball: { height: 'low', pressure: 0 } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['net', 'back'], ball: weak() }))).toBeNull();
+      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['back', 'back'], ball: weak() }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'deep' } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ holder: 0, formation: ['net', 'back'], ball: { ...weak(), glass: true } }))).not.toBeNull();
     }
+  });
+
+  it('offers vibora and bandeja only on a high ball that did not come off the glass', () => {
+    for (const id of ['vibora', 'bandeja']) {
+      const s = shot(id);
+      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0 } }))).toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'mid', pressure: 0 } }))).not.toBeNull();
+    }
+  });
+
+  it('offers the volley only before the back glass, and the bajada only after a mid or high rebound', () => {
+    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).toBeNull();
+    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).not.toBeNull();
+    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).toBeNull();
+    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).toBeNull();
+    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'low', pressure: 0, glass: true } }))).not.toBeNull();
+    expect(unavailableReason(shot('bajada'), rallyState({ ball: { height: 'high', pressure: 0 } }))).not.toBeNull();
+  });
+
+  it('after a low rebound off the glass only the lob, bounce shot and chiquita remain', () => {
+    const st = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, glass: true } });
+    const ids = playableShots(shotsOfKind('rally'), st).map((x) => x.id).sort();
+    expect(ids).toEqual(['bounce_shot', 'rally_chiquita', 'rally_lob']);
   });
 
   it('throws when an unavailable shot is played', () => {
     const st = rallyState({ holder: 0, formation: ['back', 'back'] });
     expect(() => stepHit(TEAMS, st, shot('smash_x4'), 'cross', fixedRng([0.99, 0.5, 0.5]))).toThrow();
-  });
-
-  it('allows the bandeja only after a lob the hitter had time for', () => {
-    const b = shot('bandeja');
-    expect(unavailableReason(b, rallyState({ ball: { height: 'high', pressure: 0, lob: true } }))).toBeNull();
-    expect(unavailableReason(b, rallyState({ ball: { height: 'high', pressure: 0.2, lob: true } }))).not.toBeNull();
-    expect(unavailableReason(b, rallyState({ ball: { height: 'high', pressure: 0 } }))).not.toBeNull();
-    expect(unavailableReason(b, rallyState({ ball: { height: 'mid', pressure: 0 } }))).not.toBeNull();
   });
 
   it('keeps unavailable shots out of the CPU choice', () => {

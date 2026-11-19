@@ -74,3 +74,9 @@ The owner asked that, when the point is served from the side opposite to where t
 the partners do not swap halves. Chosen reading: nobody leaves their own lane; the server steps to the centre mark
 on the correct side (`CENTRE_SERVE_X`) and serves cross from there. Alternative if this is not what was meant:
 let the partner serve those points.
+
+## 2026-11-19: glass state and lob quality drive shot availability (v0.10)
+Availability is data (`requires` in shots.json) evaluated against `BallState` (height, lob quality, off-the-glass). The
+random rolls (lob quality, glass, rebound height) happen in `stepHit`, so the flight animation only visualises them and
+the game result never depends on the physics. Unavailable shots are hidden from the menu instead of greyed out.
+After a point the ball is simulated freely (`buildCoast`); it is visual only.
