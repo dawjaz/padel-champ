@@ -1,6 +1,17 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.11)_
+_Last updated: 2026-11-19 (v0.12)_
+
+## v0.12: visible ball spin, blocks at the net, overhead on weak lobs
+- **Ball rotation** (`src/art/spin.ts`, `ballHd.drawBall`): the ball is drawn each frame with a band, a seam and two dots, turning with
+  its angular velocity. `FlightDef.spin` = top/back spin, new `FlightDef.side` = side spin (vibora 1.0, spin glass 1.0, rulo 0.8,
+  smash x3 0.5, t-serve 0.5, bandeja 0.4, ...). The vector is fixed in the world at the hit, so topspin turns into backspin after a
+  rebound off the back glass. Values are an estimate from real shots: slice/backspin for serve, volley, bandeja, chiquita; heavy
+  top+side for rulo; side+back for vibora; flat/topspin for bajada and smashes.
+- **Block**: shots with `blockAtNet` (flat shot, flat return, vibora, bandeja, bajada) are blocked out of the air by a defender at the
+  net (`Step.block`; next ball is mid, off no glass; the defender holds the volley pose).
+- **Weak lob**: the defender takes it out of the air at about 2 m (`airHit`), so Smash/Vibora/Bandeja are played before a bounce.
+- **Chiquita** lands 1.1-2.1 m behind the net (`landDepth` 1.6, `depthSpread` 0.5). Bounce shot is now called **Flat shot**.
 
 ## v0.11: net play, partner movement, backhand, aim points
 - **Net fight** (`nextFormation`): after a lob the hitter goes to the net (weak lob: mid-court); after other shots from the back to
@@ -20,7 +31,7 @@ _Last updated: 2026-11-19 (v0.11)_
 - **Availability** (`ShotDef.requires`, only playable shots are shown in the menu, the CPU obeys the same rules):
   Por Tres / Por Cuatro (renamed smashes): net or mid-court + weak lob, not off the glass. Vibora and Bandeja: high ball, not off the glass.
   Volley: not off the glass. Bajada (new): off the glass, mid or high rebound. After a low rebound: Lob (risky, `lowGlassRisk`),
-  Bounce shot or Chiquita (new rally shot `rally_chiquita`).
+  Flat shot (id `bounce_shot`) or Chiquita (new rally shot `rally_chiquita`).
 - **Free ball**: after a point `buildCoast` lets the ball fall, bounce (spin decides how much it keeps), hit glass/mesh/net, fly on
   over the fence or roll out. `MatchScene.playCoast` plays it before the next point.
 - **Pace**: `TIME_SCALE` 0.62, flight 450-2000 ms, longer CPU/point/game pauses.
@@ -76,7 +87,7 @@ comic big-head characters with diverse skin/gender/outfits; equipment in career 
 ## v0.4: new shot mechanics (this session)
 Implements the owner's shot spec (docs/GDD.md has the full rules): serve always cross, server's partner in the middle
 of the half; serves hard glass / spin glass / at opponent / T; returns chiquita / lob / flat; rally shots vibora /
-bandeja / volley / bounce shot / rulo; direction parallel / middle / cross; rulo always cross into the mesh fence.
+bandeja / volley / flat shot / rulo; direction parallel / middle / cross; rulo always cross into the mesh fence.
 - Pure logic: `src/game/{court,engine,point,ai,catalog,rng}.ts`, data in `src/data/{shots,directions}.json`
   (old moves/responses removed). 84 local tests pass via a shim runner; balance checked by 20k CPU-vs-CPU points.
 - Art maths: `src/art/walls.ts` (real wall layout: back 3 m glass + 1 m mesh, stepped side walls, mesh centre),

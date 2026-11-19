@@ -318,3 +318,26 @@ describe('rules rework: glass, rebound height, weak lob, free ball', () => {
     expect(Math.hypot(last.x - first.x, last.z - first.z)).toBeLessThan(1.5);
   });
 });
+
+describe('blocks at the net, weak lobs and chiquitas', () => {
+  it('ends a blocked ball in the air close to the net, before any bounce', () => {
+    const f = fly('vibora', { block: true, glass: false, arrival: 'mid', landDepth: 6 });
+    expect(f.events.some((e) => e.kind === 'bounce')).toBe(false);
+    expect(f.hit.z).toBeLessThan(10);
+    expect(f.hit.z).toBeGreaterThan(7.5);
+    expect(f.hitH).toBeGreaterThan(0.5);
+  });
+
+  it('lets a weak lob be taken overhead out of the air', () => {
+    const f = fly('rally_lob', { airHit: true, landDepth: 4, glass: false, arrival: 'high' });
+    expect(f.events.some((e) => e.kind === 'bounce')).toBe(false);
+    expect(f.hitH).toBeGreaterThan(1.7);
+    expect(f.hitH).toBeLessThan(2.3);
+  });
+
+  it('lands a chiquita just behind the net', () => {
+    const f = fly('rally_chiquita', { landDepth: 1.6, glass: false });
+    const b = f.events.find((e) => e.kind === 'bounce')!;
+    expect(10 - b.z).toBeLessThan(2.2);
+  });
+});

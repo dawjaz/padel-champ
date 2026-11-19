@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, TIME_SCALE, type Flight, type FlightEvent } from '../art/ballPath';
 import { project } from '../art/camera';
+import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { SPRITE_H } from '../art/character';
 import { poseOf, type PoseName, type Stance } from '../art/character';
 import { ensureCharacterTexture } from '../art/characterTexture';
@@ -88,6 +89,11 @@ export class MatchScene extends Phaser.Scene {
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
   private ballH = HIT_HEIGHT_M;
   private coastTween: Phaser.Tweens.Tween | null = null;
+  /** Orientation and angular velocity of the ball, and when it was last turned (scene clock, ms). */
+  private ballR: Mat3 = IDENTITY;
+  private ballOmega: Vec3 = [0, 0, 0];
+  private ballTurnedAt = 0;
+  private redrawBall: (m: Mat3) => void = () => undefined;
   private overlay!: Phaser.GameObjects.Graphics;
   private ball!: Phaser.GameObjects.Image;
   private ballGlow!: Phaser.GameObjects.Image;
@@ -118,7 +124,7 @@ export class MatchScene extends Phaser.Scene {
     this.drawArenaHd();
     this.overlay = this.add.graphics().setDepth(1);
     this.createViews();
-    ensureBallTextures(this);
+    this.redrawBall = ensureBallTextures(this).redrawBall;
     this.trailGfx = this.add.graphics().setDepth(4990);
     this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
     this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000);
@@ -214,7 +220,16 @@ export class MatchScene extends Phaser.Scene {
   private setBall(x: number, z: number, h: number, trail = true): void {
     const p = project(x, z, h);
     this.ballFloor = { x, z };
-    const d = Math.max(7, p.scale * 0.36);
+    const d = Math.max(8, p.scale * 0.4);
+    const now = this.time.now;
+    if (trail) {
+      const dt = Math.min(0.05, Math.max(0, (now - this.ballTurnedAt) / 1000));
+      if (dt > 0) {
+        this.ballR = rotate(this.ballR, this.ballOmega, dt);
+        this.redrawBall(this.ballR);
+      }
+    }
+    this.ballTurnedAt = now;
     this.ball.setPosition(p.x, p.y).setDisplaySize(d, d);
     this.ballGlow.setPosition(p.x, p.y).setDisplaySize(d * 3.4, d * 3.4);
     if (trail) {
@@ -608,8 +623,18 @@ export class MatchScene extends Phaser.Scene {
       glass: step.kind === 'serve' ? undefined : step.glass,
       arrival: step.arrival,
       landDepth: step.landDepth,
+      block: step.block,
+      airHit: step.lob === 'weak',
     });
     const duration = flightDuration(flight);
+    // The ball leaves the racket spinning: topspin / backspin about the horizontal axis, side spin about the vertical one.
+    {
+      const k = Math.min(flight.path.length - 1, 12);
+      const a = flight.path[0];
+      const b = flight.path[k];
+      this.ballOmega = launchSpin(step.shot.flight.spin, step.shot.flight.side, b.x - a.x, b.z - a.z);
+      this.ballTurnedAt = this.time.now;
+    }
 
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
@@ -628,7 +653,7 @@ export class MatchScene extends Phaser.Scene {
       const stance = chooseStance(other(step.side), this.pos[defender.id].x, flight.hit.x, flight.hitH);
       this.stance[defender.id] = stance;
       targets[defender.id] = standingSpot(other(step.side), stance, flight.hit);
-      endPose[defender.id] = poseOf(stance, 'Prep');
+      endPose[defender.id] = poseOf(stance, step.block ? 'Hit' : 'Prep');
       // The partner moves with the player who runs for the ball: forward or back by about half as much, and a little
       // sideways to cover the court, never further than a sensible distance from the net.
       const defSide = other(step.side);

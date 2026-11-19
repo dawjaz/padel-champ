@@ -22,7 +22,8 @@
       "speed": 28,
       "apex": 0,
       "spin": 0.2,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.2
     }
   },
   {
@@ -48,7 +49,8 @@
       "speed": 21,
       "apex": 0,
       "spin": 0.5,
-      "wallKick": 1.25
+      "wallKick": 1.25,
+      "side": 1.0
     }
   },
   {
@@ -75,7 +77,8 @@
       "speed": 25,
       "apex": 0,
       "spin": 0.0,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.0
     }
   },
   {
@@ -102,7 +105,8 @@
       "speed": 19,
       "apex": 0,
       "spin": -0.6,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.5
     }
   },
   {
@@ -120,16 +124,18 @@
       "low": 1.1
     },
     "advance": "net",
-    "landDepth": 2.5,
+    "landDepth": 1.6,
     "wall": "none",
     "desc": "Soft, low and short. Lets you move up to the net.",
     "flight": {
       "speed": 9,
       "apex": 0,
       "spin": -0.7,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.2
     },
-    "glassChance": 0.1
+    "glassChance": 0.1,
+    "depthSpread": 0.5
   },
   {
     "id": "lob",
@@ -153,7 +159,8 @@
       "speed": 12,
       "apex": 5.5,
       "spin": 0.2,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.0
     },
     "glassChance": 0.75,
     "weakDepth": [
@@ -188,9 +195,11 @@
       "speed": 21,
       "apex": 0,
       "spin": 0.0,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.0
     },
-    "glassChance": 0.2
+    "glassChance": 0.2,
+    "blockAtNet": true
   },
   {
     "id": "vibora",
@@ -214,7 +223,8 @@
       "speed": 23,
       "apex": 0,
       "spin": -0.4,
-      "wallKick": 1.35
+      "wallKick": 1.35,
+      "side": 1.0
     },
     "requires": {
       "glass": false,
@@ -223,7 +233,8 @@
       ],
       "hint": "high ball, before the glass"
     },
-    "glassChance": 0.35
+    "glassChance": 0.35,
+    "blockAtNet": true
   },
   {
     "id": "bandeja",
@@ -247,7 +258,8 @@
       "speed": 17,
       "apex": 0,
       "spin": -0.9,
-      "wallKick": 0.7
+      "wallKick": 0.7,
+      "side": 0.4
     },
     "requires": {
       "glass": false,
@@ -261,7 +273,8 @@
       "low": 0.5,
       "mid": 0.4,
       "high": 0.1
-    }
+    },
+    "blockAtNet": true
   },
   {
     "id": "rally_lob",
@@ -285,7 +298,8 @@
       "speed": 12,
       "apex": 5.0,
       "spin": 0.2,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.1
     },
     "glassChance": 0.75,
     "weakDepth": [
@@ -321,7 +335,8 @@
       "speed": 21,
       "apex": 0,
       "spin": -0.2,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.2
     },
     "requires": {
       "glass": false,
@@ -331,7 +346,7 @@
   },
   {
     "id": "bounce_shot",
-    "name": "Bounce shot",
+    "name": "Flat shot",
     "kind": "rally",
     "stat": "power",
     "power": 1.1,
@@ -351,9 +366,11 @@
       "speed": 22,
       "apex": 0,
       "spin": 0.4,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.0
     },
-    "glassChance": 0.55
+    "glassChance": 0.55,
+    "blockAtNet": true
   },
   {
     "id": "rulo",
@@ -379,7 +396,8 @@
       "speed": 25,
       "apex": 1.2,
       "spin": 1.4,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.8
     },
     "overFence": true,
     "edgeX": 4.55,
@@ -425,7 +443,8 @@
       "speed": 30,
       "apex": 0,
       "spin": 1.0,
-      "wallKick": 1.6
+      "wallKick": 1.6,
+      "side": 0.5
     },
     "exitVia": "side",
     "glassChance": 1.0,
@@ -468,7 +487,8 @@
       "speed": 31,
       "apex": 0,
       "spin": 0.6,
-      "wallKick": 1.0
+      "wallKick": 1.0,
+      "side": 0.2
     },
     "exitVia": "back",
     "glassChance": 0.6
@@ -505,8 +525,10 @@
       "speed": 26,
       "apex": 0,
       "spin": 0.3,
-      "wallKick": 1.0
-    }
+      "wallKick": 1.0,
+      "side": 0.1
+    },
+    "blockAtNet": true
   },
   {
     "id": "rally_chiquita",
@@ -523,7 +545,7 @@
       "low": 1.15
     },
     "advance": "net",
-    "landDepth": 2.5,
+    "landDepth": 1.6,
     "wall": "none",
     "glassChance": 0.0,
     "requires": {
@@ -538,7 +560,9 @@
       "speed": 9,
       "apex": 0,
       "spin": -0.7,
-      "wallKick": 1.0
-    }
+      "wallKick": 1.0,
+      "side": 0.2
+    },
+    "depthSpread": 0.5
   }
 ]

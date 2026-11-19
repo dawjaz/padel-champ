@@ -63,6 +63,10 @@ export interface FlightOpts {
    * Left out, the ball is played after the first wall it touches (the old behaviour).
    */
   glass?: boolean;
+  /** A defender at the net blocks the ball out of the air in front of him, before it bounces. */
+  block?: boolean;
+  /** A weak lob: the defender hits it out of the air (smash, vibora, bandeja) instead of letting it bounce. */
+  airHit?: boolean;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
 }
@@ -472,6 +476,35 @@ export function buildFlight(o: FlightOpts): Flight {
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
   const arc = solveArc(from, land, fl.speed, fl.apex);
   sampleArc(from, arc, 0);
+  // A ball that is played out of the air (a block at the net, or a weak lob taken overhead) ends where it is hit.
+  if ((o.block || o.airHit) && (o.outcome === 'continue' || o.outcome === 'in')) {
+    let tHit = -1;
+    if (o.block) {
+      const zb = NET_Z + away * Math.min(1.6, depth * 0.5);
+      const t = arc.vz !== 0 ? (zb - from.z) / arc.vz : -1;
+      if (t > 0 && t < arc.T) tHit = t;
+    } else {
+      const level = ARRIVAL_HEIGHT.high;
+      const disc = arc.vy * arc.vy - 2 * GRAVITY * (level - from.h);
+      if (disc > 0) {
+        const t = (arc.vy + Math.sqrt(disc)) / GRAVITY;
+        if (t > 0 && t < arc.T) tHit = t;
+      }
+    }
+    if (tHit > 0) {
+      path.length = 0;
+      const steps = Math.max(2, Math.ceil(tHit / DT));
+      for (let i = 0; i <= steps; i++) {
+        const t = (tHit * i) / steps;
+        const p = arcPoint(from, arc, t);
+        path.push({ t, x: p.x, z: p.z, h: p.h });
+      }
+      const end = path[path.length - 1];
+      const spot = clampHit(end, o.hitterSide);
+      path[path.length - 1] = { t: end.t, x: spot.x, z: spot.z, h: end.h };
+      return { path, hit: { x: spot.x, z: spot.z }, hitH: end.h, events: [], duration: end.t };
+    }
+  }
   const touch = { x: land.x, z: land.z, vx: arc.vx, vz: arc.vz, vy: arc.vy - GRAVITY * arc.T };
 
   const isServe = o.shot.kind === 'serve';

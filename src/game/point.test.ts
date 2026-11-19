@@ -6,7 +6,7 @@ import { recoverGuts } from './engine';
 import { nextFormation, playableShots, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
 import { aimDepth, aimX } from './court';
 import { fixedRng, seededRng } from './rng';
-import type { PlayerDef, ShotDef } from './types';
+import type { Formation, PlayerDef, ShotDef } from './types';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
@@ -170,6 +170,36 @@ describe('nextFormation', () => {
 
   it('works for the far team too', () => {
     expect(nextFormation(['back', 'back'], 1, shot('rally_lob'), 'deep')).toEqual(['back', 'net']);
+  });
+});
+
+describe('blocks at the net', () => {
+  const net: [Formation, Formation] = ['back', 'net'];
+  it('has a defender at the net block a flat shot or a vibora out of the air', () => {
+    for (const id of ['vibora', 'bounce_shot', 'bandeja']) {
+      const st = rallyState({ formation: net, ball: { height: id === 'bounce_shot' ? 'low' : 'high', pressure: 0 } });
+      let seen = 0;
+      for (let seed = 1; seed <= 60; seed++) {
+        const r = stepHit(TEAMS, st, shot(id), 'cross', seededRng(seed));
+        if (r.step.outcome !== 'continue') continue;
+        seen++;
+        expect(r.step.block, id).toBe(true);
+        expect(r.state.ball.glass).toBe(false);
+        expect(r.state.ball.height).toBe('mid');
+      }
+      expect(seen, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('does not block when the defender is not at the net, or against a lob', () => {
+    const st = rallyState({ formation: ['back', 'mid'] });
+    expect(stepHit(TEAMS, st, shot('vibora'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5])).step.block).toBe(undefined);
+    const lob = rallyState({ formation: net });
+    expect(stepHit(TEAMS, lob, shot('rally_lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5, 0.5])).step.block).toBe(undefined);
+  });
+
+  it('calls the flat shot "Flat shot"', () => {
+    expect(shot('bounce_shot').name).toBe('Flat shot');
   });
 });
 

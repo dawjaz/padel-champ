@@ -64,6 +64,8 @@ export interface Step {
   landDepth?: number;
   /** One of the 10 aim points of the chosen direction (x, metres). */
   landX?: number;
+  /** The defender at the net blocks the ball out of the air. */
+  block?: boolean;
 }
 
 export interface StepResult {
@@ -248,7 +250,7 @@ export function stepServe(
  */
 function aim(shot: ShotDef, direction: Direction, defIdx: number, rng: Rng, depth?: number): { landX?: number; landDepth?: number } {
   if (shot.overFence === true || shot.wall === 'fence') return depth === undefined ? {} : { landDepth: depth };
-  return { landX: aimX(direction, defIdx, rng), landDepth: depth ?? aimDepth(shot.landDepth, rng) };
+  return { landX: aimX(direction, defIdx, rng), landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread) };
 }
 
 export function stepHit(
@@ -296,6 +298,13 @@ export function stepHit(
 
   if (res.outcome === 'continue') {
     const next = nextBall(shot, res.pressure, rng);
+    // A defender at the net blocks a flat/fast shot out of the air: it never bounces, and he plays it at about chest height.
+    const block = shot.blockAtNet === true && state.formation[defSide] === 'net' && next.lob === undefined;
+    if (block) {
+      next.ball = { height: 'mid', pressure: res.pressure, glass: false };
+      next.glass = false;
+      next.arrival = 'mid';
+    }
     return {
       state: {
         ...state,
@@ -306,7 +315,7 @@ export function stepHit(
         ball: next.ball,
         formation: nextFormation(state.formation, side, shot, next.lob),
       },
-      step: { ...step, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aim(shot, direction, defIdx, rng, next.landDepth) },
+      step: { ...step, block: block || undefined, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aim(shot, direction, defIdx, rng, next.landDepth) },
     };
   }
 

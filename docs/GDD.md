@@ -54,14 +54,14 @@ automatically from their stats.
 - Then a **direction**: Parallel (down the line), Middle, Cross.
 
 ### Rally shots (every later hit)
-- **Vibora**, **Bandeja**, **Volley**, **Bounce shot**, **Rulo**, **Lob** (defensive, best from a low ball), each with a direction.
+- **Vibora**, **Bandeja**, **Volley**, **Flat shot**, **Rulo**, **Lob** (defensive, best from a low ball), each with a direction.
 - **Rulo** has no direction choice: it is always played cross into the **mesh fence**.
 - **Por Tres** (x3) and **Por Cuatro** (x4) are the smashes. Offered only at the net or mid-court, after a **weak lob**
   (30% of lobs; the other 70% are deep) that did not come off the glass. *Por Tres*: hard into the back glass, with spin it
   kicks towards the side glass/mesh; a skilled hit leaves over the fence (winner). *Por Cuatro*: hard into the court; a winner
   flies over the back glass, otherwise it comes back off the glass or the mesh.
 - **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** is possible. Low: only Lob (risky),
-  Bounce shot or Chiquita.
+  Flat shot or Chiquita.
 - **Vibora** and **Bandeja**: a high ball (or lob) falling to mid or back court, not after the glass. **Volley**: only if the ball
   has not come off the back glass.
 - **Rulo**: topspin ball that bounces right beside the side fence and then hits the mesh. Clean: it comes off the mesh
@@ -75,7 +75,7 @@ automatically from their stats.
 
 ### Ball height ("fit")
 Every shot leaves the ball **high / mid / low**. Every shot works best against some incoming heights:
-bandeja/vibora/rulo like high balls (lobs), volley and bounce shot like mid/low balls. The menu colours
+bandeja/vibora/rulo like high balls (lobs), volley and flat shot like mid/low balls. The menu colours
 each shot **green (good fit)**, **orange (poor fit)** or **red (too tired)** for the current ball.
 
 ### Resolution (`src/game/engine.ts`, numbers are first guesses and will be rebalanced)

@@ -53,10 +53,10 @@ export function aimX(direction: Direction, defenderIdx: number, rng: Rng): numbe
 }
 
 /** One of the 20 aim points in depth around `base` metres past the net, chosen at random. */
-export function aimDepth(base: number, rng: Rng): number {
+export function aimDepth(base: number, rng: Rng, spread = AIM_HALF_DEPTH): number {
   const k = Math.min(AIM_POINTS_DEPTH - 1, Math.floor(rng() * AIM_POINTS_DEPTH));
-  const offset = ((k - (AIM_POINTS_DEPTH - 1) / 2) / ((AIM_POINTS_DEPTH - 1) / 2)) * AIM_HALF_DEPTH;
-  return Math.max(1.5, Math.min(9, base + offset));
+  const offset = ((k - (AIM_POINTS_DEPTH - 1) / 2) / ((AIM_POINTS_DEPTH - 1) / 2)) * spread;
+  return Math.max(1, Math.min(9, base + offset));
 }
 
 /**

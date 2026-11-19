@@ -63,6 +63,11 @@ export interface FlightDef {
   spin: number;
   /** Multiplier of the ball's speed along a wall after it bounces off it (side-spin shots such as the vibora run along the glass). */
   wallKick: number;
+  /**
+   * Side spin (the spin about the vertical axis), seen by the player: 0 = none, +1 = heavy slice with the racket going across
+   * the ball from right to left (clockwise seen from above; a vibora or a kick serve). Used for the rotation of the ball on screen.
+   */
+  side: number;
 }
 
 /** When a shot can be played (all listed conditions must hold). Missing = always. */
@@ -124,6 +129,10 @@ export interface ShotDef {
   /** Lobs only: where a weak lob lands, in metres from the net (min, max). */
   weakDepth?: [number, number];
   /** Extra error chance when this shot is played off a low ball that has come off the glass (the lob is risky there). */
+  /** A defender at the net blocks this shot out of the air (it does not bounce, he does not let it go). */
+  blockAtNet?: boolean;
+  /** Half-range of the random landing depths around `landDepth` in metres (default 1.5). */
+  depthSpread?: number;
   lowGlassRisk?: number;
   /** Serves only: scales the pressure put on the receiver. */
   pressureMult?: number;
