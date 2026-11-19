@@ -1,30 +1,38 @@
 # Handoff
 
-_Last updated: 2026-11-19_
+_Last updated: 2026-11-19 (v0.2)_
 
 ## State
-Initial scaffold plus a first playable prototype (one match, portrait, coloured rectangles):
-- `src/game/`: types, padel scoring (golden point), exchange engine, unit tests
-- `src/scenes/MatchScene.ts`: court, 4 players, shot/response menus, CPU opponent, score, guts, restart
-- `src/data/*.json`: 4 players, 6 shots, 4 responses
-- CI: GitHub Pages deploy workflow
+Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
 
-## IMPORTANT: this code was written without being run
-The session that created the scaffold had no network access, so `npm install`, `npm test`,
-`npm run typecheck` and `npm run dev` were **never executed**. Expect small typing or runtime fixes.
-First thing to do in the next session:
-1. `npm install` (this also creates `package-lock.json`; commit it)
-2. `npm run typecheck && npm test`
-3. `npm run dev` and play one full match; fix whatever breaks
-4. Then switch the workflow from `npm install` to `npm ci`
+Flow: `BootScene` -> `TitleScene` -> (`SettingsScene` | `MatchScene` -> `ResultScene` -> rematch/title).
+
+- v0.1: prototype match (see docs/GDD.md for the rules). Owner played it in the browser: buttons, ball movement,
+  full match and replay all work. Owner says shot choice, partner position and shot types will need a lot of
+  changes; details to come (see docs/BACKLOG.md).
+- v0.2 (this session): title screen, settings (sound on/off, reset save), result screen, save system
+  (`src/save.ts`, localStorage, with tests), placeholder 8-bit SFX (`src/audio.ts`), shared UI helpers
+  (`src/ui.ts`), palette/config (`src/config.ts`), asset manifest (`src/assets.ts`, `docs/ASSETS.md`).
+- CI deploys every push to `main` to GitHub Pages: https://dawjaz.github.io/padel-champ/ (Pages source = GitHub Actions).
+
+## Verification status
+The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session
+without network access, so only the Phaser-free files were typechecked locally; the rest relies on CI.
+**First thing next session: check the latest Actions run** (`gh run list`), fix anything red, and play through
+title -> match -> result -> rematch once.
+
+## Constraints to know
+- A session without network cannot `npm install`, so it cannot add Capacitor or new packages.
+  Network settings are changed by the claude.ai organization owner and apply to NEW chats.
+- No `package-lock.json` yet (CI uses `npm install`). Generate it on first install, commit it, then use `npm ci`.
 
 ## Next steps
-1. Make the prototype feel good: pacing of messages, hit feedback, balance (is a match 3-5 min?)
-2. Court positions (net/back) and real glass-wall mechanic
-3. Special moves with a short cutscene
-4. Pixel art sprites, chiptune music
-5. Career mode, save/load
-6. Capacitor (Android/iOS), touch polish, store assets
+1. Collect the owner's gameplay feedback into docs/BACKLOG.md and redesign shots/positions in docs/GDD.md first,
+   then code
+2. Art direction with the owner (character look, palette, pixel font), then sprites
+3. Capacitor (Android/iOS) once network is available
+4. Career mode, special moves
+5. Store accounts and release prep (owner)
 
 ## Owner
 Chats in Polish. Wants: Android + iPhone release, browser build for testing, everything kept in GitHub so

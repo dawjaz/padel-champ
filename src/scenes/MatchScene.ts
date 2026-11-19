@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
+import { sfx } from '../audio';
+import { FONT } from '../config';
 import movesData from '../data/moves.json';
 import playersData from '../data/players.json';
 import responsesData from '../data/responses.json';
 import { recoverGuts, resolveExchange, spendGuts } from '../game/engine';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { MoveDef, PlayerDef, ResponseDef, SideIndex } from '../game/types';
+import { recordResult, updateSave } from '../save';
 
 const MOVES = movesData as unknown as MoveDef[];
 const RESPONSES = responsesData as unknown as ResponseDef[];
@@ -15,7 +18,6 @@ const TEAMS: [PlayerDef[], PlayerDef[]] = [
 
 const GUTS_RECOVERY_PER_POINT = 2;
 const SIDE_NAME = ['YOU', 'CPU'] as const;
-const FONT = '"Courier New", monospace';
 
 interface PlayerSprite {
   rect: Phaser.GameObjects.Rectangle;
@@ -165,6 +167,7 @@ export class MatchScene extends Phaser.Scene {
       bg.on('pointerdown', () => {
         if (this.busy) return;
         this.busy = true;
+        sfx('select');
         this.clearMenu();
         item.onPick();
       });
@@ -243,6 +246,7 @@ export class MatchScene extends Phaser.Scene {
     if (result.countered) msg += ' Read it!';
     this.say(msg);
 
+    sfx('hit');
     const defIdx = this.hitIdx[defSide];
     const target = this.positionOf(defSide, defIdx);
     this.tweens.add({
@@ -277,6 +281,7 @@ export class MatchScene extends Phaser.Scene {
     }
     this.refreshScore();
     this.refreshGuts();
+    sfx('point');
 
     if (this.matchScore.winner !== null) {
       this.endMatch(this.matchScore.winner);
@@ -294,16 +299,11 @@ export class MatchScene extends Phaser.Scene {
 
   private endMatch(winner: SideIndex): void {
     this.clearMenu();
+    updateSave((d) => recordResult(d, winner === 0));
+    this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
-    const bg = this.add
-      .rectangle(180, 530, 200, 56, 0x2b2b5e)
-      .setStrokeStyle(2, 0xffe066)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add
-      .text(180, 530, 'PLAY AGAIN', { fontFamily: FONT, fontSize: '16px', color: '#ffe066' })
-      .setOrigin(0.5);
-    this.menu.push(bg, text);
-    bg.once('pointerdown', () => this.scene.restart());
+    const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games }));
   }
 
   // ---------- CPU ----------

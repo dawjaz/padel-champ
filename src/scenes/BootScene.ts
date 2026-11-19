@@ -1,0 +1,24 @@
+import Phaser from 'phaser';
+import { ASSETS, assetUrl } from '../assets';
+import { COLORS, css, FONT, HEIGHT, WIDTH } from '../config';
+
+/** Loads everything listed in assets.ts, then opens the title screen. */
+export class BootScene extends Phaser.Scene {
+  constructor() {
+    super('BootScene');
+  }
+
+  preload(): void {
+    const label = this.add
+      .text(WIDTH / 2, HEIGHT / 2, 'LOADING...', { fontFamily: FONT, fontSize: '16px', color: css(COLORS.white) })
+      .setOrigin(0.5);
+    this.load.on('progress', (p: number) => label.setText(`LOADING ${Math.round(p * 100)}%`));
+
+    for (const a of ASSETS.images) this.load.image(a.key, assetUrl(a.path));
+    for (const a of ASSETS.audio) this.load.audio(a.key, assetUrl(a.path));
+  }
+
+  create(): void {
+    this.scene.start('TitleScene');
+  }
+}

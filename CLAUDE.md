@@ -19,9 +19,12 @@ Mobile-first (portrait, 360x640) command-based padel game in the spirit of NES-e
 
 ## Structure
 - `src/game/`: pure game logic, NO Phaser imports (types, scoring, engine). Keep it that way so it stays testable.
-- `src/scenes/`: Phaser scenes (rendering, input, flow)
+- `src/scenes/`: Phaser scenes (Boot, Title, Settings, Match, Result)
+- `src/config.ts`: size, title, NES palette. `src/ui.ts`: shared buttons/logo text
+- `src/save.ts`: save data + settings (no Phaser, tested). `src/audio.ts`: placeholder SFX via Web Audio
+- `src/assets.ts` + `public/assets/`: asset manifest and files (see docs/ASSETS.md)
 - `src/data/*.json`: players, moves, responses. Balance changes go here, not into code.
-- `docs/`: GDD (design), DECISIONS (why), HANDOFF (state and next steps)
+- `docs/`: GDD (design), DECISIONS (why), HANDOFF (state and next steps), BACKLOG (ideas), ASSETS
 
 ## Rules
 - Original content only: no names, characters, art or music from Captain Tsubasa, Tecmo or any other

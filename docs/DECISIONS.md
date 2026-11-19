@@ -25,5 +25,16 @@ No Captain Tsubasa / Tecmo names, characters, art or music. Only the design idea
 `.github/workflows/pages.yml` builds and deploys on every push to `main`.
 Uses `npm install` because no `package-lock.json` was generated yet (see HANDOFF).
 
+## 2026-11-19: Name "Padel Champ 26", NES look
+Chosen by the owner. Palette in `src/config.ts`. Placeholder font is Courier New; a bundled pixel font is in the backlog
+(it needs a font file, which also keeps the mobile app working offline).
+
+## 2026-11-19: Placeholder sound via Web Audio, no audio files yet
+`sfx(name)` generates square-wave beeps, so there is an NES-like feel with zero assets. Real chiptune replaces
+the internals of `sfx()` later without touching scenes.
+
+## 2026-11-19: Save data in localStorage behind `src/save.ts`
+Defensive parsing, works without storage. Same code runs in the browser and in a Capacitor WebView.
+
 ## Secrets
 Android keystore, Apple certificates and `.env` files are git-ignored. Back them up in a password manager.
