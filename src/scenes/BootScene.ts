@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ASSETS, assetUrl } from '../assets';
-import { COLORS, css, FONT, HEIGHT, WIDTH } from '../config';
+import { applyHd } from '../hd';
+import { COLORS, css, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 
 /** Loads everything listed in assets.ts, then opens the title screen. */
 export class BootScene extends Phaser.Scene {
@@ -10,7 +11,7 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     const label = this.add
-      .text(WIDTH / 2, HEIGHT / 2, 'LOADING...', { fontFamily: FONT, fontSize: '16px', color: css(COLORS.white) })
+      .text(WIDTH / 2, HEIGHT / 2, 'LOADING...', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '16px', color: css(COLORS.white) })
       .setOrigin(0.5);
     this.load.on('progress', (p: number) => label.setText(`LOADING ${Math.round(p * 100)}%`));
 
@@ -19,6 +20,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyHd(this);
     this.scene.start('TitleScene');
   }
 }

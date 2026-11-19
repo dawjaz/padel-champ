@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, css, FONT, WIDTH } from '../config';
+import { applyHd } from '../hd';
+import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { getSave, resetSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -9,6 +10,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyHd(this);
     logoText(this, WIDTH / 2, 80, 'SETTINGS', 36, COLORS.yellow);
 
     const soundLabel = () => `SOUND: ${getSave().settings.sound ? 'ON' : 'OFF'}`;
@@ -22,18 +24,18 @@ export class SettingsScene extends Phaser.Scene {
       if (!armed) {
         armed = true;
         reset.text.setText('SURE? TAP AGAIN');
-        reset.bg.setStrokeStyle(3, COLORS.red);
+        reset.setAccent(COLORS.red);
         return;
       }
       resetSave();
       armed = false;
       reset.text.setText('SAVE RESET');
-      reset.bg.setStrokeStyle(3, COLORS.white);
+      reset.setAccent(COLORS.white);
     });
 
     this.add
       .text(WIDTH / 2, 350, 'Reset clears your match\nstats and settings.', {
-        fontFamily: FONT,
+        fontFamily: FONT, resolution: HD_SCALE,
         fontSize: '12px',
         color: css(COLORS.gray),
         align: 'center',

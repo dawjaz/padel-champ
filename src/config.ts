@@ -2,7 +2,13 @@ export const WIDTH = 360;
 export const HEIGHT = 640;
 export const GAME_TITLE = 'PADEL CHAMP 26';
 
-export const FONT = '"Courier New", monospace';
+/**
+ * The game is laid out on a 360x640 logical screen, but drawn on a canvas HD_SCALE times bigger
+ * (every scene zooms its camera by this factor), so text and shapes stay sharp on phone screens.
+ */
+export const HD_SCALE = 2;
+
+export const FONT = '"Trebuchet MS", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
 
 /** NES-flavoured palette. Keep all colours here so the look can be changed in one place. */
 export const COLORS = {
