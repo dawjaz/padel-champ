@@ -30,7 +30,7 @@ describe('ball rotation', () => {
   it('keeps the orientation a proper rotation and turns by the expected angle', () => {
     let m = IDENTITY;
     const w: Vec3 = [0, 10, 0];
-    for (let i = 0; i < 100; i++) m = rotate(m, w, 0.01); // one radian in total
+    for (let i = 0; i < 100; i++) m = rotate(m, w, 0.001); // one radian in total
     const p = apply(m, [1, 0, 0]);
     expect(Math.hypot(...p)).toBeCloseTo(1, 6);
     expect(p[0]).toBeCloseTo(Math.cos(1), 3);
