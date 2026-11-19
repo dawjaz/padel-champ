@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Secrets and signing material: NEVER commit these. Keep backups in a password manager.
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.pem
+.env
+.env.*
+keystore.properties
+
+# Capacitor native build output
+android/app/build/
+android/.gradle/
+ios/App/Pods/
+ios/App/build/

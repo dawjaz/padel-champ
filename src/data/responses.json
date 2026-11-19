@@ -1,0 +1,30 @@
+[
+  {
+    "id": "block",
+    "name": "Block",
+    "mod": 1.0,
+    "cost": 1,
+    "desc": "Hold the racket firm and push the ball back."
+  },
+  {
+    "id": "wall",
+    "name": "Wall read",
+    "mod": 1.1,
+    "cost": 1,
+    "desc": "Let the ball hit the glass and return it."
+  },
+  {
+    "id": "net",
+    "name": "Volley",
+    "mod": 1.2,
+    "cost": 2,
+    "desc": "Step up to the net and cut the ball off."
+  },
+  {
+    "id": "retreat",
+    "name": "Retreat",
+    "mod": 0.9,
+    "cost": 0,
+    "desc": "Fall back and defend. Free."
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "you": [
+    { "id": "toro", "name": "Toro", "stats": { "power": 8, "technique": 5, "speed": 5, "defense": 5 }, "maxGuts": 10 },
+    { "id": "luca", "name": "Luca", "stats": { "power": 5, "technique": 8, "speed": 7, "defense": 4 }, "maxGuts": 10 }
+  ],
+  "cpu": [
+    { "id": "bruno", "name": "Bruno", "stats": { "power": 6, "technique": 6, "speed": 4, "defense": 8 }, "maxGuts": 10 },
+    { "id": "ivo", "name": "Ivo", "stats": { "power": 7, "technique": 5, "speed": 6, "defense": 5 }, "maxGuts": 10 }
+  ]
+}
