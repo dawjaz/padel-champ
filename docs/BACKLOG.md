@@ -51,5 +51,4 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - Apple Developer Program account
 - Privacy policy, age rating, store screenshots
 - Back up Android keystore and Apple certificates outside git
-- Style experiments published by CI next to the main game: `/hd/` (style/hd), `/retro/` (style/retro, synthwave),
-  `/3d/` (style/3d, faux 3D). Pick one and merge it, or keep them as unlockable themes. A true 3D version would need three.js.
+- Look: main is the stylized 2D/3D version; the 16-bit pixel version is on `style/16bit` (/16bit/). A true 3D version would need three.js.

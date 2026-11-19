@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.7)_
+_Last updated: 2026-11-19 (v0.8)_
+
+## v0.8: stylized 2D/3D look is now the main version
+- The owner chose the faux-3D look (see docs/3D.md). `main` now has it; the HD pipeline (720x1280 canvas, `HD_SCALE`,
+  `src/art/hd/*`, `src/hd.ts`) is the base of that look. Rules, physics and data are unchanged.
+- The old pixel-art 16-bit version is kept on branch `style/16bit` (title shows `v0.7-16bit`) and published by CI under
+  `/16bit/`. Branches `style/hd`, `style/retro` and `style/3d` were deleted (retro and plain HD were dropped; 3d is in main).
+- Next idea: real 3D (three.js) as a separate prototype branch; see docs/BACKLOG.md.
 
 ## State
 Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
