@@ -1,7 +1,7 @@
 name: Deploy web build to GitHub Pages
 
-# Publishes the game from `main` at the site root, and (if the branch exists and builds) the experimental
-# 128-bit/HD look from `style/hd` under /hd/. A broken HD branch never blocks the main site.
+# Publishes the game from `main` at the site root, and (if the branches exist and build) the experimental looks:
+# `style/hd` under /hd/, `style/retro` under /retro/, `style/3d` under /3d/. A broken style branch never blocks the main site.
 on:
   push:
     branches: [main]
@@ -30,6 +30,18 @@ jobs:
         with:
           ref: style/hd
           path: hd
+      - id: retro_checkout
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: style/retro
+          path: retro
+      - id: 3d_checkout
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: style/3d
+          path: 3d
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -52,6 +64,32 @@ jobs:
         run: |
           mkdir -p site/dist/hd
           cp -r hd/dist/. site/dist/hd/
+      - id: retro_build
+        if: steps.retro_checkout.outcome == 'success'
+        continue-on-error: true
+        working-directory: retro
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Add the retro build under /retro/
+        if: steps.retro_build.outcome == 'success'
+        run: |
+          mkdir -p site/dist/retro
+          cp -r retro/dist/. site/dist/retro/
+      - id: 3d_build
+        if: steps.3d_checkout.outcome == 'success'
+        continue-on-error: true
+        working-directory: 3d
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Add the 3D build under /3d/
+        if: steps.3d_build.outcome == 'success'
+        run: |
+          mkdir -p site/dist/3d
+          cp -r 3d/dist/. site/dist/3d/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

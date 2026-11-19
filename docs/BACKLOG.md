@@ -51,3 +51,5 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - Apple Developer Program account
 - Privacy policy, age rating, store screenshots
 - Back up Android keystore and Apple certificates outside git
+- Style experiments published by CI next to the main game: `/hd/` (style/hd), `/retro/` (style/retro, synthwave),
+  `/3d/` (style/3d, faux 3D). Pick one and merge it, or keep them as unlockable themes. A true 3D version would need three.js.
