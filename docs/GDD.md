@@ -37,8 +37,12 @@ There is no separate "response" menu any more: the receiver is decided by the di
 automatically from their stats.
 
 ### Serve
-- Always **cross** (diagonal). Serve side alternates every point: right box first, then left.
-- The server's partner stands in the **middle of their half** during the serve.
+- Always **cross** (diagonal). The serving side alternates every point of a game: **left first**, then right,
+  and so on (like tennis). A second serve after a fault is taken from the same side.
+- The server's partner stands in the **middle of their own quarter** (the lane the server is not in, halfway
+  between the net and the baseline) during the serve.
+- **Receiving a glass serve:** the receiver chooses to take it **on the bounce** (defence x0.9, but the serve's
+  pressure is halved) or **off the glass** (defence x1.1, full pressure). Serves that do not touch a wall have no choice.
 - Choices: **Hard glass** (fast, kicks off the side glass, risky), **Spin glass** (spin off the glass, safer),
   **At opponent** (at the receiver's body, high pressure), **T-serve** (to the centre line T, safe, low).
 - A faulted serve gives a second serve; two faults lose the point. An ace wins it outright.
@@ -76,7 +80,15 @@ each shot **green (good fit)**, **orange (poor fit)** or **red (too tired)** for
 ### Positions
 Formation is **net** or **back** per team and changes with the shot (`advance` in the data):
 volley/bandeja/vibora/chiquita and a good serve take the net; a lob sends the opponents back.
-Fixed lanes for now; real court coverage and the partner's movement are to be refined with the owner.
+Where the ball is hit: the flight decides the hitting spot. After a plain bounce the next player takes it just past
+the bounce. If the ball goes to a wall (side glass, back glass, rulo into the fence) the defender waits where it comes
+down after the wall. Every player walks to the hitting spot while the ball flies. `landDepth` in shots.json is the
+distance of the first bounce from the net: chiquita is short (2.5 m), lob deep (8.5 m).
+
+Control: you control one player (the first of your team). Your partner and the CPU team choose and hit automatically
+with a very short delay, so the game keeps moving. Only your own player's serve, return and rally hits show a menu.
+
+Lanes are still fixed per player; real court coverage is to be refined with the owner.
 
 ## Scoring
 0/15/30/40, **golden point** at 40-40 (next point wins the game, as in modern padel).

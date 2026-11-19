@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
-import { pickHit, pickServe } from './ai';
+import { pickHit, pickReceive, pickServe } from './ai';
 import { SHOTS } from './catalog';
 import { recoverGuts } from './engine';
 import { nextFormation, startPoint, stepHit, stepServe, type PointState, type Teams } from './point';
@@ -28,9 +28,9 @@ describe('startPoint', () => {
     expect(s.holder).toBe(0);
     expect(s.hitterIdx).toBe(1);
     expect(s.attempt).toBe(1);
-    // Near team serves from its right (+x) first, so the receiver is on the far left: index 0.
-    expect(s.serveLane).toBe(1);
-    expect(s.receiverIdx).toBe(0);
+    // The near team serves the first point from its left (-x), so the receiver is on the far right: index 1.
+    expect(s.serveLane).toBe(-1);
+    expect(s.receiverIdx).toBe(1);
   });
 
   it('copies the guts instead of sharing them', () => {
@@ -53,6 +53,20 @@ describe('stepServe', () => {
     expect(second.step.outcome).toBe('double-fault');
     expect(second.state.status).toBe('done');
     expect(second.state.winner).toBe(1);
+  });
+
+  it('keeps the serving side for the second serve and switches it for the next point', () => {
+    const first = stepServe(TEAMS, startPoint(freshGuts(), 0, 0, 0), shot('hard_glass'), fixedRng([0]));
+    expect(first.state.serveLane).toBe(-1);
+    expect(startPoint(freshGuts(), 0, 0, 1).serveLane).toBe(1);
+  });
+
+  it('records how the glass serve is received, and ignores the choice for serves that stay off the walls', () => {
+    const ok = fixedRng([0.99, 0.5, 0.5]);
+    const glass = stepServe(TEAMS, startPoint(freshGuts(), 0, 0, 0), shot('hard_glass'), ok, 'bounce');
+    expect(glass.step.receive).toBe('bounce');
+    const t = stepServe(TEAMS, startPoint(freshGuts(), 0, 0, 0), shot('t_serve'), fixedRng([0.99, 0.5, 0.5]), 'wall');
+    expect(t.step.receive).toBe('bounce');
   });
 
   it('spends the guts of the serve', () => {
@@ -148,7 +162,7 @@ describe('whole points (CPU vs CPU, seeded)', () => {
         expect(guard++).toBeLessThan(200);
         state =
           state.status === 'serve'
-            ? stepServe(TEAMS, state, pickServe(TEAMS, state, rng), rng).state
+            ? stepServe(TEAMS, state, pickServe(TEAMS, state, rng), rng, pickReceive(TEAMS, state, rng)).state
             : (() => {
                 const c = pickHit(TEAMS, state, rng);
                 return stepHit(TEAMS, state, c.shot, c.direction, rng).state;

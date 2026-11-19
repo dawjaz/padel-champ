@@ -1,7 +1,7 @@
 import { DIRECTIONS } from './catalog';
 import { defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
-import type { BallState, Direction, Formation, LaneSign, PlayerDef, Rng, ShotDef, SideIndex } from './types';
+import type { BallState, Direction, Formation, LaneSign, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /**
  * One point as a pure state machine: serve -> return -> rally. The scene (or a simulation) calls
@@ -46,6 +46,8 @@ export interface Step {
   tired: boolean;
   /** Height-fit multiplier (1 for serves). */
   fit: number;
+  /** Where the receiver takes the ball: after the first bounce or after the wall. */
+  receive: ReceiveMode;
 }
 
 export interface StepResult {
@@ -91,14 +93,20 @@ export function nextFormation(
   return f;
 }
 
-export function stepServe(teams: Teams, state: PointState, shot: ShotDef, rng: Rng): StepResult {
+export function stepServe(
+  teams: Teams,
+  state: PointState,
+  shot: ShotDef,
+  rng: Rng,
+  receive: ReceiveMode = 'wall',
+): StepResult {
   if (state.status !== 'serve') throw new Error('Point is not at the serve');
   const side = state.servingSide;
   const recvSide = other(side);
   const server = teams[side][state.serverIdx];
   const receiver = teams[recvSide][state.receiverIdx];
 
-  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng);
+  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng, receive);
   const guts = { ...state.guts, [server.id]: spendGuts(state.guts[server.id], shot.cost) };
 
   const base = {
@@ -110,6 +118,8 @@ export function stepServe(teams: Teams, state: PointState, shot: ShotDef, rng: R
     direction: 'cross' as const,
     tired: res.tired,
     fit: 1,
+    // Only a serve that goes to a wall gives the receiver a choice.
+    receive: shot.wall === 'none' ? ('bounce' as const) : receive,
   };
 
   if (res.outcome === 'fault') {
@@ -183,6 +193,8 @@ export function stepHit(
     pointWinner: null,
     tired: res.tired,
     fit: res.fit,
+    // Balls that go to a wall are always taken after the wall, the others after the bounce.
+    receive: shot.wall === 'none' ? 'bounce' : 'wall',
   };
 
   if (res.outcome === 'continue') {

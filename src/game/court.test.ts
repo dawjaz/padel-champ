@@ -48,12 +48,13 @@ describe('landingX', () => {
 });
 
 describe('serve', () => {
-  it('alternates the serving side every point', () => {
-    expect(serveLane(0, 0)).toBe(1);
-    expect(serveLane(0, 1)).toBe(-1);
-    expect(serveLane(0, 2)).toBe(1);
-    expect(serveLane(1, 0)).toBe(-1);
-    expect(serveLane(1, 1)).toBe(1);
+  it('serves the first point from the left, then alternates every point', () => {
+    expect(serveLane(0, 0)).toBe(-1);
+    expect(serveLane(0, 1)).toBe(1);
+    expect(serveLane(0, 2)).toBe(-1);
+    // the far team looks down the screen: its left is +x
+    expect(serveLane(1, 0)).toBe(1);
+    expect(serveLane(1, 1)).toBe(-1);
   });
 
   it('always serves cross: the receiver stands in the opposite lane', () => {
@@ -67,13 +68,16 @@ describe('serve', () => {
     }
   });
 
-  it("stands the server's partner in the middle of their half", () => {
-    const near = serveSetup(0, 0);
-    expect(near.partner.x).toBe(0);
-    expect(near.partner.z).toBe(15);
-    const far = serveSetup(1, 0);
-    expect(far.partner.x).toBe(0);
-    expect(far.partner.z).toBe(5);
+  it("stands the server's partner in the middle of their own quarter (the lane the server is not in)", () => {
+    for (const points of [0, 1]) {
+      const near = serveSetup(0, points);
+      expect(near.partner.x).toBe(-near.lane * 2.5);
+      expect(near.partner.z).toBe(15);
+      const far = serveSetup(1, points);
+      expect(far.partner.x).toBe(-far.lane * 2.5);
+      expect(far.partner.z).toBe(5);
+      expect(Math.sign(near.partner.x)).toBe(-Math.sign(near.server.x));
+    }
   });
 
   it('keeps everybody on their own half of the court', () => {

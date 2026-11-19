@@ -1,7 +1,7 @@
 import { DIRECTIONS, shotsOfKind } from './catalog';
 import { defenseRating, faultChance } from './engine';
 import type { PointState, Teams } from './point';
-import type { Direction, Rng, ShotDef } from './types';
+import type { Direction, ReceiveMode, Rng, ShotDef } from './types';
 
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -56,4 +56,15 @@ export function pickHit(teams: Teams, state: PointState, rng: Rng): { shot: Shot
     }
   }
   return { shot, direction: best };
+}
+
+/**
+ * CPU choice for a serve that kicks off the side glass: quick, technical players take it off the bounce,
+ * solid defenders wait for the glass.
+ */
+export function pickReceive(teams: Teams, state: PointState, rng: Rng): ReceiveMode {
+  const receiver = teams[state.servingSide === 0 ? 1 : 0][state.receiverIdx];
+  const bounce = receiver.stats.technique + receiver.stats.speed;
+  const wall = receiver.stats.defense * 1.5 + 2;
+  return weightedPick<ReceiveMode>(['bounce', 'wall'], [bounce, wall], rng);
 }

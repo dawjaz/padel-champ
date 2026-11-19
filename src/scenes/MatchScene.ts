@@ -7,18 +7,28 @@ import { BACK_WALL, sideWallSegments } from '../art/walls';
 import { sfx } from '../audio';
 import { FONT, HEIGHT, WIDTH } from '../config';
 import playersData from '../data/players.json';
-import { pickHit, pickServe } from '../game/ai';
+import { pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
 import { startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
-import type { CourtPos, Direction, PlayerDef, ShotDef, SideIndex } from '../game/types';
+import type { CourtPos, Direction, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
 
 const GUTS_RECOVERY_PER_POINT = 2;
+
+/** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
+const HUMAN_SIDE: SideIndex = 0;
+const HUMAN_IDX = 0;
+/** Pauses in milliseconds: kept short so the game feels quick. */
+const CPU_DELAY = 120;
+const NEXT_HIT_DELAY = 100;
+const FAULT_PAUSE = 600;
+const POINT_PAUSE = 700;
+const GAME_PAUSE = 1000;
 const SIDE_NAME = ['YOU', 'CPU'] as const;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -428,46 +438,75 @@ export class MatchScene extends Phaser.Scene {
     const server = TEAMS[this.server][idx];
     this.setActive(null);
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
-    this.movePlayers(targets, 550, () => {
+    this.movePlayers(targets, 450, () => {
       this.setBall(setup.server.x, setup.server.z, HIT_HEIGHT_M);
       this.serveTurn();
     });
   }
 
+  private isHuman(side: SideIndex, idx: number): boolean {
+    return side === HUMAN_SIDE && idx === HUMAN_IDX;
+  }
+
   private serveTurn(): void {
     const st = this.point;
     const server = TEAMS[st.servingSide][st.serverIdx];
-    this.setActive(server.id);
     const tag = st.attempt === 2 ? ' (2nd serve)' : '';
 
-    if (st.servingSide === 0) {
+    if (this.isHuman(st.servingSide, st.serverIdx)) {
+      this.setActive(server.id);
       this.showButtons(
         `${server.name}: serve${tag}`,
         shotsOfKind('serve').map((s) => ({
           label: `${s.name}\n[${s.cost}]${this.guts[server.id] < s.cost ? ' tired' : ''}`,
           tone: this.toneFor(s, server),
-          onPick: () => this.performServe(s),
+          onPick: () => this.chooseReceive(s),
         })),
       );
     } else {
+      this.setActive(null);
       this.say(`${server.name} serves${tag}.`);
       const shot = pickServe(TEAMS, st, Math.random);
-      this.time.delayedCall(700, () => this.performServe(shot));
+      this.time.delayedCall(CPU_DELAY, () => this.chooseReceive(shot));
     }
+  }
+
+  /**
+   * A serve to the side glass can be taken straight after the bounce or after the glass: the receiver decides.
+   * Your own receiver gets a menu, everybody else decides automatically.
+   */
+  private chooseReceive(shot: ShotDef): void {
+    const st = this.point;
+    if (shot.wall === 'none') {
+      this.performServe(shot, 'bounce');
+      return;
+    }
+    const recvSide = other(st.servingSide);
+    const receiver = TEAMS[recvSide][st.receiverIdx];
+    if (!this.isHuman(recvSide, st.receiverIdx)) {
+      this.performServe(shot, pickReceive(TEAMS, st, Math.random));
+      return;
+    }
+    this.setActive(receiver.id);
+    this.say(`${TEAMS[st.servingSide][st.serverIdx].name}: ${shot.name}!`);
+    this.showButtons(`${receiver.name}: take it...`, [
+      { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
+      { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
+    ]);
   }
 
   private hitTurn(): void {
     const st = this.point;
     const side = st.holder;
     const hitter = TEAMS[side][st.hitterIdx];
-    this.setActive(hitter.id);
 
-    if (side === 0) {
+    if (this.isHuman(side, st.hitterIdx)) {
+      this.setActive(hitter.id);
       this.showShotMenu();
     } else {
-      this.say(`${hitter.name} is ready to hit.`);
+      this.setActive(null);
       const { shot, direction } = pickHit(TEAMS, st, Math.random);
-      this.time.delayedCall(700, () => this.performHit(shot, direction));
+      this.time.delayedCall(CPU_DELAY, () => this.performHit(shot, direction));
     }
   }
 
@@ -501,8 +540,8 @@ export class MatchScene extends Phaser.Scene {
     this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items);
   }
 
-  private performServe(shot: ShotDef): void {
-    const { state, step } = stepServe(TEAMS, this.point, shot, Math.random);
+  private performServe(shot: ShotDef, receive: ReceiveMode): void {
+    const { state, step } = stepServe(TEAMS, this.point, shot, Math.random, receive);
     this.playStep(step, state);
   }
 
@@ -527,10 +566,10 @@ export class MatchScene extends Phaser.Scene {
       hitterSide: step.side,
       shot: step.shot,
       landX,
-      target: { ...this.pos[defender.id] },
       outcome: step.outcome,
+      receive: step.receive,
     });
-    const duration = flightDuration(flight);
+    const duration = flightDuration(flight.path);
 
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
@@ -538,17 +577,26 @@ export class MatchScene extends Phaser.Scene {
     sfx('hit');
     this.hop(attacker.id);
 
-    // After a good serve or a returned ball everybody takes up the new formation.
-    if (step.outcome === 'in' || step.outcome === 'continue') {
-      this.movePlayers(this.rallyTargets(next), duration);
+    // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who
+    // has to play the ball runs to the spot where it will be hit (after the bounce, or after the glass).
+    const out = step.outcome;
+    const targets: Record<string, CourtPos> = {};
+    if (out === 'in' || out === 'continue' || out === 'intercept') {
+      Object.assign(targets, this.rallyTargets(next));
+      targets[defender.id] = flight.hit;
+    } else if (out === 'winner' || out === 'ace') {
+      // The defender runs for it but cannot get there.
+      const d = this.pos[defender.id];
+      targets[defender.id] = { x: lerp(d.x, flight.hit.x, 0.55), z: lerp(d.z, flight.hit.z, 0.55) };
     }
+    this.movePlayers(targets, duration);
 
     this.tweens.addCounter({
       from: 0,
       to: 1,
       duration,
       onUpdate: (tween: Phaser.Tweens.Tween) => {
-        const p = ballPoint(flight, tween.getValue() ?? 0);
+        const p = ballPoint(flight.path, tween.getValue() ?? 0);
         this.setBall(p.x, p.z, p.h);
       },
       onComplete: () => this.afterStep(step, next, headline),
@@ -560,7 +608,7 @@ export class MatchScene extends Phaser.Scene {
     const defender = TEAMS[other(step.side)][step.defenderIdx];
     this.point = next;
 
-    const endPoint = (text: string, delay = 1300): void => {
+    const endPoint = (text: string, delay = POINT_PAUSE): void => {
       this.say(`${headline}\n${text}`);
       this.time.delayedCall(delay, () => this.endPoint(step.pointWinner as SideIndex));
     };
@@ -568,7 +616,7 @@ export class MatchScene extends Phaser.Scene {
     switch (step.outcome) {
       case 'fault':
         this.say(`${headline}\nFAULT! Second serve.`);
-        this.time.delayedCall(1000, () => this.serveTurn());
+        this.time.delayedCall(FAULT_PAUSE, () => this.serveTurn());
         break;
       case 'double-fault':
         endPoint('DOUBLE FAULT!');
@@ -577,8 +625,8 @@ export class MatchScene extends Phaser.Scene {
         endPoint('ACE!');
         break;
       case 'in':
-        this.say(`${headline}\n${defender.name} has to return it.`);
-        this.time.delayedCall(800, () => this.hitTurn());
+        this.say(`${headline}\n${defender.name} to return.`);
+        this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
         break;
       case 'winner':
         endPoint(`${attacker.name} wins the point with a winner!`);
@@ -590,8 +638,8 @@ export class MatchScene extends Phaser.Scene {
         endPoint(`${defender.name} reads it and wins the point!`);
         break;
       case 'continue':
-        this.say(`${headline}\nThe rally goes on...`);
-        this.time.delayedCall(800, () => this.hitTurn());
+        this.say(headline);
+        this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
         break;
     }
   }
@@ -617,10 +665,10 @@ export class MatchScene extends Phaser.Scene {
       this.server = other(this.server);
       this.serverIdx[this.server] = 1 - this.serverIdx[this.server];
       this.say(`Game to ${SIDE_NAME[winner]}!`);
-      this.time.delayedCall(1300, () => this.beginPoint());
+      this.time.delayedCall(GAME_PAUSE, () => this.beginPoint());
     } else {
       this.say(`Point to ${SIDE_NAME[winner]}.`);
-      this.time.delayedCall(900, () => this.beginPoint());
+      this.time.delayedCall(POINT_PAUSE, () => this.beginPoint());
     }
   }
 

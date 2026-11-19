@@ -168,6 +168,22 @@ describe('resolveServe', () => {
     expect(r.pressure).toBeGreaterThan(0);
   });
 
+  it('makes a glass serve harder to take off the bounce, but halves its pressure there', () => {
+    const server = player({ power: 8 });
+    const bounce = resolveServe(server, 10, shot('hard_glass'), receiver, DIRECTIONS.cross, rng(), 'bounce');
+    const wall = resolveServe(server, 10, shot('hard_glass'), receiver, DIRECTIONS.cross, rng(), 'wall');
+    expect(bounce.defenseScore).toBeLessThan(wall.defenseScore);
+    expect(bounce.attackScore).toBe(wall.attackScore);
+    if (bounce.outcome === 'in' && wall.outcome === 'in') expect(bounce.pressure).toBeLessThan(wall.pressure + 1e-9);
+  });
+
+  it('ignores the receive choice for serves that stay off the walls', () => {
+    const server = player({ power: 8 });
+    const a = resolveServe(server, 10, shot('at_opponent'), receiver, DIRECTIONS.cross, rng(), 'bounce');
+    const b = resolveServe(server, 10, shot('at_opponent'), receiver, DIRECTIONS.cross, rng(), 'wall');
+    expect(a).toEqual(b);
+  });
+
   it('puts no pressure on a safe serve that is weaker than the defence', () => {
     const r = resolveServe(player({}), 10, shot('t_serve'), receiver, DIRECTIONS.cross, rng());
     expect(r.outcome).toBe('in');

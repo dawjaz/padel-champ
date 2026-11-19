@@ -8,9 +8,13 @@
     "cost": 2,
     "risk": 0.22,
     "out": "mid",
-    "fit": { "high": 1, "mid": 1, "low": 1 },
+    "fit": {
+      "high": 1,
+      "mid": 1,
+      "low": 1
+    },
     "advance": "net",
-    "landDepth": 6,
+    "landDepth": 6.5,
     "landX": 3.5,
     "wall": "side",
     "desc": "Fast serve that kicks off the side glass. Risky."
@@ -24,9 +28,13 @@
     "cost": 1,
     "risk": 0.12,
     "out": "mid",
-    "fit": { "high": 1, "mid": 1, "low": 1 },
+    "fit": {
+      "high": 1,
+      "mid": 1,
+      "low": 1
+    },
     "advance": "net",
-    "landDepth": 5.5,
+    "landDepth": 6,
     "landX": 3,
     "wall": "side",
     "desc": "Spin makes the ball jump off the glass. Safer."
@@ -40,9 +48,13 @@
     "cost": 1,
     "risk": 0.06,
     "out": "mid",
-    "fit": { "high": 1, "mid": 1, "low": 1 },
+    "fit": {
+      "high": 1,
+      "mid": 1,
+      "low": 1
+    },
     "advance": "net",
-    "landDepth": 5,
+    "landDepth": 5.5,
     "landX": 2.5,
     "wall": "none",
     "pressureMult": 1.5,
@@ -57,7 +69,11 @@
     "cost": 0,
     "risk": 0.04,
     "out": "low",
-    "fit": { "high": 1, "mid": 1, "low": 1 },
+    "fit": {
+      "high": 1,
+      "mid": 1,
+      "low": 1
+    },
     "advance": "net",
     "landDepth": 6,
     "landX": 0.6,
@@ -74,9 +90,13 @@
     "cost": 1,
     "risk": 0.06,
     "out": "low",
-    "fit": { "high": 0.85, "mid": 1, "low": 1.1 },
+    "fit": {
+      "high": 0.85,
+      "mid": 1,
+      "low": 1.1
+    },
     "advance": "net",
-    "landDepth": 8,
+    "landDepth": 2.5,
     "wall": "none",
     "desc": "Soft, low and short. Lets you move up to the net."
   },
@@ -89,9 +109,13 @@
     "cost": 0,
     "risk": 0.05,
     "out": "high",
-    "fit": { "high": 0.9, "mid": 1.05, "low": 1 },
+    "fit": {
+      "high": 0.9,
+      "mid": 1.05,
+      "low": 1
+    },
     "advance": "back",
-    "landDepth": 1,
+    "landDepth": 8.5,
     "wall": "back",
     "desc": "High and deep. Free. Pushes the net players back."
   },
@@ -104,9 +128,13 @@
     "cost": 1,
     "risk": 0.1,
     "out": "mid",
-    "fit": { "high": 0.8, "mid": 1.1, "low": 0.9 },
+    "fit": {
+      "high": 0.8,
+      "mid": 1.1,
+      "low": 0.9
+    },
     "advance": "stay",
-    "landDepth": 4,
+    "landDepth": 5,
     "wall": "none",
     "desc": "Fast and flat straight back."
   },
@@ -119,9 +147,13 @@
     "cost": 2,
     "risk": 0.1,
     "out": "mid",
-    "fit": { "high": 1.15, "mid": 0.9, "low": 0.65 },
+    "fit": {
+      "high": 1.15,
+      "mid": 0.9,
+      "low": 0.65
+    },
     "advance": "net",
-    "landDepth": 3,
+    "landDepth": 6,
     "wall": "side",
     "desc": "Sliced overhead with side spin. Needs a high ball."
   },
@@ -134,9 +166,13 @@
     "cost": 1,
     "risk": 0.04,
     "out": "mid",
-    "fit": { "high": 1.15, "mid": 0.95, "low": 0.7 },
+    "fit": {
+      "high": 1.15,
+      "mid": 0.95,
+      "low": 0.7
+    },
     "advance": "net",
-    "landDepth": 1.5,
+    "landDepth": 7,
     "wall": "back",
     "desc": "Controlled, deep overhead. Holds the net."
   },
@@ -149,9 +185,13 @@
     "cost": 1,
     "risk": 0.07,
     "out": "low",
-    "fit": { "high": 0.75, "mid": 1.1, "low": 0.9 },
+    "fit": {
+      "high": 0.75,
+      "mid": 1.1,
+      "low": 0.9
+    },
     "advance": "net",
-    "landDepth": 5,
+    "landDepth": 5.5,
     "wall": "none",
     "desc": "Hit it out of the air. Best on mid-height balls."
   },
@@ -164,9 +204,13 @@
     "cost": 1,
     "risk": 0.08,
     "out": "low",
-    "fit": { "high": 0.8, "mid": 1, "low": 1.1 },
+    "fit": {
+      "high": 0.8,
+      "mid": 1,
+      "low": 1.1
+    },
     "advance": "stay",
-    "landDepth": 3.5,
+    "landDepth": 5,
     "wall": "none",
     "desc": "Let it bounce, then drive it. Good on low balls."
   },
@@ -179,10 +223,14 @@
     "cost": 3,
     "risk": 0.16,
     "out": "high",
-    "fit": { "high": 1.2, "mid": 0.85, "low": 0.6 },
+    "fit": {
+      "high": 1.2,
+      "mid": 0.85,
+      "low": 0.6
+    },
     "fixedDirection": "cross",
     "advance": "stay",
-    "landDepth": 5.5,
+    "landDepth": 6.5,
     "wall": "fence",
     "winnerMargin": 16,
     "desc": "Heavy topspin, always cross into the mesh fence."

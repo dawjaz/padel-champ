@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.4)_
+_Last updated: 2026-11-19 (v0.5)_
 
 ## State
 Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
@@ -41,6 +41,19 @@ bandeja / volley / bounce shot / rulo; direction parallel / middle / cross; rulo
 - NOT visually verified in a browser and NOT typechecked against Phaser locally: CI is the first real check.
   Owner should check glass/mesh proportions, menu fit, label overlap, ball visibility.
 - Smash and bajada come later (they depend on several factors); see BACKLOG.
+
+## v0.5: owner feedback on v0.4 (this session)
+Owner wanted a faster, more believable game. Done:
+- Pace: you control ONE player; partner and CPU hit automatically after ~120 ms; shorter flights and pauses.
+- Serve: first point of a game from the LEFT, then alternating; 2nd serve after a fault from the same side.
+  Server's partner stands in the centre of his own quarter (other lane), not the middle of the court.
+- Ball: `landDepth` was inverted for several shots (lob/bandeja landed next to the net, chiquita deep): fixed, it is
+  metres from the net. `buildFlight` now returns `{path, hit}`; the defender walks to `hit` (after bounce, or where
+  the ball comes down after glass/fence) instead of the ball flying into wherever he stood.
+- Glass serve: receiver chooses ON THE BOUNCE or OFF THE GLASS (`ReceiveMode`, engine constants in `engine.ts`;
+  menu for your receiver, `pickReceive` for the CPU).
+- 91 tests pass; MatchScene typechecks against a Phaser stub; balance re-simulated (avg ~4.9 hits, aces ~0.8%).
+- Still NOT seen in a browser by the agent. Later: per-player parameters that ease or complicate these shots.
 
 ## Verification status
 The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session

@@ -54,5 +54,11 @@ Every serve/return/rally shot is an entry in `src/data/shots.json`; direction mo
 the returned `Step`. Rulo has `fixedDirection: cross`. Walls only affect the animation for now (the ball path),
 not the maths. Balance was tuned by simulation, constants live at the top of `engine.ts`.
 
+## 2026-11-19: One controlled player, glass serve gives the receiver a choice
+Owner: partner and opponents should hit almost instantly, so only one player of the team (index 0) gets menus.
+Serve to the side glass: the receiver picks bounce (faster, riskier, less pressure) or glass (more time).
+Player parameters that ease or complicate these choices come later (owner's plan).
+`buildFlight` owns the geometry of the hitting spot; the engine only knows `ReceiveMode`.
+
 ## Secrets
 Android keystore, Apple certificates and `.env` files are git-ignored. Back them up in a password manager.

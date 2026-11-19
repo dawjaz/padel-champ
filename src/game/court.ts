@@ -38,13 +38,14 @@ export function landingX(direction: Direction, defenderIdx: number): number {
 }
 
 /**
- * The lane the server stands in. The serve alternates between the right and the left side of the
- * server's own court every point (right first). The near team looks up the screen, so its right is +x;
- * the far team looks down the screen, so its right is -x.
+ * The lane the server stands in. The serve alternates between the left and the right side of the
+ * server's own court every point of a game, LEFT first (the second point is served from the right, and so on).
+ * A second serve after a fault is taken from the same side. The near team looks up the screen, so its left
+ * is -x; the far team looks down the screen, so its left is +x.
  */
 export function serveLane(servingSide: SideIndex, pointsPlayed: number): LaneSign {
-  const ownRight: LaneSign = servingSide === 0 ? 1 : -1;
-  return pointsPlayed % 2 === 0 ? ownRight : (-ownRight as LaneSign);
+  const ownLeft: LaneSign = servingSide === 0 ? -1 : 1;
+  return pointsPlayed % 2 === 0 ? ownLeft : (-ownLeft as LaneSign);
 }
 
 export function formationZ(side: SideIndex, formation: Formation): number {
@@ -61,7 +62,7 @@ export interface ServeSetup {
   lane: LaneSign;
   receiverIdx: number;
   server: CourtPos;
-  /** The server's partner stands in the middle of their half. */
+  /** The server's partner stands in the middle of their own quarter: the lane the server is NOT in. */
   partner: CourtPos;
   receiver: CourtPos;
   receiverPartner: CourtPos;
@@ -76,7 +77,7 @@ export function serveSetup(servingSide: SideIndex, pointsPlayed: number): ServeS
     lane,
     receiverIdx: indexOfLane(receiverLane),
     server: { x: lane * LANE_X, z: servingSide === 0 ? 18.5 : 1.5 },
-    partner: { x: 0, z: servingSide === 0 ? 15 : 5 },
+    partner: { x: -lane * LANE_X, z: servingSide === 0 ? 15 : 5 },
     receiver: { x: receiverLane * LANE_X, z: backZ },
     receiverPartner: { x: -receiverLane * LANE_X, z: backZ },
   };

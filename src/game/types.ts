@@ -43,6 +43,13 @@ export type WallHit = 'none' | 'side' | 'back' | 'fence';
 /** Screen-side lane of a player: -1 = left, +1 = right. */
 export type LaneSign = -1 | 1;
 
+/**
+ * How the receiver takes a serve that kicks off the side glass: `bounce` = straight after the first bounce
+ * (early, rushed ball, but clean contact), `wall` = after the ball has come off the glass (more time).
+ * Rally shots that go to a wall are always taken after the wall.
+ */
+export type ReceiveMode = 'bounce' | 'wall';
+
 export interface ShotDef {
   id: string;
   name: string;

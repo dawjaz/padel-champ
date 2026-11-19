@@ -1,4 +1,4 @@
-import type { BallState, DirectionDef, PlayerDef, Rng, ShotDef } from './types';
+import type { BallState, DirectionDef, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 /** Default score lead needed to win the point outright (a shot can override it). */
 export const WINNER_MARGIN = 24;
@@ -24,6 +24,14 @@ export const MIN_ERROR = 0.01;
 export const MAX_ERROR = 0.6;
 export const MAX_PRESSURE = 0.25;
 export const MAX_SERVE_PRESSURE = 0.4;
+/**
+ * Receiving a glass serve. Straight off the bounce the ball is fast (defence x0.9) but the contact is clean,
+ * so the serve's pressure on the return is halved. Waiting for the glass gives more time (defence x1.1) but
+ * leaves the full pressure. Serves that do not touch a wall ignore this.
+ */
+export const BOUNCE_DEFENSE = 0.9;
+export const WALL_DEFENSE = 1.1;
+export const BOUNCE_PRESSURE_RELIEF = 0.5;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
@@ -112,6 +120,7 @@ export interface ServeResult {
 /**
  * Resolves one serve attempt. `cross` is the (always cross) direction used for the receiver's defence.
  * `rng` is called once for the fault roll and twice for the score spreads.
+ * `receive` only matters for serves that go to a wall.
  */
 export function resolveServe(
   server: PlayerDef,
@@ -120,6 +129,7 @@ export function resolveServe(
   receiver: PlayerDef,
   cross: DirectionDef,
   rng: Rng,
+  receive: ReceiveMode = 'wall',
 ): ServeResult {
   const tired = serverGuts < shot.cost;
   if (rng() < faultChance(server, shot)) {
@@ -128,12 +138,15 @@ export function resolveServe(
 
   let attackScore = server.stats[shot.stat] * 10 * shot.power + rng() * RANDOM_SPREAD;
   if (tired) attackScore *= TIRED_FACTOR;
-  const defenseScore = defenseRating(receiver, cross) + rng() * RANDOM_SPREAD;
+  const walled = shot.wall !== 'none';
+  const receiveMod = !walled ? 1 : receive === 'bounce' ? BOUNCE_DEFENSE : WALL_DEFENSE;
+  const defenseScore = defenseRating(receiver, cross) * receiveMod + rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
   if (diff > ACE_MARGIN) return { outcome: 'ace', attackScore, defenseScore, tired, pressure: 0 };
 
-  const pressure = clamp((clamp(diff / 200, 0, MAX_PRESSURE)) * (shot.pressureMult ?? 1), 0, MAX_SERVE_PRESSURE);
+  const relief = walled && receive === 'bounce' ? BOUNCE_PRESSURE_RELIEF : 1;
+  const pressure = clamp(clamp(diff / 200, 0, MAX_PRESSURE) * (shot.pressureMult ?? 1) * relief, 0, MAX_SERVE_PRESSURE);
   return { outcome: 'in', attackScore, defenseScore, tired, pressure };
 }
 
