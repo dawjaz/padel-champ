@@ -222,12 +222,16 @@
     "advance": "net",
     "landDepth": 7,
     "wall": "back",
-    "desc": "Controlled, deep overhead. Holds the net.",
+    "desc": "Controlled, deep overhead after a lob. Holds the net.",
     "flight": {
       "speed": 17,
       "apex": 0,
       "spin": -0.9,
       "wallKick": 0.7
+    },
+    "requires": {
+      "afterLob": true,
+      "hint": "after a lob"
     }
   },
   {
@@ -330,6 +334,85 @@
       "apex": 1.2,
       "spin": 1.0,
       "wallKick": 1.0
-    }
+    },
+    "overFence": true
+  },
+  {
+    "id": "smash_x3",
+    "name": "Smash x3",
+    "kind": "rally",
+    "stat": "technique",
+    "power": 1.25,
+    "cost": 2,
+    "risk": 0.18,
+    "out": "high",
+    "fit": {
+      "high": 1.3,
+      "mid": 0.7,
+      "low": 0.4
+    },
+    "advance": "net",
+    "landDepth": 9.0,
+    "wall": "back",
+    "winnerMargin": 16,
+    "overFence": true,
+    "requires": {
+      "formations": [
+        "net",
+        "mid"
+      ],
+      "heights": [
+        "high",
+        "mid"
+      ],
+      "hint": "net/mid, high ball"
+    },
+    "desc": "Hit hard into the back glass; with spin it kicks high to the side glass or the mesh. Skilled hitters send it out over the fence.",
+    "flight": {
+      "speed": 30,
+      "apex": 0,
+      "spin": 1.0,
+      "wallKick": 1.6
+    },
+    "exitVia": "side"
+  },
+  {
+    "id": "smash_x4",
+    "name": "Smash x4",
+    "kind": "rally",
+    "stat": "power",
+    "power": 1.3,
+    "cost": 2,
+    "risk": 0.16,
+    "out": "mid",
+    "fit": {
+      "high": 1.3,
+      "mid": 0.7,
+      "low": 0.4
+    },
+    "advance": "net",
+    "landDepth": 6.2,
+    "wall": "back",
+    "winnerMargin": 20,
+    "overFence": true,
+    "requires": {
+      "formations": [
+        "net",
+        "mid"
+      ],
+      "heights": [
+        "high",
+        "mid"
+      ],
+      "hint": "net/mid, high ball"
+    },
+    "desc": "Hard into the court. It flies out over the back glass, or comes back off the glass or mesh and stays in play.",
+    "flight": {
+      "speed": 31,
+      "apex": 0,
+      "spin": 0.6,
+      "wallKick": 1.0
+    },
+    "exitVia": "back"
   }
 ]

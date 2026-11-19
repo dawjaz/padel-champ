@@ -50,6 +50,7 @@ export function serveLane(servingSide: SideIndex, pointsPlayed: number): LaneSig
 
 export function formationZ(side: SideIndex, formation: Formation): number {
   if (formation === 'net') return side === 0 ? 12 : 8;
+  if (formation === 'mid') return side === 0 ? 14.5 : 5.5;
   return side === 0 ? 17.5 : 2.5;
 }
 
@@ -62,7 +63,7 @@ export interface ServeSetup {
   lane: LaneSign;
   receiverIdx: number;
   server: CourtPos;
-  /** The server's partner stands in the middle of their own quarter: the lane the server is NOT in. */
+  /** The server's partner never leaves their own lane; they stand a third of the way back from the net. */
   partner: CourtPos;
   receiver: CourtPos;
   receiverPartner: CourtPos;
@@ -70,17 +71,24 @@ export interface ServeSetup {
 
 /** How far from the net the server's partner stands during the serve: a third of a half-court (the middle of the service box). */
 export const SERVE_PARTNER_DEPTH = 10 / 3;
+/** A server who has to serve from the other half of the court than their own lane stands just beside the centre mark. */
+export const CENTRE_SERVE_X = 0.9;
 
-export function serveSetup(servingSide: SideIndex, pointsPlayed: number): ServeSetup {
+/**
+ * Partners keep their own halves: when the point is served from the opposite side to the server's own lane,
+ * the server steps over to the centre mark, but the partner does not swap sides.
+ */
+export function serveSetup(servingSide: SideIndex, pointsPlayed: number, serverIdx: number): ServeSetup {
   const lane = serveLane(servingSide, pointsPlayed);
   const recvSide: SideIndex = servingSide === 0 ? 1 : 0;
   const receiverLane = -lane as LaneSign;
   const backZ = formationZ(recvSide, 'back');
+  const ownLane = laneSign(serverIdx);
   return {
     lane,
     receiverIdx: indexOfLane(receiverLane),
-    server: { x: lane * LANE_X, z: servingSide === 0 ? 18.5 : 1.5 },
-    partner: { x: -lane * LANE_X, z: servingSide === 0 ? NET_Z + SERVE_PARTNER_DEPTH : NET_Z - SERVE_PARTNER_DEPTH },
+    server: { x: lane === ownLane ? lane * LANE_X : lane * CENTRE_SERVE_X, z: servingSide === 0 ? 18.5 : 1.5 },
+    partner: { x: laneX(1 - serverIdx), z: servingSide === 0 ? NET_Z + SERVE_PARTNER_DEPTH : NET_Z - SERVE_PARTNER_DEPTH },
     receiver: { x: receiverLane * LANE_X, z: backZ },
     receiverPartner: { x: -receiverLane * LANE_X, z: backZ },
   };

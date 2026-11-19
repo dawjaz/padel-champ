@@ -3,6 +3,11 @@ import { defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
 import type { BallState, Direction, Formation, LaneSign, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
+/** A high, slow arc that is meant to send the opponents back. */
+export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
+/** A bandeja needs a lob that did not rush the hitter (the ball pressure stays below this). */
+export const BANDEJA_MAX_PRESSURE = 0.12;
+
 /**
  * One point as a pure state machine: serve -> return -> rally. The scene (or a simulation) calls
  * `stepServe` / `stepHit` with a chosen shot and animates the returned `Step`.
@@ -81,16 +86,36 @@ export function startPoint(
   };
 }
 
-/** How formations change after a shot: the hitter's team may move, and a high ball sends the opponents back. */
+/**
+ * How formations change after a shot: the hitter's team may move, and a high ball sends the opponents back.
+ * A short lob (`shortLob`: the lob did not beat its defender) only pushes them into the middle of their half,
+ * where they can still smash it.
+ */
 export function nextFormation(
   current: [Formation, Formation],
   hitterSide: SideIndex,
   shot: ShotDef,
+  shortLob = false,
 ): [Formation, Formation] {
   const f: [Formation, Formation] = [current[0], current[1]];
   if (shot.advance !== 'stay') f[hitterSide] = shot.advance;
-  if (shot.out === 'high') f[other(hitterSide)] = 'back';
+  if (shot.out === 'high') f[other(hitterSide)] = shortLob && isLob(shot) ? 'mid' : 'back';
   return f;
+}
+
+/** Why the shot cannot be played now (text for the button), or null when it can. */
+export function unavailableReason(shot: ShotDef, state: PointState): string | null {
+  const r = shot.requires;
+  if (!r) return null;
+  if (r.formations && !r.formations.includes(state.formation[state.holder])) return r.hint;
+  if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
+  if (r.afterLob && !(state.ball.lob && state.ball.pressure <= BANDEJA_MAX_PRESSURE)) return r.hint;
+  return null;
+}
+
+/** The shots of this kind that can be played in the current state. */
+export function playableShots(shots: ShotDef[], state: PointState): ShotDef[] {
+  return shots.filter((s) => unavailableReason(s, state) === null);
 }
 
 export function stepServe(
@@ -148,7 +173,7 @@ export function stepServe(
       hits: 0,
       holder: recvSide,
       hitterIdx: state.receiverIdx,
-      ball: { height: shot.out, pressure: res.pressure },
+      ball: { height: shot.out, pressure: res.pressure, lob: isLob(shot) },
       formation,
     },
     step: { ...base, outcome: 'in', pointWinner: null },
@@ -163,6 +188,7 @@ export function stepHit(
   rng: Rng,
 ): StepResult {
   if (state.status !== 'rally') throw new Error('Point is not in the rally');
+  if (unavailableReason(shot, state) !== null) throw new Error(`${shot.id} cannot be played now`);
   const side = state.holder;
   const defSide = other(side);
   const direction: Direction = shot.fixedDirection ?? chosenDirection;
@@ -205,8 +231,8 @@ export function stepHit(
         hits: state.hits + 1,
         holder: defSide,
         hitterIdx: defIdx,
-        ball: { height: shot.out, pressure: res.pressure },
-        formation: nextFormation(state.formation, side, shot),
+        ball: { height: shot.out, pressure: res.pressure, lob: isLob(shot) },
+        formation: nextFormation(state.formation, side, shot, res.attackScore < res.defenseScore),
       },
       step,
     };

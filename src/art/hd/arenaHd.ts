@@ -283,6 +283,52 @@ function drawWalls(g: Ctx): void {
     });
     for (const z of [0, 2, 4, 6.5, 10, 13.5, 16, 18, 20]) post(g, at, z, z <= 2 || z >= 18 ? 4 : z <= 4 || z >= 16 ? 3 : 3);
   }
+  drawNearWall(g);
+}
+
+/**
+ * The near back wall would hide the court, so it is only marked: a faint glass pane up to 3 m, a faint mesh strip
+ * up to 4 m, a dashed gold line where the glass ends and the mesh begins, and two small labels.
+ */
+function drawNearWall(g: Ctx): void {
+  const near: At = (x, h) => project(x, 20, h);
+  const G = BACK_WALL.glass;
+  const T = BACK_WALL.glass + BACK_WALL.mesh;
+  g.save();
+  const pane = (h0: number, h1: number): Array<{ x: number; y: number }> => [near(-5, h0), near(5, h0), near(5, h1), near(-5, h1)];
+  g.fillStyle = 'rgba(159,216,255,0.07)';
+  poly(g, pane(0, G));
+  g.fill();
+  g.fillStyle = 'rgba(8,10,28,0.14)';
+  poly(g, pane(G, T));
+  g.fill();
+  g.strokeStyle = 'rgba(201,211,230,0.22)';
+  g.lineWidth = 0.6;
+  for (let x = -5; x <= 5.001; x += 0.5) line(g, near(x, G), near(x, T));
+  for (let h = G; h <= T + 1e-6; h += 0.5) line(g, near(-5, h), near(5, h));
+  g.strokeStyle = 'rgba(223,243,255,0.5)';
+  g.lineWidth = 1.2;
+  line(g, near(-5, 0), near(5, 0));
+  line(g, near(-5, T), near(5, T));
+  g.strokeStyle = 'rgba(255,224,102,0.9)';
+  g.lineWidth = 1.6;
+  g.setLineDash([5, 4]);
+  line(g, near(-5, G), near(5, G));
+  g.setLineDash([]);
+  g.font = 'bold 8px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
+  g.textAlign = 'right';
+  g.textBaseline = 'bottom';
+  g.lineWidth = 2.5;
+  g.strokeStyle = 'rgba(0,0,10,0.9)';
+  const tag = (h: number, text: string, color: string): void => {
+    const q = near(5, h);
+    g.strokeText(text, q.x - 4, q.y - 1);
+    g.fillStyle = color;
+    g.fillText(text, q.x - 4, q.y - 1);
+  };
+  tag(G, 'GLASS to 3 m', '#bfe6ff');
+  tag(T, 'MESH to 4 m', '#ffe066');
+  g.restore();
 }
 
 function drawVignette(g: Ctx): void {

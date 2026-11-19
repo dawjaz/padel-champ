@@ -10,6 +10,7 @@ import {
   restPos,
   serveLane,
   serveSetup,
+  CENTRE_SERVE_X,
 } from './court';
 import { fixedRng } from './rng';
 
@@ -60,7 +61,7 @@ describe('serve', () => {
   it('always serves cross: the receiver stands in the opposite lane', () => {
     for (const side of [0, 1] as const) {
       for (let points = 0; points < 4; points++) {
-        const s = serveSetup(side, points);
+        const s = serveSetup(side, points, 0);
         expect(Math.sign(s.receiver.x)).toBe(-Math.sign(s.server.x));
         expect(s.receiverIdx).toBe(indexOfLane(-s.lane as -1 | 1));
         expect(Math.sign(s.receiverPartner.x)).toBe(-Math.sign(s.receiver.x));
@@ -68,20 +69,32 @@ describe('serve', () => {
     }
   });
 
-  it("stands the server's partner in the middle of their own quarter (the lane the server is not in)", () => {
-    for (const points of [0, 1]) {
-      const near = serveSetup(0, points);
-      expect(near.partner.x).toBe(-near.lane * 2.5);
-      expect(near.partner.z).toBeCloseTo(10 + 10 / 3);
-      const far = serveSetup(1, points);
-      expect(far.partner.x).toBe(-far.lane * 2.5);
-      expect(far.partner.z).toBeCloseTo(10 - 10 / 3);
-      expect(Math.sign(near.partner.x)).toBe(-Math.sign(near.server.x));
+  it("stands the server's partner a third of the way back from the net, in the partner's own lane", () => {
+    for (const idx of [0, 1]) {
+      for (const points of [0, 1]) {
+        const near = serveSetup(0, points, idx);
+        expect(near.partner.x).toBe(laneX(1 - idx));
+        expect(near.partner.z).toBeCloseTo(10 + 10 / 3);
+        const far = serveSetup(1, points, idx);
+        expect(far.partner.x).toBe(laneX(1 - idx));
+        expect(far.partner.z).toBeCloseTo(10 - 10 / 3);
+      }
     }
   });
 
+  it('never makes the partners swap halves: the server steps to the centre mark instead', () => {
+    // server idx 0 owns the left lane (-x); the first point is served from the left, the second from the right
+    const own = serveSetup(0, 0, 0);
+    expect(own.server.x).toBe(-LANE_X);
+    const opposite = serveSetup(0, 1, 0);
+    expect(opposite.server.x).toBeCloseTo(CENTRE_SERVE_X);
+    expect(opposite.partner.x).toBe(laneX(1));
+    // still on the correct side for a cross serve
+    expect(Math.sign(opposite.server.x)).toBe(-Math.sign(opposite.receiver.x));
+  });
+
   it('keeps everybody on their own half of the court', () => {
-    const s = serveSetup(0, 0);
+    const s = serveSetup(0, 0, 0);
     expect(s.server.z).toBeGreaterThan(10);
     expect(s.partner.z).toBeGreaterThan(10);
     expect(s.receiver.z).toBeLessThan(10);

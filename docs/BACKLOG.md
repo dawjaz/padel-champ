@@ -35,7 +35,7 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - App icon and splash screen
 
 ## Shots
-- Smash and bajada (depend on ball height, position, lob quality)
+- Bajada (depends on ball height, position, lob quality). Smash is done (v0.7).
 - Let walls affect the maths (rebounds, wall-first returns)
 - Per-shot animations, equipment bonuses (rackets, shoes) on stats
 

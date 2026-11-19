@@ -160,8 +160,10 @@ interface SimOpts {
   hitHeight: number;
   /** Whether the ball has to touch a wall before it is played. */
   needWall: boolean;
-  /** A winning rulo flies out over the fence instead of staying in play. */
+  /** A winning rulo or smash flies out over the fence instead of staying in play. */
   exitOverFence: boolean;
+  /** Extra liveliness of the floor bounce and the wall kick (1 = normal): a winning smash is hit with more spin and pace. */
+  boost?: number;
 }
 
 /** Simulates the ball from its first bounce on. Returns samples, events and where it is played. */
@@ -171,8 +173,10 @@ function simulateAfterBounce(
   o: SimOpts,
 ): { samples: Sample[]; events: FlightEvent[]; hitIndex: number; end: number } {
   const { spin, wallKick } = o.shot.flight;
+  const boost = o.boost ?? 1;
   const keep = clamp(FLOOR_KEEP + 0.14 * spin, 0.4, 0.95);
-  const restitution = clamp(FLOOR_E + 0.05 * spin, 0.6, 0.8);
+  const restitution = clamp(FLOOR_E + 0.05 * spin, 0.6, 0.8) * boost;
+  const kick = wallKick * (1 + (boost - 1) * 1.5);
 
   const samples: Sample[] = [];
   const events: FlightEvent[] = [];
@@ -234,7 +238,7 @@ function simulateAfterBounce(
       x = sign * 5;
       const glass = mat === 'glass';
       vx = -vx * (glass ? GLASS_E : MESH_E);
-      const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : wallKick);
+      const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
       vz *= along;
       vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7);
       kicked = true;
@@ -256,7 +260,7 @@ function simulateAfterBounce(
       vz = -vz * (glass ? GLASS_E : MESH_E);
       // Backspin makes the ball die against the back glass; topspin keeps it lively.
       const spinKeep = clamp(1 + 0.25 * o.shot.flight.spin, 0.5, 1.2);
-      vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : wallKick);
+      vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
       vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7) * Math.min(1, spinKeep);
       kicked = true;
       if (firstContact < 0) firstContact = samples.length;
@@ -366,7 +370,9 @@ export function buildFlight(o: FlightOpts): Flight {
   }
 
   // In play: ballistic arc to the first bounce, then the simulation.
-  const land = { x: o.landX, z: NET_Z + away * o.shot.landDepth };
+  // A winning smash x4 that is meant to clear the back glass is not aimed so close to the side glass that it hits that first.
+  const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
+  const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * o.shot.landDepth };
   const arc = solveArc(from, land, fl.speed, fl.apex);
   sampleArc(from, arc, 0);
   const touch = { x: land.x, z: land.z, vx: arc.vx, vz: arc.vz, vy: arc.vy - GRAVITY * arc.T };
@@ -375,16 +381,42 @@ export function buildFlight(o: FlightOpts): Flight {
   // Serves: the receiver chooses (bounce or glass) when the serve goes to the glass. Rally balls that reach a wall
   // are played after it, because a ball that is about to hit the glass cannot be taken before it.
   const needWall = isServe ? o.shot.wall !== 'none' && o.receive !== 'bounce' : true;
-  const sim = simulateAfterBounce(touch, arc.T, {
-    shot: o.shot,
-    hitHeight: ARRIVAL_HEIGHT[o.shot.out],
-    needWall,
-    exitOverFence: o.shot.wall === 'fence' && o.outcome === 'winner',
-  });
+  const hitHeight = ARRIVAL_HEIGHT[o.shot.out];
+  const winning = o.outcome === 'ace' || o.outcome === 'winner';
+  const exits = winning && (o.shot.wall === 'fence' || o.shot.overFence === true);
+  const run = (boost: number): ReturnType<typeof simulateAfterBounce> =>
+    simulateAfterBounce(touch, arc.T, { shot: o.shot, hitHeight, needWall, exitOverFence: exits, boost });
+  let sim = run(1);
+  // A winning smash is hit hard enough to leave the court: spin it up until it really flies out, preferably the
+  // way the shot is meant to (x4 over the back glass, x3 over the side glass or mesh), else any way.
+  if (exits && o.shot.overFence === true) {
+    const exitOf = (r: typeof sim): FlightEvent | undefined => r.events.find((e) => e.kind === 'out');
+    const wanted = (r: typeof sim): boolean => {
+      const e = exitOf(r);
+      if (!e || !o.shot.exitVia) return e !== undefined;
+      const side = Math.abs(e.x) >= 5;
+      if (o.shot.exitVia === 'side') return side;
+      // over the back glass at the far end (not after a rebound over the hitter's own end)
+      const far = o.hitterSide === 0 ? e.z <= 0.01 : e.z >= 19.99;
+      return !side && far;
+    };
+    let fallback = exitOf(sim) ? sim : null;
+    if (!wanted(sim)) {
+      for (const boost of [1.1, 1.2, 1.35, 1.5, 1.7, 1.9, 2.2, 2.6, 3.2]) {
+        const r = run(boost);
+        if (wanted(r)) {
+          sim = r;
+          fallback = null;
+          break;
+        }
+        if (!fallback && exitOf(r)) fallback = r;
+      }
+      if (fallback) sim = fallback;
+    }
+  }
   events.push({ kind: 'bounce', t: arc.T, x: land.x, z: land.z, h: 0 });
   for (const e of sim.events.slice(1)) events.push(e);
 
-  const winning = o.outcome === 'ace' || o.outcome === 'winner';
   const natural = sim.samples[sim.hitIndex];
   const hit = clampHit(natural, o.hitterSide);
 

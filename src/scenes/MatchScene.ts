@@ -14,7 +14,7 @@ import { pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
-import { startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
+import { startPoint, stepHit, stepServe, unavailableReason, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { CourtPos, Direction, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
@@ -38,10 +38,10 @@ const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
 const VISUAL_HEIGHT_M = 2.0;
 
-type Tone = 'normal' | 'good' | 'poor' | 'tired';
+type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
 
-const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666 };
-const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999' };
+const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666, off: 0x555566 };
+const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999', off: '#777788' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
@@ -55,6 +55,8 @@ interface PlayerView {
 interface ButtonSpec {
   label: string;
   tone: Tone;
+  /** Greyed out and not clickable (the shot is not possible now). */
+  disabled?: boolean;
   onPick: () => void;
 }
 
@@ -337,30 +339,41 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(
       this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
     );
+    // Up to 6 buttons: 2 big columns; more: 3 compact columns.
+    const compact = items.length > 6;
+    const cols = compact ? 3 : 2;
+    const w = compact ? 112 : 160;
+    const h = compact ? 44 : 48;
+    const gapY = compact ? 52 : 58;
+    const y0 = compact ? 478 : 485;
     items.forEach((item, i) => {
-      const x = 95 + (i % 2) * 170;
-      const y = 485 + Math.floor(i / 2) * 58;
+      const x = compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
+      const y = y0 + Math.floor(i / cols) * gapY;
       const gfx = this.add.graphics().setPosition(x, y);
-      const redraw = (hover: boolean): void => drawPanel(gfx, 160, 48, TONE_STROKE[item.tone], hover);
+      const stroke = TONE_STROKE[item.tone];
+      const redraw = (hover: boolean): void => drawPanel(gfx, w, h, stroke, hover && !item.disabled);
       redraw(false);
-      const bg = this.add.zone(x, y, 160, 48).setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => redraw(true));
-      bg.on('pointerout', () => redraw(false));
+      const bg = this.add.zone(x, y, w, h);
       const text = this.add
         .text(x, y, item.label, {
           fontFamily: FONT, resolution: HD_SCALE,
-          fontSize: '14px',
+          fontSize: compact ? '11px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
         })
         .setOrigin(0.5);
-      bg.on('pointerdown', () => {
-        if (this.busy) return;
-        this.busy = true;
-        sfx('select');
-        this.clearMenu();
-        item.onPick();
-      });
+      if (!item.disabled) {
+        bg.setInteractive({ useHandCursor: true });
+        bg.on('pointerover', () => redraw(true));
+        bg.on('pointerout', () => redraw(false));
+        bg.on('pointerdown', () => {
+          if (this.busy) return;
+          this.busy = true;
+          sfx('select');
+          this.clearMenu();
+          item.onPick();
+        });
+      }
       this.menu.push(gfx, bg, text);
     });
     this.busy = false;
@@ -383,7 +396,7 @@ export class MatchScene extends Phaser.Scene {
     this.point = startPoint(this.guts, this.server, idx, pointsPlayed);
 
     // Serve set-up: the server stands in their serving lane, the partner in the middle of their half.
-    const setup = serveSetup(this.server, pointsPlayed);
+    const setup = serveSetup(this.server, pointsPlayed, idx);
     const recvSide = other(this.server);
     const targets: Record<string, CourtPos> = {
       [TEAMS[this.server][idx].id]: setup.server,
@@ -475,14 +488,48 @@ export class MatchScene extends Phaser.Scene {
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
     const kind = st.hits === 0 ? 'return' : 'rally';
-    this.showButtons(
-      `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`,
-      shotsOfKind(kind).map((s) => ({
-        label: `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`,
-        tone: this.toneFor(s, hitter),
-        onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
-      })),
-    );
+    const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`;
+    const label = (s: ShotDef): string => `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`;
+    const items: ButtonSpec[] = [];
+    const smashes: ShotDef[] = [];
+    for (const s of shotsOfKind(kind)) {
+      if (s.id.startsWith('smash_')) {
+        smashes.push(s);
+        continue;
+      }
+      const why = unavailableReason(s, st);
+      items.push(
+        why
+          ? { label: `${s.name}\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
+          : {
+              label: label(s),
+              tone: this.toneFor(s, hitter),
+              onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
+            },
+      );
+    }
+    if (smashes.length > 0) {
+      const why = unavailableReason(smashes[0], st);
+      items.push(
+        why
+          ? { label: `Smash\n(${why})`, tone: 'off', disabled: true, onPick: () => undefined }
+          : { label: 'Smash\nx3 or x4', tone: this.toneFor(smashes[0], hitter), onPick: () => this.showSmashMenu(smashes) },
+      );
+    }
+    this.showButtons(title, items);
+  }
+
+  /** Smash: hit it through 3 (into the back glass, kicks to the side) or through 4 (hard into the court, over or off the back glass). */
+  private showSmashMenu(smashes: ShotDef[]): void {
+    const st = this.point;
+    const hitter = TEAMS[0][st.hitterIdx];
+    const items: ButtonSpec[] = smashes.map((s) => ({
+      label: `${s.id === 'smash_x3' ? 'PRZEZ 3' : 'PRZEZ 4'} [${s.cost}]\n${s.id === 'smash_x3' ? 'back glass' : 'hard, court'}`,
+      tone: this.toneFor(s, hitter),
+      onPick: () => this.showDirectionMenu(s),
+    }));
+    items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
+    this.showButtons(`${hitter.name}: smash, which one?`, items);
   }
 
   private showDirectionMenu(shot: ShotDef): void {
@@ -611,7 +658,11 @@ export class MatchScene extends Phaser.Scene {
         this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
         break;
       case 'winner':
-        endPoint(`${attacker.name} wins the point with a winner!`);
+        endPoint(
+          step.shot.overFence
+            ? `${attacker.name} smashes it out over the fence!`
+            : `${attacker.name} wins the point with a winner!`,
+        );
         break;
       case 'error':
         endPoint(`${attacker.name} hits the net. Error!`);
