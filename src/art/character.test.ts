@@ -17,7 +17,7 @@ const BASE: Appearance = {
 };
 
 const STYLES: HairStyle[] = ['short', 'long', 'ponytail', 'bun', 'afro', 'bald'];
-const FACINGS: Facing[] = ['front', 'back'];
+const FACINGS: Facing[] = ['front', 'back', 'left', 'right'];
 
 describe('buildCharacter', () => {
   it('keeps every pixel, including the 1px outline, inside the sprite canvas', () => {

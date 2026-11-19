@@ -375,6 +375,8 @@ function simulateAfterBounce(
     if (o.needWall) from = firstContact;
     else to = Math.max(1, firstContact - 1);
   }
+  // After a side wall the ball is taken before it reaches the back glass: the receiver waits for the side glass only.
+  if (o.needWall && !o.backGlass && backContact > from) to = Math.max(from, Math.min(to, backContact - 1));
   let hitIndex = -1;
   for (const c of crossings) {
     if (c >= from && c <= to) {
@@ -713,6 +715,19 @@ export function buildCoast(flight: Flight, spin: number): Coast {
     samples.push({ t, x, z, h });
   }
   return { path: samples, events, duration: t };
+}
+
+/** Speed of the ball at time t of a path: total (m/s) and vertical. Used to decide how hard a bounce or a wall hit sounds. */
+export function speedAt(path: Sample[], t: number): { v: number; vy: number } {
+  if (path.length < 2) return { v: 0, vy: 0 };
+  let i = 0;
+  while (i < path.length - 1 && path[i].t < t) i++;
+  const a = path[Math.max(0, i - 3)];
+  const b = path[Math.min(path.length - 1, i + 3)];
+  const dt = b.t - a.t;
+  if (dt <= 0) return { v: 0, vy: 0 };
+  const vy = (b.h - a.h) / dt;
+  return { v: Math.hypot(b.x - a.x, b.z - a.z, b.h - a.h) / dt, vy };
 }
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;

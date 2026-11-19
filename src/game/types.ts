@@ -78,11 +78,16 @@ export interface ShotRequires {
   heights?: Height[];
   /** true: the ball must have come off the back glass; false: it must be played before it reaches the glass. */
   glass?: boolean;
+  /** The incoming ball must fall in one of these zones (see `BallState.zone`). */
+  zones?: Zone[];
   /** The incoming ball must be a weak lob (one that lands in the middle of the court or near the net). */
   weakLob?: boolean;
   /** Hint (why this shot is not possible now). */
   hint: string;
 }
+
+/** Where the ball comes down on the hitter's half: close to the net, in the middle of the court, or deep by the back glass. */
+export type Zone = 'net' | 'mid' | 'back';
 
 /** Quality of a lob: deep into the court, or weak (lands mid-court or close to the net). */
 export type LobQuality = 'deep' | 'weak';
@@ -158,6 +163,8 @@ export interface BallState {
   lob?: LobQuality;
   /** The ball has come off (or will come off) the back glass before it is played. */
   glass?: boolean;
+  /** Where the ball comes down (its first bounce, or the spot it is taken out of the air). */
+  zone?: Zone;
 }
 
 /** Position on the court in metres: x across (-5..5), z along (0 = far baseline, 10 = net, 20 = near baseline). */

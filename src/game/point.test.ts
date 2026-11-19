@@ -3,7 +3,7 @@ import playersData from '../data/players.json';
 import { pickHit, pickReceive, pickServe } from './ai';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
-import { nextFormation, playableShots, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
+import { nextFormation, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
 import { aimDepth, aimX } from './court';
 import { fixedRng, seededRng } from './rng';
 import type { Formation, PlayerDef, ShotDef } from './types';
@@ -20,7 +20,7 @@ function freshGuts(): Record<string, number> {
 /** A point already in the rally, with the given hitter. */
 function rallyState(over: Partial<PointState> = {}): PointState {
   return { ...startPoint(freshGuts(), 0, 0, 0), status: 'rally', holder: 0, hitterIdx: 0, hits: 0,
-    ball: { height: 'high', pressure: 0 }, ...over };
+    ball: { height: 'high', pressure: 0, zone: 'mid' }, ...over };
 }
 
 describe('startPoint', () => {
@@ -170,6 +170,22 @@ describe('nextFormation', () => {
 
   it('works for the far team too', () => {
     expect(nextFormation(['back', 'back'], 1, shot('rally_lob'), 'deep')).toEqual(['back', 'net']);
+  });
+});
+
+describe('rulo', () => {
+  it('is played only from the air, on a ball that falls in the middle of the court', () => {
+    const r = shot('rulo');
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'mid' } }))).toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'net' } }))).not.toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'back' } }))).not.toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'mid', glass: true } }))).not.toBeNull();
+  });
+
+  it('sets the zone of the next ball from where the shot lands', () => {
+    expect(zoneOf(1.6)).toBe('net');
+    expect(zoneOf(5)).toBe('mid');
+    expect(zoneOf(8.5)).toBe('back');
   });
 });
 

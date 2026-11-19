@@ -406,7 +406,11 @@
         "mid",
         "high"
       ],
-      "hint": "mid or high ball"
+      "glass": false,
+      "zones": [
+        "mid"
+      ],
+      "hint": "from the air, ball falling mid-court"
     },
     "glassChance": 0
   },

@@ -1,6 +1,17 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.12)_
+_Last updated: 2026-11-19 (v0.13)_
+
+## v0.13: win banner, padel sounds, rulo rule, side views, chasing
+- **Point banner**: WINNER / ACE / ERROR plus a yellow chip with the shot name (e.g. "Por Cuatro"), a camera flash and shock rings.
+- **Sounds** (`audio.ts` `impactSound(kind, power)`): synthesised racket, floor, glass, mesh and net. Power comes from the ball speed at the
+  contact (`speedAt` in ballPath): a smash cracks, a chiquita is a dull pop, a soft bounce is quiet.
+- **Rulo** needs `glass: false` and the new `zones: ['mid']`: only from the air, on a ball that falls in the middle of the court
+  (`BallState.zone`, set from the landing depth: <3.5 m net, <7 m mid, else back).
+- **Serve to the side glass**: the receiver takes it after the side glass, before the back glass.
+- **Losing defender** runs for the ball to the end (to the hit spot, then after the rolling ball: `chaseBall`).
+- **Facing**: new profile views `'left'` / `'right'` (`buildProfile` in character.ts, 12 poses). Players run in profile, and a player who
+  waits for a ball off the back glass turns to the glass, then hits side-on (`MatchScene.rebound`).
 
 ## v0.12: visible ball spin, blocks at the net, overhead on weak lobs
 - **Ball rotation** (`src/art/spin.ts`, `ballHd.drawBall`): the ball is drawn each frame with a band, a seam and two dots, turning with

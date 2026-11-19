@@ -15,8 +15,12 @@ const X_OFFSET = 12;
 export const SPRITE_H = 46;
 export const OUTLINE_COLOR = 0x14142b;
 
-/** 'front' = faces the camera (far team), 'back' = seen from behind (near team). */
-export type Facing = 'front' | 'back';
+/**
+ * 'front' = faces the camera, 'back' = seen from behind, 'left' / 'right' = in profile, looking to that side of the screen.
+ * The near team normally shows its back and the far team its front; players turn when they run or wait for a ball
+ * that comes off the back glass.
+ */
+export type Facing = 'front' | 'back' | 'left' | 'right';
 
 /**
  * Body poses. The player is shown with a stroke stance (forehand = ball on the racket side, backhand = ball on the other
@@ -142,6 +146,7 @@ const WHITE = 0xf4f4f4;
 const STRINGS = 0xe6ecf5;
 
 export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = 'ready'): Op[] {
+  if (facing === 'left' || facing === 'right') return buildProfile(a, facing, pose);
   const spec = POSES[pose];
   const back = facing === 'back';
   const skin = hex(a.skin);
@@ -271,5 +276,139 @@ export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = '
   disc(head.x, head.y, 3 + 2.2 * flat, 5 - 2 * flat, racket);
   disc(head.x, head.y, 1.2 + 1.3 * flat, 3 - 1.4 * flat, STRINGS);
 
+  return ops;
+}
+
+/**
+ * The racket arm in profile (looking to the right), from the shoulder: `fx` is forward (to the right), `fy` down (negative =
+ * up), `angle` tilts the racket from vertical (positive = head forward). `off` is the other hand (overhead shots).
+ */
+interface ProfilePose {
+  hand: { fx: number; fy: number };
+  angle: number;
+  off?: { fx: number; fy: number };
+}
+
+const PROFILE_POSES: Record<PoseName, ProfilePose> = {
+  ready: { hand: { fx: 4, fy: 8 }, angle: 0.5 },
+  runA: { hand: { fx: 2, fy: 6 }, angle: 0.2 },
+  runB: { hand: { fx: 5, fy: 7 }, angle: 0.7 },
+  fhPrep: { hand: { fx: -5, fy: 5 }, angle: -1.2 },
+  fhHit: { hand: { fx: 9, fy: 7 }, angle: 1.25 },
+  fhFollow: { hand: { fx: 4, fy: -2 }, angle: -0.7 },
+  bhPrep: { hand: { fx: 4, fy: 5 }, angle: 1.3, off: { fx: 3, fy: 5 } },
+  bhHit: { hand: { fx: 10, fy: 8 }, angle: 1.35, off: { fx: 6, fy: 7 } },
+  bhFollow: { hand: { fx: 9, fy: -2 }, angle: 0.4 },
+  smashPrep: { hand: { fx: -3, fy: -6 }, angle: -1.0, off: { fx: 8, fy: -11 } },
+  smashHit: { hand: { fx: 5, fy: -13 }, angle: 0.25, off: { fx: 3, fy: 0 } },
+  smashFollow: { hand: { fx: 7, fy: 6 }, angle: 1.0 },
+};
+
+/** A player seen from the side. Drawn looking right; looking left is the mirror image. */
+function buildProfile(a: Appearance, facing: 'left' | 'right', pose: PoseName): Op[] {
+  const spec = POSES[pose];
+  const pp = PROFILE_POSES[pose];
+  const skin = hex(a.skin);
+  const skinLo = shade(skin, 0.8);
+  const hair = hex(a.hairColor);
+  const hairHi = shade(hair, 1.6);
+  const shirt = hex(a.shirt);
+  const shirtLo = shade(shirt, 0.78);
+  const bottom = hex(a.bottom);
+  const bottomLo = shade(bottom, 0.75);
+  const shoes = hex(a.shoes);
+  const racket = hex(a.racket);
+  const accent = a.headband ? hex(a.headband) : racket;
+
+  const ops: Op[] = [];
+  const mirror = facing === 'left';
+  const rect = (x: number, y: number, w: number, h: number, color: number): void => {
+    const px = x + X_OFFSET;
+    ops.push({ kind: 'rect', x: mirror ? SPRITE_W - (px + w) : px, y: y + Y_OFFSET, w, h, color });
+  };
+  const disc = (cx: number, cy: number, rx: number, ry: number, color: number): void => {
+    const px = cx + X_OFFSET;
+    ops.push({ kind: 'disc', cx: mirror ? SPRITE_W - px : px, cy: cy + Y_OFFSET, rx, ry, color });
+  };
+
+  // The racket arm is on the far side of the body when he looks left (we see his left side): draw it first, behind him.
+  const shoulder = { x: 16, y: 26 };
+  const arm = (): void => {
+    const chain = (from: { x: number; y: number }, to: { x: number; y: number }): void => {
+      for (let i = 1; i <= 8; i++) {
+        const t = i / 8;
+        disc(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, 1.6, 1.6, skin);
+      }
+    };
+    if (pp.off) chain(shoulder, { x: shoulder.x + pp.off.fx, y: shoulder.y + pp.off.fy });
+    const hand = { x: shoulder.x + pp.hand.fx, y: shoulder.y + pp.hand.fy };
+    chain(shoulder, hand);
+    const sin = Math.sin(pp.angle);
+    const cos = Math.cos(pp.angle);
+    for (let i = 1; i <= 3; i++) disc(hand.x + sin * i, hand.y - cos * i, 0.8, 0.8, WHITE);
+    disc(hand.x, hand.y, 1.9, 1.9, skin);
+    const head = { x: hand.x + sin * 7.5, y: hand.y - cos * 7.5 };
+    const flat = Math.abs(sin);
+    disc(head.x, head.y, 2.6 + 1.2 * (1 - flat), 5 - 1.5 * flat, racket);
+    disc(head.x, head.y, 1 + 0.6 * (1 - flat), 3 - 1.2 * flat, STRINGS);
+  };
+  if (mirror) arm();
+
+  // --- behind the body: hair that hangs or trails ---
+  if (a.hairStyle === 'afro') disc(15, 11, 13, 11, hair);
+  if (a.hairStyle === 'long') rect(5, 11, 10, 18, hair);
+  if (a.hairStyle === 'ponytail') {
+    rect(4, 12, 5, 3, hair);
+    rect(2, 14, 4, 8, hair);
+  }
+
+  // --- legs: the stride follows the pose; the front foot points forward ---
+  const stride = Math.round(spec.legs.spread * 1.6) + (pose === 'runA' || pose === 'runB' ? 2 : 0);
+  const frontLift = spec.legs.right;
+  const backLift = spec.legs.left;
+  const bx = 11 - stride;
+  const fx = 16 + stride;
+  rect(bx, 37 - backLift, 4, 4, skinLo);
+  rect(bx - 2, 40 - backLift, 7, 3, shoes);
+  rect(bx - 2, 42 - backLift, 7, 1, WHITE);
+  rect(fx, 37 - frontLift, 4, 4, skin);
+  rect(fx - 1, 40 - frontLift, 7, 3, shoes);
+  rect(fx - 1, 42 - frontLift, 7, 1, WHITE);
+
+  // --- shorts or skirt, torso, neck ---
+  if (a.bottomStyle === 'skirt') {
+    rect(10, 33, 12, 5, bottom);
+    rect(13, 34, 1, 4, bottomLo);
+    rect(18, 34, 1, 4, bottomLo);
+  } else {
+    rect(11, 33, 10, 5, bottom);
+    rect(15, 35, 2, 3, bottomLo);
+  }
+  rect(14, 22, 4, 3, skinLo);
+  rect(11, 24, 10, 10, shirt);
+  rect(11, 24, 3, 10, shirtLo);
+  rect(19, 27, 2, 5, shirtLo);
+
+  // --- head, hair, face (the face looks forward) ---
+  disc(17, 13, 8.5, 9, skin);
+  if (a.hairStyle !== 'bald') {
+    disc(15, a.hairStyle === 'afro' ? 8 : 10, a.hairStyle === 'afro' ? 11 : 9.5, a.hairStyle === 'afro' ? 7 : 7, hair);
+    rect(12, 4, 5, 1, hairHi);
+    if (a.hairStyle === 'long') rect(7, 11, 7, 16, hair);
+    if (a.hairStyle === 'bun') {
+      disc(13, 3, 4, 3, hair);
+      rect(11, 1, 2, 1, hairHi);
+    }
+  }
+  if (a.headband) rect(8, 9, 18, 2, accent);
+  rect(21, 13, 2, 4, EYE);
+  rect(21, 13, 1, 1, WHITE);
+  rect(25, 16, 2, 3, skinLo);
+  rect(21, 20, 3, 1, a.gender === 'female' ? 0xc2405a : 0x8a2a2a);
+  if (a.gender === 'female') rect(21, 12, 2, 1, EYE);
+  rect(14, 12, 2, 3, skinLo); // ear
+
+  // --- the racket arm is in front of him when he looks right ---
+  if (!mirror) arm();
   return ops;
 }

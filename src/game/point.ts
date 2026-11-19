@@ -1,7 +1,7 @@
 import { DIRECTIONS } from './catalog';
 import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
-import type { BallState, Direction, Formation, Height, LaneSign, LobQuality, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
+import type { BallState, Direction, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
@@ -129,6 +129,11 @@ export function nextFormation(
   return f;
 }
 
+/** The zone a ball comes down in, from how far past the net it lands (metres). */
+export function zoneOf(depth: number): Zone {
+  return depth < 3.5 ? 'net' : depth < 7 ? 'mid' : 'back';
+}
+
 /** Why the shot cannot be played now (text for the button), or null when it can. */
 export function unavailableReason(shot: ShotDef, state: PointState): string | null {
   const r = shot.requires;
@@ -137,6 +142,7 @@ export function unavailableReason(shot: ShotDef, state: PointState): string | nu
   if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
   if (r.glass !== undefined && (state.ball.glass === true) !== r.glass) return r.hint;
   if (r.weakLob && state.ball.lob !== 'weak') return r.hint;
+  if (r.zones && (state.ball.zone === undefined || !r.zones.includes(state.ball.zone))) return r.hint;
   return null;
 }
 
@@ -237,7 +243,7 @@ export function stepServe(
       hits: 0,
       holder: recvSide,
       hitterIdx: state.receiverIdx,
-      ball: { height: shot.out, pressure: res.pressure, glass: offGlass },
+      ball: { height: shot.out, pressure: res.pressure, glass: offGlass, zone: zoneOf(shot.landDepth) },
       formation,
     },
     step: { ...base, outcome: 'in', pointWinner: null, glass: offGlass, arrival: shot.out },
@@ -305,6 +311,8 @@ export function stepHit(
       next.glass = false;
       next.arrival = 'mid';
     }
+    const aimed = aim(shot, direction, defIdx, rng, next.landDepth);
+    next.ball = { ...next.ball, zone: block ? 'net' : zoneOf(aimed.landDepth ?? shot.landDepth) };
     return {
       state: {
         ...state,
@@ -315,7 +323,7 @@ export function stepHit(
         ball: next.ball,
         formation: nextFormation(state.formation, side, shot, next.lob),
       },
-      step: { ...step, block: block || undefined, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aim(shot, direction, defIdx, rng, next.landDepth) },
+      step: { ...step, block: block || undefined, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aimed },
     };
   }
 

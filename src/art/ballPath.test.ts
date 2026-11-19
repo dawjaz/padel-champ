@@ -341,3 +341,14 @@ describe('blocks at the net, weak lobs and chiquitas', () => {
     expect(10 - b.z).toBeLessThan(2.2);
   });
 });
+
+describe('serve to the side glass', () => {
+  it('is taken after the side glass but before the back glass', () => {
+    for (const id of ['hard_glass', 'spin_glass']) {
+      const f = fly(id, { receive: 'wall' });
+      const walls = f.events.filter((e) => e.kind === 'glass' || e.kind === 'mesh');
+      expect(walls.length, id).toBeGreaterThan(0);
+      for (const w of walls) expect(w.z > 0.05 && w.z < 19.95, `${id} back wall`).toBe(true);
+    }
+  });
+});
