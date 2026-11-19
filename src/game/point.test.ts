@@ -4,6 +4,7 @@ import { pickHit, pickReceive, pickServe } from './ai';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
 import { nextFormation, playableShots, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
+import { aimDepth, aimX } from './court';
 import { fixedRng, seededRng } from './rng';
 import type { PlayerDef, ShotDef } from './types';
 
@@ -125,7 +126,7 @@ describe('stepHit', () => {
     expect(r.state.hitterIdx).toBe(r.step.defenderIdx);
     expect(r.state.hits).toBe(1);
     // a weak lob (30%) only brings the opponents to the middle of their half
-    expect(r.state.formation).toEqual(['back', 'mid']);
+    expect(r.state.formation).toEqual(['mid', 'mid']);
     expect(r.state.ball.lob).toBe('weak');
     expect(r.step.landDepth).toBeGreaterThan(0);
   });
@@ -133,8 +134,8 @@ describe('stepHit', () => {
   it('plays a good lob (70%) deep and sends the opponents back', () => {
     const r = stepHit(TEAMS, rallyState({ holder: 0, hitterIdx: 0 }), shot('lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.1, 0.5, 0.5]));
     expect(r.state.ball.lob).toBe('deep');
-    expect(r.state.formation[1]).toBe('back');
-    expect(r.step.landDepth).toBe(undefined);
+    expect(r.state.formation).toEqual(['net', 'back']);
+    expect(r.step.landDepth).toBeGreaterThan(6);
   });
 
   it('does not mutate the previous state', () => {
@@ -150,10 +151,57 @@ describe('stepHit', () => {
 });
 
 describe('nextFormation', () => {
-  it('moves the hitter up for net shots and the opponents back after a high ball', () => {
+  it('sends the opponents back after a deep lob and lets the hitter take the net', () => {
+    expect(nextFormation(['back', 'back'], 0, shot('rally_lob'), 'deep')).toEqual(['net', 'back']);
+    expect(nextFormation(['net', 'net'], 0, shot('lob'))).toEqual(['net', 'back']);
+  });
+
+  it('brings a weak-lobbing hitter and the opponents only to mid-court', () => {
+    expect(nextFormation(['back', 'back'], 0, shot('rally_lob'), 'weak')).toEqual(['mid', 'mid']);
+    expect(nextFormation(['back', 'net'], 0, shot('rally_lob'), 'weak')).toEqual(['mid', 'net']);
+  });
+
+  it('moves up to mid-court after an ordinary shot from the back, to the net from mid-court when the opponents are back', () => {
+    expect(nextFormation(['back', 'back'], 0, shot('bounce_shot'))).toEqual(['mid', 'back']);
+    expect(nextFormation(['mid', 'back'], 0, shot('bounce_shot'))).toEqual(['net', 'back']);
+    expect(nextFormation(['mid', 'mid'], 0, shot('bounce_shot'))).toEqual(['mid', 'mid']);
     expect(nextFormation(['back', 'back'], 0, shot('volley'))).toEqual(['net', 'back']);
-    expect(nextFormation(['net', 'net'], 0, shot('lob'))).toEqual(['back', 'back']);
-    expect(nextFormation(['back', 'net'], 0, shot('bounce_shot'))).toEqual(['back', 'net']);
+  });
+
+  it('works for the far team too', () => {
+    expect(nextFormation(['back', 'back'], 1, shot('rally_lob'), 'deep')).toEqual(['back', 'net']);
+  });
+});
+
+describe('aim points', () => {
+  it('picks one of 10 x points per direction and 20 depths', () => {
+    const xs = new Set<number>();
+    const ds = new Set<number>();
+    for (let i = 0; i < 4000; i++) {
+      const r = Math.random;
+      xs.add(Math.round(aimX('cross', 1, r) * 1000));
+      ds.add(Math.round(aimDepth(6, r) * 1000));
+    }
+    expect(xs.size).toBe(10);
+    expect(ds.size).toBe(20);
+  });
+
+  it('keeps the aim points inside the court and inside the direction', () => {
+    for (const d of ['parallel', 'cross', 'middle'] as const) {
+      for (let i = 0; i < 200; i++) {
+        const x = aimX(d, 1, Math.random);
+        expect(Math.abs(x)).toBeLessThanOrEqual(4.6);
+        expect(Math.sign(x) === 1 || d === 'middle').toBe(true);
+      }
+    }
+  });
+
+  it('puts the aim in the step of a rally shot, but not for the rulo', () => {
+    const r = stepHit(TEAMS, rallyState(), shot('vibora'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5, 0.5, 0.5]));
+    expect(r.step.landX).toBeDefined();
+    expect(r.step.landDepth).toBeDefined();
+    const rulo = stepHit(TEAMS, rallyState(), shot('rulo'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5]));
+    expect(rulo.step.landX).toBe(undefined);
   });
 });
 

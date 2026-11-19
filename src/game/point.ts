@@ -1,5 +1,5 @@
 import { DIRECTIONS } from './catalog';
-import { defenderIndex, indexOfLane, serveLane } from './court';
+import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
 import type { BallState, Direction, Formation, Height, LaneSign, LobQuality, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
@@ -60,8 +60,10 @@ export interface Step {
   arrival?: Height;
   /** Quality of a lob. */
   lob?: LobQuality;
-  /** Overrides the shot's landing depth (a weak lob lands short). */
+  /** Overrides the shot's landing depth (a weak lob lands short; other shots pick one of 20 depths). */
   landDepth?: number;
+  /** One of the 10 aim points of the chosen direction (x, metres). */
+  landX?: number;
 }
 
 export interface StepResult {
@@ -96,9 +98,13 @@ export function startPoint(
 }
 
 /**
- * How formations change after a shot: the hitter's team may move, and a high ball sends the opponents back. A weak
- * lob (lands mid-court or close to the net) does not: players at the net stay there, the others come to mid-court,
- * so they can smash it.
+ * How formations change after a shot. The hitter's team fights for the net:
+ *  - net shots (volley, smash, ...) keep or take the net;
+ *  - after a lob the hitter has time to get to the net (after a weak lob only to mid-court);
+ *  - after any other shot from the back the hitter comes up to mid-court;
+ *  - from mid-court, when the opponents are (or are being sent) back, the hitter takes the net.
+ * A high ball sends the opponents back; a weak lob (lands mid-court or close to the net) does not: players at the net stay
+ * there, the others come to mid-court, so they can smash it.
  */
 export function nextFormation(
   current: [Formation, Formation],
@@ -107,11 +113,17 @@ export function nextFormation(
   lob?: LobQuality,
 ): [Formation, Formation] {
   const f: [Formation, Formation] = [current[0], current[1]];
-  if (shot.advance !== 'stay') f[hitterSide] = shot.advance;
-  if (shot.out === 'high') {
-    const def = other(hitterSide);
-    f[def] = lob === 'weak' ? (current[def] === 'net' ? 'net' : 'mid') : 'back';
-  }
+  const def = other(hitterSide);
+  if (shot.out === 'high') f[def] = lob === 'weak' ? (current[def] === 'net' ? 'net' : 'mid') : 'back';
+
+  const from = current[hitterSide];
+  let to: Formation;
+  if (shot.advance === 'net') to = 'net';
+  else if (isLob(shot)) to = lob === 'weak' ? (from === 'net' ? 'net' : 'mid') : 'net';
+  else if (from === 'net') to = 'net';
+  else if (from === 'mid') to = f[def] === 'back' ? 'net' : 'mid';
+  else to = 'mid';
+  f[hitterSide] = to;
   return f;
 }
 
@@ -230,6 +242,15 @@ export function stepServe(
   };
 }
 
+/**
+ * Where the ball is aimed: one of 10 points across the chosen direction and one of 20 depths, at random (the rulo and the
+ * smashes that leave the court keep their fixed targets). `depth` is a depth that is already set (a weak lob).
+ */
+function aim(shot: ShotDef, direction: Direction, defIdx: number, rng: Rng, depth?: number): { landX?: number; landDepth?: number } {
+  if (shot.overFence === true || shot.wall === 'fence') return depth === undefined ? {} : { landDepth: depth };
+  return { landX: aimX(direction, defIdx, rng), landDepth: depth ?? aimDepth(shot.landDepth, rng) };
+}
+
 export function stepHit(
   teams: Teams,
   state: PointState,
@@ -285,7 +306,7 @@ export function stepHit(
         ball: next.ball,
         formation: nextFormation(state.formation, side, shot, next.lob),
       },
-      step: { ...step, glass: next.glass, arrival: next.arrival, lob: next.lob, landDepth: next.landDepth },
+      step: { ...step, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aim(shot, direction, defIdx, rng, next.landDepth) },
     };
   }
 
@@ -293,6 +314,6 @@ export function stepHit(
   const winner = res.outcome === 'winner' ? side : defSide;
   return {
     state: { ...state, guts, hits: state.hits + 1, status: 'done', winner },
-    step: { ...step, pointWinner: winner },
+    step: { ...step, pointWinner: winner, ...aim(shot, direction, defIdx, rng) },
   };
 }

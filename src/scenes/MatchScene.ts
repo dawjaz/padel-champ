@@ -29,8 +29,10 @@ const GUTS_RECOVERY_PER_POINT = 2;
 const HUMAN_SIDE: SideIndex = 0;
 const HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
-const CPU_DELAY = 450;
+const CPU_DELAY = 225;
 const NEXT_HIT_DELAY = 350;
+/** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
+const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
 const FAULT_PAUSE = 900;
 const POINT_PAUSE = 1100;
 const GAME_PAUSE = 1500;
@@ -589,7 +591,9 @@ export class MatchScene extends Phaser.Scene {
     const landX =
       step.kind === 'serve'
         ? laneSign(step.defenderIdx) * (step.shot.landX ?? 3)
-        : step.shot.edgeX !== undefined
+        : step.landX !== undefined
+          ? step.landX
+          : step.shot.edgeX !== undefined
           ? Math.sign(landingX(step.direction, step.defenderIdx) || 1) * step.shot.edgeX
           : landingX(step.direction, step.defenderIdx);
     const flight = buildFlight({
@@ -625,6 +629,18 @@ export class MatchScene extends Phaser.Scene {
       this.stance[defender.id] = stance;
       targets[defender.id] = standingSpot(other(step.side), stance, flight.hit);
       endPose[defender.id] = poseOf(stance, 'Prep');
+      // The partner moves with the player who runs for the ball: forward or back by about half as much, and a little
+      // sideways to cover the court, never further than a sensible distance from the net.
+      const defSide = other(step.side);
+      const partner = TEAMS[defSide][1 - step.defenderIdx];
+      const base = targets[partner.id];
+      const dz = targets[defender.id].z - base.z;
+      const zMin = defSide === 0 ? NET_Z + 1.2 : 1;
+      const zMax = defSide === 0 ? 19 : NET_Z - 1.2;
+      targets[partner.id] = {
+        x: base.x + 0.3 * (targets[defender.id].x - base.x),
+        z: Math.max(zMin, Math.min(zMax, base.z + 0.5 * dz)),
+      };
     } else if (out === 'winner' || out === 'ace') {
       // The defender runs for it but cannot get there.
       const d = this.pos[defender.id];
@@ -718,7 +734,7 @@ export class MatchScene extends Phaser.Scene {
         break;
       case 'in':
         this.say(`${headline}\n${defender.name} to return.`);
-        this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
+        this.time.delayedCall(this.isHuman(next.holder, next.hitterIdx) ? NEXT_HIT_DELAY : CPU_NEXT_HIT_DELAY, () => this.hitTurn());
         break;
       case 'winner':
         endPoint(
@@ -739,7 +755,7 @@ export class MatchScene extends Phaser.Scene {
         break;
       case 'continue':
         this.say(headline);
-        this.time.delayedCall(NEXT_HIT_DELAY, () => this.hitTurn());
+        this.time.delayedCall(this.isHuman(next.holder, next.hitterIdx) ? NEXT_HIT_DELAY : CPU_NEXT_HIT_DELAY, () => this.hitTurn());
         break;
     }
   }

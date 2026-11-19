@@ -1,7 +1,7 @@
 export const WIDTH = 360;
 export const HEIGHT = 640;
 export const GAME_TITLE = 'PADEL CHAMP 26';
-export const GAME_VERSION = '0.10';
+export const GAME_VERSION = '0.11';
 declare const __BUILD__: string;
 /** Short git hash of the deployed build (set by vite.config.ts), or 'dev' when running locally. */
 export const BUILD_ID: string = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';

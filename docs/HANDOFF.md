@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.10)_
+_Last updated: 2026-11-19 (v0.11)_
+
+## v0.11: net play, partner movement, backhand, aim points
+- **Net fight** (`nextFormation`): after a lob the hitter goes to the net (weak lob: mid-court); after other shots from the back to
+  mid-court; from mid-court to the net when the opponents are back. Net shots keep the net.
+- **Partner** follows the player who runs for the ball: half of the depth change, 30% of the sideways move (`MatchScene.playStep`).
+- **Backhand poses** redrawn: racket arm across the chest, racket out on the far side, other hand on the throat, follow-through up and out.
+- **Aim points** (`aimX`, `aimDepth` in court.ts): 10 random x points per direction, 20 random depths around the shot's usual depth
+  (not for rulo/smashes that leave the court). Values arrive in `Step.landX` / `Step.landDepth`.
+- CPU shots start half as late (`CPU_DELAY`, `CPU_NEXT_HIT_DELAY`).
 
 ## v0.10: rules rework, free ball, slower pace
 - **Ball state** (`BallState`): height, pressure, `lob` (`'deep' | 'weak'`) and `glass` (the ball is played after it came off the back glass).

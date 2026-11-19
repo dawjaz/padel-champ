@@ -37,6 +37,28 @@ export function landingX(direction: Direction, defenderIdx: number): number {
   return sign * 0.3;
 }
 
+/** Number of different points the ball can be aimed at inside one direction (across the court), and in depth. */
+export const AIM_POINTS_X = 10;
+export const AIM_POINTS_DEPTH = 20;
+/** Half-width (m) of the strip of aim points around the centre of a direction. */
+const AIM_HALF_WIDTH = 0.9;
+/** The aim points in depth spread this far (m) around the shot's usual landing depth. */
+const AIM_HALF_DEPTH = 1.5;
+
+/** One of the 10 aim points of a direction, chosen at random. */
+export function aimX(direction: Direction, defenderIdx: number, rng: Rng): number {
+  const k = Math.min(AIM_POINTS_X - 1, Math.floor(rng() * AIM_POINTS_X));
+  const offset = ((k - (AIM_POINTS_X - 1) / 2) / ((AIM_POINTS_X - 1) / 2)) * AIM_HALF_WIDTH;
+  return Math.max(-4.6, Math.min(4.6, landingX(direction, defenderIdx) + offset));
+}
+
+/** One of the 20 aim points in depth around `base` metres past the net, chosen at random. */
+export function aimDepth(base: number, rng: Rng): number {
+  const k = Math.min(AIM_POINTS_DEPTH - 1, Math.floor(rng() * AIM_POINTS_DEPTH));
+  const offset = ((k - (AIM_POINTS_DEPTH - 1) / 2) / ((AIM_POINTS_DEPTH - 1) / 2)) * AIM_HALF_DEPTH;
+  return Math.max(1.5, Math.min(9, base + offset));
+}
+
 /**
  * The lane the server stands in. The serve alternates between the left and the right side of the
  * server's own court every point of a game, LEFT first (the second point is served from the right, and so on).
