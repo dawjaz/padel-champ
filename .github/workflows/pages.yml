@@ -36,7 +36,7 @@ jobs:
         with:
           ref: style/retro
           path: retro
-      - id: 3d_checkout
+      - id: s3d_checkout
         uses: actions/checkout@v4
         continue-on-error: true
         with:
@@ -77,8 +77,8 @@ jobs:
         run: |
           mkdir -p site/dist/retro
           cp -r retro/dist/. site/dist/retro/
-      - id: 3d_build
-        if: steps.3d_checkout.outcome == 'success'
+      - id: s3d_build
+        if: steps.s3d_checkout.outcome == 'success'
         continue-on-error: true
         working-directory: 3d
         run: |
@@ -86,7 +86,7 @@ jobs:
           npm test
           npm run build
       - name: Add the 3D build under /3d/
-        if: steps.3d_build.outcome == 'success'
+        if: steps.s3d_build.outcome == 'success'
         run: |
           mkdir -p site/dist/3d
           cp -r 3d/dist/. site/dist/3d/
