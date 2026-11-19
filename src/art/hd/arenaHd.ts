@@ -2,7 +2,7 @@ import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
 import { BACK_WALL, sideWallSegments } from '../walls';
 
 /**
- * The broadcast court as a smooth, lit, high-resolution picture (Canvas2D, pure and browser-testable).
+ * MODERN RETRO look: an 80s arcade/synthwave court (flat colours, neon lines, striped sun, scanlines) as a high-resolution picture (Canvas2D, pure and browser-testable).
  * `back` is everything behind the players (stands, floor, glass and mesh walls); `net` is a separate
  * strip that the scene draws between the far and the near players. Coordinates are the 360x640 logical
  * screen of art/camera.ts, multiplied by `scale` (2 = 720x1280 pixels).
@@ -51,107 +51,96 @@ function makeRng(seed: number): () => number {
 }
 
 function drawStands(g: Ctx, rnd: () => number): void {
-  const sky = g.createLinearGradient(0, 0, 0, 110);
-  sky.addColorStop(0, '#070a1c');
-  sky.addColorStop(1, '#16204a');
+  // Synthwave sky with a striped sun and a neon city skyline instead of a crowd.
+  const sky = g.createLinearGradient(0, 0, 0, 112);
+  sky.addColorStop(0, '#12062e');
+  sky.addColorStop(0.45, '#5a1a8f');
+  sky.addColorStop(0.8, '#e0307a');
+  sky.addColorStop(1, '#ffa24a');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, 112);
-
-  const shirts = ['#3b3f7a', '#7a3b5f', '#2f6f86', '#8a7a3a', '#7d3a3a', '#3a6a4a', '#9a9ab8', '#5a3a8a'];
-  const skins = ['#f1c9a5', '#d9a273', '#b9774a', '#8a5530', '#5c3920', '#f4d6bd'];
-  for (let row = 0; row < 6; row++) {
-    const y = 26 + row * 12;
-    const r = 2 + row * 0.18;
-    const dim = 0.55 + row * 0.08;
-    for (let x = -4 + (row % 2) * 3; x < W + 4; x += 5.2 + row * 0.2) {
-      const jx = x + (rnd() - 0.5) * 1.6;
-      g.globalAlpha = dim;
-      g.fillStyle = shirts[Math.floor(rnd() * shirts.length)];
-      g.beginPath();
-      g.ellipse(jx, y + r * 2.1, r * 1.5, r * 1.3, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = skins[Math.floor(rnd() * skins.length)];
-      g.beginPath();
-      g.arc(jx, y, r, 0, Math.PI * 2);
-      g.fill();
+  // Sun
+  g.save();
+  g.beginPath();
+  g.arc(W / 2, 62, 40, 0, Math.PI * 2);
+  g.clip();
+  const sun = g.createLinearGradient(0, 22, 0, 102);
+  sun.addColorStop(0, '#fff07a');
+  sun.addColorStop(0.55, '#ff9a3c');
+  sun.addColorStop(1, '#ff2f8e');
+  g.fillStyle = sun;
+  g.fillRect(W / 2 - 41, 21, 82, 82);
+  g.fillStyle = '#7a2290';
+  for (let i = 0; i < 6; i++) g.fillRect(W / 2 - 41, 58 + i * 7, 82, 1 + i * 0.7);
+  g.restore();
+  // Skyline: flat silhouettes with lit windows
+  let x = -4;
+  while (x < W + 4) {
+    const bw = 12 + rnd() * 18;
+    const bh = 14 + rnd() * 40;
+    g.fillStyle = rnd() < 0.5 ? '#1b0b3f' : '#260f52';
+    g.fillRect(x, 112 - bh, bw, bh);
+    g.fillStyle = rnd() < 0.5 ? '#ff5fd2' : '#4df0ff';
+    for (let wy = 112 - bh + 4; wy < 108; wy += 6) {
+      for (let wx = x + 2.5; wx < x + bw - 2; wx += 4.5) if (rnd() < 0.35) g.fillRect(wx, wy, 1.6, 2.2);
     }
+    x += bw + 1 + rnd() * 3;
   }
-  g.globalAlpha = 1;
-  // Tier railings
-  g.strokeStyle = 'rgba(160,175,215,0.25)';
-  g.lineWidth = 1;
-  for (let row = 0; row < 6; row++) line(g, { x: 0, y: 33 + row * 12 }, { x: W, y: 33 + row * 12 });
-  // Push the crowd back into the dark
-  const shade = g.createLinearGradient(0, 14, 0, 112);
-  shade.addColorStop(0, 'rgba(4,6,20,0.62)');
-  shade.addColorStop(1, 'rgba(4,6,20,0.18)');
-  g.fillStyle = shade;
-  g.fillRect(0, 14, W, 98);
-  // Stadium lights
-  for (const x of [28, W - 28]) {
-    const glow = g.createRadialGradient(x, 0, 2, x, 0, 190);
-    glow.addColorStop(0, 'rgba(255,246,220,0.55)');
-    glow.addColorStop(0.25, 'rgba(255,240,200,0.18)');
-    glow.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = glow;
-    g.fillRect(0, 0, W, 200);
-  }
+  // Neon horizon line
+  g.fillStyle = '#4df0ff';
+  g.fillRect(0, 111, W, 1.4);
 }
 
-function drawFloor(g: Ctx, rnd: () => number): void {
+function drawFloor(g: Ctx, _rnd: () => number): void {
   const P = project;
-  // The area around the court
-  const ground = g.createLinearGradient(0, 96, 0, 400);
-  ground.addColorStop(0, '#16303a');
-  ground.addColorStop(1, '#0c1a26');
+  // Dark ground with a neon perspective grid running to the horizon
+  const ground = g.createLinearGradient(0, 112, 0, 400);
+  ground.addColorStop(0, '#2a0a52');
+  ground.addColorStop(1, '#0c0524');
   g.fillStyle = ground;
-  g.fillRect(0, 96, W, 304);
+  g.fillRect(0, 112, W, 288);
+  g.strokeStyle = 'rgba(255,95,210,0.45)';
+  g.lineWidth = 0.8;
+  for (let i = -14; i <= 14; i++) line(g, { x: W / 2 + i * 8, y: 112 }, { x: W / 2 + i * 70, y: 400 });
+  for (let k = 1; k < 12; k++) {
+    const y = 112 + 288 * Math.pow(k / 12, 2.1);
+    line(g, { x: 0, y }, { x: W, y });
+  }
 
   const floor = [P(-5, 0), P(5, 0), P(5, 20), P(-5, 20)];
   const far = floor[0].y;
   const near = floor[3].y;
-  const body = g.createLinearGradient(0, far, 0, near);
-  body.addColorStop(0, '#4585ea');
-  body.addColorStop(1, '#2457b4');
-  g.fillStyle = body;
+  g.fillStyle = '#157ac4';
   poly(g, floor);
   g.fill();
-
   g.save();
   poly(g, floor);
   g.clip();
-  // Cut-turf stripes
-  g.fillStyle = 'rgba(255,255,255,0.05)';
+  // Hard flat stripes
+  g.fillStyle = '#1a8cdd';
   for (let z = 0; z < 20; z += 4) {
     poly(g, [P(-5, z), P(5, z), P(5, z + 2), P(-5, z + 2)]);
     g.fill();
   }
-  // Turf grain
-  for (let i = 0; i < 2600; i++) {
-    const p = P(rnd() * 10 - 5, rnd() * 20);
-    g.fillStyle = rnd() < 0.5 ? 'rgba(0,10,40,0.09)' : 'rgba(255,255,255,0.06)';
-    g.fillRect(p.x, p.y, 0.9, 0.6);
-  }
-  // Light pool under the stadium lights
-  const c = P(0, 10);
-  const pool = g.createRadialGradient(c.x, c.y, 8, c.x, c.y + 20, 230);
-  pool.addColorStop(0, 'rgba(255,255,255,0.20)');
-  pool.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = pool;
-  g.fillRect(0, far, W, near - far);
-  // Net shadow
-  g.fillStyle = 'rgba(0,10,40,0.28)';
+  // Net shadow, flat
+  g.fillStyle = 'rgba(10,0,50,0.35)';
   poly(g, [P(-5, NET_Z), P(5, NET_Z), P(5, NET_Z - 0.9), P(-5, NET_Z - 0.9)]);
   g.fill();
+  // Sunset tint on the far end
+  const tint = g.createLinearGradient(0, far, 0, near);
+  tint.addColorStop(0, 'rgba(255,90,170,0.22)');
+  tint.addColorStop(0.5, 'rgba(255,90,170,0)');
+  g.fillStyle = tint;
+  g.fillRect(0, far, W, near - far);
   g.restore();
 
-  // Court lines with a soft glow
+  // Neon court lines
   g.save();
-  g.strokeStyle = 'rgba(255,255,255,0.96)';
-  g.lineWidth = 1.7;
-  g.shadowColor = 'rgba(255,255,255,0.7)';
-  g.shadowBlur = 3;
-  g.lineCap = 'round';
+  g.strokeStyle = '#eaffff';
+  g.lineWidth = 1.8;
+  g.shadowColor = '#4df0ff';
+  g.shadowBlur = 5;
+  g.lineCap = 'square';
   line(g, P(-5, 0), P(5, 0));
   line(g, P(-5, 20), P(5, 20));
   line(g, P(-5, 0), P(-5, 20));
@@ -170,24 +159,20 @@ function bounds(pts: Array<{ x: number; y: number }>): { x: number; y: number; w
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
 }
 
-/** A pane of glass: tinted, with reflections, panel joints and steel rails. */
 function glassBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: number, step: number, seed: number): void {
   const q = [at(u0, h0), at(u1, h0), at(u1, h1), at(u0, h1)];
   const bb = bounds(q);
   g.save();
   poly(g, q);
   g.clip();
-  const tint = g.createLinearGradient(0, bb.y, 0, bb.y + bb.h);
-  tint.addColorStop(0, 'rgba(200,236,255,0.20)');
-  tint.addColorStop(1, 'rgba(110,175,240,0.08)');
-  g.fillStyle = tint;
+  g.fillStyle = 'rgba(90,230,255,0.13)';
   g.fillRect(bb.x, bb.y, bb.w, bb.h);
-  // Diagonal reflections
+  // Two hard-edged diagonal highlights, like a 90s vector-art window
   const rnd = makeRng(seed);
-  for (let k = 0; k < 3; k++) {
-    const x0 = bb.x + (0.1 + 0.3 * k + rnd() * 0.15) * bb.w;
-    const wd = bb.w * (0.04 + rnd() * 0.05);
-    g.fillStyle = `rgba(255,255,255,${0.07 + rnd() * 0.06})`;
+  for (let k = 0; k < 2; k++) {
+    const x0 = bb.x + (0.12 + 0.4 * k + rnd() * 0.12) * bb.w;
+    const wd = bb.w * (0.05 + rnd() * 0.04);
+    g.fillStyle = k === 0 ? 'rgba(255,255,255,0.16)' : 'rgba(255,95,210,0.14)';
     g.beginPath();
     g.moveTo(x0, bb.y);
     g.lineTo(x0 + wd, bb.y);
@@ -197,38 +182,32 @@ function glassBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: numbe
     g.fill();
   }
   g.restore();
-  // Panel joints
-  for (let u = u0; u <= u1 + 1e-6; u += step) {
-    g.strokeStyle = 'rgba(15,35,80,0.6)';
-    g.lineWidth = 1.5;
-    line(g, at(u, h0), at(u, h1));
-    g.strokeStyle = 'rgba(235,248,255,0.5)';
-    g.lineWidth = 0.7;
-    const a = at(u, h0);
-    const b = at(u, h1);
-    line(g, { x: a.x + 0.9, y: a.y }, { x: b.x + 0.9, y: b.y });
-  }
-  // Steel rails top and bottom
-  g.strokeStyle = '#aab6cc';
+  g.strokeStyle = 'rgba(255,95,210,0.7)';
+  g.lineWidth = 0.9;
+  for (let u = u0; u <= u1 + 1e-6; u += step) line(g, at(u, h0), at(u, h1));
+  g.save();
+  g.shadowColor = '#4df0ff';
+  g.shadowBlur = 3;
+  g.strokeStyle = '#4df0ff';
   g.lineWidth = 1.8;
   line(g, at(u0, h1), at(u1, h1));
-  g.strokeStyle = 'rgba(20,30,60,0.7)';
+  g.strokeStyle = 'rgba(77,240,255,0.55)';
   line(g, at(u0, h0), at(u1, h0));
+  g.restore();
 }
 
-/** Wire mesh: a dark backing, a fine bright grid and a top rail. */
 function meshBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: number): void {
   const q = [at(u0, h0), at(u1, h0), at(u1, h1), at(u0, h1)];
-  g.fillStyle = 'rgba(6,10,28,0.38)';
+  g.fillStyle = 'rgba(20,4,50,0.5)';
   poly(g, q);
   g.fill();
-  g.strokeStyle = 'rgba(205,216,238,0.55)';
-  g.lineWidth = 0.55;
-  const step = 0.25;
+  g.strokeStyle = 'rgba(255,95,210,0.65)';
+  g.lineWidth = 0.6;
+  const step = 0.3;
   for (let u = u0; u <= u1 + 1e-6; u += step) line(g, at(u, h0), at(u, h1));
   for (let h = h0; h <= h1 + 1e-6; h += step) line(g, at(u0, h), at(u1, h));
-  g.strokeStyle = '#8f9ab2';
-  g.lineWidth = 2.2;
+  g.strokeStyle = '#ff5fd2';
+  g.lineWidth = 2;
   line(g, at(u0, h1), at(u1, h1));
   line(g, at(u0, h0), at(u1, h0));
 }
@@ -236,30 +215,32 @@ function meshBand(g: Ctx, at: At, u0: number, u1: number, h0: number, h1: number
 function post(g: Ctx, at: At, u: number, h1: number): void {
   const a = at(u, 0);
   const b = at(u, h1);
-  g.strokeStyle = '#6f7a94';
-  g.lineWidth = 2.6;
+  g.save();
+  g.shadowColor = '#ff5fd2';
+  g.shadowBlur = 4;
+  g.strokeStyle = '#ff8de0';
+  g.lineWidth = 2.4;
   line(g, a, b);
-  g.strokeStyle = 'rgba(225,232,248,0.75)';
-  g.lineWidth = 0.9;
-  line(g, { x: a.x - 0.6, y: a.y }, { x: b.x - 0.6, y: b.y });
+  g.restore();
 }
 
 function drawAds(g: Ctx): void {
   const P = project;
   const strip = [P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.55), P(-5, 0, 0.55)];
-  const grad = g.createLinearGradient(0, strip[3].y, 0, strip[0].y);
-  grad.addColorStop(0, '#173a8f');
-  grad.addColorStop(1, '#0c2258');
-  g.fillStyle = grad;
+  g.fillStyle = '#b01868';
   poly(g, strip);
   g.fill();
+  g.fillStyle = '#4df0ff';
+  g.fillRect(strip[0].x, strip[3].y, strip[1].x - strip[0].x, 1.2);
   const base = P(0, 0, 0.27);
-  g.fillStyle = '#ffe066';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = `italic 800 ${Math.round(base.scale * 0.34)}px "Trebuchet MS", "Segoe UI", Arial, sans-serif`;
+  g.font = `italic 800 ${Math.round(base.scale * 0.34)}px "Courier New", Consolas, monospace`;
   for (const x of [-3.3, 0, 3.3]) {
     const p = P(x, 0, 0.27);
+    g.fillStyle = '#12062e';
+    g.fillText('PADEL CHAMP 26', p.x + 0.8, p.y + 0.8);
+    g.fillStyle = '#fff07a';
     g.fillText('PADEL CHAMP 26', p.x, p.y);
   }
 }
@@ -332,23 +313,25 @@ function drawNearWall(g: Ctx): void {
 }
 
 function drawVignette(g: Ctx): void {
-  const v = g.createRadialGradient(W / 2, 250, 120, W / 2, 250, 420);
-  v.addColorStop(0, 'rgba(0,0,10,0)');
-  v.addColorStop(1, 'rgba(0,0,10,0.5)');
+  const v = g.createRadialGradient(W / 2, 250, 140, W / 2, 250, 430);
+  v.addColorStop(0, 'rgba(10,0,30,0)');
+  v.addColorStop(1, 'rgba(10,0,30,0.45)');
   g.fillStyle = v;
-  g.fillRect(0, 0, W, 400);
+  g.fillRect(0, 0, W, 392);
+  // CRT scanlines over the picture (not over the menu, so text stays crisp)
+  g.fillStyle = 'rgba(0,0,0,0.13)';
+  for (let y = 0; y < 392; y += 2) g.fillRect(0, y, W, 0.8);
 }
 
 function drawMenuBackdrop(g: Ctx): void {
-  const m = g.createLinearGradient(0, 392, 0, H);
-  m.addColorStop(0, '#15163a');
-  m.addColorStop(1, '#090a1a');
-  g.fillStyle = m;
+  g.fillStyle = '#12062b';
   g.fillRect(0, 392, W, H - 392);
-  g.fillStyle = 'rgba(120,150,255,0.35)';
-  g.fillRect(0, 392, W, 1.5);
-  g.fillStyle = 'rgba(255,255,255,0.025)';
-  for (let y = 400; y < H; y += 6) g.fillRect(0, y, W, 1);
+  g.fillStyle = '#4df0ff';
+  g.fillRect(0, 392, W, 1.6);
+  g.fillStyle = '#ff5fd2';
+  g.fillRect(0, 394, W, 0.8);
+  g.fillStyle = 'rgba(255,95,210,0.06)';
+  for (let y = 400; y < H; y += 4) g.fillRect(0, y, W, 1.5);
 }
 
 function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
@@ -381,7 +364,7 @@ function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
   g.shadowColor = 'rgba(0,0,0,0.5)';
   g.shadowBlur = 3;
   g.shadowOffsetY = 1.5;
-  g.strokeStyle = '#fbfbff';
+  g.strokeStyle = '#eaffff';
   g.lineWidth = 3.4;
   g.lineCap = 'round';
   line(g, P(-5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, NET_HEIGHT_M));
@@ -390,7 +373,7 @@ function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
   for (const x of [-5.05, 5.05]) {
     const a = P(x, NET_Z, 0);
     const b = P(x, NET_Z, NET_HEIGHT_M + 0.06);
-    g.strokeStyle = '#6f7a94';
+    g.strokeStyle = '#ff8de0';
     g.lineWidth = 3;
     line(g, a, b);
     g.strokeStyle = 'rgba(230,236,250,0.8)';

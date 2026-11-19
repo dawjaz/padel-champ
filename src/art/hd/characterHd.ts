@@ -3,7 +3,7 @@ import { buildCharacter, OUTLINE_COLOR, SPRITE_H, SPRITE_W, type Facing, type Op
 import { shade } from '../palette';
 
 /**
- * Smooth "128-bit era" version of the same characters: the shapes of `buildCharacter` (so every look,
+ * MODERN RETRO version (flat colours, hard two-tone shading, thick outline) -- smooth "128-bit era" original of the same characters: the shapes of `buildCharacter` (so every look,
  * outfit and later equipment works unchanged) drawn at high resolution as rounded, shaded, outlined
  * toon shapes instead of hard pixels. Pure Canvas2D, no Phaser, so it can be checked in any browser.
  */
@@ -30,29 +30,7 @@ function shapePath(g: CanvasRenderingContext2D, op: Op, s: number, grow: number)
   }
   const w = (op.w + 2 * grow) * s;
   const h = (op.h + 2 * grow) * s;
-  roundedRect(g, (op.x - grow) * s, (op.y - grow) * s, w, h, Math.min(w, h) * 0.34);
-}
-
-function fillFor(g: CanvasRenderingContext2D, op: Op, s: number): CanvasGradient {
-  if (op.kind === 'disc') {
-    // Light from the top left: a round, glossy volume.
-    const gr = g.createRadialGradient(
-      (op.cx - op.rx * 0.35) * s,
-      (op.cy - op.ry * 0.4) * s,
-      op.rx * 0.1 * s,
-      op.cx * s,
-      op.cy * s,
-      Math.max(op.rx, op.ry) * 1.1 * s,
-    );
-    gr.addColorStop(0, css(shade(op.color, 1.28)));
-    gr.addColorStop(0.55, css(op.color));
-    gr.addColorStop(1, css(shade(op.color, 0.8)));
-    return gr;
-  }
-  const gr = g.createLinearGradient(op.x * s, op.y * s, (op.x + op.w) * s, (op.y + op.h) * s);
-  gr.addColorStop(0, css(shade(op.color, 1.14)));
-  gr.addColorStop(1, css(shade(op.color, 0.86)));
-  return gr;
+  roundedRect(g, (op.x - grow) * s, (op.y - grow) * s, w, h, Math.min(w, h) * 0.16);
 }
 
 export function renderCharacterCanvas(a: Appearance, facing: Facing, s = HD_CHARACTER_SCALE): HTMLCanvasElement {
@@ -63,26 +41,42 @@ export function renderCharacterCanvas(a: Appearance, facing: Facing, s = HD_CHAR
   if (!g) throw new Error('2D canvas is not available');
   const ops = buildCharacter(a, facing);
 
-  // Pass 1: dark outline, every shape grown a little.
+  // Pass 1: thick dark outline with a hard drop shadow to the lower right.
+  g.fillStyle = 'rgba(10,0,40,0.55)';
+  for (const op of ops) {
+    g.save();
+    g.translate(0.9 * s, 0.9 * s);
+    shapePath(g, op, s, 1.1);
+    g.fill();
+    g.restore();
+  }
   g.fillStyle = css(OUTLINE_COLOR);
   for (const op of ops) {
-    shapePath(g, op, s, 0.9);
+    shapePath(g, op, s, 1.1);
     g.fill();
   }
-  // Pass 2: shaded fills.
+  // Pass 2: flat colour, then one hard shadow tone on the lower right and a small highlight.
   for (const op of ops) {
     shapePath(g, op, s, 0);
-    g.fillStyle = fillFor(g, op, s);
+    g.fillStyle = css(op.color);
     g.fill();
+    g.save();
+    shapePath(g, op, s, 0);
+    g.clip();
+    g.fillStyle = css(shade(op.color, 0.74));
+    if (op.kind === 'disc') {
+      g.beginPath();
+      g.rect((op.cx - op.rx) * s, (op.cy - op.ry) * s, op.rx * 2 * s, op.ry * 2 * s);
+      g.ellipse((op.cx - op.rx * 0.22) * s, (op.cy - op.ry * 0.22) * s, op.rx * 1.05 * s, op.ry * 1.05 * s, 0, 0, Math.PI * 2, true);
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.3)';
+      g.beginPath();
+      g.ellipse((op.cx - op.rx * 0.38) * s, (op.cy - op.ry * 0.45) * s, op.rx * 0.2 * s, op.ry * 0.14 * s, -0.5, 0, Math.PI * 2);
+      g.fill();
+    } else {
+      g.fillRect(op.x * s, (op.y + op.h * 0.68) * s, op.w * s, op.h * 0.32 * s);
+    }
+    g.restore();
   }
-  // Pass 3: overall light: bright top, darker feet (only where something was drawn).
-  g.globalCompositeOperation = 'source-atop';
-  const light = g.createLinearGradient(0, 0, 0, canvas.height);
-  light.addColorStop(0, 'rgba(255,255,255,0.14)');
-  light.addColorStop(0.5, 'rgba(255,255,255,0)');
-  light.addColorStop(1, 'rgba(0,0,30,0.26)');
-  g.fillStyle = light;
-  g.fillRect(0, 0, canvas.width, canvas.height);
-  g.globalCompositeOperation = 'source-over';
   return canvas;
 }

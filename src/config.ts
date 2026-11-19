@@ -1,7 +1,7 @@
 export const WIDTH = 360;
 export const HEIGHT = 640;
 export const GAME_TITLE = 'PADEL CHAMP 26';
-export const GAME_VERSION = '0.7';
+export const GAME_VERSION = '0.7-retro';
 declare const __BUILD__: string;
 /** Short git hash of the deployed build (set by vite.config.ts), or 'dev' when running locally. */
 export const BUILD_ID: string = typeof __BUILD__ !== 'undefined' ? __BUILD__ : 'dev';
@@ -12,16 +12,16 @@ export const BUILD_ID: string = typeof __BUILD__ !== 'undefined' ? __BUILD__ : '
  */
 export const HD_SCALE = 2;
 
-export const FONT = '"Trebuchet MS", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+export const FONT = '"Courier New", Consolas, "Lucida Console", monospace';
 
 /** NES-flavoured palette. Keep all colours here so the look can be changed in one place. */
 export const COLORS = {
   black: 0x000000,
   white: 0xfcfcfc,
   gray: 0xbcbcbc,
-  bg: 0x0b0b1a,
-  panel: 0x2b2b5e,
-  panelHover: 0x4040a0,
+  bg: 0x12062b,
+  panel: 0x1d0b46,
+  panelHover: 0x4a1a8c,
   yellow: 0xf8b800,
   red: 0xd82800,
   blue: 0x0058f8,

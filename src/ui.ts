@@ -21,16 +21,16 @@ export function drawPanel(
   hover: boolean,
   fill: number = COLORS.panel,
 ): void {
-  const r = Math.min(14, h / 2);
+  // Retro: square, flat panel with a neon outline and a hard offset shadow (no gloss).
   g.clear();
-  g.fillStyle(0x000000, 0.35);
-  g.fillRoundedRect(-w / 2 + 1, -h / 2 + 4, w, h, r);
+  g.fillStyle(0xff5fd2, 0.55);
+  g.fillRect(-w / 2 + 4, -h / 2 + 4, w, h);
   g.fillStyle(hover ? COLORS.panelHover : fill, 1);
-  g.fillRoundedRect(-w / 2, -h / 2, w, h, r);
-  g.fillStyle(0xffffff, hover ? 0.2 : 0.12);
-  g.fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w - 6, h * 0.45, { tl: r - 2, tr: r - 2, bl: 4, br: 4 });
-  g.lineStyle(2, accent, 0.95);
-  g.strokeRoundedRect(-w / 2, -h / 2, w, h, r);
+  g.fillRect(-w / 2, -h / 2, w, h);
+  g.fillStyle(0xffffff, hover ? 0.12 : 0.05);
+  g.fillRect(-w / 2, -h / 2, w, 3);
+  g.lineStyle(2, accent, 1);
+  g.strokeRect(-w / 2, -h / 2, w, h);
 }
 
 /** Menu button: rounded, glossy, with a hover state. Plays a select beep and calls `onClick`. */

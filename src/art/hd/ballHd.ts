@@ -13,9 +13,9 @@ export function renderBallCanvas(size = 96): HTMLCanvasElement {
   const r = size / 2 - 3;
   const m = size / 2;
   const body = g.createRadialGradient(m - r * 0.35, m - r * 0.4, r * 0.1, m, m, r * 1.05);
-  body.addColorStop(0, '#fffbb0');
-  body.addColorStop(0.55, '#e8dc2a');
-  body.addColorStop(1, '#a89a10');
+  body.addColorStop(0, '#f4ff9a');
+  body.addColorStop(0.55, '#d4ff2e');
+  body.addColorStop(1, '#8cc400');
   g.fillStyle = body;
   g.beginPath();
   g.arc(m, m, r, 0, Math.PI * 2);
@@ -34,8 +34,8 @@ export function renderBallCanvas(size = 96): HTMLCanvasElement {
   g.arc(m + r * 1.15, m, r * 0.95, Math.PI - 0.9, Math.PI + 0.9);
   g.stroke();
   g.restore();
-  g.strokeStyle = 'rgba(40,36,0,0.55)';
-  g.lineWidth = size * 0.035;
+  g.strokeStyle = 'rgba(18,6,46,0.9)';
+  g.lineWidth = size * 0.07;
   g.beginPath();
   g.arc(m, m, r, 0, Math.PI * 2);
   g.stroke();
@@ -46,9 +46,9 @@ export function renderGlowCanvas(size = 128): HTMLCanvasElement {
   const { c, g } = canvasOf(size);
   const m = size / 2;
   const glow = g.createRadialGradient(m, m, 0, m, m, m);
-  glow.addColorStop(0, 'rgba(255,248,170,0.9)');
-  glow.addColorStop(0.35, 'rgba(255,240,120,0.35)');
-  glow.addColorStop(1, 'rgba(255,240,120,0)');
+  glow.addColorStop(0, 'rgba(77,240,255,0.9)');
+  glow.addColorStop(0.35, 'rgba(77,240,255,0.32)');
+  glow.addColorStop(1, 'rgba(77,240,255,0)');
   g.fillStyle = glow;
   g.fillRect(0, 0, size, size);
   return c;
