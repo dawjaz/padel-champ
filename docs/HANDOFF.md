@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.2)_
+_Last updated: 2026-11-19 (v0.4)_
 
 ## State
 Game name: **PADEL CHAMP 26**, NES look, portrait 360x640.
@@ -28,6 +28,20 @@ comic big-head characters with diverse skin/gender/outfits; equipment in career 
 - NOT visually verified in a browser by the agent (sandbox cannot reach github.io). The owner should look at the
   match view first: check court proportions, label overlap, menu fit, ball visibility.
 
+## v0.4: new shot mechanics (this session)
+Implements the owner's shot spec (docs/GDD.md has the full rules): serve always cross, server's partner in the middle
+of the half; serves hard glass / spin glass / at opponent / T; returns chiquita / lob / flat; rally shots vibora /
+bandeja / volley / bounce shot / rulo; direction parallel / middle / cross; rulo always cross into the mesh fence.
+- Pure logic: `src/game/{court,engine,point,ai,catalog,rng}.ts`, data in `src/data/{shots,directions}.json`
+  (old moves/responses removed). 84 local tests pass via a shim runner; balance checked by 20k CPU-vs-CPU points.
+- Art maths: `src/art/walls.ts` (real wall layout: back 3 m glass + 1 m mesh, stepped side walls, mesh centre),
+  `src/art/ballPath.ts` (flight with glass/fence bounces).
+- `MatchScene` rewritten: glass drawn translucent with panel joints, mesh as a wire grid, two-step menu
+  (shot, then direction showing the target defender), colour hints (green good fit, orange poor, red tired).
+- NOT visually verified in a browser and NOT typechecked against Phaser locally: CI is the first real check.
+  Owner should check glass/mesh proportions, menu fit, label overlap, ball visibility.
+- Smash and bajada come later (they depend on several factors); see BACKLOG.
+
 ## Verification status
 The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session
 without network access, so only the Phaser-free files were typechecked locally; the rest relies on CI.
@@ -40,8 +54,7 @@ title -> match -> result -> rematch once.
 - No `package-lock.json` yet (CI uses `npm install`). Generate it on first install, commit it, then use `npm ci`.
 
 ## Next steps
-1. Collect the owner's gameplay feedback into docs/BACKLOG.md and redesign shots/positions in docs/GDD.md first,
-   then code
+1. Collect the owner's feedback on the v0.4 shots; add smash and bajada (BACKLOG)
 2. Art direction with the owner (character look, palette, pixel font), then sprites
 3. Capacitor (Android/iOS) once network is available
 4. Career mode, special moves

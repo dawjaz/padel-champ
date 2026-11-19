@@ -19,13 +19,13 @@ Runs in the browser first; Android and iOS builds come later via Capacitor.
 - `npm run build`: typecheck + production build into `dist/`
 
 ## Structure
-- `src/game/`: pure game logic, NO Phaser imports (types, scoring, engine). Keep it that way so it stays testable.
+- `src/game/`: pure game logic, NO Phaser imports (types, scoring, engine, court, point, ai). Keep it that way so it stays testable.
 - `src/scenes/`: Phaser scenes (Boot, Title, Settings, Match, Result)
-- `src/art/`: camera projection, generated characters (`Appearance` -> pixels), colour helpers. Pure except `characterTexture.ts`
+- `src/art/`: camera projection, generated characters (`Appearance` -> pixels), walls layout, ball flight paths, colour helpers. Pure except `characterTexture.ts`
 - `src/config.ts`: size, title, palette. `src/ui.ts`: shared buttons/logo text
 - `src/save.ts`: save data + settings (no Phaser, tested). `src/audio.ts`: placeholder SFX via Web Audio
 - `src/assets.ts` + `public/assets/`: asset manifest and files (see docs/ASSETS.md)
-- `src/data/*.json`: players, moves, responses. Balance changes go here, not into code.
+- `src/data/*.json`: players, shots, directions. Balance changes go here, not into code.
 - `docs/`: GDD (design), DECISIONS (why), HANDOFF (state and next steps), BACKLOG (ideas), ASSETS
 
 ## Rules

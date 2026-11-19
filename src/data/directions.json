@@ -1,0 +1,5 @@
+[
+  { "id": "parallel", "name": "Parallel", "attack": 1.1, "risk": 0.05, "hesitation": 1 },
+  { "id": "middle", "name": "Middle", "attack": 0.9, "risk": 0, "hesitation": 0.88 },
+  { "id": "cross", "name": "Cross", "attack": 1, "risk": 0.02, "hesitation": 1 }
+]

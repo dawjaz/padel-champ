@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import movesData from '../data/moves.json';
-import responsesData from '../data/responses.json';
-import { recoverGuts, resolveExchange, spendGuts, TIRED_FACTOR } from './engine';
-import type { Appearance, MoveDef, PlayerDef, ResponseDef } from './types';
+import { DIRECTIONS, SHOTS, shotsOfKind } from './catalog';
+import {
+  ACE_MARGIN,
+  defenseRating,
+  errorChance,
+  faultChance,
+  MAX_ERROR,
+  MIN_ERROR,
+  recoverGuts,
+  resolveHit,
+  resolveServe,
+  spendGuts,
+  TIRED_FACTOR,
+  type HitInput,
+} from './engine';
+import { fixedRng } from './rng';
+import type { Appearance, BallState, PlayerDef, ShotDef } from './types';
 
 const LOOK: Appearance = {
   gender: 'male',
@@ -16,11 +29,6 @@ const LOOK: Appearance = {
   racket: '#f2a33a',
 };
 
-const MOVES = movesData as unknown as MoveDef[];
-const RESPONSES = responsesData as unknown as ResponseDef[];
-const move = (id: string): MoveDef => MOVES.find((m) => m.id === id)!;
-const resp = (id: string): ResponseDef => RESPONSES.find((r) => r.id === id)!;
-
 const player = (stats: Partial<PlayerDef['stats']>): PlayerDef => ({
   id: 'p',
   name: 'P',
@@ -29,40 +37,141 @@ const player = (stats: Partial<PlayerDef['stats']>): PlayerDef => ({
   appearance: LOOK,
 });
 
-const zero = () => 0;
+const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
+const MID: BallState = { height: 'mid', pressure: 0 };
 
-describe('resolveExchange', () => {
-  it('lets a strong smash beat a weak defender', () => {
-    const r = resolveExchange(player({ power: 10 }), 10, move('smash'), player({ defense: 1 }), resp('block'), zero);
+/** rng order in resolveHit: error roll, attack spread, defence spread. */
+const NO_ERROR_NO_SPREAD = [0.99, 0, 0];
+
+function hit(over: Partial<HitInput>): HitInput {
+  return {
+    attacker: player({}),
+    attackerGuts: 10,
+    shot: shot('bandeja'),
+    direction: DIRECTIONS.cross,
+    incoming: MID,
+    defender: player({}),
+    rallyLength: 0,
+    rng: fixedRng(NO_ERROR_NO_SPREAD),
+    ...over,
+  };
+}
+
+describe('resolveHit', () => {
+  it('makes an unforced error when the error roll is low', () => {
+    expect(resolveHit(hit({ rng: fixedRng([0]) })).outcome).toBe('error');
+  });
+
+  it('lets a strong rulo beat a weak defender', () => {
+    const r = resolveHit(
+      hit({
+        attacker: player({ power: 10 }),
+        shot: shot('rulo'),
+        incoming: { height: 'high', pressure: 0 },
+        defender: player({ defense: 1, speed: 1 }),
+      }),
+    );
     expect(r.outcome).toBe('winner');
   });
 
-  it('lets a strong defender intercept a weak shot', () => {
-    const r = resolveExchange(player({ technique: 1 }), 10, move('lob'), player({ defense: 10 }), resp('block'), zero);
+  it('lets a strong defender win the point against a weak shot', () => {
+    const r = resolveHit(
+      hit({
+        attacker: player({ technique: 1 }),
+        shot: shot('lob'),
+        defender: player({ defense: 10, speed: 10 }),
+      }),
+    );
     expect(r.outcome).toBe('intercept');
   });
 
   it('continues the rally when both sides are even', () => {
-    const r = resolveExchange(player({}), 10, move('bandeja'), player({}), resp('block'), zero);
+    const r = resolveHit(hit({}));
     expect(r.outcome).toBe('continue');
+    expect(r.pressure).toBe(0);
   });
 
-  it('flags and rewards a countering response', () => {
-    const a = player({});
-    const d = player({});
-    const countered = resolveExchange(a, 10, move('smash'), d, resp('retreat'), zero);
-    const plain = resolveExchange(a, 10, move('smash'), d, resp('block'), zero);
-    expect(countered.countered).toBe(true);
-    expect(plain.countered).toBe(false);
+  it('turns a narrow attack lead into pressure on the next hit', () => {
+    const r = resolveHit(hit({ shot: shot('vibora'), incoming: { height: 'high', pressure: 0 } }));
+    expect(r.outcome).toBe('continue');
+    expect(r.pressure).toBeGreaterThan(0);
   });
 
-  it('weakens the attack when the hitter is too tired to pay the cost', () => {
-    const a = player({ power: 5 });
-    const d = player({});
-    const fresh = resolveExchange(a, 10, move('smash'), d, resp('block'), zero);
-    const tired = resolveExchange(a, 0, move('smash'), d, resp('block'), zero);
+  it('rewards the right shot for the incoming height', () => {
+    const onHigh = resolveHit(hit({ shot: shot('bandeja'), incoming: { height: 'high', pressure: 0 } }));
+    const onLow = resolveHit(hit({ shot: shot('bandeja'), incoming: { height: 'low', pressure: 0 } }));
+    expect(onHigh.fit).toBeGreaterThan(onLow.fit);
+    expect(onHigh.attackScore).toBeGreaterThan(onLow.attackScore);
+  });
+
+  it('weakens the attack when the hitter is too tired', () => {
+    const fresh = resolveHit(hit({ shot: shot('rulo'), attackerGuts: 10 }));
+    const tired = resolveHit(hit({ shot: shot('rulo'), attackerGuts: 0 }));
     expect(tired.tired).toBe(true);
     expect(tired.attackScore).toBeCloseTo(fresh.attackScore * TIRED_FACTOR);
+  });
+
+  it('weakens the attack under pressure', () => {
+    const calm = resolveHit(hit({}));
+    const pressed = resolveHit(hit({ incoming: { height: 'mid', pressure: 0.2 } }));
+    expect(pressed.attackScore).toBeCloseTo(calm.attackScore * 0.8);
+  });
+});
+
+describe('defenseRating and errorChance', () => {
+  it('confuses the receiver on middle balls', () => {
+    const d = player({});
+    expect(defenseRating(d, DIRECTIONS.middle)).toBeLessThan(defenseRating(d, DIRECTIONS.cross));
+  });
+
+  it('uses speed as well as defense', () => {
+    expect(defenseRating(player({ speed: 9 }), DIRECTIONS.cross)).toBeGreaterThan(
+      defenseRating(player({ speed: 2 }), DIRECTIONS.cross),
+    );
+  });
+
+  it('makes errors likelier in long rallies and for riskier directions, unlikelier with technique', () => {
+    const a = player({});
+    const base = errorChance(a, shot('vibora'), DIRECTIONS.cross, 0);
+    expect(errorChance(a, shot('vibora'), DIRECTIONS.cross, 14)).toBeGreaterThan(base);
+    expect(errorChance(a, shot('vibora'), DIRECTIONS.parallel, 0)).toBeGreaterThan(base);
+    expect(errorChance(player({ technique: 10 }), shot('vibora'), DIRECTIONS.cross, 0)).toBeLessThan(base);
+  });
+
+  it('keeps probabilities in range', () => {
+    const extreme = errorChance(player({ technique: 10 }), shot('lob'), DIRECTIONS.middle, 0);
+    expect(extreme).toBeGreaterThanOrEqual(MIN_ERROR);
+    expect(errorChance(player({ technique: 1 }), shot('rulo'), DIRECTIONS.parallel, 100)).toBeLessThanOrEqual(MAX_ERROR);
+    expect(faultChance(player({}), shot('hard_glass'))).toBeGreaterThan(faultChance(player({}), shot('t_serve')));
+  });
+});
+
+describe('resolveServe', () => {
+  const receiver = player({});
+  /** rng order in resolveServe: fault roll, attack spread, defence spread. */
+  const rng = () => fixedRng(NO_ERROR_NO_SPREAD);
+
+  it('faults when the fault roll is low', () => {
+    const r = resolveServe(player({}), 10, shot('hard_glass'), receiver, DIRECTIONS.cross, fixedRng([0]));
+    expect(r.outcome).toBe('fault');
+  });
+
+  it('aces a weak receiver with a big serve', () => {
+    const r = resolveServe(player({ power: 10 }), 10, shot('hard_glass'), player({ defense: 1, speed: 1 }), DIRECTIONS.cross, rng());
+    expect(r.outcome).toBe('ace');
+    expect(r.attackScore - r.defenseScore).toBeGreaterThan(ACE_MARGIN);
+  });
+
+  it('puts pressure on the receiver when the serve is better than their defence', () => {
+    const r = resolveServe(player({ power: 8 }), 10, shot('at_opponent'), receiver, DIRECTIONS.cross, rng());
+    expect(r.outcome).toBe('in');
+    expect(r.pressure).toBeGreaterThan(0);
+  });
+
+  it('puts no pressure on a safe serve that is weaker than the defence', () => {
+    const r = resolveServe(player({}), 10, shot('t_serve'), receiver, DIRECTIONS.cross, rng());
+    expect(r.outcome).toBe('in');
+    expect(r.pressure).toBe(0);
   });
 });
 
@@ -73,14 +182,30 @@ describe('guts', () => {
   });
 });
 
-describe('data', () => {
-  it('only references responses that exist', () => {
-    const ids = new Set(RESPONSES.map((r) => r.id));
-    for (const m of MOVES) for (const c of m.counteredBy) expect(ids.has(c)).toBe(true);
+describe('shot data', () => {
+  it('has the shots the owner asked for', () => {
+    expect(shotsOfKind('serve').map((s) => s.id).sort()).toEqual(['at_opponent', 'hard_glass', 'spin_glass', 't_serve']);
+    expect(shotsOfKind('return').map((s) => s.id).sort()).toEqual(['chiquita', 'flat', 'lob']);
+    expect(shotsOfKind('rally').map((s) => s.id).sort()).toEqual(['bandeja', 'bounce_shot', 'rulo', 'vibora', 'volley']);
   });
 
-  it('has at least one free move so a tired player can always act', () => {
-    expect(MOVES.some((m) => m.cost === 0)).toBe(true);
-    expect(RESPONSES.some((r) => r.cost === 0)).toBe(true);
+  it('has unique ids, a free shot per kind and fit values for every height', () => {
+    expect(new Set(SHOTS.map((s) => s.id)).size).toBe(SHOTS.length);
+    for (const kind of ['serve', 'return'] as const) {
+      expect(shotsOfKind(kind).some((s) => s.cost === 0)).toBe(true);
+    }
+    for (const s of SHOTS) {
+      for (const h of ['high', 'mid', 'low'] as const) expect(s.fit[h], `${s.id}.${h}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('plays the rulo always cross, into the fence', () => {
+    expect(shot('rulo').fixedDirection).toBe('cross');
+    expect(shot('rulo').wall).toBe('fence');
+    expect(SHOTS.filter((s) => s.fixedDirection).map((s) => s.id)).toEqual(['rulo']);
+  });
+
+  it('gives every serve a landing spot', () => {
+    for (const s of shotsOfKind('serve')) expect(s.landX, s.id).toBeGreaterThanOrEqual(0);
   });
 });

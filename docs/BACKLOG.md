@@ -34,6 +34,11 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - Real chiptune music and SFX (FamiStudio, jsfxr) replacing the Web Audio beeps in `src/audio.ts`
 - App icon and splash screen
 
+## Shots
+- Smash and bajada (depend on ball height, position, lob quality)
+- Let walls affect the maths (rebounds, wall-first returns)
+- Per-shot animations, equipment bonuses (rackets, shoes) on stats
+
 ## Technical
 - First real run: `npm install`, `npm run typecheck`, `npm test`, `npm run dev`; commit `package-lock.json`
 - Switch CI from `npm install` to `npm ci`

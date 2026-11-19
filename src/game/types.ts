@@ -29,41 +29,73 @@ export interface PlayerDef {
   appearance: Appearance;
 }
 
-export interface MoveDef {
+/** Index of a side: 0 = player (near end of the court), 1 = CPU (far end). */
+export type SideIndex = 0 | 1;
+
+/** Ball height after a shot. */
+export type Height = 'high' | 'mid' | 'low';
+export type Direction = 'parallel' | 'middle' | 'cross';
+/** A team plays either up at the net or back at the baseline. */
+export type Formation = 'net' | 'back';
+export type ShotKind = 'serve' | 'return' | 'rally';
+/** What the ball hits after its first bounce in the opponent's court. */
+export type WallHit = 'none' | 'side' | 'back' | 'fence';
+/** Screen-side lane of a player: -1 = left, +1 = right. */
+export type LaneSign = -1 | 1;
+
+export interface ShotDef {
   id: string;
   name: string;
+  kind: ShotKind;
   /** Which stat drives the attack. */
   stat: StatKey;
   /** Attack multiplier. */
   power: number;
   /** Guts spent by the hitter. */
   cost: number;
-  /** Response ids that are strong against this move. */
-  counteredBy: string[];
+  /** Base chance of an unforced error (a fault, for serves). */
+  risk: number;
+  /** Height of the ball after this shot. */
+  out: Height;
+  /** Multiplier by the height of the incoming ball. */
+  fit: Record<Height, number>;
+  /** Shots that always go one way (rulo). */
+  fixedDirection?: Direction;
+  /** What this shot does to the hitter's formation. */
+  advance: 'net' | 'back' | 'stay';
+  /** Metres from the net where the ball first lands in the opponent's court. */
+  landDepth: number;
+  /** Serves only: how far from the centre line the ball lands, in metres. */
+  landX?: number;
+  wall: WallHit;
+  /** Overrides the default margin needed to win the point outright. */
+  winnerMargin?: number;
+  /** Serves only: scales the pressure put on the receiver. */
+  pressureMult?: number;
   desc: string;
 }
 
-export interface ResponseDef {
-  id: string;
+export interface DirectionDef {
+  id: Direction;
   name: string;
-  /** Defence multiplier. */
-  mod: number;
-  /** Guts spent by the defender. */
-  cost: number;
-  desc: string;
+  /** Attack multiplier. */
+  attack: number;
+  /** Extra error chance. */
+  risk: number;
+  /** Defence multiplier for the receiver (<1 = confusion). */
+  hesitation: number;
 }
 
-/** Index of a side: 0 = player, 1 = CPU. */
-export type SideIndex = 0 | 1;
+export interface BallState {
+  height: Height;
+  /** 0..0.4: how much the previous shot has weakened the next hit. */
+  pressure: number;
+}
 
-export type Outcome = 'winner' | 'intercept' | 'continue';
-
-export interface ExchangeResult {
-  outcome: Outcome;
-  attackScore: number;
-  defenseScore: number;
-  countered: boolean;
-  tired: boolean;
+/** Position on the court in metres: x across (-5..5), z along (0 = far baseline, 10 = net, 20 = near baseline). */
+export interface CourtPos {
+  x: number;
+  z: number;
 }
 
 export type Rng = () => number;

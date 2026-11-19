@@ -1,61 +1,68 @@
 import Phaser from 'phaser';
-import { NET_HEIGHT_M, NET_Z, project, WALL_HEIGHT_M, type Projected } from '../art/camera';
+import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M } from '../art/ballPath';
+import { NET_HEIGHT_M, project, type Projected } from '../art/camera';
 import { SPRITE_H } from '../art/character';
 import { ensureCharacterTexture } from '../art/characterTexture';
+import { BACK_WALL, sideWallSegments } from '../art/walls';
 import { sfx } from '../audio';
 import { FONT, HEIGHT, WIDTH } from '../config';
-import movesData from '../data/moves.json';
 import playersData from '../data/players.json';
-import responsesData from '../data/responses.json';
-import { recoverGuts, resolveExchange, spendGuts } from '../game/engine';
+import { pickHit, pickServe } from '../game/ai';
+import { DIRECTIONS, shotsOfKind } from '../game/catalog';
+import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
+import { recoverGuts } from '../game/engine';
+import { startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
-import type { MoveDef, PlayerDef, ResponseDef, SideIndex } from '../game/types';
+import type { CourtPos, Direction, PlayerDef, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
 
-const MOVES = movesData as unknown as MoveDef[];
-const RESPONSES = responsesData as unknown as ResponseDef[];
-const TEAMS: [PlayerDef[], PlayerDef[]] = [
-  playersData.you as unknown as PlayerDef[],
-  playersData.cpu as unknown as PlayerDef[],
-];
+const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
 
 const GUTS_RECOVERY_PER_POINT = 2;
 const SIDE_NAME = ['YOU', 'CPU'] as const;
+const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
 const VISUAL_HEIGHT_M = 2.0;
-/** Height of the racket contact point above the floor, in metres. */
-const HIT_HEIGHT_M = 0.9;
+
+type Tone = 'normal' | 'good' | 'poor' | 'tired';
+
+const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666 };
+const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
-  ring: Phaser.GameObjects.Ellipse;
   label: Phaser.GameObjects.Text;
   player: PlayerDef;
+  side: SideIndex;
+  /** Jump height in pixels (animated by the hit "hop"). */
+  lift: number;
 }
 
 interface ButtonSpec {
   label: string;
-  warn: boolean;
+  tone: Tone;
   onPick: () => void;
 }
 
-interface CourtPos {
-  x: number;
-  z: number;
-}
+const other = (s: SideIndex): SideIndex => (s === 0 ? 1 : 0);
+const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
   private server: SideIndex = 0;
-  private holder: SideIndex = 0;
-  private hitIdx: [number, number] = [0, 0];
+  /** Which player of each team serves in their next service game. */
+  private serverIdx: [number, number] = [0, 0];
+  private point!: PointState;
   private guts: Record<string, number> = {};
   private busy = false;
   private menu: Phaser.GameObjects.GameObject[] = [];
   private views: Record<string, PlayerView> = {};
+  private pos: Record<string, CourtPos> = {};
+  private activeId: string | null = null;
+  private ballFloor: CourtPos = { x: 0, z: NET_Z };
+  private overlay!: Phaser.GameObjects.Graphics;
   private ball!: Phaser.GameObjects.Arc;
-  private ballShadow!: Phaser.GameObjects.Ellipse;
   private scoreText!: Phaser.GameObjects.Text;
   private logText!: Phaser.GameObjects.Text;
 
@@ -66,18 +73,18 @@ export class MatchScene extends Phaser.Scene {
   create(): void {
     this.matchScore = newScore(2);
     this.server = 0;
-    this.holder = 0;
-    this.hitIdx = [0, 0];
+    this.serverIdx = [0, 0];
     this.busy = false;
     this.menu = [];
     this.views = {};
+    this.pos = {};
+    this.activeId = null;
     this.guts = {};
     for (const p of TEAMS.flat()) this.guts[p.id] = p.maxGuts;
 
     this.drawArena();
+    this.overlay = this.add.graphics().setDepth(1);
     this.createViews();
-
-    this.ballShadow = this.add.ellipse(0, 0, 8, 3, 0x000000, 0.4).setDepth(2);
     this.ball = this.add.circle(0, 0, 4, 0xfff27a).setStrokeStyle(1, 0x222222).setDepth(5000);
 
     this.add.rectangle(WIDTH / 2, 27, 190, 42, 0x000000, 0.6).setDepth(9990);
@@ -86,22 +93,22 @@ export class MatchScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setDepth(10000);
     this.logText = this.add
-      .text(WIDTH / 2, 396, '', {
+      .text(WIDTH / 2, 391, '', {
         fontFamily: FONT,
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#ffffff',
         align: 'center',
-        wordWrap: { width: 330 },
+        wordWrap: { width: 340 },
       })
       .setOrigin(0.5, 0)
       .setDepth(10000);
 
     this.refreshScore();
     this.refreshGuts();
-    this.startPoint();
+    this.beginPoint();
   }
 
-  // ---------- arena (fake-3D court, glass walls, net, stands) ----------
+  // ---------- arena: court, glass, mesh, net, stands ----------
 
   private fillQuad(g: Phaser.GameObjects.Graphics, a: Projected, b: Projected, c: Projected, d: Projected): void {
     g.fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y);
@@ -110,6 +117,45 @@ export class MatchScene extends Phaser.Scene {
 
   private line(g: Phaser.GameObjects.Graphics, a: Projected, b: Projected): void {
     g.lineBetween(a.x, a.y, b.x, b.y);
+  }
+
+  /**
+   * One piece of wall. `at(u, h)` maps a position along the wall and a height to the screen.
+   * Glass: translucent blue with panel joints every `step` metres. Mesh: dark, with a visible wire grid and posts.
+   */
+  private wallBand(
+    g: Phaser.GameObjects.Graphics,
+    at: (u: number, h: number) => Projected,
+    u0: number,
+    u1: number,
+    h0: number,
+    h1: number,
+    kind: 'glass' | 'mesh',
+    step: number,
+  ): void {
+    const a = at(u0, h0);
+    const b = at(u1, h0);
+    const c = at(u1, h1);
+    const d = at(u0, h1);
+
+    if (kind === 'glass') {
+      g.fillStyle(0x9fd8ff, 0.17);
+      this.fillQuad(g, a, b, c, d);
+      g.lineStyle(2, 0xdff3ff, 0.7);
+      for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
+      this.line(g, d, c);
+      return;
+    }
+
+    g.fillStyle(0x06081a, 0.3);
+    this.fillQuad(g, a, b, c, d);
+    g.lineStyle(1, 0xc9d3e6, 0.45);
+    for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
+    for (let h = h0; h <= h1 + 1e-6; h += step) this.line(g, at(u0, h), at(u1, h));
+    g.lineStyle(2, 0x9aa5bd, 0.9);
+    this.line(g, a, d);
+    this.line(g, b, c);
+    this.line(g, d, c);
   }
 
   private drawArena(): void {
@@ -148,15 +194,20 @@ export class MatchScene extends Phaser.Scene {
     this.line(lines, P(-5, 16.95), P(5, 16.95));
     this.line(lines, P(0, 3.05), P(0, 16.95));
 
-    // Back glass (far end) with an advertising board along its foot
-    const back = this.add.graphics().setDepth(-3);
-    back.fillStyle(0x9fd8ff, 0.16);
-    this.fillQuad(back, P(-5, 0, 0), P(5, 0, 0), P(5, 0, WALL_HEIGHT_M), P(-5, 0, WALL_HEIGHT_M));
-    back.fillStyle(0x1b3d8f, 1);
-    this.fillQuad(back, P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.9), P(-5, 0, 0.9));
-    back.lineStyle(2, 0xdff3ff, 0.7);
-    this.line(back, P(-5, 0, WALL_HEIGHT_M), P(5, 0, WALL_HEIGHT_M));
-    for (const x of [-5, -2.5, 0, 2.5, 5]) this.line(back, P(x, 0, 0), P(x, 0, WALL_HEIGHT_M));
+    // Walls: back wall (3 m glass + 1 m mesh) and the stepped side walls (see art/walls.ts)
+    const walls = this.add.graphics().setDepth(-3);
+    const backAt = (x: number, h: number): Projected => P(x, 0, h);
+    this.wallBand(walls, backAt, -5, 5, 0, BACK_WALL.glass, 'glass', 2);
+    walls.fillStyle(0x1b3d8f, 1);
+    this.fillQuad(walls, P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.9), P(-5, 0, 0.9));
+    this.wallBand(walls, backAt, -5, 5, BACK_WALL.glass, BACK_WALL.glass + BACK_WALL.mesh, 'mesh', 0.5);
+    for (const x of [-5, 5]) {
+      const sideAt = (z: number, h: number): Projected => P(x, z, h);
+      for (const seg of sideWallSegments()) {
+        if (seg.glass > 0) this.wallBand(walls, sideAt, seg.z0, seg.z1, 0, seg.glass, 'glass', 2);
+        if (seg.mesh > 0) this.wallBand(walls, sideAt, seg.z0, seg.z1, seg.glass, seg.glass + seg.mesh, 'mesh', 0.5);
+      }
+    }
     const board = P(0, 0, 0.45);
     this.add
       .text(board.x, board.y, 'PADEL CHAMP 26', {
@@ -168,71 +219,129 @@ export class MatchScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(-2.9);
 
-    // Side glass walls (the near parts rise tall at the screen edges, like on TV)
-    const side = this.add.graphics().setDepth(-2);
-    for (const x of [-5, 5]) {
-      side.fillStyle(0x9fd8ff, 0.14);
-      this.fillQuad(side, P(x, 0, 0), P(x, 20, 0), P(x, 20, WALL_HEIGHT_M), P(x, 0, WALL_HEIGHT_M));
-      side.lineStyle(2, 0xdff3ff, 0.65);
-      this.line(side, P(x, 0, WALL_HEIGHT_M), P(x, 20, WALL_HEIGHT_M));
-      for (const z of [0, 5, 10, 15, 20]) this.line(side, P(x, z, 0), P(x, z, WALL_HEIGHT_M));
-    }
-
     // Net: depth-sorted with the players, so far players stand behind it and near players in front
     const net = this.add.graphics().setDepth(P(0, NET_Z).y);
     net.fillStyle(0x000000, 0.4);
     this.fillQuad(net, P(-5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, 0), P(-5, NET_Z, 0));
+    net.lineStyle(1, 0xc9d3e6, 0.3);
+    for (let x = -5; x <= 5.001; x += 0.5) this.line(net, P(x, NET_Z, 0), P(x, NET_Z, NET_HEIGHT_M));
     net.lineStyle(2, 0x9a9ab0, 1);
     for (const x of [-5.05, 5.05]) this.line(net, P(x, NET_Z, 0), P(x, NET_Z, NET_HEIGHT_M + 0.05));
     net.lineStyle(3, 0xfcfcfc, 1);
     this.line(net, P(-5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, NET_HEIGHT_M));
   }
 
-  // ---------- players ----------
-
-  /** Where a player stands, in court metres. Fixed formation for now (to be redesigned). */
-  private courtPos(side: SideIndex, idx: number): CourtPos {
-    return { x: idx === 0 ? -2.5 : 2.5, z: side === 0 ? 15.5 : 4.5 };
-  }
+  // ---------- players and ball ----------
 
   private createViews(): void {
     ([0, 1] as SideIndex[]).forEach((side) => {
       TEAMS[side].forEach((player, idx) => {
-        const pos = this.courtPos(side, idx);
-        const p = project(pos.x, pos.z);
+        this.pos[player.id] = restPos(side, idx, 'back');
         const key = ensureCharacterTexture(this, player.appearance, side === 0 ? 'back' : 'front');
-        const scale = (p.scale * VISUAL_HEIGHT_M) / SPRITE_H;
-        const spriteHeight = SPRITE_H * scale;
-
-        this.add.ellipse(p.x, p.y, p.scale * 1.1, p.scale * 0.4, 0x000000, 0.35).setDepth(1);
-        const ring = this.add
-          .ellipse(p.x, p.y, p.scale * 1.5, p.scale * 0.6)
-          .setStrokeStyle(2, 0xffe066)
-          .setDepth(2)
-          .setVisible(false);
-        const sprite = this.add.image(p.x, p.y, key).setOrigin(0.5, 1).setScale(scale).setDepth(p.y);
+        const sprite = this.add.image(0, 0, key).setOrigin(0.5, 1);
         const label = this.add
-          .text(p.x, side === 0 ? p.y + 6 : p.y - spriteHeight - 2, '', {
-            fontFamily: FONT,
-            fontSize: '10px',
-            color: '#ffffff',
-            align: 'center',
-          })
+          .text(0, 0, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', align: 'center' })
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke('#000000', 3)
           .setDepth(9000);
-        this.views[player.id] = { sprite, ring, label, player };
+        this.views[player.id] = { sprite, label, player, side, lift: 0 };
+        this.placeView(player.id);
       });
+    });
+    this.redrawOverlay();
+  }
+
+  private placeView(id: string): void {
+    const v = this.views[id];
+    const pos = this.pos[id];
+    const p = project(pos.x, pos.z);
+    const scale = (p.scale * VISUAL_HEIGHT_M) / SPRITE_H;
+    const spriteHeight = SPRITE_H * scale;
+    v.sprite.setPosition(p.x, p.y - v.lift).setScale(scale).setDepth(p.y);
+    v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : p.y - spriteHeight - 2 - v.lift);
+  }
+
+  /** Shadows under players and ball, and the ring under the player who has to act. */
+  private redrawOverlay(): void {
+    const g = this.overlay;
+    g.clear();
+    g.fillStyle(0x000000, 0.35);
+    for (const id of Object.keys(this.views)) {
+      const p = project(this.pos[id].x, this.pos[id].z);
+      g.fillEllipse(p.x, p.y, p.scale * 1.1, p.scale * 0.4);
+    }
+    const b = project(this.ballFloor.x, this.ballFloor.z);
+    g.fillStyle(0x000000, 0.4);
+    g.fillEllipse(b.x, b.y, Math.max(5, b.scale * 0.35), Math.max(2, b.scale * 0.12));
+    if (this.activeId) {
+      const p = project(this.pos[this.activeId].x, this.pos[this.activeId].z);
+      g.lineStyle(2, 0xffe066, 1);
+      g.strokeEllipse(p.x, p.y, p.scale * 1.5, p.scale * 0.6);
+    }
+  }
+
+  private setActive(id: string | null): void {
+    this.activeId = id;
+    this.redrawOverlay();
+  }
+
+  private setBall(x: number, z: number, h: number): void {
+    const p = project(x, z, h);
+    this.ballFloor = { x, z };
+    this.ball.setPosition(p.x, p.y).setRadius(Math.max(3, p.scale * 0.17));
+    this.redrawOverlay();
+  }
+
+  private hop(id: string): void {
+    const v = this.views[id];
+    this.tweens.add({
+      targets: v,
+      lift: 8,
+      duration: 110,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+      onUpdate: () => this.placeView(id),
     });
   }
 
-  private highlight(activeId: string): void {
-    for (const [id, v] of Object.entries(this.views)) v.ring.setVisible(id === activeId);
+  /** Walks players to the given court positions. */
+  private movePlayers(targets: Record<string, CourtPos>, duration: number, onDone?: () => void): void {
+    const ids = Object.keys(targets);
+    const starts: Record<string, CourtPos> = {};
+    for (const id of ids) starts[id] = { ...this.pos[id] };
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration,
+      ease: 'Sine.easeInOut',
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const t = tween.getValue() ?? 0;
+        for (const id of ids) {
+          this.pos[id] = { x: lerp(starts[id].x, targets[id].x, t), z: lerp(starts[id].z, targets[id].z, t) };
+          this.placeView(id);
+        }
+        this.redrawOverlay();
+      },
+      onComplete: () => {
+        for (const id of ids) {
+          this.pos[id] = { ...targets[id] };
+          this.placeView(id);
+        }
+        this.redrawOverlay();
+        onDone?.();
+      },
+    });
   }
 
-  private hop(playerId: string): void {
-    const v = this.views[playerId];
-    this.tweens.add({ targets: v.sprite, y: v.sprite.y - 8, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+  /** Where everybody stands in the rally, given the teams' formations. */
+  private rallyTargets(state: PointState): Record<string, CourtPos> {
+    const t: Record<string, CourtPos> = {};
+    ([0, 1] as SideIndex[]).forEach((side) => {
+      TEAMS[side].forEach((p, idx) => {
+        t[p.id] = restPos(side, idx, state.formation[side]);
+      });
+    });
+    return t;
   }
 
   private refreshGuts(): void {
@@ -252,13 +361,6 @@ export class MatchScene extends Phaser.Scene {
     this.logText.setText(msg);
   }
 
-  private placeBall(x: number, z: number, h: number): void {
-    const p = project(x, z, h);
-    const f = project(x, z, 0);
-    this.ball.setPosition(p.x, p.y).setRadius(Math.max(3, p.scale * 0.17));
-    this.ballShadow.setPosition(f.x, f.y);
-  }
-
   // ---------- menu ----------
 
   private clearMenu(): void {
@@ -269,20 +371,20 @@ export class MatchScene extends Phaser.Scene {
   private showButtons(title: string, items: ButtonSpec[]): void {
     this.clearMenu();
     this.menu.push(
-      this.add.text(180, 438, title, { fontFamily: FONT, fontSize: '14px', color: '#9fd8ff' }).setOrigin(0.5),
+      this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
     );
     items.forEach((item, i) => {
       const x = 95 + (i % 2) * 170;
       const y = 485 + Math.floor(i / 2) * 58;
       const bg = this.add
         .rectangle(x, y, 160, 48, 0x2b2b5e)
-        .setStrokeStyle(2, item.warn ? 0xff6666 : 0xffffff)
+        .setStrokeStyle(2, TONE_STROKE[item.tone])
         .setInteractive({ useHandCursor: true });
       const text = this.add
         .text(x, y, item.label, {
           fontFamily: FONT,
           fontSize: '14px',
-          color: item.warn ? '#ff9999' : '#ffffff',
+          color: TONE_TEXT[item.tone],
           align: 'center',
         })
         .setOrigin(0.5);
@@ -298,109 +400,205 @@ export class MatchScene extends Phaser.Scene {
     this.busy = false;
   }
 
-  // ---------- flow ----------
-
-  private hitter(side: SideIndex): PlayerDef {
-    return TEAMS[side][this.hitIdx[side]];
+  /** Colour hint for a shot: red = too tired, green = good against this ball, orange = poor. */
+  private toneFor(shot: ShotDef, hitter: PlayerDef): Tone {
+    if (this.guts[hitter.id] < shot.cost) return 'tired';
+    const fit = shot.fit[this.point.ball.height];
+    if (fit >= 1.05) return 'good';
+    if (fit <= 0.85) return 'poor';
+    return 'normal';
   }
 
-  private startPoint(): void {
-    this.holder = this.server;
-    this.hitIdx = [0, 0];
-    const server = this.hitter(this.server);
-    const pos = this.courtPos(this.server, 0);
-    this.placeBall(pos.x, pos.z, HIT_HEIGHT_M);
-    this.say(`${server.name} (${SIDE_NAME[this.server]}) serves.`);
-    this.nextTurn();
-  }
+  // ---------- flow: serve -> return -> rally ----------
 
-  private nextTurn(): void {
-    const side = this.holder;
-    const hitter = this.hitter(side);
-    this.highlight(hitter.id);
+  private beginPoint(): void {
+    const pointsPlayed = this.matchScore.points[0] + this.matchScore.points[1];
+    const idx = this.serverIdx[this.server];
+    this.point = startPoint(this.guts, this.server, idx, pointsPlayed);
 
-    if (side === 0) {
-      this.showButtons(
-        `${hitter.name}: choose a shot`,
-        MOVES.map((m) => {
-          const tired = this.guts[hitter.id] < m.cost;
-          return {
-            label: `${m.name} [${m.cost}]${tired ? '\n(tired)' : ''}`,
-            warn: tired,
-            onPick: () => this.onMovePicked(hitter, m),
-          };
-        }),
-      );
-    } else {
-      const move = this.cpuPickMove(hitter);
-      this.say(`${hitter.name} plays ${move.name}!`);
-      const defender = this.hitter(0);
-      this.showButtons(
-        `${defender.name}: how do you answer?`,
-        RESPONSES.map((r) => {
-          const tired = this.guts[defender.id] < r.cost;
-          return {
-            label: `${r.name} [${r.cost}]${tired ? '\n(tired)' : ''}`,
-            warn: tired,
-            onPick: () => this.resolve(1, hitter, move, defender, r),
-          };
-        }),
-      );
-    }
-  }
-
-  private onMovePicked(hitter: PlayerDef, move: MoveDef): void {
-    const defender = this.hitter(1);
-    const response = this.cpuPickResponse(defender, move);
-    this.resolve(0, hitter, move, defender, response);
-  }
-
-  private resolve(atkSide: SideIndex, attacker: PlayerDef, move: MoveDef, defender: PlayerDef, response: ResponseDef): void {
-    const defSide: SideIndex = atkSide === 0 ? 1 : 0;
-    const result = resolveExchange(attacker, this.guts[attacker.id], move, defender, response, Math.random);
-
-    this.guts[attacker.id] = spendGuts(this.guts[attacker.id], move.cost);
-    this.guts[defender.id] = spendGuts(this.guts[defender.id], response.cost);
-    this.refreshGuts();
-
-    let msg = `${attacker.name}: ${move.name}!\n${defender.name}: ${response.name}.`;
-    if (result.tired) msg += ' (tired!)';
-    if (result.countered) msg += ' Read it!';
-    this.say(msg);
-
-    sfx('hit');
-    this.hop(attacker.id);
-    const from = this.courtPos(atkSide, this.hitIdx[atkSide]);
-    const to = this.courtPos(defSide, this.hitIdx[defSide]);
-    this.tweens.addCounter({
-      from: 0,
-      to: 1,
-      duration: 520,
-      ease: 'Sine.easeInOut',
-      onUpdate: (tween: Phaser.Tweens.Tween) => {
-        const t = tween.getValue() ?? 0;
-        const h = HIT_HEIGHT_M + 1.8 * Math.sin(Math.PI * t);
-        this.placeBall(from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t, h);
-      },
-      onComplete: () => {
-        if (result.outcome === 'winner') {
-          this.say(`${msg}\n${attacker.name}'s ${move.name} is a WINNER!`);
-          this.time.delayedCall(1300, () => this.pointTo(atkSide));
-        } else if (result.outcome === 'intercept') {
-          this.say(`${msg}\n${defender.name} intercepts!`);
-          this.time.delayedCall(1300, () => this.pointTo(defSide));
-        } else {
-          this.say(`${msg}\nThe rally goes on...`);
-          this.hitIdx[atkSide] = this.hitIdx[atkSide] === 0 ? 1 : 0;
-          this.holder = defSide;
-          this.time.delayedCall(900, () => this.nextTurn());
-        }
-      },
+    // Serve set-up: the server stands in their serving lane, the partner in the middle of their half.
+    const setup = serveSetup(this.server, pointsPlayed);
+    const recvSide = other(this.server);
+    const targets: Record<string, CourtPos> = {
+      [TEAMS[this.server][idx].id]: setup.server,
+      [TEAMS[this.server][1 - idx].id]: setup.partner,
+      [TEAMS[recvSide][setup.receiverIdx].id]: setup.receiver,
+      [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
+    };
+    const server = TEAMS[this.server][idx];
+    this.setActive(null);
+    this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
+    this.movePlayers(targets, 550, () => {
+      this.setBall(setup.server.x, setup.server.z, HIT_HEIGHT_M);
+      this.serveTurn();
     });
   }
 
-  private pointTo(side: SideIndex): void {
-    const res = awardPoint(this.matchScore, side);
+  private serveTurn(): void {
+    const st = this.point;
+    const server = TEAMS[st.servingSide][st.serverIdx];
+    this.setActive(server.id);
+    const tag = st.attempt === 2 ? ' (2nd serve)' : '';
+
+    if (st.servingSide === 0) {
+      this.showButtons(
+        `${server.name}: serve${tag}`,
+        shotsOfKind('serve').map((s) => ({
+          label: `${s.name}\n[${s.cost}]${this.guts[server.id] < s.cost ? ' tired' : ''}`,
+          tone: this.toneFor(s, server),
+          onPick: () => this.performServe(s),
+        })),
+      );
+    } else {
+      this.say(`${server.name} serves${tag}.`);
+      const shot = pickServe(TEAMS, st, Math.random);
+      this.time.delayedCall(700, () => this.performServe(shot));
+    }
+  }
+
+  private hitTurn(): void {
+    const st = this.point;
+    const side = st.holder;
+    const hitter = TEAMS[side][st.hitterIdx];
+    this.setActive(hitter.id);
+
+    if (side === 0) {
+      this.showShotMenu();
+    } else {
+      this.say(`${hitter.name} is ready to hit.`);
+      const { shot, direction } = pickHit(TEAMS, st, Math.random);
+      this.time.delayedCall(700, () => this.performHit(shot, direction));
+    }
+  }
+
+  private showShotMenu(): void {
+    const st = this.point;
+    const hitter = TEAMS[0][st.hitterIdx];
+    const kind = st.hits === 0 ? 'return' : 'rally';
+    this.showButtons(
+      `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()})`,
+      shotsOfKind(kind).map((s) => ({
+        label: `${s.name}\n[${s.cost}]${this.guts[hitter.id] < s.cost ? ' tired' : ''}`,
+        tone: this.toneFor(s, hitter),
+        onPick: () => (s.fixedDirection ? this.performHit(s, s.fixedDirection) : this.showDirectionMenu(s)),
+      })),
+    );
+  }
+
+  private showDirectionMenu(shot: ShotDef): void {
+    const st = this.point;
+    const hitter = TEAMS[0][st.hitterIdx];
+    const parallelTarget = TEAMS[1][st.hitterIdx].name;
+    const crossTarget = TEAMS[1][1 - st.hitterIdx].name;
+    const targetName: Record<Direction, string> = { parallel: parallelTarget, cross: crossTarget, middle: 'both' };
+
+    const items: ButtonSpec[] = DIRECTION_ORDER.map((d) => ({
+      label: `${DIRECTIONS[d].name.toUpperCase()}\n-> ${targetName[d]}`,
+      tone: 'normal' as Tone,
+      onPick: () => this.performHit(shot, d),
+    }));
+    items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
+    this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items);
+  }
+
+  private performServe(shot: ShotDef): void {
+    const { state, step } = stepServe(TEAMS, this.point, shot, Math.random);
+    this.playStep(step, state);
+  }
+
+  private performHit(shot: ShotDef, direction: Direction): void {
+    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random);
+    this.playStep(step, state);
+  }
+
+  /** Animates one step (ball flight, hop, movement), then decides what happens next. */
+  private playStep(step: Step, next: PointState): void {
+    const attacker = TEAMS[step.side][step.attackerIdx];
+    const defender = TEAMS[other(step.side)][step.defenderIdx];
+    this.guts = { ...next.guts };
+    this.refreshGuts();
+
+    const landX =
+      step.kind === 'serve'
+        ? laneSign(step.defenderIdx) * (step.shot.landX ?? 3)
+        : landingX(step.direction, step.defenderIdx);
+    const flight = buildFlight({
+      from: { ...this.pos[attacker.id] },
+      hitterSide: step.side,
+      shot: step.shot,
+      landX,
+      target: { ...this.pos[defender.id] },
+      outcome: step.outcome,
+    });
+    const duration = flightDuration(flight);
+
+    const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
+    const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
+    this.say(headline);
+    sfx('hit');
+    this.hop(attacker.id);
+
+    // After a good serve or a returned ball everybody takes up the new formation.
+    if (step.outcome === 'in' || step.outcome === 'continue') {
+      this.movePlayers(this.rallyTargets(next), duration);
+    }
+
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration,
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const p = ballPoint(flight, tween.getValue() ?? 0);
+        this.setBall(p.x, p.z, p.h);
+      },
+      onComplete: () => this.afterStep(step, next, headline),
+    });
+  }
+
+  private afterStep(step: Step, next: PointState, headline: string): void {
+    const attacker = TEAMS[step.side][step.attackerIdx];
+    const defender = TEAMS[other(step.side)][step.defenderIdx];
+    this.point = next;
+
+    const endPoint = (text: string, delay = 1300): void => {
+      this.say(`${headline}\n${text}`);
+      this.time.delayedCall(delay, () => this.endPoint(step.pointWinner as SideIndex));
+    };
+
+    switch (step.outcome) {
+      case 'fault':
+        this.say(`${headline}\nFAULT! Second serve.`);
+        this.time.delayedCall(1000, () => this.serveTurn());
+        break;
+      case 'double-fault':
+        endPoint('DOUBLE FAULT!');
+        break;
+      case 'ace':
+        endPoint('ACE!');
+        break;
+      case 'in':
+        this.say(`${headline}\n${defender.name} has to return it.`);
+        this.time.delayedCall(800, () => this.hitTurn());
+        break;
+      case 'winner':
+        endPoint(`${attacker.name} wins the point with a winner!`);
+        break;
+      case 'error':
+        endPoint(`${attacker.name} hits the net. Error!`);
+        break;
+      case 'intercept':
+        endPoint(`${defender.name} reads it and wins the point!`);
+        break;
+      case 'continue':
+        this.say(`${headline}\nThe rally goes on...`);
+        this.time.delayedCall(800, () => this.hitTurn());
+        break;
+    }
+  }
+
+  private endPoint(winner: SideIndex): void {
+    this.guts = { ...this.point.guts };
+    const res = awardPoint(this.matchScore, winner);
     this.matchScore = res.score;
 
     for (const p of TEAMS.flat()) {
@@ -409,50 +607,30 @@ export class MatchScene extends Phaser.Scene {
     this.refreshScore();
     this.refreshGuts();
     sfx('point');
+    this.clearMenu();
 
     if (this.matchScore.winner !== null) {
       this.endMatch(this.matchScore.winner);
       return;
     }
     if (res.gameWon) {
-      this.server = this.server === 0 ? 1 : 0;
-      this.say(`Game to ${SIDE_NAME[side]}!`);
-      this.time.delayedCall(1300, () => this.startPoint());
+      this.server = other(this.server);
+      this.serverIdx[this.server] = 1 - this.serverIdx[this.server];
+      this.say(`Game to ${SIDE_NAME[winner]}!`);
+      this.time.delayedCall(1300, () => this.beginPoint());
     } else {
-      this.say(`Point to ${SIDE_NAME[side]}.`);
-      this.time.delayedCall(900, () => this.startPoint());
+      this.say(`Point to ${SIDE_NAME[winner]}.`);
+      this.time.delayedCall(900, () => this.beginPoint());
     }
   }
 
   private endMatch(winner: SideIndex): void {
     this.clearMenu();
+    this.setActive(null);
     updateSave((d) => recordResult(d, winner === 0));
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
     this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games }));
-  }
-
-  // ---------- CPU ----------
-
-  private cpuPickMove(hitter: PlayerDef): MoveDef {
-    const affordable = MOVES.filter((m) => m.cost <= this.guts[hitter.id]);
-    const pool = affordable.length > 0 ? affordable : MOVES.filter((m) => m.cost === 0);
-    const weights = pool.map((m) => hitter.stats[m.stat] * m.power);
-    const total = weights.reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total;
-    for (let i = 0; i < pool.length; i++) {
-      roll -= weights[i];
-      if (roll <= 0) return pool[i];
-    }
-    return pool[pool.length - 1];
-  }
-
-  private cpuPickResponse(defender: PlayerDef, move: MoveDef): ResponseDef {
-    const affordable = RESPONSES.filter((r) => r.cost <= this.guts[defender.id]);
-    const pool = affordable.length > 0 ? affordable : RESPONSES.filter((r) => r.cost === 0);
-    const counters = pool.filter((r) => move.counteredBy.includes(r.id));
-    const list = counters.length > 0 && Math.random() < 0.4 ? counters : pool;
-    return list[Math.floor(Math.random() * list.length)];
   }
 }

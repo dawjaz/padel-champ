@@ -48,5 +48,11 @@ the internals of `sfx()` later without touching scenes.
 ## 2026-11-19: Save data in localStorage behind `src/save.ts`
 Defensive parsing, works without storage. Same code runs in the browser and in a Capacitor WebView.
 
+## 2026-11-19: Shots as data, point as a pure state machine
+Every serve/return/rally shot is an entry in `src/data/shots.json`; direction modifiers are in `directions.json`.
+`src/game/point.ts` (`stepServe`, `stepHit`) is pure and immutable, with an injected `rng`; the scene only animates
+the returned `Step`. Rulo has `fixedDirection: cross`. Walls only affect the animation for now (the ball path),
+not the maths. Balance was tuned by simulation, constants live at the top of `engine.ts`.
+
 ## Secrets
 Android keystore, Apple certificates and `.env` files are git-ignored. Back them up in a password manager.
