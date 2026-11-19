@@ -1,5 +1,7 @@
 name: Deploy web build to GitHub Pages
 
+# Publishes the game from `main` at the site root, and (if the branch exists and builds) the experimental
+# 128-bit/HD look from `style/hd` under /hd/. A broken HD branch never blocks the main site.
 on:
   push:
     branches: [main]
@@ -19,16 +21,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+      - id: hd_checkout
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: style/hd
+          path: hd
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install
+        working-directory: site
       - run: npm test
+        working-directory: site
       - run: npm run build
+        working-directory: site
+      - id: hd_build
+        if: steps.hd_checkout.outcome == 'success'
+        continue-on-error: true
+        working-directory: hd
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Add the HD build under /hd/
+        if: steps.hd_build.outcome == 'success'
+        run: |
+          mkdir -p site/dist/hd
+          cp -r hd/dist/. site/dist/hd/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site/dist
 
   deploy:
     needs: build
