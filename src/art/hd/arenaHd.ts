@@ -59,8 +59,6 @@ function drawStands(g: Ctx, rnd: () => number): void {
 
   const shirts = ['#3b3f7a', '#7a3b5f', '#2f6f86', '#8a7a3a', '#7d3a3a', '#3a6a4a', '#9a9ab8', '#5a3a8a'];
   const skins = ['#f1c9a5', '#d9a273', '#b9774a', '#8a5530', '#5c3920', '#f4d6bd'];
-  const blur = 'filter' in g;
-  if (blur) g.filter = 'blur(0.45px)';
   for (let row = 0; row < 6; row++) {
     const y = 26 + row * 12;
     const r = 2 + row * 0.18;
@@ -79,7 +77,6 @@ function drawStands(g: Ctx, rnd: () => number): void {
     }
   }
   g.globalAlpha = 1;
-  if (blur) g.filter = 'none';
   // Tier railings
   g.strokeStyle = 'rgba(160,175,215,0.25)';
   g.lineWidth = 1;
