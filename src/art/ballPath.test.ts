@@ -246,12 +246,18 @@ describe('rulo', () => {
     }
   });
 
-  it('climbs the fence and leaves over the top when it wins', () => {
-    const f = rulo('winner', 5);
-    const out = f.events.find((e) => e.kind === 'out');
-    expect(out).toBeDefined();
-    expect(Math.abs(out!.x)).toBeCloseTo(5);
-    expect(out!.h).toBeGreaterThanOrEqual(3);
+  it('comes off the mesh and stays in the court when it wins: the ball rolls out inside the court', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const f = rulo('winner', seed);
+      expect(f.events.some((e) => e.kind === 'mesh')).toBe(true);
+      expect(f.events.some((e) => e.kind === 'out')).toBe(false);
+      const c = buildCoast(f, 1.4);
+      for (const p of c.path) {
+        expect(Math.abs(p.x)).toBeLessThanOrEqual(5.001);
+        expect(p.z).toBeGreaterThanOrEqual(-0.001);
+        expect(p.z).toBeLessThanOrEqual(20.001);
+      }
+    }
   });
 
   it('comes off the mesh unpredictably when it stays in play, but always stays on the receiving half', () => {
@@ -395,5 +401,43 @@ describe('Magnus effect and lost balls', () => {
     expect(m.path[m.path.length - 1].h).toBeGreaterThan(3.1);
     const c = buildCoast(g, 0.6);
     expect(c.events.some((e) => e.kind === 'glass')).toBe(true);
+  });
+});
+
+describe('volley speed and the sweep of winners', () => {
+  it('is faster from right at the net than from mid-court', () => {
+    const v = shot('volley');
+    const from = (z: number) => buildFlight({ from: { x: -2.5, z }, startH: 1.2, hitterSide: 0, shot: v, landX: 1, outcome: 'continue' });
+    const net = from(12);
+    const mid = from(14.5);
+    const speedOf = (f: ReturnType<typeof from>) => {
+      const p1 = ballPoint(f.path, 0.02);
+      const p2 = ballPoint(f.path, 0.08);
+      const dt = (0.06 * f.duration);
+      return Math.hypot(p2.x - p1.x, p2.z - p1.z) / dt;
+    };
+    expect(speedOf(net)).toBeGreaterThan(speedOf(mid) * 1.1);
+  });
+
+  it('leaves no winner rolling to a stop outside the court unless a smash sent it over the fence', () => {
+    const problems: string[] = [];
+    for (const s of SHOTS) {
+      if (s.kind === 'return') continue;
+      for (const outcome of ['winner', 'ace'] as const) {
+        if (s.kind === 'serve' && outcome === 'winner') continue;
+        if (s.kind !== 'serve' && outcome === 'ace') continue;
+        for (const hx of [-2.5, 2.5]) {
+          for (const hitterSide of [0, 1] as const) {
+            const f = buildFlight({ from: { x: hx, z: hitterSide === 0 ? 15 : 5 }, startH: 1.2, hitterSide, shot: s, landX: -hx, outcome, receive: 'wall', seed: 3 });
+            const c = buildCoast(f, s.flight.spin);
+            const end = c.path[c.path.length - 1];
+            const outside = Math.abs(end.x) > 5.05 || end.z < -0.05 || end.z > 20.05;
+            const leftOver = f.events.some((e) => e.kind === 'out') || c.events.length === 0 && false;
+            if (outside && !leftOver && s.overFence !== true) problems.push(`${s.id}/${outcome}/${hitterSide}/${hx}: ${end.x.toFixed(1)},${end.z.toFixed(1)}`);
+          }
+        }
+      }
+    }
+    expect(problems).toEqual([]);
   });
 });

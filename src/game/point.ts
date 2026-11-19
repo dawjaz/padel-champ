@@ -7,6 +7,8 @@ import type { BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQ
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
 /** Share of lobs that are good (deep into the court); the rest are weak (mid-court or close to the net). */
 export const LOB_DEEP_CHANCE = 0.7;
+/** A lob played from a high or a mid ball is better prepared: it goes deep more often. */
+export const LOB_DEEP_CHANCE_HIGH_BALL = 0.85;
 const DEFAULT_REBOUND: Record<Height, number> = { low: 0.3, mid: 0.4, high: 0.3 };
 
 /**
@@ -188,11 +190,12 @@ function nextBall(
   shot: ShotDef,
   pressure: number,
   rng: Rng,
+  incoming: Height = 'low',
 ): { ball: BallState; glass: boolean; arrival: Height; lob?: LobQuality; landDepth?: number } {
   let lob: LobQuality | undefined;
   let landDepth: number | undefined;
   if (isLob(shot)) {
-    lob = rng() < LOB_DEEP_CHANCE ? 'deep' : 'weak';
+    lob = rng() < (incoming === 'low' ? LOB_DEEP_CHANCE : LOB_DEEP_CHANCE_HIGH_BALL) ? 'deep' : 'weak';
     if (lob === 'weak') {
       const [lo, hi] = shot.weakDepth ?? [2.5, 5.5];
       landDepth = lo + rng() * (hi - lo);
@@ -326,7 +329,7 @@ export function stepHit(
   };
 
   if (res.outcome === 'continue') {
-    const next = nextBall(shot, res.pressure, rng);
+    const next = nextBall(shot, res.pressure, rng, state.ball.height);
     // A defender at the net blocks a flat/fast shot out of the air: it never bounces, and he plays it at about chest height.
     const block = shot.blockAtNet === true && state.formation[defSide] === 'net' && next.lob === undefined;
     if (block) {

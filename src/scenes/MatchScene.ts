@@ -19,7 +19,7 @@ import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
 import { playableShots, startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
-import type { CourtPos, Direction, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
+import type { CourtPos, Direction, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { recordResult, updateSave } from '../save';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
@@ -94,6 +94,9 @@ export class MatchScene extends Phaser.Scene {
   private ballH = HIT_HEIGHT_M;
   private coastTween: Phaser.Tweens.Tween | null = null;
   private coastRunning = false;
+  /** Big "HIGH BALL / MID BALL / LOW BALL" in the lower part of the court while the human picks a shot. */
+  private heightText!: Phaser.GameObjects.Text;
+  private heightSub!: Phaser.GameObjects.Text;
   /** Orientation and angular velocity of the ball, and when it was last turned (scene clock, ms). */
   private ballR: Mat3 = IDENTITY;
   private ballOmega: Vec3 = [0, 0, 0];
@@ -151,6 +154,21 @@ export class MatchScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0)
       .setDepth(10000);
+
+    this.heightText = this.add
+      .text(WIDTH / 2, 358, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '30px', fontStyle: 'bold', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setStroke('#000000', 6)
+      .setShadow(0, 3, '#000000', 4, true, true)
+      .setDepth(9001)
+      .setAlpha(0.92)
+      .setVisible(false);
+    this.heightSub = this.add
+      .text(WIDTH / 2, 378, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setStroke('#000000', 4)
+      .setDepth(9001)
+      .setVisible(false);
 
     this.refreshScore();
     this.refreshGuts();
@@ -636,6 +654,19 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
+  /** The height of the ball to play, big and in colour: high = green, mid = blue, low = yellow. */
+  private showHeight(height: Height, context: string): void {
+    const color: Record<Height, string> = { high: '#4dff88', mid: '#5db4ff', low: '#ffe14d' };
+    this.heightText.setText(`${height.toUpperCase()} BALL`).setColor(color[height]).setVisible(true).setScale(1.3);
+    this.tweens.add({ targets: this.heightText, scale: 1, duration: 200, ease: 'Back.easeOut' });
+    this.heightSub.setText(context.replace(/^, /, '')).setVisible(context !== '');
+  }
+
+  private hideHeight(): void {
+    this.heightText.setVisible(false);
+    this.heightSub.setVisible(false);
+  }
+
   private showShotMenu(): void {
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
@@ -652,6 +683,7 @@ export class MatchScene extends Phaser.Scene {
       tone: this.toneFor(sh, hitter),
       onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
     }));
+    this.showHeight(st.ball.height, context);
     this.showButtons(title, items);
   }
 
@@ -672,11 +704,13 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private performServe(shot: ShotDef, receive: ReceiveMode): void {
+    this.hideHeight();
     const { state, step } = stepServe(TEAMS, this.point, shot, Math.random, receive);
     this.playStep(step, state);
   }
 
   private performHit(shot: ShotDef, direction: Direction): void {
+    this.hideHeight();
     const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random);
     this.playStep(step, state);
   }

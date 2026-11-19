@@ -257,6 +257,34 @@ describe('who plays the ball, lost balls and the two bajadas', () => {
   });
 });
 
+describe('lob rules', () => {
+  it('is not offered to a player at the net', () => {
+    const lob = shot('rally_lob');
+    expect(unavailableReason(lob, rallyState({ formation: ['net', 'back'] }))).not.toBeNull();
+    expect(unavailableReason(lob, rallyState({ formation: ['mid', 'back'] }))).toBeNull();
+    expect(unavailableReason(lob, rallyState({ formation: ['back', 'back'] }))).toBeNull();
+  });
+
+  it('goes deep more often from a high or mid ball than from a low one', () => {
+    const share = (height: 'high' | 'mid' | 'low'): number => {
+      let deep = 0;
+      let n = 0;
+      for (let seed = 1; seed <= 1500; seed++) {
+        const st = rallyState({ formation: ['back', 'back'], ball: { height, pressure: 0, zone: 'mid' } });
+        const r = stepHit(TEAMS, st, shot('rally_lob'), 'cross', seededRng(seed));
+        if (r.step.outcome !== 'continue') continue;
+        n++;
+        if (r.step.lob === 'deep') deep++;
+      }
+      return deep / n;
+    };
+    expect(share('high')).toBeGreaterThan(0.8);
+    expect(share('mid')).toBeGreaterThan(0.8);
+    expect(share('low')).toBeLessThan(0.78);
+    expect(share('low')).toBeGreaterThan(0.62);
+  });
+});
+
 describe('aim points', () => {
   it('picks one of 10 x points per direction and 20 depths', () => {
     const xs = new Set<number>();

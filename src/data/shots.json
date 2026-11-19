@@ -336,6 +336,13 @@
       "net": 0.2,
       "glass": 0.45,
       "mesh": 0.35
+    },
+    "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
+      "hint": "not from the net"
     }
   },
   {
@@ -361,7 +368,8 @@
       "apex": 0,
       "spin": -0.2,
       "wallKick": 1.0,
-      "side": 0.2
+      "side": 0.2,
+      "netBoost": 0.3
     },
     "requires": {
       "glass": false,

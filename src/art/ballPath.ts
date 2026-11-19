@@ -154,7 +154,14 @@ export function magnus(shot: ShotDef, dx: number, dz: number): { g: number; lx: 
 }
 
 /** Ballistic arc from `from` (at height h0) to the floor at `to`, as fast as `speed` allows while still clearing the net. */
-function solveArc(from: Vec, to: { x: number; z: number }, speed: number, apex: number, mag?: { g: number; lx: number; lz: number }): Arc {
+function solveArc(
+  from: Vec,
+  to: { x: number; z: number },
+  speed: number,
+  apex: number,
+  mag?: { g: number; lx: number; lz: number },
+  clearance = NET_CLEARANCE,
+): Arc {
   const g = mag?.g ?? GRAVITY;
   const dx = to.x - from.x;
   const dz = to.z - from.z;
@@ -163,7 +170,7 @@ function solveArc(from: Vec, to: { x: number; z: number }, speed: number, apex: 
   // Enough loft to clear the net.
   const f = dz !== 0 ? (NET_Z - from.z) / dz : -1;
   if (f > 0.02 && f < 0.98) {
-    const need = NET_HEIGHT_M + NET_CLEARANCE - from.h * (1 - f);
+    const need = NET_HEIGHT_M + clearance - from.h * (1 - f);
     if (need > 0) T = Math.max(T, Math.sqrt((2 * need) / (g * f * (1 - f))));
   }
   // A lob: arc at least `apex` metres high (apex above the chord is about g T^2 / 8).
@@ -527,7 +534,12 @@ export function buildFlight(o: FlightOpts): Flight {
   const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
   const depth = o.landDepth ?? o.shot.landDepth;
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
-  const arc = solveArc(from, land, fl.speed, fl.apex, magnus(o.shot, land.x - from.x, land.z - from.z));
+  // A volley from right at the net is much faster than one from mid-court (full boost within 2 m, none from 4.5 m).
+  const close = clamp((4.5 - Math.abs(o.from.z - NET_Z)) / 2.5, 0, 1);
+  const speed = fl.speed * (1 + (fl.netBoost ?? 0) * close);
+  // A fast volley from the net skims over the tape; every other ball clears it comfortably.
+  const clearance = NET_CLEARANCE - 0.09 * (fl.netBoost ? close : 0);
+  const arc = solveArc(from, land, speed, fl.apex, magnus(o.shot, land.x - from.x, land.z - from.z), clearance);
   sampleArc(from, arc, 0);
   // A ball that is played out of the air (a block at the net, or a weak lob taken overhead) ends where it is hit.
   if ((o.block || o.airHit) && (o.outcome === 'continue' || o.outcome === 'in')) {
@@ -577,7 +589,8 @@ export function buildFlight(o: FlightOpts): Flight {
   const arrival = o.arrival ?? o.shot.out;
   const hitHeight = ARRIVAL_HEIGHT[arrival];
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
-  const exits = winning && (o.shot.wall === 'fence' || o.shot.overFence === true);
+  // Only a smash can leave the court over the fence. A rulo that comes off the mesh stays in the court.
+  const exits = winning && o.shot.wall !== 'fence' && o.shot.overFence === true;
   const run = (boost: number, carry = 1): ReturnType<typeof simulateAfterBounce> =>
     simulateAfterBounce(touch, arc.T, {
       shot: o.shot,

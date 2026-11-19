@@ -74,6 +74,52 @@ export function sfx(name: SfxName): void {
 
 export type ImpactKind = 'racket' | 'floor' | 'glass' | 'mesh' | 'net';
 
+// Real recordings: the files listed in public/assets/audio/sfx/manifest.json are used when there are any (several per kind are
+// chosen at random); otherwise the synthesised sounds below play. See docs/ASSETS.md.
+const sampleBuffers: Partial<Record<ImpactKind, AudioBuffer[]>> = {};
+let samplesRequested = false;
+
+function loadSamples(c: AudioContext): void {
+  if (samplesRequested) return;
+  samplesRequested = true;
+  const base = new URL('assets/audio/sfx/', document.baseURI).href;
+  void (async () => {
+    try {
+      const res = await fetch(`${base}manifest.json`);
+      if (!res.ok) return;
+      const manifest = (await res.json()) as Partial<Record<ImpactKind, string[]>>;
+      for (const kind of Object.keys(manifest) as ImpactKind[]) {
+        for (const file of manifest[kind] ?? []) {
+          try {
+            const data = await (await fetch(base + file)).arrayBuffer();
+            const buffer = await c.decodeAudioData(data);
+            (sampleBuffers[kind] ??= []).push(buffer);
+          } catch {
+            // a missing or broken file is skipped
+          }
+        }
+      }
+    } catch {
+      // no manifest: synthesised sounds only
+    }
+  })();
+}
+
+/** Plays a recording: louder and a little higher for a harder hit, with a small random change so repeats do not sound identical. */
+function playSample(c: AudioContext, kind: ImpactKind, power: number): boolean {
+  const list = sampleBuffers[kind];
+  if (!list || list.length === 0) return false;
+  const src = c.createBufferSource();
+  src.buffer = list[Math.floor(Math.random() * list.length)];
+  src.playbackRate.value = (0.92 + 0.2 * power) * (0.97 + Math.random() * 0.06);
+  const g = c.createGain();
+  g.gain.value = 0.2 + 0.8 * power;
+  src.connect(g);
+  g.connect(c.destination);
+  src.start();
+  return true;
+}
+
 let noiseBuffer: AudioBuffer | null = null;
 
 function noise(c: AudioContext): AudioBuffer {
@@ -137,6 +183,8 @@ export function impactSound(kind: ImpactKind, power: number): void {
     if (!c) return;
     if (c.state === 'suspended') void c.resume();
     const p = Math.max(0.05, Math.min(1, power));
+    loadSamples(c);
+    if (playSample(c, kind, p)) return;
     const jitter = 0.94 + Math.random() * 0.12;
     switch (kind) {
       case 'racket':

@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.14)_
+_Last updated: 2026-11-19 (v0.15)_
+
+## v0.15: ball height banner, lob/net rules, rulo stays in court, sound samples
+- **Height banner**: big HIGH (green) / MID (blue) / LOW (yellow) BALL text in the lower court while the human chooses a shot.
+- **Lob**: 85% deep from a high or mid ball (70% from a low one); not offered at the net (`requires.formations`).
+- **Volley** gets `flight.netBoost` 0.3: +30% speed right at the net (within 2 m, none from 4.5 m) and a lower net clearance there.
+- **Rulo winner** no longer climbs out of the court: it comes off the mesh unpredictably and the free ball stays inside the court.
+- **Sounds**: `audio.ts` now plays real recordings listed in `public/assets/audio/sfx/manifest.json` and falls back to the synthesis.
+  **No recordings are in the repo yet**: the sandbox has no internet access to download any. Drop CC0 files in and fill the manifest
+  (see docs/ASSETS.md).
 
 ## v0.14: Magnus flight, bajada speeds, lost-ball variety, nearest partner, ball never stops
 - **Magnus effect** (`magnus()` in ballPath): topspin raises the effective gravity (steeper dip), backspin lowers it (float), side spin bows the
