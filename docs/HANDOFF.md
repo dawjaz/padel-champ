@@ -1,6 +1,20 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.8)_
+_Last updated: 2026-11-19 (v0.9)_
+
+## v0.9: rulo physics, player animation, labels removed
+- Removed the GLASS/MESH text labels on the near back wall (the faint wall and the dashed 3 m line stay).
+- Rulo (`rulo` in shots.json: `edgeX` 4.55, `landDepth` 4.2): the ball bounces on the floor right beside the side fence,
+  in the mesh-only part of the wall (z 4-10 from the back), then hits the mesh. Clean + winner: it climbs the fence and
+  leaves over the top. Clean + in play: unpredictable bounce off the loose mesh (random speed, sideways, sometimes back;
+  `seed` in `buildFlight`, visual only, kept on the receiving half). Mishit (`error`): straight into the mesh with no
+  bounce, drops dead. Based on how the real shot works (topspin ball played at the side fence).
+- Player animation: 12 poses in `art/character.ts` (`PoseName`: ready, runA/B, fh/bh/smash x Prep/Hit/Follow). The sprite
+  is now 56 px wide (racket reach). `art/stance.ts` (tested) picks forehand/backhand/overhead from where the ball lands
+  (racket in the right hand: screen right for the near team, left for the far team) and where the player stands.
+  MatchScene: running (two leg poses) while moving, the player stands beside the ball in the prep pose while you pick the
+  shot, then the stroke (hit, follow-through; overhead shots with a jump); the server tosses (smashPrep). A defender who
+  cannot reach a winner lunges late.
 
 ## v0.8: stylized 2D/3D look is now the main version
 - The owner chose the faux-3D look (see docs/3D.md). `main` now has it; the HD pipeline (720x1280 canvas, `HD_SCALE`,

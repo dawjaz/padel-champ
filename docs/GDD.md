@@ -60,6 +60,8 @@ automatically from their stats.
   into the back glass, with spin it kicks high towards the side glass/mesh; a skilled hit leaves over the fence (winner),
   otherwise it stays in play. *Przez 4* (x4): hard into the court; a winning hit flies over the back glass, otherwise it
   comes back off the glass or the mesh. Mid-court happens after a short lob (one that did not beat its defender).
+- **Rulo**: topspin ball that bounces right beside the side fence and then hits the mesh. Clean: it comes off the mesh
+  unpredictably, or climbs the fence and leaves over the top (winner). Mishit: straight into the mesh, an error.
 - **Bandeja** (v0.7) is the answer to a lob you had time for (the lob did not rush you); it is greyed out otherwise.
 - Later: **Bajada** (conditions to be defined with the owner).
 

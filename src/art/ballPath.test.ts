@@ -71,7 +71,7 @@ describe('buildFlight: general', () => {
       const net = f.events.find((e) => e.kind === 'net')!;
       expect(Math.abs(net.z - 10)).toBeLessThan(0.5);
       expect(net.h).toBeLessThan(0.92);
-      expect(f.path[f.path.length - 1].h).toBe(0);
+      expect(f.path[f.path.length - 1].h).toBeCloseTo(0);
     }
   });
 
@@ -229,5 +229,48 @@ describe('smash', () => {
         expect(f.hit.z).toBeLessThan(10);
       }
     }
+  });
+});
+
+describe('rulo', () => {
+  const rulo = (outcome: FlightOutcome, seed: number) => fly('rulo', { startH: 1.5, landX: 4.55, outcome, seed });
+
+  it('bounces on the floor beside the side fence first, then hits the mesh', () => {
+    for (const outcome of ['continue', 'winner'] as const) {
+      const f = rulo(outcome, 3);
+      const kinds = f.events.map((e) => e.kind);
+      expect(kinds[0], outcome).toBe('bounce');
+      expect(kinds[1], outcome).toBe('mesh');
+      expect(Math.abs(f.events[0].x)).toBeGreaterThan(4.3);
+      expect(f.events[0].h).toBe(0);
+    }
+  });
+
+  it('climbs the fence and leaves over the top when it wins', () => {
+    const f = rulo('winner', 5);
+    const out = f.events.find((e) => e.kind === 'out');
+    expect(out).toBeDefined();
+    expect(Math.abs(out!.x)).toBeCloseTo(5);
+    expect(out!.h).toBeGreaterThanOrEqual(3);
+  });
+
+  it('comes off the mesh unpredictably when it stays in play, but always stays on the receiving half', () => {
+    const spots = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) {
+      const f = rulo('continue', seed);
+      expect(f.events.some((e) => e.kind === 'out')).toBe(false);
+      expect(f.hit.z).toBeLessThan(10);
+      expect(f.hit.z).toBeGreaterThan(0);
+      spots.add(`${Math.round(f.hit.x)}:${Math.round(f.hit.z)}`);
+    }
+    expect(spots.size).toBeGreaterThan(5);
+  });
+
+  it('goes straight into the mesh and drops dead when it is mishit', () => {
+    const f = rulo('error', 1);
+    expect(f.events.map((e) => e.kind)).toEqual(['mesh']);
+    expect(f.events[0].h).toBeGreaterThan(1);
+    expect(f.path[f.path.length - 1].h).toBeCloseTo(0);
+    expect(Math.abs(f.hit.x)).toBeGreaterThan(4.5);
   });
 });

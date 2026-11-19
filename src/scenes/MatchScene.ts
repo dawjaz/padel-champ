@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M, type FlightEvent } from '../art/ballPath';
 import { project } from '../art/camera';
 import { SPRITE_H } from '../art/character';
+import { poseOf, type PoseName, type Stance } from '../art/character';
 import { ensureCharacterTexture } from '../art/characterTexture';
+import { chooseStance, standingSpot } from '../art/stance';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { sfx } from '../audio';
@@ -50,6 +52,9 @@ interface PlayerView {
   side: SideIndex;
   /** Jump height in pixels (animated by the hit "hop"). */
   lift: number;
+  pose: PoseName;
+  /** The player is playing a stroke (swing animation) until this time (ms), so running must not overwrite it. */
+  busyUntil: number;
 }
 
 interface ButtonSpec {
@@ -74,6 +79,8 @@ export class MatchScene extends Phaser.Scene {
   private menu: Phaser.GameObjects.GameObject[] = [];
   private views: Record<string, PlayerView> = {};
   private pos: Record<string, CourtPos> = {};
+  /** How each player is set up for the next stroke (chosen when they run to the ball). */
+  private stance: Record<string, Stance> = {};
   private activeId: string | null = null;
   private ballFloor: CourtPos = { x: 0, z: NET_Z };
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
@@ -159,7 +166,7 @@ export class MatchScene extends Phaser.Scene {
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke('#000000', 3)
           .setDepth(9000);
-        this.views[player.id] = { sprite, label, player, side, lift: 0 };
+        this.views[player.id] = { sprite, label, player, side, lift: 0, pose: 'ready', busyUntil: 0 };
         this.placeView(player.id);
       });
     });
@@ -258,23 +265,52 @@ export class MatchScene extends Phaser.Scene {
     this.tweens.add({ targets: t, alpha: 0, delay: 600, duration: 260, onComplete: () => t.destroy() });
   }
 
-  private hop(id: string): void {
+  private hop(id: string, height = 8): void {
     const v = this.views[id];
     this.tweens.add({
       targets: v,
-      lift: 8,
-      duration: 110,
+      lift: height,
+      duration: height > 10 ? 150 : 110,
       yoyo: true,
       ease: 'Quad.easeOut',
       onUpdate: () => this.placeView(id),
     });
   }
 
-  /** Walks players to the given court positions. */
-  private movePlayers(targets: Record<string, CourtPos>, duration: number, onDone?: () => void): void {
+  /** Shows the player in a pose (a picture drawn once per look, facing and pose). */
+  private setPose(id: string, pose: PoseName): void {
+    const v = this.views[id];
+    if (v.pose === pose) return;
+    v.pose = pose;
+    v.sprite.setTexture(ensureCharacterTexture(this, v.player.appearance, v.side === 0 ? 'back' : 'front', pose));
+  }
+
+  /** The stroke: contact pose, follow-through, then back to ready. Overhead shots are played with a jump. */
+  private swing(id: string, shot: ShotDef | null): void {
+    const v = this.views[id];
+    const overhead = shot === null || shot.id.startsWith('smash_') || shot.id === 'bandeja' || shot.id === 'vibora';
+    const prep = this.stance[id];
+    const stance: Stance = overhead ? 'smash' : prep === undefined || prep === 'smash' ? 'fh' : prep;
+    v.busyUntil = this.time.now + 420;
+    this.setPose(id, poseOf(stance, 'Hit'));
+    if (stance === 'smash') this.hop(id, 13);
+    this.time.delayedCall(130, () => this.setPose(id, poseOf(stance, 'Follow')));
+    this.time.delayedCall(420, () => {
+      if (this.views[id].busyUntil <= this.time.now) this.setPose(id, 'ready');
+    });
+  }
+
+  /** Walks players to the given court positions, running (two alternating leg poses) while they move. */
+  private movePlayers(
+    targets: Record<string, CourtPos>,
+    duration: number,
+    onDone?: () => void,
+    endPose: Record<string, PoseName> = {},
+  ): void {
     const ids = Object.keys(targets);
     const starts: Record<string, CourtPos> = {};
     for (const id of ids) starts[id] = { ...this.pos[id] };
+    const running = new Set(ids.filter((id) => Math.hypot(targets[id].x - starts[id].x, targets[id].z - starts[id].z) > 0.35));
     this.tweens.addCounter({
       from: 0,
       to: 1,
@@ -282,8 +318,14 @@ export class MatchScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const t = tween.getValue() ?? 0;
+        const frame = Math.floor(this.time.now / 115) % 2 === 0;
         for (const id of ids) {
           this.pos[id] = { x: lerp(starts[id].x, targets[id].x, t), z: lerp(starts[id].z, targets[id].z, t) };
+          const v = this.views[id];
+          if (running.has(id) && t < 0.97 && this.time.now >= v.busyUntil) {
+            this.setPose(id, frame ? 'runA' : 'runB');
+            v.lift = frame ? 2 : 0;
+          }
           this.placeView(id);
         }
         this.redrawOverlay();
@@ -291,6 +333,11 @@ export class MatchScene extends Phaser.Scene {
       onComplete: () => {
         for (const id of ids) {
           this.pos[id] = { ...targets[id] };
+          const v = this.views[id];
+          if (this.time.now >= v.busyUntil) {
+            if (running.has(id) || endPose[id]) this.setPose(id, endPose[id] ?? 'ready');
+            v.lift = 0;
+          }
           this.placeView(id);
         }
         this.redrawOverlay();
@@ -405,6 +452,7 @@ export class MatchScene extends Phaser.Scene {
       [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
     };
     const server = TEAMS[this.server][idx];
+    for (const id of Object.keys(this.views)) this.setPose(id, 'ready');
     this.setActive(null);
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
@@ -423,6 +471,8 @@ export class MatchScene extends Phaser.Scene {
     const server = TEAMS[st.servingSide][st.serverIdx];
     const tag = st.attempt === 2 ? ' (2nd serve)' : '';
 
+    this.stance[server.id] = 'smash';
+    this.setPose(server.id, 'smashPrep'); // the toss: racket back, other arm up
     // The ball is back in the server's hand (after a fault it lay at the net).
     this.ballH = HIT_HEIGHT_M;
     this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH, false);
@@ -568,7 +618,9 @@ export class MatchScene extends Phaser.Scene {
     const landX =
       step.kind === 'serve'
         ? laneSign(step.defenderIdx) * (step.shot.landX ?? 3)
-        : landingX(step.direction, step.defenderIdx);
+        : step.shot.edgeX !== undefined
+          ? Math.sign(landingX(step.direction, step.defenderIdx) || 1) * step.shot.edgeX
+          : landingX(step.direction, step.defenderIdx);
     const flight = buildFlight({
       from: { ...this.pos[attacker.id] },
       startH: this.ballH,
@@ -577,6 +629,7 @@ export class MatchScene extends Phaser.Scene {
       landX,
       outcome: step.outcome,
       receive: step.receive,
+      seed: Math.floor(Math.random() * 1e9),
     });
     const duration = flightDuration(flight);
 
@@ -584,21 +637,28 @@ export class MatchScene extends Phaser.Scene {
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
     this.say(headline);
     sfx('hit');
-    this.hop(attacker.id);
+    this.swing(attacker.id, step.kind === 'serve' ? null : step.shot);
 
     // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who
     // has to play the ball runs to the spot where it will be hit (after the bounce, or after the glass).
     const out = step.outcome;
     const targets: Record<string, CourtPos> = {};
+    const endPose: Record<string, PoseName> = {};
     if (out === 'in' || out === 'continue' || out === 'intercept') {
       Object.assign(targets, this.rallyTargets(next));
-      targets[defender.id] = flight.hit;
+      // The player who has to play the ball picks a stance and stands beside the ball's landing spot.
+      const stance = chooseStance(other(step.side), this.pos[defender.id].x, flight.hit.x, flight.hitH);
+      this.stance[defender.id] = stance;
+      targets[defender.id] = standingSpot(other(step.side), stance, flight.hit);
+      endPose[defender.id] = poseOf(stance, 'Prep');
     } else if (out === 'winner' || out === 'ace') {
       // The defender runs for it but cannot get there.
       const d = this.pos[defender.id];
       targets[defender.id] = { x: lerp(d.x, flight.hit.x, 0.55), z: lerp(d.z, flight.hit.z, 0.55) };
+      // ...and lunges for it a moment too late.
+      endPose[defender.id] = poseOf(chooseStance(other(step.side), d.x, flight.hit.x, flight.hitH), 'Hit');
     }
-    this.movePlayers(targets, duration);
+    this.movePlayers(targets, duration, undefined, endPose);
     for (const e of flight.events) {
       const when = flight.duration > 0 ? (e.t / flight.duration) * duration : 0;
       this.time.delayedCall(when, () => this.impactFx(e));
@@ -665,7 +725,11 @@ export class MatchScene extends Phaser.Scene {
         );
         break;
       case 'error':
-        endPoint(`${attacker.name} hits the net. Error!`);
+        endPoint(
+          step.shot.wall === 'fence'
+            ? `${attacker.name} mishits the rulo straight into the fence. Error!`
+            : `${attacker.name} hits the net. Error!`,
+        );
         break;
       case 'intercept':
         endPoint(`${defender.name} reads it and wins the point!`);

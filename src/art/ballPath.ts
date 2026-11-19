@@ -54,6 +54,8 @@ export interface FlightOpts {
   outcome: FlightOutcome;
   /** For a serve to the side glass: take it after the bounce or after the glass. Default 'wall'. */
   receive?: ReceiveMode;
+  /** Seed for the unpredictable bounce off the mesh (rulo). Visual only: the game outcome never depends on it. */
+  seed?: number;
 }
 
 export interface Flight {
@@ -164,6 +166,24 @@ interface SimOpts {
   exitOverFence: boolean;
   /** Extra liveliness of the floor bounce and the wall kick (1 = normal): a winning smash is hit with more spin and pace. */
   boost?: number;
+  /** Random numbers for the unpredictable bounce off the mesh. */
+  rand: () => number;
+  /** Rulo: the ball bounces beside the side fence and hits the mesh; the bounce off the mesh is unpredictable. */
+  rulo: boolean;
+  /** Keeps the ball on the receiving half (only used while a rulo bounces unpredictably). */
+  zRange?: [number, number];
+}
+
+/** Small seeded generator (mulberry32) so a flight is reproducible for a seed. */
+function makeRand(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /** Simulates the ball from its first bounce on. Returns samples, events and where it is played. */
@@ -186,6 +206,8 @@ function simulateAfterBounce(
   let t = t0;
   let bounces = 0;
   let kicked = false;
+  let climbing = false;
+  let chaos = false;
 
   const floorBounce = (): void => {
     h = 0;
@@ -228,22 +250,60 @@ function simulateAfterBounce(
     if (Math.abs(x) >= 5) {
       const mat = sideWallMaterial(z, h);
       const sign = Math.sign(x);
-      if (mat === 'out' || (mat === 'mesh' && o.exitOverFence)) {
+      const meshHit = mat === 'mesh';
+      if (o.rulo && o.exitOverFence && meshHit && !climbing && h < 2.2) {
+        // A clean winning rulo: the topspin ball climbs the fence and goes out over the top.
+        climbing = true;
+        x = sign * 5;
+        vx = 0;
+        vy = Math.max(vy, 8.5);
+        vz *= 0.6;
+        if (firstContact < 0) firstContact = samples.length;
+        events.push({ kind: 'mesh', t, x, z, h });
+      } else if (climbing && mat !== 'out') {
+        x = sign * 4.98;
+        vx = sign * 0.5;
+        vz = 0;
+      } else if (mat === 'out' || (meshHit && o.exitOverFence && !o.rulo)) {
         x = sign * 5;
         samples.push({ t, x, z, h });
         events.push({ kind: 'out', t, x, z, h });
         end = samples.length - 1;
         break;
+      } else if (o.rulo && meshHit && !chaos) {
+        // A rulo that stays in play: the ball hits the loose mesh and comes off it unpredictably
+        // (slowly, sideways, sometimes back towards the hitter), never like off the glass.
+        chaos = true;
+        x = sign * 5;
+        const r1 = o.rand();
+        const r2 = o.rand();
+        const r3 = o.rand();
+        vx = -vx * (0.1 + 0.8 * r1);
+        vz *= -0.5 + 1.6 * r2;
+        vy = vy * 0.5 + 0.8 + 3.2 * r3;
+        kicked = true;
+        if (firstContact < 0) firstContact = samples.length;
+        events.push({ kind: 'mesh', t, x, z, h });
+      } else {
+        x = sign * 5;
+        const glass = mat === 'glass';
+        vx = -vx * (glass ? GLASS_E : MESH_E);
+        const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
+        vz *= along;
+        vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7);
+        kicked = true;
+        if (firstContact < 0) firstContact = samples.length;
+        events.push({ kind: mat, t, x, z, h });
       }
-      x = sign * 5;
-      const glass = mat === 'glass';
-      vx = -vx * (glass ? GLASS_E : MESH_E);
-      const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
-      vz *= along;
-      vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7);
-      kicked = true;
-      if (firstContact < 0) firstContact = samples.length;
-      events.push({ kind: mat, t, x, z, h });
+    }
+    if (chaos && o.zRange) {
+      if (z < o.zRange[0]) {
+        z = o.zRange[0];
+        vz = Math.abs(vz) * 0.3;
+      } else if (z > o.zRange[1]) {
+        z = o.zRange[1];
+        vz = -Math.abs(vz) * 0.3;
+      }
     }
     // Back walls (both ends)
     if (z <= 0 || z >= 20) {
@@ -335,17 +395,20 @@ export function buildFlight(o: FlightOpts): Flight {
     }
   };
 
-  // A fault or an unforced error: the ball dies in the net.
+  // A fault or an unforced error: the ball dies in the net. A rulo that is not hit cleanly goes straight into the
+  // side mesh instead (no bounce first) and drops down dead.
   if (o.outcome === 'fault' || o.outcome === 'double-fault' || o.outcome === 'error') {
-    const x = (o.from.x + o.landX) / 2;
-    const netZ = NET_Z - away * 0.1;
-    const dist = Math.hypot(x - from.x, netZ - from.z);
+    const fence = o.shot.wall === 'fence' && o.outcome === 'error';
+    const wallSign = o.landX < 0 ? -1 : 1;
+    const x = fence ? wallSign * 5 : (o.from.x + o.landX) / 2;
+    const tz = fence ? NET_Z + away * Math.min(o.shot.landDepth, 6) : NET_Z - away * 0.1;
+    const dist = Math.hypot(x - from.x, tz - from.z);
     const T = Math.max(0.25, dist / fl.speed);
-    const targetH = 0.55;
+    const targetH = fence ? 1.4 : 0.55;
     const a: Arc = {
       T,
       vx: (x - from.x) / T,
-      vz: (netZ - from.z) / T,
+      vz: (tz - from.z) / T,
       vy: (targetH - from.h) / T + 0.5 * GRAVITY * T,
     };
     const steps = Math.max(2, Math.ceil(T / DT));
@@ -358,12 +421,17 @@ export function buildFlight(o: FlightOpts): Flight {
         h: Math.max(0, from.h + a.vy * t - 0.5 * GRAVITY * t * t),
       });
     }
-    events.push({ kind: 'net', t: T, x, z: netZ, h: targetH });
-    // Drops down on the hitter's side of the net.
+    events.push({ kind: fence ? 'mesh' : 'net', t: T, x, z: tz, h: targetH });
+    // Drops down dead: on the hitter's side of the net, or along the mesh.
     const fall = Math.sqrt((2 * targetH) / GRAVITY);
     for (let i = 1; i <= 8; i++) {
       const u = (fall * i) / 8;
-      path.push({ t: T + u, x, z: netZ - away * 0.05 * (i / 8), h: Math.max(0, targetH - 0.5 * GRAVITY * u * u) });
+      path.push({
+        t: T + u,
+        x: fence ? x - wallSign * 0.15 * (i / 8) : x,
+        z: fence ? tz : tz - away * 0.05 * (i / 8),
+        h: Math.max(0, targetH - 0.5 * GRAVITY * u * u),
+      });
     }
     const end = path[path.length - 1];
     return { path, hit: { x: end.x, z: end.z }, hitH: 0, events, duration: end.t };
@@ -378,6 +446,8 @@ export function buildFlight(o: FlightOpts): Flight {
   const touch = { x: land.x, z: land.z, vx: arc.vx, vz: arc.vz, vy: arc.vy - GRAVITY * arc.T };
 
   const isServe = o.shot.kind === 'serve';
+  const rulo = o.shot.wall === 'fence';
+  const rand = makeRand(o.seed ?? Math.round(Math.abs(o.from.x * 977 + o.from.z * 313 + o.landX * 131) * 1000) + 7);
   // Serves: the receiver chooses (bounce or glass) when the serve goes to the glass. Rally balls that reach a wall
   // are played after it, because a ball that is about to hit the glass cannot be taken before it.
   const needWall = isServe ? o.shot.wall !== 'none' && o.receive !== 'bounce' : true;
@@ -385,7 +455,16 @@ export function buildFlight(o: FlightOpts): Flight {
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
   const exits = winning && (o.shot.wall === 'fence' || o.shot.overFence === true);
   const run = (boost: number): ReturnType<typeof simulateAfterBounce> =>
-    simulateAfterBounce(touch, arc.T, { shot: o.shot, hitHeight, needWall, exitOverFence: exits, boost });
+    simulateAfterBounce(touch, arc.T, {
+      shot: o.shot,
+      hitHeight,
+      needWall,
+      exitOverFence: exits,
+      boost,
+      rand,
+      rulo,
+      zRange: rulo ? (o.hitterSide === 0 ? [0.4, NET_Z - 0.8] : [NET_Z + 0.8, 19.6]) : undefined,
+    });
   let sim = run(1);
   // A winning smash is hit hard enough to leave the court: spin it up until it really flies out, preferably the
   // way the shot is meant to (x4 over the back glass, x3 over the side glass or mesh), else any way.

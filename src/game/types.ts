@@ -107,6 +107,8 @@ export interface ShotDef {
   winnerMargin?: number;
   /** Smash/rulo: a winning ball flies out over the glass or the fence instead of staying in play. */
   overFence?: boolean;
+  /** Rulo: the ball lands this far from the centre line (just beside the side fence); the side comes from the direction. */
+  edgeX?: number;
   /** Where a winning overFence ball should leave the court, when it matters: over the back glass or the side wall. */
   exitVia?: 'back' | 'side';
   requires?: ShotRequires;

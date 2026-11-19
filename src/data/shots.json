@@ -325,17 +325,18 @@
     },
     "fixedDirection": "cross",
     "advance": "stay",
-    "landDepth": 6.5,
+    "landDepth": 4.2,
     "wall": "fence",
     "winnerMargin": 16,
-    "desc": "Heavy topspin, always cross into the mesh fence.",
+    "desc": "Heavy topspin: bounces right beside the side fence, then hits the mesh. Clean = it comes off unpredictably or climbs out over the fence; a mishit goes straight into the mesh.",
     "flight": {
       "speed": 25,
       "apex": 1.2,
-      "spin": 1.0,
+      "spin": 1.4,
       "wallKick": 1.0
     },
-    "overFence": true
+    "overFence": true,
+    "edgeX": 4.55
   },
   {
     "id": "smash_x3",

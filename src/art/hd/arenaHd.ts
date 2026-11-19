@@ -366,7 +366,7 @@ function drawWalls(g: Ctx): void {
 
 /**
  * The near back wall would hide the court, so it is only marked: a faint glass pane up to 3 m, a faint mesh strip
- * up to 4 m, a dashed gold line where the glass ends and the mesh begins, and two small labels.
+ * up to 4 m, and a dashed gold line where the glass ends and the mesh begins.
  */
 function drawNearWall(g: Ctx): void {
   const near: At = (x, h) => project(x, 20, h);
@@ -393,19 +393,6 @@ function drawNearWall(g: Ctx): void {
   g.setLineDash([5, 4]);
   line(g, near(-5, G), near(5, G));
   g.setLineDash([]);
-  g.font = 'bold 8px "Trebuchet MS", "Segoe UI", Arial, sans-serif';
-  g.textAlign = 'right';
-  g.textBaseline = 'bottom';
-  g.lineWidth = 2.5;
-  g.strokeStyle = 'rgba(0,0,10,0.9)';
-  const tag = (h: number, text: string, color: string): void => {
-    const q = near(5, h);
-    g.strokeText(text, q.x - 4, q.y - 1);
-    g.fillStyle = color;
-    g.fillText(text, q.x - 4, q.y - 1);
-  };
-  tag(G, 'GLASS to 3 m', '#bfe6ff');
-  tag(T, 'MESH to 4 m', '#ffe066');
   g.restore();
 }
 

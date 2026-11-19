@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appearance, HairStyle } from '../game/types';
-import { buildCharacter, expand, opPixels, SPRITE_H, SPRITE_W, type Facing } from './character';
+import { buildCharacter, expand, opPixels, POSE_NAMES, SPRITE_H, SPRITE_W, type Facing } from './character';
 import { hex } from './palette';
 
 const BASE: Appearance = {
@@ -37,6 +37,29 @@ describe('buildCharacter', () => {
         }
       }
     }
+  });
+
+  it('keeps every pose, including the racket and the outline, inside the sprite canvas', () => {
+    for (const pose of POSE_NAMES) {
+      for (const facing of FACINGS) {
+        for (const hairStyle of STYLES) {
+          for (const op of buildCharacter({ ...BASE, hairStyle }, facing, pose)) {
+            for (const r of opPixels(expand(op, 1))) {
+              const label = `${pose}/${facing}/${hairStyle}`;
+              expect(r.x, label).toBeGreaterThanOrEqual(0);
+              expect(r.y, label).toBeGreaterThanOrEqual(0);
+              expect(r.x + r.w, label).toBeLessThanOrEqual(SPRITE_W);
+              expect(r.y + r.h, label).toBeLessThanOrEqual(SPRITE_H);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('draws a different picture for every pose', () => {
+    const shapes = POSE_NAMES.map((pose) => JSON.stringify(buildCharacter(BASE, 'back', pose)));
+    expect(new Set(shapes).size).toBe(POSE_NAMES.length);
   });
 
   it('uses the appearance colours', () => {

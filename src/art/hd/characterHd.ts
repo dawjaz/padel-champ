@@ -1,5 +1,5 @@
 import type { Appearance } from '../../game/types';
-import { buildCharacter, OUTLINE_COLOR, SPRITE_H, SPRITE_W, type Facing, type Op } from '../character';
+import { buildCharacter, OUTLINE_COLOR, SPRITE_H, SPRITE_W, type Facing, type Op, type PoseName } from '../character';
 import { shade } from '../palette';
 
 /**
@@ -57,13 +57,13 @@ function fillFor(g: CanvasRenderingContext2D, op: Op, s: number): CanvasGradient
   return gr;
 }
 
-export function renderCharacterCanvas(a: Appearance, facing: Facing, s = HD_CHARACTER_SCALE): HTMLCanvasElement {
+export function renderCharacterCanvas(a: Appearance, facing: Facing, pose: PoseName = 'ready', s = HD_CHARACTER_SCALE): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = SPRITE_W * s;
   canvas.height = SPRITE_H * s;
   const g = canvas.getContext('2d');
   if (!g) throw new Error('2D canvas is not available');
-  const ops = buildCharacter(a, facing);
+  const ops = buildCharacter(a, facing, pose);
 
   // Pass 1: dark outline, every shape grown a little.
   g.fillStyle = css(OUTLINE_COLOR);
