@@ -1,7 +1,8 @@
 # Padel Champ
 
-Mobile-first (portrait, 360x640) command-based padel game in the spirit of NES-era "command soccer" games
-(think Captain Tsubasa, 1988). Runs in the browser first; Android and iOS builds come later via Capacitor.
+Mobile-first (portrait, 360x640) command-based padel game in the spirit of 8/16-bit "command soccer" games
+(think Captain Tsubasa, 1988), with a **16-bit look**, a TV-broadcast court view and comic big-head characters.
+Runs in the browser first; Android and iOS builds come later via Capacitor.
 
 **Read `docs/HANDOFF.md` first**: it says where the project stands and what to do next.
 
@@ -20,7 +21,8 @@ Mobile-first (portrait, 360x640) command-based padel game in the spirit of NES-e
 ## Structure
 - `src/game/`: pure game logic, NO Phaser imports (types, scoring, engine). Keep it that way so it stays testable.
 - `src/scenes/`: Phaser scenes (Boot, Title, Settings, Match, Result)
-- `src/config.ts`: size, title, NES palette. `src/ui.ts`: shared buttons/logo text
+- `src/art/`: camera projection, generated characters (`Appearance` -> pixels), colour helpers. Pure except `characterTexture.ts`
+- `src/config.ts`: size, title, palette. `src/ui.ts`: shared buttons/logo text
 - `src/save.ts`: save data + settings (no Phaser, tested). `src/audio.ts`: placeholder SFX via Web Audio
 - `src/assets.ts` + `public/assets/`: asset manifest and files (see docs/ASSETS.md)
 - `src/data/*.json`: players, moves, responses. Balance changes go here, not into code.

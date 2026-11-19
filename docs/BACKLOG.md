@@ -18,8 +18,18 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - Use the speed stat
 - Career mode: tournament bracket, rivals, dialogue, player upgrades
 
+## Career mode and equipment (owner request, later)
+- Earn clothes, shoes, rackets; they change looks AND raise skills/attributes
+- Open design questions: slots (racket/shoes/outfit/headband?), bonus ranges and caps, how items are earned
+  (prizes, shop, drops), rarity tiers, whether bonuses are visible in match
+- Outfit editor screen + character creator (gender, skin, hair, colours)
+- Code hook: `Appearance` in `src/game/types.ts`; add an items data file and an `effectiveStats()` in `src/game/`
+
 ## Art and audio
-- Pixel sprites for 4 players, ball, court, UI frame
+- Upgrade the generated characters: animation frames (swing, run, celebrate), more hair styles, accessories, body types
+- Proper 16-bit court art: textured floor, real ad boards, crowd, lighting; the ball needs a clearer look
+- Screen-shake / impact effects, special-move cutscenes
+- Pixel sprites for ball, court, UI frame (characters are generated for now)
 - Bundle a pixel font (e.g. an OFL-licensed one) instead of Courier New, so it also works offline in the app
 - Real chiptune music and SFX (FamiStudio, jsfxr) replacing the Web Audio beeps in `src/audio.ts`
 - App icon and splash screen

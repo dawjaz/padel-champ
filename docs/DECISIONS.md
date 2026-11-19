@@ -25,9 +25,21 @@ No Captain Tsubasa / Tecmo names, characters, art or music. Only the design idea
 `.github/workflows/pages.yml` builds and deploys on every push to `main`.
 Uses `npm install` because no `package-lock.json` was generated yet (see HANDOFF).
 
-## 2026-11-19: Name "Padel Champ 26", NES look
-Chosen by the owner. Palette in `src/config.ts`. Placeholder font is Courier New; a bundled pixel font is in the backlog
+## 2026-11-19: Name "Padel Champ 26"
+Chosen by the owner. Placeholder font is Courier New; a bundled pixel font is in the backlog
 (it needs a font file, which also keeps the mobile app working offline).
+
+## 2026-11-19: 16-bit look, broadcast camera, comic big-head characters (supersedes "NES look")
+Owner's direction, with a World Padel Tour broadcast screenshot as reference. Details in docs/GDD.md.
+- Court is a fake-3D perspective projection (`src/art/camera.ts`, pure maths, tested): world metres -> screen.
+  Not a real 3D engine: cheap, crisp, and keeps pixel art simple.
+- Characters are **generated from code** (`src/art/character.ts`): rectangles and discs on a 32x46 grid with a
+  dark outline, from an `Appearance` record (skin, hair style/colour, shirt, shorts or skirt, shoes, racket,
+  headband). Placeholder-quality but already diverse, and it lets a future character creator and equipment recolour
+  characters for free. Trade-off: no real animation frames yet (only a hop). If hand-drawn or AI-assisted sprite
+  sheets replace this, keep `Appearance` as the data model and swap the renderer.
+- Preview for checking sprites without a browser: dump ops with node, rasterise with Python PIL (done once in
+  the session that created this; not committed).
 
 ## 2026-11-19: Placeholder sound via Web Audio, no audio files yet
 `sfx(name)` generates square-wave beeps, so there is an NES-like feel with zero assets. Real chiptune replaces

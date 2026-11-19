@@ -15,6 +15,19 @@ Flow: `BootScene` -> `TitleScene` -> (`SettingsScene` | `MatchScene` -> `ResultS
   (`src/ui.ts`), palette/config (`src/config.ts`), asset manifest (`src/assets.ts`, `docs/ASSETS.md`).
 - CI deploys every push to `main` to GitHub Pages: https://dawjaz.github.io/padel-champ/ (Pages source = GitHub Actions).
 
+## v0.3: 16-bit broadcast view (this session)
+Owner changed the art direction (see docs/GDD.md "Visual direction"): 16-bit, TV-broadcast perspective,
+comic big-head characters with diverse skin/gender/outfits; equipment in career mode comes later.
+- `src/art/camera.ts`: fake-3D projection (metres -> screen), tested
+- `src/art/character.ts` + `characterTexture.ts`: generated pixel characters (front/back view), tested;
+  previewed as a PNG in the session and looked right (diverse looks, readable rackets)
+- `MatchScene` rewritten: perspective court, glass walls, net with depth sorting, ad board, crowd, sprites,
+  ball flying in an arc with a shadow, hop on hit
+- `TitleScene`: the two heroes flank the bouncing ball
+- 4 players with `appearance` in `src/data/players.json` (Toro, Mia vs Bruno, Ines)
+- NOT visually verified in a browser by the agent (sandbox cannot reach github.io). The owner should look at the
+  match view first: check court proportions, label overlap, menu fit, ball visibility.
+
 ## Verification status
 The v0.1 code passed CI (install, tests, typecheck, build). The v0.2 changes were written in a session
 without network access, so only the Phaser-free files were typechecked locally; the rest relies on CI.

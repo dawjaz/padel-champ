@@ -9,6 +9,18 @@ decide who wins the point. Pixel art, chiptune, dramatic special moves.
 NES-era command sports games: menu-driven actions, stamina points ("guts"), one-on-one duels inside a
 team match, flashy special moves, a story-driven tournament. No assets or names are reused.
 
+## Visual direction (decided by the owner, 2026-11-19)
+- **16-bit** look (SNES/Mega Drive era), not 8-bit. Richer palette, shading, outlines.
+- **Camera:** TV-broadcast view from behind the near baseline, looking down the court: perspective court,
+  glass back and side walls, net across the middle, two players per side (reference: a World Padel Tour broadcast).
+  Portrait 360x640, court in the upper half, command menu in the lower half.
+- **Characters:** comic style with big heads and small bodies. Diverse on purpose: different skin tones,
+  genders, hair styles and outfits.
+- **Career mode (later):** earn new clothes, shoes and rackets. Items change the look and **raise skills and
+  attributes**. The model is prepared: every garment/skin/hair colour is a separate field in `Appearance`
+  (`src/game/types.ts`), so items can override looks; stat bonuses are NOT implemented yet.
+- Title name: **Padel Champ 26**.
+
 ## Core loop (prototype, implemented)
 1. A point starts with the server's team holding the ball.
 2. The hitter picks a **shot** (Lob, Bandeja, Chiquita, Vibora, Bajada, Smash). Each costs guts.
@@ -28,7 +40,8 @@ Two shots are always free (Lob, Retreat), so a tired player can still act, just 
 Prototype match: first to 2 games. Serve alternates every game.
 
 ## Characters (placeholders)
-You: Toro (power), Luca (technique/speed). Rivals: Bruno (defense wall), Ivo (all-rounder).
+You: Toro (male, power) and Mia (female, technique/speed). Rivals: Bruno (male, defense wall) and Ines
+(female, all-rounder). Names and looks are placeholders. Mixed-gender pairs are allowed by the game.
 Stats are 1-10: power, technique, speed, defense. Speed is not used yet.
 
 ## Planned
@@ -37,7 +50,8 @@ Stats are 1-10: power, technique, speed, defense. Speed is not used yet.
 - Special moves per character with short cutscenes (cost: a lot of guts, big effect)
 - Career mode: tournament bracket, rivals with dialogue, upgrading players between matches
 - Save/load (localStorage on web, Capacitor Preferences on mobile)
-- Art: 8-bit palette, pixel sprites, chiptune music (FamiStudio), SFX (jsfxr)
+- Art: 16-bit pixel sprites, character animation (swing, run), chiptune/16-bit music, SFX
+- Character creator and equipment (see Visual direction)
 - Landscape support is a maybe; portrait is the primary layout
 
 ## Open questions

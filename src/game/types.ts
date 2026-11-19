@@ -1,11 +1,32 @@
 export type StatKey = 'power' | 'technique' | 'speed' | 'defense';
 
+export type Gender = 'male' | 'female';
+export type HairStyle = 'short' | 'long' | 'ponytail' | 'bun' | 'afro' | 'bald';
+
+/**
+ * How a player looks. Colours are CSS hex strings ("#rrggbb"). Every garment has its own field,
+ * so later equipment (outfits, shoes, rackets) can simply override these colours.
+ */
+export interface Appearance {
+  gender: Gender;
+  skin: string;
+  hairStyle: HairStyle;
+  hairColor: string;
+  shirt: string;
+  bottom: string;
+  bottomStyle: 'shorts' | 'skirt';
+  shoes: string;
+  racket: string;
+  headband?: string;
+}
+
 export interface PlayerDef {
   id: string;
   name: string;
   /** Stats on a 1-10 scale. */
   stats: Record<StatKey, number>;
   maxGuts: number;
+  appearance: Appearance;
 }
 
 export interface MoveDef {

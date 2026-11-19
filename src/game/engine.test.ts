@@ -2,7 +2,19 @@ import { describe, expect, it } from 'vitest';
 import movesData from '../data/moves.json';
 import responsesData from '../data/responses.json';
 import { recoverGuts, resolveExchange, spendGuts, TIRED_FACTOR } from './engine';
-import type { MoveDef, PlayerDef, ResponseDef } from './types';
+import type { Appearance, MoveDef, PlayerDef, ResponseDef } from './types';
+
+const LOOK: Appearance = {
+  gender: 'male',
+  skin: '#c68642',
+  hairStyle: 'short',
+  hairColor: '#1a1a1a',
+  shirt: '#e8554e',
+  bottom: '#2b2b5e',
+  bottomStyle: 'shorts',
+  shoes: '#f8f8f8',
+  racket: '#f2a33a',
+};
 
 const MOVES = movesData as unknown as MoveDef[];
 const RESPONSES = responsesData as unknown as ResponseDef[];
@@ -14,6 +26,7 @@ const player = (stats: Partial<PlayerDef['stats']>): PlayerDef => ({
   name: 'P',
   stats: { power: 5, technique: 5, speed: 5, defense: 5, ...stats },
   maxGuts: 10,
+  appearance: LOOK,
 });
 
 const zero = () => 0;

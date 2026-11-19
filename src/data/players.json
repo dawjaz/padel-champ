@@ -1,10 +1,76 @@
 {
   "you": [
-    { "id": "toro", "name": "Toro", "stats": { "power": 8, "technique": 5, "speed": 5, "defense": 5 }, "maxGuts": 10 },
-    { "id": "luca", "name": "Luca", "stats": { "power": 5, "technique": 8, "speed": 7, "defense": 4 }, "maxGuts": 10 }
+    {
+      "id": "toro",
+      "name": "Toro",
+      "stats": { "power": 8, "technique": 5, "speed": 5, "defense": 5 },
+      "maxGuts": 10,
+      "appearance": {
+        "gender": "male",
+        "skin": "#c68642",
+        "hairStyle": "short",
+        "hairColor": "#1a1a1a",
+        "shirt": "#e8554e",
+        "bottom": "#2b2b5e",
+        "bottomStyle": "shorts",
+        "shoes": "#f4f4f4",
+        "racket": "#f2a33a"
+      }
+    },
+    {
+      "id": "mia",
+      "name": "Mia",
+      "stats": { "power": 5, "technique": 8, "speed": 7, "defense": 4 },
+      "maxGuts": 10,
+      "appearance": {
+        "gender": "female",
+        "skin": "#8d5524",
+        "hairStyle": "ponytail",
+        "hairColor": "#2a1608",
+        "shirt": "#f6d743",
+        "bottom": "#e8554e",
+        "bottomStyle": "skirt",
+        "shoes": "#f2a33a",
+        "racket": "#e8554e",
+        "headband": "#e8554e"
+      }
+    }
   ],
   "cpu": [
-    { "id": "bruno", "name": "Bruno", "stats": { "power": 6, "technique": 6, "speed": 4, "defense": 8 }, "maxGuts": 10 },
-    { "id": "ivo", "name": "Ivo", "stats": { "power": 7, "technique": 5, "speed": 6, "defense": 5 }, "maxGuts": 10 }
+    {
+      "id": "bruno",
+      "name": "Bruno",
+      "stats": { "power": 6, "technique": 6, "speed": 4, "defense": 8 },
+      "maxGuts": 10,
+      "appearance": {
+        "gender": "male",
+        "skin": "#5c3a21",
+        "hairStyle": "afro",
+        "hairColor": "#0d0d0d",
+        "shirt": "#35c4a8",
+        "bottom": "#14423a",
+        "bottomStyle": "shorts",
+        "shoes": "#222222",
+        "racket": "#9b6ee0"
+      }
+    },
+    {
+      "id": "ines",
+      "name": "Ines",
+      "stats": { "power": 7, "technique": 5, "speed": 6, "defense": 5 },
+      "maxGuts": 10,
+      "appearance": {
+        "gender": "female",
+        "skin": "#ffdbac",
+        "hairStyle": "long",
+        "hairColor": "#d2551e",
+        "shirt": "#9b6ee0",
+        "bottom": "#f4f4f4",
+        "bottomStyle": "skirt",
+        "shoes": "#35c4a8",
+        "racket": "#35c4a8",
+        "headband": "#35c4a8"
+      }
+    }
   ]
 }

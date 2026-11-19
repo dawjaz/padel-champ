@@ -19,7 +19,8 @@ public/assets/
 ## Pixel art rules
 - Logical screen is 360x640; `pixelArt: true` is on, so images scale with nearest-neighbour (no blur).
 - Draw sprites at small native sizes (e.g. 32x48) and scale by integers in code if needed.
-- NES-style palette lives in `src/config.ts`. Keep new art close to it.
+- Target look is 16-bit (see docs/GDD.md). The UI palette lives in `src/config.ts`.
+- Characters are generated from code for now (`src/art/character.ts`); the ball, court and UI are drawn in `MatchScene`.
 
 ## Sound
 `src/audio.ts` has placeholder square-wave beeps (`sfx('hit')` etc.). For real audio, add files under

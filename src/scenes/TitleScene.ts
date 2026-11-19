@@ -1,7 +1,12 @@
 import Phaser from 'phaser';
+import { ensureCharacterTexture } from '../art/characterTexture';
 import { COLORS, css, FONT, GAME_TITLE, HEIGHT, WIDTH } from '../config';
+import playersData from '../data/players.json';
+import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
 import { logoText, makeButton } from '../ui';
+
+const HEROES = playersData.you as unknown as PlayerDef[];
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -33,6 +38,21 @@ export class TitleScene extends Phaser.Scene {
     // Bouncing ball
     const ball = this.add.circle(WIDTH / 2, 310, 8, 0xfff27a).setStrokeStyle(2, COLORS.black);
     this.tweens.add({ targets: ball, y: 350, duration: 380, yoyo: true, repeat: -1, ease: 'Quad.easeIn' });
+
+    // The two heroes flank the ball, bouncing on the spot
+    HEROES.forEach((hero, i) => {
+      const key = ensureCharacterTexture(this, hero.appearance, 'front');
+      const sprite = this.add.image(i === 0 ? 62 : WIDTH - 62, 388, key).setOrigin(0.5, 1).setScale(2.3);
+      this.tweens.add({
+        targets: sprite,
+        y: 382,
+        duration: 420,
+        yoyo: true,
+        repeat: -1,
+        delay: i * 210,
+        ease: 'Sine.easeInOut',
+      });
+    });
 
     // Menu
     makeButton(this, WIDTH / 2, 440, 220, 52, 'START MATCH', () => this.scene.start('MatchScene'));
