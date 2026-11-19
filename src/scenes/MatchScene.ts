@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
-import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M } from '../art/ballPath';
-import { NET_HEIGHT_M, project, type Projected } from '../art/camera';
+import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M, type FlightEvent } from '../art/ballPath';
+import { project } from '../art/camera';
 import { SPRITE_H } from '../art/character';
 import { ensureCharacterTexture } from '../art/characterTexture';
-import { BACK_WALL, sideWallSegments } from '../art/walls';
+import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
+import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { sfx } from '../audio';
-import { FONT, HEIGHT, WIDTH } from '../config';
+import { FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
+import { applyHd } from '../hd';
+import { drawPanel } from '../ui';
 import { pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
@@ -76,7 +79,11 @@ export class MatchScene extends Phaser.Scene {
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
   private ballH = HIT_HEIGHT_M;
   private overlay!: Phaser.GameObjects.Graphics;
-  private ball!: Phaser.GameObjects.Arc;
+  private ball!: Phaser.GameObjects.Image;
+  private ballGlow!: Phaser.GameObjects.Image;
+  private trailGfx!: Phaser.GameObjects.Graphics;
+  /** Recent screen positions of the ball, for its fading trail. */
+  private trail: Array<{ x: number; y: number; d: number }> = [];
   private scoreText!: Phaser.GameObjects.Text;
   private logText!: Phaser.GameObjects.Text;
 
@@ -85,6 +92,7 @@ export class MatchScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyHd(this);
     this.matchScore = newScore(2);
     this.server = 0;
     this.serverIdx = [0, 0];
@@ -96,19 +104,25 @@ export class MatchScene extends Phaser.Scene {
     this.guts = {};
     for (const p of TEAMS.flat()) this.guts[p.id] = p.maxGuts;
 
-    this.drawArena();
+    this.trail = [];
+    this.drawArenaHd();
     this.overlay = this.add.graphics().setDepth(1);
     this.createViews();
-    this.ball = this.add.circle(0, 0, 4, 0xfff27a).setStrokeStyle(1, 0x222222).setDepth(5000);
+    ensureBallTextures(this);
+    this.trailGfx = this.add.graphics().setDepth(4990);
+    this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
+    this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000);
 
-    this.add.rectangle(WIDTH / 2, 27, 190, 42, 0x000000, 0.6).setDepth(9990);
+    // Scoreboard panel, TV style
+    const bug = this.add.graphics().setPosition(WIDTH / 2, 27).setDepth(9990).setAlpha(0.9);
+    drawPanel(bug, 196, 44, 0x6f8bff, false, 0x0d1030);
     this.scoreText = this.add
-      .text(WIDTH / 2, 9, '', { fontFamily: FONT, fontSize: '15px', color: '#ffe066', align: 'center' })
+      .text(WIDTH / 2, 9, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
       .setOrigin(0.5, 0)
       .setDepth(10000);
     this.logText = this.add
       .text(WIDTH / 2, 391, '', {
-        fontFamily: FONT,
+        fontFamily: FONT, resolution: HD_SCALE,
         fontSize: '11px',
         color: '#ffffff',
         align: 'center',
@@ -122,147 +136,14 @@ export class MatchScene extends Phaser.Scene {
     this.beginPoint();
   }
 
-  // ---------- arena: court, glass, mesh, net, stands ----------
+  // ---------- arena: a pre-rendered, lit picture of the court (see art/hd/arenaHd.ts) ----------
 
-  private fillQuad(g: Phaser.GameObjects.Graphics, a: Projected, b: Projected, c: Projected, d: Projected): void {
-    g.fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y);
-    g.fillTriangle(a.x, a.y, c.x, c.y, d.x, d.y);
-  }
-
-  private line(g: Phaser.GameObjects.Graphics, a: Projected, b: Projected): void {
-    g.lineBetween(a.x, a.y, b.x, b.y);
-  }
-
-  /**
-   * One piece of wall. `at(u, h)` maps a position along the wall and a height to the screen.
-   * Glass: translucent blue with panel joints every `step` metres. Mesh: dark, with a visible wire grid and posts.
-   */
-  private wallBand(
-    g: Phaser.GameObjects.Graphics,
-    at: (u: number, h: number) => Projected,
-    u0: number,
-    u1: number,
-    h0: number,
-    h1: number,
-    kind: 'glass' | 'mesh',
-    step: number,
-    fade = 1,
-  ): void {
-    const a = at(u0, h0);
-    const b = at(u1, h0);
-    const c = at(u1, h1);
-    const d = at(u0, h1);
-
-    if (kind === 'glass') {
-      g.fillStyle(0x9fd8ff, 0.17 * fade);
-      this.fillQuad(g, a, b, c, d);
-      g.lineStyle(2, 0xdff3ff, 0.7 * fade);
-      for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
-      this.line(g, d, c);
-      return;
-    }
-
-    g.fillStyle(0x06081a, 0.3 * fade);
-    this.fillQuad(g, a, b, c, d);
-    g.lineStyle(1, 0xc9d3e6, 0.45 * fade);
-    for (let u = u0; u <= u1 + 1e-6; u += step) this.line(g, at(u, h0), at(u, h1));
-    for (let h = h0; h <= h1 + 1e-6; h += step) this.line(g, at(u0, h), at(u1, h));
-    g.lineStyle(2, 0x9aa5bd, 0.9 * fade);
-    this.line(g, a, d);
-    this.line(g, b, c);
-    this.line(g, d, c);
-  }
-
-  private drawArena(): void {
-    const P = project;
-
-    // Stands: dark background with a crowd of coloured dots (deterministic, same every match)
-    const bg = this.add.graphics().setDepth(-10);
-    bg.fillStyle(0x0b0b1a, 1);
-    bg.fillRect(0, 0, WIDTH, HEIGHT);
-    const crowd = [0x3a3a6a, 0x5a2a4a, 0x2a4a5a, 0x6a5a2a, 0x4a2a2a, 0x2a2a4a];
-    let seed = 12345;
-    const rnd = (): number => {
-      seed = (seed * 1664525 + 1013904223) % 4294967296;
-      return seed / 4294967296;
-    };
-    for (let i = 0; i < 260; i++) {
-      bg.fillStyle(crowd[Math.floor(rnd() * crowd.length)], 1);
-      bg.fillRect(Math.floor(rnd() * WIDTH), 20 + Math.floor(rnd() * 88), 3, 4);
-    }
-
-    // Floor in alternating depth bands
-    const floor = this.add.graphics().setDepth(-5);
-    for (let i = 0; i < 10; i++) {
-      floor.fillStyle(i % 2 === 0 ? 0x2f6ed6 : 0x2a62c4, 1);
-      this.fillQuad(floor, P(-5, i * 2), P(5, i * 2), P(5, i * 2 + 2), P(-5, i * 2 + 2));
-    }
-
-    // Court lines
-    const lines = this.add.graphics().setDepth(-4);
-    lines.lineStyle(2, 0xfcfcfc, 0.95);
-    this.line(lines, P(-5, 0), P(5, 0));
-    this.line(lines, P(-5, 20), P(5, 20));
-    this.line(lines, P(-5, 0), P(-5, 20));
-    this.line(lines, P(5, 0), P(5, 20));
-    this.line(lines, P(-5, 3.05), P(5, 3.05));
-    this.line(lines, P(-5, 16.95), P(5, 16.95));
-    this.line(lines, P(0, 3.05), P(0, 16.95));
-
-    // Walls: back wall (3 m glass + 1 m mesh) and the stepped side walls (see art/walls.ts)
-    const walls = this.add.graphics().setDepth(-3);
-    const backAt = (x: number, h: number): Projected => P(x, 0, h);
-    this.wallBand(walls, backAt, -5, 5, 0, BACK_WALL.glass, 'glass', 2);
-    walls.fillStyle(0x1b3d8f, 1);
-    this.fillQuad(walls, P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.9), P(-5, 0, 0.9));
-    this.wallBand(walls, backAt, -5, 5, BACK_WALL.glass, BACK_WALL.glass + BACK_WALL.mesh, 'mesh', 0.5);
-    for (const x of [-5, 5]) {
-      const sideAt = (z: number, h: number): Projected => P(x, z, h);
-      for (const seg of sideWallSegments()) {
-        if (seg.glass > 0) this.wallBand(walls, sideAt, seg.z0, seg.z1, 0, seg.glass, 'glass', 2);
-        if (seg.mesh > 0) this.wallBand(walls, sideAt, seg.z0, seg.z1, seg.glass, seg.glass + seg.mesh, 'mesh', 0.5);
-      }
-    }
-    // The near back wall would hide the court, so only mark it: faint glass up to 3 m, faint mesh from 3 m to 4 m,
-    // with a dashed line and a label where the glass ends and the mesh begins.
-    const near = this.add.graphics().setDepth(-3);
-    const nearAt = (x: number, h: number): Projected => P(x, 20, h);
-    this.wallBand(near, nearAt, -5, 5, 0, BACK_WALL.glass, 'glass', 2, 0.3);
-    this.wallBand(near, nearAt, -5, 5, BACK_WALL.glass, BACK_WALL.glass + BACK_WALL.mesh, 'mesh', 0.5, 0.45);
-    near.lineStyle(2, 0xffe066, 0.85);
-    for (let x = -5; x < 5; x += 0.8) this.line(near, nearAt(x, BACK_WALL.glass), nearAt(x + 0.4, BACK_WALL.glass));
-    const tag = (h: number, text: string, color: string): void => {
-      const q = nearAt(5, h);
-      this.add
-        .text(q.x - 3, q.y, text, { fontFamily: FONT, fontSize: '9px', color })
-        .setOrigin(1, 1)
-        .setStroke('#000000', 2)
-        .setDepth(-2.8);
-    };
-    tag(BACK_WALL.glass, 'GLASS to 3 m', '#bfe6ff');
-    tag(BACK_WALL.glass + BACK_WALL.mesh, 'MESH to 4 m', '#ffe066');
-
-    const board = P(0, 0, 0.45);
-    this.add
-      .text(board.x, board.y, 'PADEL CHAMP 26', {
-        fontFamily: FONT,
-        fontSize: `${Math.max(7, Math.round(board.scale * 0.55))}px`,
-        fontStyle: 'bold',
-        color: '#ffe066',
-      })
-      .setOrigin(0.5)
-      .setDepth(-2.9);
-
-    // Net: depth-sorted with the players, so far players stand behind it and near players in front
-    const net = this.add.graphics().setDepth(P(0, NET_Z).y);
-    net.fillStyle(0x000000, 0.4);
-    this.fillQuad(net, P(-5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, 0), P(-5, NET_Z, 0));
-    net.lineStyle(1, 0xc9d3e6, 0.3);
-    for (let x = -5; x <= 5.001; x += 0.5) this.line(net, P(x, NET_Z, 0), P(x, NET_Z, NET_HEIGHT_M));
-    net.lineStyle(2, 0x9a9ab0, 1);
-    for (const x of [-5.05, 5.05]) this.line(net, P(x, NET_Z, 0), P(x, NET_Z, NET_HEIGHT_M + 0.05));
-    net.lineStyle(3, 0xfcfcfc, 1);
-    this.line(net, P(-5, NET_Z, NET_HEIGHT_M), P(5, NET_Z, NET_HEIGHT_M));
+  private drawArenaHd(): void {
+    const { netY } = ensureArenaTextures(this);
+    this.add.image(0, 0, ARENA_BACK_KEY).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
+    // The net is its own strip, sorted with the players: far players stand behind it, near players in front.
+    const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
+    net.setDisplaySize(WIDTH, net.height / HD_SCALE);
   }
 
   // ---------- players and ball ----------
@@ -274,7 +155,7 @@ export class MatchScene extends Phaser.Scene {
         const key = ensureCharacterTexture(this, player.appearance, side === 0 ? 'back' : 'front');
         const sprite = this.add.image(0, 0, key).setOrigin(0.5, 1);
         const label = this.add
-          .text(0, 0, '', { fontFamily: FONT, fontSize: '10px', color: '#ffffff', align: 'center' })
+          .text(0, 0, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: '#ffffff', align: 'center' })
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke('#000000', 3)
           .setDepth(9000);
@@ -289,8 +170,8 @@ export class MatchScene extends Phaser.Scene {
     const v = this.views[id];
     const pos = this.pos[id];
     const p = project(pos.x, pos.z);
-    const scale = (p.scale * VISUAL_HEIGHT_M) / SPRITE_H;
-    const spriteHeight = SPRITE_H * scale;
+    const scale = (p.scale * VISUAL_HEIGHT_M) / (SPRITE_H * HD_CHARACTER_SCALE);
+    const spriteHeight = SPRITE_H * HD_CHARACTER_SCALE * scale;
     v.sprite.setPosition(p.x, p.y - v.lift).setScale(scale).setDepth(p.y);
     v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : p.y - spriteHeight - 2 - v.lift);
   }
@@ -319,11 +200,62 @@ export class MatchScene extends Phaser.Scene {
     this.redrawOverlay();
   }
 
-  private setBall(x: number, z: number, h: number): void {
+  /** Places the ball. `trail` = false puts it down without a trail (a new serve). */
+  private setBall(x: number, z: number, h: number, trail = true): void {
     const p = project(x, z, h);
     this.ballFloor = { x, z };
-    this.ball.setPosition(p.x, p.y).setRadius(Math.max(3, p.scale * 0.17));
+    const d = Math.max(7, p.scale * 0.36);
+    this.ball.setPosition(p.x, p.y).setDisplaySize(d, d);
+    this.ballGlow.setPosition(p.x, p.y).setDisplaySize(d * 3.4, d * 3.4);
+    if (trail) {
+      this.trail.push({ x: p.x, y: p.y, d });
+      if (this.trail.length > 14) this.trail.shift();
+    } else {
+      this.trail = [];
+    }
+    this.drawTrail();
     this.redrawOverlay();
+  }
+
+  private drawTrail(): void {
+    const g = this.trailGfx;
+    g.clear();
+    const n = this.trail.length;
+    this.trail.forEach((t, i) => {
+      const k = (i + 1) / n;
+      g.fillStyle(0xfff4a0, 0.3 * k);
+      g.fillCircle(t.x, t.y, t.d * 0.5 * (0.35 + 0.65 * k));
+    });
+  }
+
+  /** Dust where the ball bounces, a flash where it hits the glass or the net. */
+  private impactFx(e: FlightEvent): void {
+    const p = project(e.x, e.z, e.h);
+    if (e.kind === 'bounce') {
+      const puff = this.add.ellipse(p.x, p.y, Math.max(4, p.scale * 0.22), Math.max(2, p.scale * 0.09), 0xffffff, 0.55).setDepth(p.y);
+      this.tweens.add({ targets: puff, scaleX: 3.4, scaleY: 2, alpha: 0, duration: 340, ease: 'Quad.easeOut', onComplete: () => puff.destroy() });
+    } else if (e.kind === 'glass' || e.kind === 'mesh') {
+      const color = e.kind === 'glass' ? 0xcfeaff : 0xdde3f0;
+      const flash = this.add.ellipse(p.x, p.y, Math.max(4, p.scale * 0.2), Math.max(8, p.scale * 0.8), color, 0.85).setDepth(4000);
+      this.tweens.add({ targets: flash, scaleX: 2.6, scaleY: 1.3, alpha: 0, duration: 280, onComplete: () => flash.destroy() });
+    } else if (e.kind === 'net') {
+      const flash = this.add.circle(p.x, p.y, Math.max(3, p.scale * 0.15), 0xffffff, 0.8).setDepth(4000);
+      this.tweens.add({ targets: flash, scale: 3, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
+    }
+  }
+
+  /** A big, short-lived banner such as ACE! in the middle of the court. */
+  private announce(text: string, color: string): void {
+    const t = this.add
+      .text(WIDTH / 2, 215, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '34px', fontStyle: 'bold', color })
+      .setOrigin(0.5)
+      .setStroke('#000000', 6)
+      .setShadow(0, 4, '#000000', 6, true, true)
+      .setDepth(9995)
+      .setAlpha(0)
+      .setScale(0.6);
+    this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, delay: 600, duration: 260, onComplete: () => t.destroy() });
   }
 
   private hop(id: string): void {
@@ -405,7 +337,7 @@ export class MatchScene extends Phaser.Scene {
   private showButtons(title: string, items: ButtonSpec[]): void {
     this.clearMenu();
     this.menu.push(
-      this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
+      this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
     );
     // Up to 6 buttons: 2 big columns; more: 3 compact columns.
     const compact = items.length > 6;
@@ -417,10 +349,14 @@ export class MatchScene extends Phaser.Scene {
     items.forEach((item, i) => {
       const x = compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
       const y = y0 + Math.floor(i / cols) * gapY;
-      const bg = this.add.rectangle(x, y, w, h, item.disabled ? 0x1a1a33 : 0x2b2b5e).setStrokeStyle(2, TONE_STROKE[item.tone]);
+      const gfx = this.add.graphics().setPosition(x, y);
+      const stroke = TONE_STROKE[item.tone];
+      const redraw = (hover: boolean): void => drawPanel(gfx, w, h, stroke, hover && !item.disabled);
+      redraw(false);
+      const bg = this.add.zone(x, y, w, h);
       const text = this.add
         .text(x, y, item.label, {
-          fontFamily: FONT,
+          fontFamily: FONT, resolution: HD_SCALE,
           fontSize: compact ? '11px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
@@ -428,6 +364,8 @@ export class MatchScene extends Phaser.Scene {
         .setOrigin(0.5);
       if (!item.disabled) {
         bg.setInteractive({ useHandCursor: true });
+        bg.on('pointerover', () => redraw(true));
+        bg.on('pointerout', () => redraw(false));
         bg.on('pointerdown', () => {
           if (this.busy) return;
           this.busy = true;
@@ -436,7 +374,7 @@ export class MatchScene extends Phaser.Scene {
           item.onPick();
         });
       }
-      this.menu.push(bg, text);
+      this.menu.push(gfx, bg, text);
     });
     this.busy = false;
   }
@@ -471,7 +409,7 @@ export class MatchScene extends Phaser.Scene {
     this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
       this.ballH = HIT_HEIGHT_M;
-      this.setBall(setup.server.x, setup.server.z, this.ballH);
+      this.setBall(setup.server.x, setup.server.z, this.ballH, false);
       this.serveTurn();
     });
   }
@@ -487,7 +425,7 @@ export class MatchScene extends Phaser.Scene {
 
     // The ball is back in the server's hand (after a fault it lay at the net).
     this.ballH = HIT_HEIGHT_M;
-    this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH);
+    this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH, false);
 
     if (this.isHuman(st.servingSide, st.serverIdx)) {
       this.setActive(server.id);
@@ -661,6 +599,10 @@ export class MatchScene extends Phaser.Scene {
       targets[defender.id] = { x: lerp(d.x, flight.hit.x, 0.55), z: lerp(d.z, flight.hit.z, 0.55) };
     }
     this.movePlayers(targets, duration);
+    for (const e of flight.events) {
+      const when = flight.duration > 0 ? (e.t / flight.duration) * duration : 0;
+      this.time.delayedCall(when, () => this.impactFx(e));
+    }
 
     this.tweens.addCounter({
       from: 0,
@@ -671,6 +613,8 @@ export class MatchScene extends Phaser.Scene {
         this.setBall(p.x, p.z, p.h);
       },
       onComplete: () => {
+        this.trail = [];
+        this.drawTrail();
         this.ballH = flight.hitH;
         this.afterStep(step, next, headline);
       },
@@ -684,12 +628,23 @@ export class MatchScene extends Phaser.Scene {
 
     const endPoint = (text: string, delay = POINT_PAUSE): void => {
       this.say(`${headline}\n${text}`);
+      const banner: Partial<Record<string, [string, string]>> = {
+        'double-fault': ['DOUBLE FAULT', '#ff9a6a'],
+        ace: ['ACE!', '#ffe066'],
+        winner: ['WINNER!', '#ffe066'],
+        error: ['ERROR', '#ff9a6a'],
+        intercept: ['INTERCEPTED!', '#9fd8ff'],
+      };
+      const b = banner[step.outcome];
+      if (b) this.announce(b[0], b[1]);
+      if (step.outcome === 'ace' || step.outcome === 'winner') this.cameras.main.shake(140, 0.004);
       this.time.delayedCall(delay, () => this.endPoint(step.pointWinner as SideIndex));
     };
 
     switch (step.outcome) {
       case 'fault':
         this.say(`${headline}\nFAULT! Second serve.`);
+        this.announce('FAULT', '#ff9a6a');
         this.time.delayedCall(FAULT_PAUSE, () => this.serveTurn());
         break;
       case 'double-fault':

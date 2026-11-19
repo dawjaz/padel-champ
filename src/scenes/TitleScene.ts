@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
-import { BUILD_ID, COLORS, css, FONT, GAME_TITLE, GAME_VERSION, HEIGHT, WIDTH } from '../config';
+import { applyHd } from '../hd';
+import { BALL_KEY, ensureBallTextures } from '../art/hdTextures';
+import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
+import { BUILD_ID, COLORS, css, FONT, GAME_TITLE, GAME_VERSION, HD_SCALE, HEIGHT, WIDTH } from '../config';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
@@ -14,6 +17,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyHd(this);
     this.drawBackdrop();
 
     // Logo: PADEL / CHAMP / [26]
@@ -32,17 +36,18 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.add
-      .text(WIDTH / 2, 262, 'COMMAND PADEL', { fontFamily: FONT, fontSize: '14px', color: css(COLORS.sky) })
+      .text(WIDTH / 2, 262, 'COMMAND PADEL', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', color: css(COLORS.sky) })
       .setOrigin(0.5);
 
     // Bouncing ball
-    const ball = this.add.circle(WIDTH / 2, 310, 8, 0xfff27a).setStrokeStyle(2, COLORS.black);
+    ensureBallTextures(this);
+    const ball = this.add.image(WIDTH / 2, 310, BALL_KEY).setDisplaySize(20, 20);
     this.tweens.add({ targets: ball, y: 350, duration: 380, yoyo: true, repeat: -1, ease: 'Quad.easeIn' });
 
     // The two heroes flank the ball, bouncing on the spot
     HEROES.forEach((hero, i) => {
       const key = ensureCharacterTexture(this, hero.appearance, 'front');
-      const sprite = this.add.image(i === 0 ? 62 : WIDTH - 62, 388, key).setOrigin(0.5, 1).setScale(2.3);
+      const sprite = this.add.image(i === 0 ? 62 : WIDTH - 62, 388, key).setOrigin(0.5, 1).setScale(2.3 / HD_CHARACTER_SCALE);
       this.tweens.add({
         targets: sprite,
         y: 382,
@@ -61,10 +66,10 @@ export class TitleScene extends Phaser.Scene {
     const s = getSave().stats;
     const statsLine = s.played === 0 ? 'NO MATCHES YET' : `PLAYED ${s.played}  WON ${s.won}  LOST ${s.lost}`;
     this.add
-      .text(WIDTH / 2, 580, statsLine, { fontFamily: FONT, fontSize: '12px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, 580, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
-      .text(WIDTH / 2, HEIGHT - 20, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, fontSize: '10px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, HEIGHT - 20, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })
       .setOrigin(0.5);
   }
 

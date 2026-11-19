@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, css, FONT, WIDTH } from '../config';
+import { applyHd } from '../hd';
+import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { getSave } from '../save';
 import type { SideIndex } from '../game/types';
 import { logoText, makeButton } from '../ui';
@@ -21,25 +22,26 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
+    applyHd(this);
     const won = this.outcome.winner === 0;
     logoText(this, WIDTH / 2, 110, won ? 'YOU WIN!' : 'YOU LOSE', 48, won ? COLORS.yellow : COLORS.red);
 
     this.add
       .text(WIDTH / 2, 190, `${this.outcome.games[0]} - ${this.outcome.games[1]}`, {
-        fontFamily: FONT,
+        fontFamily: FONT, resolution: HD_SCALE,
         fontSize: '40px',
         fontStyle: 'bold',
         color: css(COLORS.white),
       })
       .setOrigin(0.5);
     this.add
-      .text(WIDTH / 2, 232, 'GAMES', { fontFamily: FONT, fontSize: '12px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, 232, 'GAMES', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
 
     const s = getSave().stats;
     this.add
       .text(WIDTH / 2, 300, `PLAYED ${s.played}\nWON ${s.won}   LOST ${s.lost}`, {
-        fontFamily: FONT,
+        fontFamily: FONT, resolution: HD_SCALE,
         fontSize: '16px',
         color: css(COLORS.sky),
         align: 'center',
