@@ -117,7 +117,6 @@ You: Toro (male, power) and Mia (female, technique/speed). Rivals: Bruno (male, 
 Stats are 1-10: power, technique, speed, defense.
 
 ## Planned
-- Bajada (conditions to be defined with the owner)
 - More realistic positions and partner movement, glass rebounds that change where the ball ends up
 - Special moves per character with short cutscenes (cost: a lot of guts, big effect)
 - Career mode: tournament bracket, rivals with dialogue, upgrading players between matches
