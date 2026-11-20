@@ -523,3 +523,41 @@ describe('CPU hitters look for the gaps', () => {
     expect(count(atBack, (id) => id.includes('chiquita'))).toBeGreaterThan(count(atNet, (id) => id.includes('chiquita')));
   });
 });
+
+describe('rebound back over the net', () => {
+  it('a hard shot that comes off the glass and beats the defence clearly ends the point for the attackers', () => {
+    let found = 0;
+    for (let seed = 1; seed < 6000 && found < 3; seed++) {
+      const rng = seededRng(seed);
+      const r = stepHit(TEAMS, rallyState(), shot('vibora'), 'cross', rng);
+      if (r.step.reboundBack) {
+        found++;
+        expect(r.step.outcome).toBe('winner');
+        expect(r.step.pointWinner).toBe(0);
+        expect(r.state.status).toBe('done');
+        expect(r.state.winner).toBe(0);
+      }
+    }
+    expect(found).toBeGreaterThan(0);
+  });
+  it('soft shots never rebound back', () => {
+    for (let seed = 1; seed < 500; seed++) {
+      const r = stepHit(TEAMS, rallyState(), shot('chiquita'), 'cross', seededRng(seed));
+      expect(r.step.reboundBack).toBeUndefined();
+    }
+  });
+});
+
+describe('Free Practice options', () => {
+  it('ignoreRequires plays a shot that is normally unavailable, force decides how the hit ends', () => {
+    const st = rallyState({ ball: { height: 'low', pressure: 0, zone: 'mid' } });
+    expect(() => stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(1))).toThrow();
+    for (const force of ['winner', 'error', 'intercept', 'continue'] as const) {
+      const r = stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(2), undefined, { ignoreRequires: true, force });
+      expect(r.step.outcome).toBe(force);
+    }
+    const rb = stepHit(TEAMS, st, shot('vibora'), 'cross', seededRng(3), undefined, { ignoreRequires: true, force: 'rebound' });
+    expect(rb.step.reboundBack).toBe(true);
+    expect(rb.step.pointWinner).toBe(0);
+  });
+});

@@ -1,6 +1,6 @@
 import { DIRECTIONS } from './catalog';
 import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
-import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
+import { resolveHit, resolveServe, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
@@ -68,6 +68,8 @@ export interface Step {
   landX?: number;
   /** The defender at the net blocks the ball out of the air. */
   block?: boolean;
+  /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
+  reboundBack?: boolean;
   /** How a mistake or a fault ends (the net, the back glass, the mesh above it). */
   errorKind?: ErrorKind;
 }
@@ -304,6 +306,19 @@ export function netVolley(shot: ShotDef, defenderFormation: Formation, lob: LobQ
   );
 }
 
+/** A shot at least this fast (m/s) that rebounds off the glass can fly back over the net. */
+export const REBOUND_BACK_SPEED = 22;
+/** ... when the attack beats the defence by at least this share of the winner margin (but not enough for a plain winner). */
+export const REBOUND_BACK_SHARE = 0.5;
+
+/** Free Practice: lets the player play any shot and decide how the hit ends. */
+export interface HitOptions {
+  /** 'rebound' = the ball comes off the glass and flies back over the net (a winner for the hitter). */
+  force?: HitOutcome | 'rebound';
+  /** Play the shot even if the ball does not meet the shot's requirements. */
+  ignoreRequires?: boolean;
+}
+
 export function stepHit(
   teams: Teams,
   state: PointState,
@@ -312,9 +327,10 @@ export function stepHit(
   rng: Rng,
   /** CPU / partner hitters: where they would like to put the ball (the gap in the opponents' set-up). */
   prefer?: AimPreference,
+  options?: HitOptions,
 ): StepResult {
   if (state.status !== 'rally') throw new Error('Point is not in the rally');
-  if (unavailableReason(shot, state) !== null) throw new Error(`${shot.id} cannot be played now`);
+  if (options?.ignoreRequires !== true && unavailableReason(shot, state) !== null) throw new Error(`${shot.id} cannot be played now`);
   const side = state.holder;
   const defSide = other(side);
   const direction: Direction = shot.fixedDirection ?? chosenDirection;
@@ -326,7 +342,7 @@ export function stepHit(
   const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
   const defender = teams[defSide][defIdx];
 
-  const res = resolveHit({
+  const rolled = resolveHit({
     attacker,
     attackerGuts: state.guts[attacker.id],
     shot,
@@ -337,6 +353,8 @@ export function stepHit(
     rallyLength: state.hits,
     rng,
   });
+  const force = options?.force;
+  const res = force === undefined ? rolled : { ...rolled, outcome: force === 'rebound' ? ('continue' as const) : force, pressure: force === 'continue' || force === 'rebound' ? rolled.pressure : 0 };
   const guts = { ...state.guts, [attacker.id]: spendGuts(state.guts[attacker.id], shot.cost) };
 
   const step: Step = {
@@ -356,6 +374,22 @@ export function stepHit(
 
   if (res.outcome === 'continue') {
     const next = nextBall(shot, res.pressure, rng, state.ball.height);
+    // A hard ball that bounces and then comes off the glass or fence with great pace flies back over the net, past everybody.
+    const winMargin = shot.winnerMargin ?? WINNER_MARGIN;
+    if (
+      force === 'rebound' ||
+      (force === undefined &&
+        next.glass &&
+        !isLob(shot) &&
+        shot.wall !== 'fence' &&
+        shot.flight.speed >= REBOUND_BACK_SPEED &&
+        res.attackScore - res.defenseScore > winMargin * REBOUND_BACK_SHARE)
+    ) {
+      return {
+        state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
+        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, undefined, prefer?.depth) },
+      };
+    }
     // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
     // for a soft one) and stays at the net.
     const block = netVolley(shot, state.formation[defSide], next.lob);

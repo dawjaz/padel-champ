@@ -60,16 +60,29 @@ export class TitleScene extends Phaser.Scene {
     });
 
     // Menu
-    makeButton(this, WIDTH / 2, 440, 220, 52, 'START MATCH', () => this.scene.start('MatchScene'));
-    makeButton(this, WIDTH / 2, 508, 220, 52, 'SETTINGS', () => this.scene.start('SettingsScene'));
+    const mainMenu: Phaser.GameObjects.GameObject[] = [];
+    const practiceMenu: Phaser.GameObjects.GameObject[] = [];
+    const show = (list: Phaser.GameObjects.GameObject[], on: boolean): void => {
+      for (const o of list) (o as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(on);
+    };
+    const add = (list: Phaser.GameObjects.GameObject[], b: { parts: Phaser.GameObjects.GameObject[] }): void => {
+      list.push(...b.parts);
+    };
+    add(mainMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'START MATCH', () => this.scene.start('MatchScene')));
+    add(mainMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
+    add(mainMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'SETTINGS', () => this.scene.start('SettingsScene')));
+    add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack' })));
+    add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend' })));
+    add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));
+    show(practiceMenu, false);
 
     const s = getSave().stats;
     const statsLine = s.played === 0 ? 'NO MATCHES YET' : `PLAYED ${s.played}  WON ${s.won}  LOST ${s.lost}`;
     this.add
-      .text(WIDTH / 2, 580, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, 598, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
-      .text(WIDTH / 2, HEIGHT - 20, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, HEIGHT - 14, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })
       .setOrigin(0.5);
   }
 

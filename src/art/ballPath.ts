@@ -71,6 +71,8 @@ export interface FlightOpts {
   errorKind?: ErrorKind;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
+  /** A winner that comes off the back glass or fence and flies back over the net into the hitter's own half. */
+  reboundBack?: boolean;
   /** Pace of this hit relative to the shot's usual speed (1 = as usual): harder off a high ball, slower off a low one. */
   speedMul?: number;
 }
@@ -763,7 +765,7 @@ export function buildFlight(o: FlightOpts): Flight {
   // Serves: the receiver chooses (bounce or glass) when the serve goes to the glass. Rally balls that reach a wall
   // are played after it, because a ball that is about to hit the glass cannot be taken before it.
   const needWall = isServe ? o.shot.wall !== 'none' && o.receive !== 'bounce' : o.glass ?? true;
-  const backGlass = !isServe && o.glass === true;
+  const backGlass = !isServe && (o.glass === true || o.reboundBack === true);
   const arrival = o.arrival ?? o.shot.out;
   const hitHeight = ARRIVAL_HEIGHT[arrival];
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
@@ -822,14 +824,36 @@ export function buildFlight(o: FlightOpts): Flight {
     }
   }
   events.push({ kind: 'bounce', t: arc.T, x: land.x, z: land.z, h: 0 });
-  for (const e of sim.events.slice(1)) events.push(e);
 
-  const natural = sim.samples[sim.hitIndex];
+  // A ball hit so hard that it comes off the back wall and flies back over the net: after the wall contact it is a new arc that
+  // lands in the hitter's own half (the defenders never touch it).
+  let wallIdx = -1;
+  if (o.reboundBack === true && winning) {
+    const w = sim.events.find((e) => (e.kind === 'glass' || e.kind === 'mesh') && (e.z < 0.1 || e.z > 19.9));
+    if (w) wallIdx = sim.samples.findIndex((p) => p.t >= w.t - 1e-9);
+  }
+  const wallT = wallIdx > 0 ? sim.samples[wallIdx].t : Infinity;
+  for (const e of sim.events.slice(1)) if (e.t <= wallT + 1e-9) events.push(e);
+
+  const natural = sim.samples[wallIdx > 0 ? wallIdx : sim.hitIndex];
   const hit = clampHit(natural, o.hitterSide);
 
   // Samples up to the hit (or to the end for a winner: the ball flies on past the defender).
-  const last = winning ? sim.end : sim.hitIndex;
+  const last = wallIdx > 0 ? wallIdx : winning ? sim.end : sim.hitIndex;
   for (let i = 1; i <= last; i++) path.push(sim.samples[i]);
+  if (wallIdx > 0) {
+    const s0 = sim.samples[wallIdx];
+    const origin: Vec = { x: s0.x, z: s0.z, h: Math.max(s0.h, 0.5) };
+    const back = { x: clamp(s0.x * 0.4, -3.5, 3.5), z: NET_Z - away * 5.5 };
+    const ret = solveArc(origin, back, 15, 0);
+    const n = Math.max(2, Math.ceil(ret.T / DT));
+    for (let i = 1; i <= n; i++) {
+      const t = (ret.T * i) / n;
+      const p = arcPoint(origin, ret, t);
+      path.push({ t: s0.t + t, x: p.x, z: p.z, h: p.h });
+    }
+    events.push({ kind: 'bounce', t: s0.t + ret.T, x: back.x, z: back.z, h: 0 });
+  }
   if (!winning) {
     path[path.length - 1] = { t: natural.t, x: hit.x, z: hit.z, h: hit.h };
   }

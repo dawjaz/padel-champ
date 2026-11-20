@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.21)_
+_Last updated: 2026-11-20 (v0.22)_
+
+## v0.22: rebound winner, Free Practice
+- **Rebound back over the net** (`stepHit`, point.ts): a hard shot (flight speed >= `REBOUND_BACK_SPEED` 22, not a lob/rulo) that comes off the glass (`next.glass`) and beats the defence by >= half the winner margin ends the point for the hitter (`step.reboundBack`, outcome 'winner'). `buildFlight({reboundBack})`: after the first back-wall contact the ball flies on in a new arc and lands in the hitter's own half (nobody touches it). CPU-vs-CPU: about 5% of points.
+- **Free Practice** (title menu: ATTACKING / DEFENDING; `MatchScene` with `scene.start('MatchScene', {practice})`): ATTACKING = you pick any shot (also ones the ball does not allow, marked `*`) and direction, SETUP sets ball height, off-glass, both teams' positions and RESULT (auto, continue, winner, error, intercept, rebound); DEFENDING = you pick the shot the opponents play at you (serves too), then return it with the normal menu. After every exercise the menu comes back, guts refilled. `stepHit(..., options: HitOptions)` has `force` and `ignoreRequires`. Not unit-testable (scene), checked in CI build only: play it on the phone.
 
 ## v0.21: real impact sounds, Por Tres lands halfway
 - **Sounds** cut from the owner's recording (Freesound #345759 by "refrain", **licence not confirmed yet: ask the owner / check the page before any store release**) with `tools/cut_sounds.py` (`python3 tools/cut_sounds.py IN.wav OUTDIR`): ball clicks are found in the 4-14 kHz band, denoised (spectral subtraction, moderate: the hall is noisy), trimmed, 32 kHz mono WAV. 38 clips in `public/assets/audio/sfx/` with `manifest.json`: racket_strong/soft/spin/serve, floor, glass, mesh (net stays synthesised).

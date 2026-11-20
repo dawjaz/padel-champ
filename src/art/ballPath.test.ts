@@ -551,3 +551,15 @@ describe('Por Tres (smash x3) physics', () => {
     expect(afterGlass).toBeLessThan(hit);
   });
 });
+
+describe('rebound back over the net', () => {
+  it('the ball comes off the back wall and lands in the hitter own half', () => {
+    const s = SHOTS.find((x) => x.id === 'hard_glass')!;
+    for (const hs of [0, 1] as const) {
+      const f = buildFlight({ from: { x: 1, z: hs === 0 ? 14 : 6 }, startH: 1.5, hitterSide: hs, shot: s, landX: 2, outcome: 'winner', reboundBack: true });
+      const end = f.path[f.path.length - 1];
+      expect(hs === 0 ? end.z > 10 : end.z < 10).toBe(true);
+      expect(f.events.some((e) => e.kind === 'glass' || e.kind === 'mesh')).toBe(true);
+    }
+  });
+});
