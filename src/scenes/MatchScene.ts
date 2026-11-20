@@ -9,6 +9,7 @@ import { chooseStance, standingSpot } from '../art/stance';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, sfx } from '../audio';
+import { racketKind } from '../sfxKind';
 import { FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
@@ -786,7 +787,10 @@ export class MatchScene extends Phaser.Scene {
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
     this.say(headline);
-    impactSound('racket', step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)));
+    impactSound(
+      racketKind(step.shot.id, step.kind === 'serve', step.shot.flight.speed),
+      step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
+    );
     this.swing(attacker.id, step.kind === 'serve' ? null : step.shot);
 
     // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who

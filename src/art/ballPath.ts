@@ -519,6 +519,9 @@ function clampHit(p: Vec, hitterSide: SideIndex): Vec {
  * from three ballistic legs (hit -> floor, floor -> glass, glass -> over the wall) with the contact rules of the simulation; a
  * small search over where it lands finds the combination that really clears the wall. Returns null if none does.
  */
+/** Distances of the first bounce from the back glass, preferred first: the service line is 3 m from the glass, the ball lands halfway (1.5 m). */
+const POR_TRES_UB = [1.5, 1.8, 2.1, 1.2, 2.5, 2.9, 3.3, 3.8, 4.5];
+
 function scriptedSideExit(o: FlightOpts): Flight | null {
   const away = o.hitterSide === 0 ? -1 : 1;
   const backZ = away === -1 ? 0 : 20;
@@ -532,7 +535,7 @@ function scriptedSideExit(o: FlightOpts): Flight | null {
   for (const [ueMax, margin] of [[7.5, 0.4], [9, 0.2], [10, 0.05], [12, -0.3], [14, -0.8]]) {
   if (best) break;
   for (const xb of [3.4, 3.0, 2.6, 2.2, 1.8, 1.4, 1.0, 0.6, 0.2, 3.8]) {
-    for (const ub of [1.6, 2.0, 2.4, 2.8, 3.2, 1.2, 3.6, 4.0, 4.5]) {
+    for (const ub of POR_TRES_UB) {
       const land = { x: sgn * xb, z: zAt(ub) };
       const arc = solveArc(from, land, Math.min(fl.speed * (o.speedMul ?? 1), MAX_SHOT_SPEED), 0, magnus(o.shot, land.x - from.x, land.z - from.z));
       const vyIn = -from.h / arc.T - 0.5 * arc.g * arc.T; // vertical speed at the floor (negative)

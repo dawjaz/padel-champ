@@ -1,7 +1,53 @@
 {
-  "racket": [],
-  "floor": [],
-  "glass": [],
-  "mesh": [],
+  "floor": [
+    "floor_01.wav",
+    "floor_02.wav",
+    "floor_03.wav",
+    "floor_04.wav",
+    "floor_05.wav",
+    "floor_06.wav"
+  ],
+  "glass": [
+    "glass_01.wav",
+    "glass_02.wav",
+    "glass_03.wav",
+    "glass_04.wav"
+  ],
+  "mesh": [
+    "mesh_01.wav",
+    "mesh_02.wav",
+    "mesh_03.wav",
+    "mesh_04.wav"
+  ],
+  "racket_serve": [
+    "racket_serve_01.wav",
+    "racket_serve_02.wav",
+    "racket_serve_03.wav",
+    "racket_serve_04.wav"
+  ],
+  "racket_soft": [
+    "racket_soft_01.wav",
+    "racket_soft_02.wav",
+    "racket_soft_03.wav",
+    "racket_soft_04.wav",
+    "racket_soft_05.wav",
+    "racket_soft_06.wav"
+  ],
+  "racket_spin": [
+    "racket_spin_01.wav",
+    "racket_spin_02.wav",
+    "racket_spin_03.wav",
+    "racket_spin_04.wav",
+    "racket_spin_05.wav",
+    "racket_spin_06.wav"
+  ],
+  "racket_strong": [
+    "racket_strong_01.wav",
+    "racket_strong_02.wav",
+    "racket_strong_03.wav",
+    "racket_strong_04.wav",
+    "racket_strong_05.wav",
+    "racket_strong_06.wav"
+  ],
   "net": []
 }

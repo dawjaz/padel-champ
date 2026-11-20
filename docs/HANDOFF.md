@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.20)_
+_Last updated: 2026-11-20 (v0.21)_
+
+## v0.21: real impact sounds, Por Tres lands halfway
+- **Sounds** cut from the owner's recording (Freesound #345759 by "refrain", **licence not confirmed yet: ask the owner / check the page before any store release**) with `tools/cut_sounds.py` (`python3 tools/cut_sounds.py IN.wav OUTDIR`): ball clicks are found in the 4-14 kHz band, denoised (spectral subtraction, moderate: the hall is noisy), trimmed, 32 kHz mono WAV. 38 clips in `public/assets/audio/sfx/` with `manifest.json`: racket_strong/soft/spin/serve, floor, glass, mesh (net stays synthesised).
+- The classification is an automatic spectral heuristic, **not verified by ear**. `/sounds.html` is an audition page; fix wrong clips by moving the name between lists in manifest.json.
+- `src/sfxKind.ts` (`racketKind`, tested) maps shot to racket recording (serve; soft: chiquita, lobs, bandeja, bajada_slow; spin: vibora, spin_glass, rulo, bounce_shot, bajada_fast; smashes strong; others by speed). A kind without files falls back to the synthesised racket. Samples now pitch only +-4% with power.
+- **Por Tres** first bounce prefers 1.5 m from the back glass (`POR_TRES_UB`; results 1.2 to 2.5 m depending on the geometry); non-winning smash_x3 `landDepth` 8.5.
 
 ## v0.20: hitters look for gaps, volley at the net, pace by ball height
 - **Gap seeking** (`pickHit(teams, state, rng, opp)` in ai.ts; CPU and the human's partner only, the human still chooses): `opp` are the

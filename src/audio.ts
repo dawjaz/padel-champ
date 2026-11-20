@@ -70,9 +70,11 @@ export function sfx(name: SfxName): void {
   }
 }
 
+import type { RacketKind } from './sfxKind';
+
 // ---------- padel sounds: racket, floor, glass, mesh, net (synthesised, no audio files) ----------
 
-export type ImpactKind = 'racket' | 'floor' | 'glass' | 'mesh' | 'net';
+export type ImpactKind = 'racket' | 'floor' | 'glass' | 'mesh' | 'net' | RacketKind;
 
 // Real recordings: the files listed in public/assets/audio/sfx/manifest.json are used when there are any (several per kind are
 // chosen at random); otherwise the synthesised sounds below play. See docs/ASSETS.md.
@@ -111,7 +113,7 @@ function playSample(c: AudioContext, kind: ImpactKind, power: number): boolean {
   if (!list || list.length === 0) return false;
   const src = c.createBufferSource();
   src.buffer = list[Math.floor(Math.random() * list.length)];
-  src.playbackRate.value = (0.92 + 0.2 * power) * (0.97 + Math.random() * 0.06);
+  src.playbackRate.value = (0.97 + 0.08 * power) * (0.97 + Math.random() * 0.06);
   const g = c.createGain();
   g.gain.value = 0.2 + 0.8 * power;
   src.connect(g);
@@ -185,6 +187,7 @@ export function impactSound(kind: ImpactKind, power: number): void {
     const p = Math.max(0.05, Math.min(1, power));
     loadSamples(c);
     if (playSample(c, kind, p)) return;
+    if (kind.startsWith('racket_')) kind = 'racket';
     const jitter = 0.94 + Math.random() * 0.12;
     switch (kind) {
       case 'racket':

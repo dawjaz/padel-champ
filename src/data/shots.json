@@ -474,7 +474,7 @@
       "low": 0.4
     },
     "advance": "net",
-    "landDepth": 9.0,
+    "landDepth": 8.5,
     "wall": "back",
     "winnerMargin": 16,
     "overFence": true,
