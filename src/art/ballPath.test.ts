@@ -510,3 +510,44 @@ describe('spin curvature', () => {
     expect(magnus(shot('bandeja'), 0, -10).g).toBeLessThan(GRAVITY - 3);
   });
 });
+
+describe('Por Tres (smash x3) physics', () => {
+  const x3 = shot('smash_x3');
+  const speed = (P: Array<{ t: number; x: number; z: number; h: number }>, i: number, j: number): number => {
+    const dt = P[j].t - P[i].t;
+    return Math.hypot(P[j].x - P[i].x, P[j].z - P[i].z, P[j].h - P[i].h) / dt;
+  };
+
+  it('a winning Por Tres bounces, kicks off the back glass and leaves over the top of the side wall', () => {
+    for (const hitterSide of [0, 1] as const) {
+      for (const hx of [-2.5, 2.5]) {
+        for (const landX of [-3.6, -2.5, 0, 2.5, 3.6]) {
+          for (const startH of [1.5, 2.2]) {
+            const label = `${hitterSide}/${hx}/${landX}/${startH}`;
+            const f = buildFlight({ from: { x: hx, z: hitterSide === 0 ? 14 : 6 }, startH, hitterSide, shot: x3, landX, outcome: 'winner' });
+            expect(f.events.map((e) => e.kind), label).toEqual(['bounce', 'glass', 'out']);
+            const out = f.events[2];
+            expect(Math.abs(out.x), label).toBeGreaterThanOrEqual(5 - 1e-6);
+            expect(out.h, `${label} clears the glass`).toBeGreaterThan(2.5);
+          }
+        }
+      }
+    }
+  });
+
+  it('every surface takes some speed off the ball', () => {
+    const f = buildFlight({ from: { x: -2.5, z: 14 }, startH: 2.2, hitterSide: 0, shot: x3, landX: -2.5, outcome: 'winner' });
+    const P = f.path;
+    const at = (kind: string): number => P.findIndex((p) => p.t >= f.events.find((e) => e.kind === kind)!.t - 1e-6);
+    const bounce = at('bounce');
+    const glass = at('glass');
+    const hit = speed(P, 0, 3);
+    const beforeFloor = speed(P, bounce - 4, bounce - 1);
+    const afterFloor = speed(P, bounce + 1, bounce + 4);
+    const beforeGlass = speed(P, glass - 4, glass - 1);
+    const afterGlass = speed(P, glass + 1, glass + 4);
+    expect(afterFloor).toBeLessThan(beforeFloor);
+    expect(afterGlass).toBeLessThan(beforeGlass);
+    expect(afterGlass).toBeLessThan(hit);
+  });
+});

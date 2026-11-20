@@ -120,6 +120,8 @@ export interface ShotDef {
   advance: 'net' | 'back' | 'stay';
   /** Metres from the net where the ball first lands in the opponent's court. */
   landDepth: number;
+  /** Metres past the net where a WINNING version of the shot first lands (default: `landDepth`). */
+  winLandDepth?: number;
   /** Serves only: how far from the centre line the ball lands, in metres. */
   landX?: number;
   wall: WallHit;

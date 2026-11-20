@@ -1,7 +1,7 @@
 import { NET_Z } from '../game/court';
 import type { CourtPos, ErrorKind, Height, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { NET_HEIGHT_M } from './camera';
-import { BACK_WALL, sideWallSegments } from './walls';
+import { BACK_WALL, sideWallHeightAt, sideWallSegments } from './walls';
 
 /**
  * Ball flight with real physics (pure, so it is testable). Metres and seconds; x across (-5..5),
@@ -421,9 +421,16 @@ function simulateAfterBounce(
       z = z <= 0 ? 0 : 20;
       const glass = mat === 'glass';
       const vn = Math.abs(vz);
+      const vzIn = vz;
       const eN = glass ? glassNormalE(vn) : MESH_E;
       vz = -vz * eN;
       vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
+      if (glass) {
+        // Side spin kicks the ball along the glass, against the way the spin bends it in the air (as topspin kicks up off the glass).
+        const maxKick = GLASS_MU * (1 + eN) * vn;
+        vx += Math.sign(vzIn) * clamp(0.5 * SPIN_SURFACE * side, -maxKick, maxKick);
+        side *= 0.6;
+      }
       // What the contact itself leaves: the normal speed is cut by the glass, the vertical speed gets friction and the spin kick.
       const vyPhys = glass ? wallVertical(vy, vn, lift, eN) : vy * WALL_VERTICAL_KEEP * 0.7;
       if (o.reboundPeak !== undefined && glass && backContact < 0 && !o.exitOverFence) {
@@ -501,7 +508,111 @@ function clampHit(p: Vec, hitterSide: SideIndex): Vec {
   return { x, z, h: p.h };
 }
 
+/**
+ * A winning Por Tres, as the real shot goes: a medium-hard topspin ball is hit down into the court near the end line (towards the
+ * corner), bounces, kicks off the back glass and leaves over the side wall near the corner. Every surface takes speed off it
+ * (floor, then glass) and the spin keeps acting: topspin dives, side spin kicks it along the glass. The path is put together
+ * from three ballistic legs (hit -> floor, floor -> glass, glass -> over the wall) with the contact rules of the simulation; a
+ * small search over where it lands finds the combination that really clears the wall. Returns null if none does.
+ */
+function scriptedSideExit(o: FlightOpts): Flight | null {
+  const away = o.hitterSide === 0 ? -1 : 1;
+  const backZ = away === -1 ? 0 : 20;
+  const zAt = (u: number): number => backZ - away * u; // u = distance from the back wall
+  const fl = o.shot.flight;
+  const from: Vec = { x: o.from.x, z: o.from.z, h: o.startH ?? HIT_HEIGHT_M };
+  const sgn = o.landX >= 0 ? 1 : -1;
+  type Cand = { score: number; xb: number; ub: number; arc: Arc; t2: number; t3: number; hG: number; hE: number; vyIn: number; xg: number; xe: number; ue: number; v2: Vec; v3: Vec; vy2: number; vyG: number; vy3: number; vz2: number };
+  let best: Cand | null = null;
+  // Strict first (leaves near the corner, clearly over the wall), then more relaxed for balls hit from lower down.
+  for (const [ueMax, margin] of [[7.5, 0.4], [9, 0.2], [10, 0.05], [12, -0.3], [14, -0.8]]) {
+  if (best) break;
+  for (const xb of [3.4, 3.0, 2.6, 2.2, 1.8, 1.4, 1.0, 0.6, 0.2, 3.8]) {
+    for (const ub of [1.6, 2.0, 2.4, 2.8, 3.2, 1.2, 3.6, 4.0, 4.5]) {
+      const land = { x: sgn * xb, z: zAt(ub) };
+      const arc = solveArc(from, land, fl.speed, 0, magnus(o.shot, land.x - from.x, land.z - from.z));
+      const vyIn = -from.h / arc.T - 0.5 * arc.g * arc.T; // vertical speed at the floor (negative)
+      // floor: keeps part of the horizontal speed, bounces up with part of the vertical one
+      const vx2 = arc.vx * FLOOR_KEEP;
+      const vz2 = arc.vz * FLOOR_KEEP;
+      const vy2 = -vyIn * (FLOOR_E - 0.04);
+      const w = Math.abs(vz2);
+      if (w < 1) continue;
+      const t2 = ub / w;
+      const g2 = GRAVITY + 0.3 * (arc.g - GRAVITY);
+      const hG = vy2 * t2 - 0.5 * g2 * t2 * t2;
+      const xg = land.x + vx2 * t2;
+      if (hG < 0.5 || hG > 2.9 || Math.abs(xg) > 4.8) continue;
+      const vyG = vy2 - g2 * t2;
+      // back glass: the normal speed is cut, topspin kicks up, side spin kicks along the glass towards the wall the ball is heading for
+      const eN = glassNormalE(w);
+      const maxKick = GLASS_MU * (1 + eN) * w;
+      const kickUp = clamp(0.5 * SPIN_SURFACE * fl.spin * FLOOR_SPIN_KEEP, -maxKick, maxKick);
+      const kickSide = clamp(0.5 * SPIN_SURFACE * Math.abs(fl.side) * FLOOR_SPIN_KEEP, 0, maxKick);
+      const vy3 = 0.9 * vyG + kickUp;
+      const vz3 = -vz2 * eN;
+      const vx3 = vx2 * GLASS_KEEP + sgn * kickSide;
+      if (sgn * vx3 < 0.5) continue;
+      const t3 = (5 - Math.abs(xg)) / Math.abs(vx3);
+      const g3 = GRAVITY - 0.2 * (arc.g - GRAVITY); // the spin has turned over: the ball floats a little
+      const hE = hG + vy3 * t3 - 0.5 * g3 * t3 * t3;
+      const ue = Math.abs(vz3) * t3;
+      const top = sideWallHeightAt(clamp(zAt(ue), 0, 20));
+      if (ue > ueMax || hE < top + margin) continue;
+      // every surface takes speed off the ball
+      const s1 = Math.hypot(arc.vx, arc.vz, vyIn);
+      const s2 = Math.hypot(vx2, vz2, vy2);
+      const sIn = Math.hypot(vx2, vz2, vyG);
+      const sOut = Math.hypot(vx3, vz3, vy3);
+      if (!(s2 < s1 && sOut < sIn)) continue;
+      const score = ue + 0.5 * Math.abs(hE - (top + 1.5));
+      if (!best || score < best.score) {
+        best = { score, xb, ub, arc, t2, t3, hG, hE, vyIn, xg, xe: sgn * 5, ue, v2: { x: vx2, z: vz2, h: vy2 }, v3: { x: vx3, z: vz3, h: vy3 }, vy2, vyG, vy3, vz2 };
+      }
+    }
+  }
+  }
+  if (!best) return null;
+  const c = best;
+  const path: Sample[] = [];
+  const events: FlightEvent[] = [];
+  const g2 = GRAVITY + 0.3 * (c.arc.g - GRAVITY);
+  const g3 = GRAVITY - 0.2 * (c.arc.g - GRAVITY);
+  const land = { x: sgn * c.xb, z: zAt(c.ub) };
+  // leg 1: racket -> floor
+  const steps1 = Math.max(2, Math.ceil(c.arc.T / DT));
+  for (let i = 0; i <= steps1; i++) {
+    const t = (c.arc.T * i) / steps1;
+    const p = arcPoint(from, c.arc, t);
+    path.push({ t, x: p.x, z: p.z, h: p.h });
+  }
+  events.push({ kind: 'bounce', t: c.arc.T, x: land.x, z: land.z, h: 0 });
+  // leg 2: floor -> back glass
+  const T2 = c.arc.T + c.t2;
+  const steps2 = Math.max(2, Math.ceil(c.t2 / DT));
+  for (let i = 1; i <= steps2; i++) {
+    const u = (c.t2 * i) / steps2;
+    path.push({ t: c.arc.T + u, x: land.x + c.v2.x * u, z: land.z + c.v2.z * u, h: Math.max(0, c.vy2 * u - 0.5 * g2 * u * u) });
+  }
+  const gx = land.x + c.v2.x * c.t2;
+  events.push({ kind: 'glass', t: T2, x: gx, z: backZ, h: c.hG });
+  // leg 3: back glass -> over the side wall
+  const steps3 = Math.max(2, Math.ceil(c.t3 / DT));
+  for (let i = 1; i <= steps3; i++) {
+    const u = (c.t3 * i) / steps3;
+    path.push({ t: T2 + u, x: gx + c.v3.x * u, z: backZ + c.v3.z * u, h: Math.max(0, c.hG + c.vy3 * u - 0.5 * g3 * u * u) });
+  }
+  const end = path[path.length - 1];
+  events.push({ kind: 'out', t: end.t, x: sgn * 5, z: end.z, h: end.h });
+  const spot = clampHit({ x: land.x, z: land.z, h: 0 }, o.hitterSide);
+  return { path, hit: { x: spot.x, z: spot.z }, hitH: 0, events, duration: end.t };
+}
+
 export function buildFlight(o: FlightOpts): Flight {
+  if ((o.outcome === 'winner' || o.outcome === 'ace') && o.shot.exitVia === 'side' && o.landDepth === undefined) {
+    const f = scriptedSideExit(o);
+    if (f) return f;
+  }
   // Direction of travel along z: the near team (side 0) hits towards z = 0.
   const away = o.hitterSide === 0 ? -1 : 1;
   const h0 = o.startH ?? HIT_HEIGHT_M;
@@ -590,7 +701,9 @@ export function buildFlight(o: FlightOpts): Flight {
   // In play: ballistic arc to the first bounce, then the simulation.
   // A winning smash x4 that is meant to clear the back glass is not aimed so close to the side glass that it hits that first.
   const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
-  const depth = o.landDepth ?? o.shot.landDepth;
+  // A winning shot may be hit differently (a winning Por Tres bounces further from the glass so that it has time to rise).
+  const winShot = o.outcome === 'winner' || o.outcome === 'ace';
+  const depth = o.landDepth ?? (winShot ? o.shot.winLandDepth : undefined) ?? o.shot.landDepth;
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
   // A volley from right at the net is much faster than one from mid-court (full boost within 2 m, none from 4.5 m).
   const close = clamp((4.5 - Math.abs(o.from.z - NET_Z)) / 2.5, 0, 1);

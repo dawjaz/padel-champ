@@ -19,8 +19,10 @@ export function chooseStance(side: SideIndex, fromX: number, hitX: number, hitH:
 }
 
 /** Where the player stands: the ball is beside them on the racket side (forehand) or across the body (backhand). */
-export function standingSpot(side: SideIndex, stance: Stance, hit: CourtPos): CourtPos {
+export function standingSpot(side: SideIndex, stance: Stance, hit: CourtPos, behindBall = 0): CourtPos {
   const racketDir = side === 0 ? 1 : -1; // screen direction of the racket side
   const gap = stance === 'bh' ? -STROKE_GAP : stance === 'fh' ? STROKE_GAP : 0.25;
-  return { x: Math.max(-4.7, Math.min(4.7, hit.x - racketDir * gap)), z: hit.z };
+  // `behindBall`: stands further from the net than the ball (side 0 defends z = 20, side 1 defends z = 0), so the ball is a little in front of him
+  const z = hit.z + (side === 0 ? behindBall : -behindBall);
+  return { x: Math.max(-4.7, Math.min(4.7, hit.x - racketDir * gap)), z: Math.max(0.3, Math.min(19.7, z)) };
 }

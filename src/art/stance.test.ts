@@ -32,3 +32,17 @@ describe('standingSpot', () => {
     expect(standingSpot(0, 'fh', { x: -4.9, z: 15 }).x).toBeGreaterThanOrEqual(-4.7);
   });
 });
+
+describe('standingSpot behind the ball (bajada off the glass)', () => {
+  it('stands further from the net than the ball, so the ball is at his side and a little in front', () => {
+    const hit = { x: 1, z: 18 };
+    expect(standingSpot(0, 'fh', hit, 0.55).z).toBeCloseTo(18.55); // near team defends z = 20
+    expect(standingSpot(1, 'fh', { x: 1, z: 2 }, 0.55).z).toBeCloseTo(1.45); // far team defends z = 0
+    expect(standingSpot(0, 'fh', hit).z).toBe(18);
+  });
+
+  it('stays inside the court', () => {
+    expect(standingSpot(0, 'fh', { x: 0, z: 19.6 }, 0.55).z).toBeLessThanOrEqual(19.7);
+    expect(standingSpot(1, 'bh', { x: 0, z: 0.4 }, 0.55).z).toBeGreaterThanOrEqual(0.3);
+  });
+});

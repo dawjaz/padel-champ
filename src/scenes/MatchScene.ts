@@ -37,6 +37,8 @@ const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
 const FAULT_PAUSE = 900;
 const POINT_PAUSE = 1100;
 const GAME_PAUSE = 1500;
+/** A player who hits a ball off the back glass stands this far (m) behind the ball, so that it is at his side and a little in front. */
+const REBOUND_BEHIND_BALL = 0.55;
 const SIDE_NAME = ['YOU', 'CPU'] as const;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -56,7 +58,7 @@ interface PlayerView {
   /** Jump height in pixels (animated by the hit "hop"). */
   lift: number;
   pose: PoseName;
-  /** Which way the player looks: towards the net by default, to the side when running, to the glass when waiting for a rebound. */
+  /** Which way the player looks: towards the net by default, to the side when running. */
   facing: Facing;
   /** The player is playing a stroke (swing animation) until this time (ms), so running must not overwrite it. */
   busyUntil: number;
@@ -87,7 +89,6 @@ export class MatchScene extends Phaser.Scene {
   /** How each player is set up for the next stroke (chosen when they run to the ball). */
   private stance: Record<string, Stance> = {};
   /** Players who play the next ball after it has come off the back glass: they turn to it and hit side-on. */
-  private rebound = new Set<string>();
   private activeId: string | null = null;
   private ballFloor: CourtPos = { x: 0, z: NET_Z };
   /** Height of the ball when it is played next (a lob arrives high, a chiquita low). */
@@ -380,13 +381,6 @@ export class MatchScene extends Phaser.Scene {
     const prep = this.stance[id];
     const stance: Stance = overhead ? 'smash' : prep === undefined || prep === 'smash' ? 'fh' : prep;
     v.busyUntil = this.time.now + 420;
-    if (this.rebound.has(id)) {
-      // A ball that came off the back glass is hit side-on: forehand with the chest to the racket side, backhand to the other.
-      const racketRight = v.side === 0;
-      const onRacketSide = stance !== 'bh';
-      this.setFacing(id, onRacketSide === racketRight ? 'right' : 'left');
-      this.rebound.delete(id);
-    }
     this.setPose(id, poseOf(stance, 'Hit'));
     if (stance === 'smash') this.hop(id, 13);
     this.time.delayedCall(130, () => this.setPose(id, poseOf(stance, 'Follow')));
@@ -587,7 +581,6 @@ export class MatchScene extends Phaser.Scene {
       [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
     };
     const server = TEAMS[this.server][idx];
-    this.rebound.clear();
     for (const id of Object.keys(this.views)) {
       this.setFacing(id, this.defaultFacing(id));
       this.setPose(id, 'ready');
@@ -800,29 +793,36 @@ export class MatchScene extends Phaser.Scene {
     if (out === 'in' || out === 'continue' || out === 'intercept') {
       Object.assign(targets, this.rallyTargets(next));
       // The player who has to play the ball picks a stance and stands beside the ball's landing spot.
-      const stance = chooseStance(other(step.side), this.pos[defender.id].x, flight.hit.x, flight.hitH);
+      // A ball that comes off the back glass (bajada) is played with the back to the glass and the face to the net: the player
+      // stands a little behind the ball and hits it from the side (the ball at about one or two o'clock), never overhead.
+      const offGlass = step.glass === true && step.kind !== 'serve';
+      const stance = chooseStance(other(step.side), this.pos[defender.id].x, flight.hit.x, offGlass ? 0 : flight.hitH);
       this.stance[defender.id] = stance;
-      targets[defender.id] = standingSpot(other(step.side), stance, flight.hit);
+      targets[defender.id] = standingSpot(other(step.side), stance, flight.hit, offGlass ? REBOUND_BEHIND_BALL : 0);
       endPose[defender.id] = poseOf(stance, step.block ? 'Hit' : 'Prep');
-      // A ball that comes back off the glass behind him: he turns to watch it come, facing the glass.
-      if (step.glass && step.kind !== 'serve') {
-        this.rebound.add(defender.id);
-        endFacing[defender.id] = other(step.side) === 0 ? 'front' : 'back';
-      } else {
-        this.rebound.delete(defender.id);
-      }
-      // The partner moves with the player who runs for the ball: forward or back by about half as much, and a little
-      // sideways to cover the court, never further than a sensible distance from the net.
+      // Both players are in the game. The partner covers the court: he slides across towards the ball (so the pair closes the
+      // middle), drops back or comes forward with his partner, and never stands closer than about 1.8 m to him.
       const defSide = other(step.side);
       const partner = TEAMS[defSide][1 - step.defenderIdx];
       const base = targets[partner.id];
-      const dz = targets[defender.id].z - base.z;
+      const spot = targets[defender.id];
       const zMin = defSide === 0 ? NET_Z + 1.2 : 1;
       const zMax = defSide === 0 ? 19 : NET_Z - 1.2;
-      targets[partner.id] = {
-        x: base.x + 0.3 * (targets[defender.id].x - base.x),
-        z: Math.max(zMin, Math.min(zMax, base.z + 0.5 * dz)),
-      };
+      let px = base.x + 0.55 * (flight.hit.x - base.x);
+      const gap = 1.8;
+      if (Math.abs(px - spot.x) < gap) px = spot.x + (base.x >= spot.x ? gap : -gap);
+      px = Math.max(-4.2, Math.min(4.2, px));
+      const pz = Math.max(zMin, Math.min(zMax, base.z + 0.6 * (spot.z - base.z)));
+      // Never stand still: if the new spot is almost where he is, he takes a small step to the side that covers the court.
+      const cur = this.pos[partner.id];
+      const tiny = Math.hypot(px - cur.x, pz - cur.z) < 0.5;
+      targets[partner.id] = { x: tiny ? Math.max(-4.2, Math.min(4.2, px + (px > 0 ? -0.6 : 0.6))) : px, z: pz };
+      // The hitting pair also shifts towards the side the ball was sent to, together.
+      const shift = Math.max(-1.2, Math.min(1.2, 0.25 * landX));
+      for (const p of TEAMS[step.side]) {
+        const t = targets[p.id];
+        targets[p.id] = { x: Math.max(-4.2, Math.min(4.2, t.x + shift)), z: t.z };
+      }
     } else if (out === 'winner' || out === 'ace') {
       // The defender runs for it all the way, but cannot get there in time...
       const d = this.pos[defender.id];

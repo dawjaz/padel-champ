@@ -482,11 +482,11 @@
     },
     "desc": "Por tres: hit hard into the back glass; with spin it kicks high to the side glass or the mesh. Skilled hitters send it out over the fence.",
     "flight": {
-      "speed": 30,
+      "speed": 25,
       "apex": 0,
       "spin": 1.2,
-      "wallKick": 1.6,
-      "side": 0.7
+      "wallKick": 1.0,
+      "side": 1.1
     },
     "exitVia": "side",
     "glassChance": 1.0,
@@ -499,7 +499,8 @@
       "net": 0.45,
       "glass": 0.3,
       "mesh": 0.25
-    }
+    },
+    "winLandDepth": 6.8
   },
   {
     "id": "smash_x4",

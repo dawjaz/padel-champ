@@ -1,6 +1,21 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.18)_
+_Last updated: 2026-11-20 (v0.19)_
+
+## v0.19: bajada stance, both defenders move, Por Tres flight
+- **Bajada / ball off the back glass**: no more turning to the glass. The player keeps his face to the net, stands `REBOUND_BEHIND_BALL`
+  (0.55 m) behind the ball (`standingSpot(..., behindBall)`) and plays a forehand/backhand from the side (ball at about 1-2 o'clock),
+  never the overhead pose (`MatchScene.playStep`, the old `rebound` facing set is gone).
+- **Both defenders move** after every hit: the partner slides 55% of the way towards the ball, keeps at least 1.8 m from his partner,
+  drops back or comes forward (60% of the defender's depth change) and takes a small step if he would not move at all. The hitting pair
+  shifts together towards the side the ball was sent to (25% of landX, max 1.2 m).
+- **Por Tres, winning version** (`scriptedSideExit` in ballPath.ts): medium-hard topspin ball (25 m/s) into the court near the end line,
+  floor bounce, back glass, then over the top of the side wall. Built from three ballistic legs with the contact rules of the simulation
+  (each surface cuts speed: tested), the aim point is searched so that the ball really clears the wall; falls back to the old simulation
+  if no aim works. New shot fields: `winLandDepth` (unused by the script, kept for the simulation fallback), `wallKick` 1.0, side spin 1.1.
+  A non-winning Por Tres is unchanged (stays in play off glass/mesh).
+- Side spin now kicks the ball along the back glass (against the way it bends in the air).
+- Sound: see docs/ASSETS.md; the game plays real files as soon as they are in `public/assets/audio/sfx/` and listed in `manifest.json`.
 
 ## v0.18: glass rebounds, stronger spin curvature, smaller ball, faster hits, no captions
 - **No caption above the buttons** (`showButtons` ignores its `title`; the golden-point question is still said in the message line).
