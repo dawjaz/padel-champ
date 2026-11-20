@@ -441,3 +441,72 @@ describe('volley speed and the sweep of winners', () => {
     expect(problems).toEqual([]);
   });
 });
+
+describe('glass rebound physics', () => {
+  /** Horizontal and vertical speed of the ball just before and just after its first contact with the back glass. */
+  function backGlassRebound(id: string, arrival: 'low' | 'mid' | 'high') {
+    const f = buildFlight({
+      from: { x: 1.5, z: 14 }, startH: 1.2, hitterSide: 0, shot: shot(id), landX: -1, outcome: 'continue', glass: true, arrival,
+    });
+    const g = f.events.find((e) => e.kind === 'glass' && (e.z < 0.1 || e.z > 19.9));
+    if (!g) return null;
+    const P = f.path;
+    const i = P.findIndex((p) => p.t >= g.t - 1e-6);
+    const v = (a: number, b: number) => {
+      const dt = P[b].t - P[a].t;
+      return { vh: Math.hypot(P[b].x - P[a].x, P[b].z - P[a].z) / dt, vy: (P[b].h - P[a].h) / dt };
+    };
+    return { pre: v(i - 6, i - 1), post: v(i + 1, i + 6) };
+  }
+
+  it('a fast ball comes off the back glass fast and at an angle, not slowly and straight up', () => {
+    for (const id of ['bajada_fast', 'smash_x4', 'bounce_shot']) {
+      for (const arrival of ['low', 'mid', 'high'] as const) {
+        const r = backGlassRebound(id, arrival);
+        expect(r, `${id} ${arrival}`).not.toBeNull();
+        if (!r) continue;
+        // keeps at least half of its horizontal speed, and never leaves steeper than about 45 degrees
+        expect(r.post.vh, `${id} ${arrival} speed`).toBeGreaterThan(0.45 * r.pre.vh);
+        expect(Math.atan2(r.post.vy, r.post.vh), `${id} ${arrival} angle`).toBeLessThan((46 * Math.PI) / 180);
+      }
+    }
+  });
+
+  it('the rebound class still decides how high the ball goes', () => {
+    const peak = (arrival: 'low' | 'mid' | 'high'): number => {
+      const f = buildFlight({
+        from: { x: 1.5, z: 14 }, startH: 1.2, hitterSide: 0, shot: shot('bajada_fast'), landX: -1, outcome: 'continue', glass: true, arrival,
+      });
+      const g = f.events.find((e) => e.kind === 'glass')!;
+      return Math.max(...f.path.filter((p) => p.t > g.t).map((p) => p.h));
+    };
+    expect(peak('mid')).toBeGreaterThan(peak('low') + 0.3);
+    expect(peak('high')).toBeGreaterThan(peak('mid') + 0.5);
+  });
+});
+
+describe('spin curvature', () => {
+  /** Largest sideways distance of the flight (up to the first bounce) from the straight line start -> bounce. */
+  function bow(id: string): number {
+    const f = fly(id);
+    const b = f.events.find((e) => e.kind === 'bounce')!;
+    const a = f.path[0];
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    let max = 0;
+    for (const p of f.path) {
+      if (p.t > b.t) break;
+      max = Math.max(max, Math.abs(((b.x - a.x) * (a.z - p.z) - (a.x - p.x) * (b.z - a.z)) / len));
+    }
+    return max;
+  }
+
+  it('side-spin shots bend clearly (vibora, spin glass), flat shots hardly at all', () => {
+    expect(bow('vibora')).toBeGreaterThan(0.4);
+    expect(bow('flat')).toBeLessThan(0.1);
+  });
+
+  it('topspin dips steeper than backspin: effective gravity differs by a lot', () => {
+    expect(magnus(shot('bajada_fast'), 0, -10).g).toBeGreaterThan(GRAVITY + 3);
+    expect(magnus(shot('bandeja'), 0, -10).g).toBeLessThan(GRAVITY - 3);
+  });
+});

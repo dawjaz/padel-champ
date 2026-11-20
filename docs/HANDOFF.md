@@ -1,6 +1,20 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.17)_
+_Last updated: 2026-11-20 (v0.18)_
+
+## v0.18: glass rebounds, stronger spin curvature, smaller ball, faster hits, no captions
+- **No caption above the buttons** (`showButtons` ignores its `title`; the golden-point question is still said in the message line).
+- **Glass rebound** (`ballPath.ts`): `glassNormalE` (the faster the ball arrives the more it loses along the normal: 0.76 -> ~0.55), `wallVertical`
+  (friction + spin kick: topspin kicks UP off a wall, backspin pushes down; limited by `GLASS_MU` and `SPIN_SURFACE`). Spin turns over at
+  every wall (`lift *= -0.7`). The rebound class (low/mid/high) now **tilts the physical rebound instead of inventing speed**: the ball keeps the
+  speed the contact left it with and leaves at most ~44 degrees steep (`0.7 * total`), so a hard flat ball comes off fast at an angle.
+- **Spin curvature**: `MAGNUS_LIFT` 9, `MAGNUS_SIDE` 9, and the Magnus force now also acts AFTER the first bounce (spin fades 30%/s, a floor
+  bounce keeps 60%). Spin/side values in shots.json raised (e.g. vibora side 1.3, bandeja -1.1, rulo 1.6, bajada_fast 0.9, bajada_slow -0.9).
+- Winning smashes must leave over the receiving half (they used to be able to come back past the net).
+- **Ball** drawn ~25% smaller (`p.scale * 0.3`, min 6 px). **Hit pauses halved**: `CPU_DELAY` 112 ms, `NEXT_HIT_DELAY` 175 ms (CPU hits 87 ms).
+- Tests: new "glass rebound physics" and "spin curvature" suites. Research notes: pros hit smashes at 80+ km/h and control shots at 40-60 km/h;
+  the glass studies found were not detailed enough to take constants from, so the contact model uses textbook friction/spin physics, tuned by eye.
+  Owner should play-test: does the ball feel natural off the back glass? Tune `GLASS_MU`, `SPIN_SURFACE`, `MAGNUS_*`.
 
 ## v0.17: golden point, the receiving pair chooses
 - At 40-40 the **receiving pair chooses who receives**, which sets the serving lane (the serve is always cross; partners keep their halves).

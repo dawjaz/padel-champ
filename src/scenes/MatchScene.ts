@@ -30,8 +30,8 @@ const GUTS_RECOVERY_PER_POINT = 2;
 const HUMAN_SIDE: SideIndex = 0;
 const HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
-const CPU_DELAY = 225;
-const NEXT_HIT_DELAY = 350;
+const CPU_DELAY = 112;
+const NEXT_HIT_DELAY = 175;
 /** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
 const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
 const FAULT_PAUSE = 900;
@@ -243,7 +243,7 @@ export class MatchScene extends Phaser.Scene {
   private setBall(x: number, z: number, h: number, trail = true): void {
     const p = project(x, z, h);
     this.ballFloor = { x, z };
-    const d = Math.max(8, p.scale * 0.4);
+    const d = Math.max(6, p.scale * 0.3);
     const now = this.time.now;
     if (trail) {
       const dt = Math.min(0.05, Math.max(0, (now - this.ballTurnedAt) / 1000));
@@ -490,9 +490,8 @@ export class MatchScene extends Phaser.Scene {
 
   private showButtons(title: string, items: ButtonSpec[]): void {
     this.clearMenu();
-    this.menu.push(
-      this.add.text(WIDTH / 2, 440, title, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', color: '#9fd8ff' }).setOrigin(0.5),
-    );
+    // No caption above the buttons (the owner does not want the "who: shot (ball ...)" line); `title` stays for the callers.
+    void title;
     // Up to 6 buttons: 2 big columns; more: 3 compact columns.
     const compact = items.length > 6;
     const cols = compact ? 3 : 2;

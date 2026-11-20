@@ -99,12 +99,19 @@ const NET_CLEARANCE = 0.15;
 
 // Floor: vertical bounciness and how much horizontal speed is kept, before spin.
 const FLOOR_E = 0.76;
-const FLOOR_KEEP = 0.5;
+const FLOOR_KEEP = 0.55;
 /** Air drag after the bounce: a padel ball is light and slows quickly (fraction of speed lost per second). */
 const AIR_DRAG = 0.35;
 // Walls: glass is lively, mesh is dead. Keep = fraction of the speed along the wall (friction).
-const GLASS_E = 0.75;
+const GLASS_E = 0.76;
 const GLASS_KEEP = 0.92;
+/** Friction between the ball and the glass: tangential impulse per unit of normal impulse (rubber on glass). */
+const GLASS_MU = 0.35;
+/** Speed of the ball surface at the contact per unit of `spin` (m/s): about 2500 rpm x ball radius is 8.8 m/s. */
+const SPIN_SURFACE = 7;
+/** The spin of a ball in flight fades slowly (fraction lost per second); a floor bounce takes a good part of it. */
+const SPIN_DECAY = 0.3;
+const FLOOR_SPIN_KEEP = 0.6;
 const MESH_E = 0.3;
 const MESH_KEEP = 0.65;
 const WALL_VERTICAL_KEEP = 0.9;
@@ -142,8 +149,8 @@ interface Arc {
  * about 0.3-0.5 g downwards (it dips steeply and kicks), a slice or backspin lifts it by a similar amount (it floats, stays
  * flatter and travels further), and side spin bends the flight by half a metre or more over a court length.
  */
-export const MAGNUS_LIFT = 6;
-export const MAGNUS_SIDE = 4.0;
+export const MAGNUS_LIFT = 9;
+export const MAGNUS_SIDE = 9;
 export function magnus(shot: ShotDef, dx: number, dz: number): { g: number; lx: number; lz: number } {
   const f = shot.flight.speed / 25;
   const g = clamp(GRAVITY + MAGNUS_LIFT * shot.flight.spin * f, 5.5, 19);
@@ -151,6 +158,25 @@ export function magnus(shot: ShotDef, dx: number, dz: number): { g: number; lx: 
   const a = MAGNUS_SIDE * shot.flight.side * f;
   // the force is w x v: for side spin w = (0, -side, 0) it points along (-dz, dx)
   return { g, lx: (-dz / len) * a, lz: (dx / len) * a };
+}
+
+/**
+ * Real glass: a ball hits it faster than it leaves it, and the faster it comes the more energy it loses
+ * (the rubber ball squashes). Slow balls keep about 0.76 of their speed along the normal, a 25 m/s smash only about 0.55.
+ */
+function glassNormalE(vn: number): number {
+  return clamp(GLASS_E - 0.008 * Math.max(0, vn - 10), 0.55, GLASS_E);
+}
+
+/**
+ * Vertical speed after a wall contact. The wall is vertical, so up/down is the tangential direction: friction takes a little
+ * of it, and the spin kicks the ball: topspin (turning forward) kicks it UP off a wall, backspin pushes it down. The kick is limited by
+ * friction (mu x (1 + e) x the normal speed) and by how fast the ball surface moves (the spin).
+ */
+function wallVertical(vy: number, vn: number, spin: number, e: number): number {
+  const maxKick = GLASS_MU * (1 + e) * vn;
+  const kick = clamp(0.5 * SPIN_SURFACE * spin, -maxKick, maxKick);
+  return vy * 0.9 + kick;
 }
 
 /** Ballistic arc from `from` (at height h0) to the floor at `to`, as fast as `speed` allows while still clearing the net. */
@@ -263,8 +289,14 @@ function simulateAfterBounce(
   let climbing = false;
   let chaos = false;
   let backContact = -1;
+  // Spin of the ball (+ topspin, - backspin; side spin about the vertical axis). A floor bounce takes part of it, a wall turns
+  // topspin into backspin (the ball keeps turning the same way while it now travels the other way).
+  let lift = o.shot.flight.spin;
+  let side = o.shot.flight.side;
 
   const floorBounce = (): void => {
+    lift *= FLOOR_SPIN_KEEP;
+    side *= FLOOR_SPIN_KEEP;
     h = 0;
     vy = -vy * restitution;
     const k = bounces === 0 ? Math.min(keep * (o.carry ?? 1), 1.2) : keep;
@@ -285,6 +317,18 @@ function simulateAfterBounce(
     vx *= 1 - AIR_DRAG * DT;
     vz *= 1 - AIR_DRAG * DT;
     vy -= GRAVITY * DT;
+    // Magnus force on the spinning ball: topspin pulls it down, backspin lifts it, side spin bends it sideways.
+    const hv = Math.hypot(vx, vz);
+    if (hv > 0.5) {
+      const f = hv / 25;
+      vy -= MAGNUS_LIFT * lift * f * DT;
+      const a = MAGNUS_SIDE * side * f * DT;
+      const ovx = vx;
+      vx += (-vz / hv) * a;
+      vz += (ovx / hv) * a;
+    }
+    lift *= 1 - SPIN_DECAY * DT;
+    side *= 1 - SPIN_DECAY * DT;
     x += vx * DT;
     z += vz * DT;
     h += vy * DT;
@@ -343,10 +387,13 @@ function simulateAfterBounce(
       } else {
         x = sign * 5;
         const glass = mat === 'glass';
-        vx = -vx * (glass ? GLASS_E : MESH_E);
+        const vn = Math.abs(vx);
+        const eN = glass ? glassNormalE(vn) : MESH_E;
+        vx = -vx * eN;
         const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
         vz *= along;
-        vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7);
+        vy = glass ? wallVertical(vy, vn, lift, eN) : vy * WALL_VERTICAL_KEEP * 0.7;
+        lift *= -0.7;
         kicked = true;
         if (firstContact < 0) firstContact = samples.length;
         events.push({ kind: mat, t, x, z, h });
@@ -373,16 +420,27 @@ function simulateAfterBounce(
       }
       z = z <= 0 ? 0 : 20;
       const glass = mat === 'glass';
-      vz = -vz * (glass ? GLASS_E : MESH_E);
-      // Backspin makes the ball die against the back glass; topspin keeps it lively.
-      const spinKeep = clamp(1 + 0.25 * o.shot.flight.spin, 0.5, 1.2);
+      const vn = Math.abs(vz);
+      const eN = glass ? glassNormalE(vn) : MESH_E;
+      vz = -vz * eN;
       vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
+      // What the contact itself leaves: the normal speed is cut by the glass, the vertical speed gets friction and the spin kick.
+      const vyPhys = glass ? wallVertical(vy, vn, lift, eN) : vy * WALL_VERTICAL_KEEP * 0.7;
       if (o.reboundPeak !== undefined && glass && backContact < 0 && !o.exitOverFence) {
-        // The rebound off the back glass is low, medium or high: steer it to the chosen peak.
-        vy = Math.sqrt(2 * GRAVITY * Math.max(o.reboundPeak - h, 0.05));
+        // The rebound off the back glass is low, medium or high. The ball is tilted to that class, but it keeps the speed the
+        // contact left it with (a hard flat ball comes off fast at an angle, it does not shoot straight up and hang there).
+        const total = Math.hypot(vx, vz, vyPhys);
+        const wanted = Math.sqrt(2 * GRAVITY * Math.max(o.reboundPeak - h, 0.05));
+        const vyOut = Math.min(wanted, 0.7 * total);
+        const hNow = Math.hypot(vx, vz) || 1e-6;
+        const hNew = Math.sqrt(Math.max(total * total - vyOut * vyOut, 0));
+        vx *= hNew / hNow;
+        vz *= hNew / hNow;
+        vy = vyOut;
       } else {
-        vy *= WALL_VERTICAL_KEEP * (glass ? 1 : 0.7) * Math.min(1, spinKeep);
+        vy = vyPhys;
       }
+      lift *= -0.7;
       kicked = true;
       if (backContact < 0) backContact = samples.length;
       if (firstContact < 0) firstContact = samples.length;
@@ -621,6 +679,8 @@ export function buildFlight(o: FlightOpts): Flight {
     const wanted = (r: typeof sim): boolean => {
       const e = exitOf(r);
       if (!e || !o.shot.exitVia) return e !== undefined;
+      // The ball must leave on the receiving half: it never comes back over the net.
+      if (o.hitterSide === 0 ? e.z > NET_Z - 0.3 : e.z < NET_Z + 0.3) return false;
       const side = Math.abs(e.x) >= 5;
       if (o.shot.exitVia === 'side') return side;
       // over the back glass at the far end (not after a rebound over the hitter's own end)
