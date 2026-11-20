@@ -1,6 +1,20 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.19)_
+_Last updated: 2026-11-20 (v0.20)_
+
+## v0.20: hitters look for gaps, volley at the net, pace by ball height
+- **Gap seeking** (`pickHit(teams, state, rng, opp)` in ai.ts; CPU and the human's partner only, the human still chooses): `opp` are the
+  opponents' real positions (`MatchScene.hitTurn`). The hitter scores each direction by its distance from both opponents (`gapX`), prefers
+  lobs against two net players and chiquitas against two players at the back, and returns an `AimPreference` (x and depth) that `stepHit`
+  uses to choose among the 10 x aim points and 20 depths (`aimX`/`aimDepth` `prefer`, kept with probability `AIM_SKILL` 0.75).
+- **Net player volleys** (`netVolley` in point.ts): a defender at the net takes every reachable ball out of the air (not lobs, smashes,
+  rulo): `step.block`, the ball is MID (fast shot) or LOW (soft shot) and he stays at the net. `blockAtNet` in shots.json is now unused.
+  CPU-vs-CPU: volley share of shots 21% -> 36%, avg 5.4 hits, server wins 53%.
+- **Flat shot is not offered at the net** (`requires.formations` mid/back); the volley is.
+- **Pace** (`src/game/pace.ts`, `paceFactor`, passed to `buildFlight` as `speedMul`, speed capped at 35 m/s): LOW ball = 15% slower; MID/HIGH =
+  +8% / +15% when the hitter is not under pressure; a volley on a slow incoming ball (`BallState.speed`, <= 14 m/s) gets up to +30%, on a fast
+  one (>= 20 m/s) no change. Serves, lobs, chiquitas and the rulo are unchanged. The pace is visual (flight); win/lose is still `engine.ts`.
+- Tests: pace.test.ts, and new suites in point.test.ts (net volley, flat shot hidden at the net, CPU gap seeking).
 
 ## v0.19: bajada stance, both defenders move, Por Tres flight
 - **Bajada / ball off the back glass**: no more turning to the glass. The player keeps his face to the net, stands `REBOUND_BEHIND_BALL`

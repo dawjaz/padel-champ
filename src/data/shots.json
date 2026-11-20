@@ -399,7 +399,7 @@
     "advance": "stay",
     "landDepth": 5,
     "wall": "none",
-    "desc": "Let it bounce, then drive it. Good on low balls.",
+    "desc": "Let it bounce, then drive it. Good on low balls. Not at the net (volley instead).",
     "flight": {
       "speed": 22,
       "apex": 0,
@@ -408,7 +408,14 @@
       "side": 0.0
     },
     "glassChance": 0.55,
-    "blockAtNet": true
+    "blockAtNet": true,
+    "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
+      "hint": "at the net: volley"
+    }
   },
   {
     "id": "rulo",

@@ -19,7 +19,8 @@ import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
 import { playableShots, startPoint, stepHit, stepServe, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
-import type { CourtPos, Direction, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
+import type { AimPreference, CourtPos, Direction, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
+import { paceFactor } from '../game/pace';
 import { recordResult, updateSave } from '../save';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
@@ -670,8 +671,10 @@ export class MatchScene extends Phaser.Scene {
       this.showShotMenu();
     } else {
       this.setActive(null);
-      const { shot, direction } = pickHit(TEAMS, st, Math.random);
-      this.time.delayedCall(CPU_DELAY, () => this.performHit(shot, direction));
+      // The hitter looks for holes: he sees where the opponents stand right now.
+      const opp = TEAMS[other(side)].map((p) => ({ ...this.pos[p.id] }));
+      const { shot, direction, prefer } = pickHit(TEAMS, st, Math.random, opp);
+      this.time.delayedCall(CPU_DELAY, () => this.performHit(shot, direction, prefer));
     }
   }
 
@@ -730,9 +733,9 @@ export class MatchScene extends Phaser.Scene {
     this.playStep(step, state);
   }
 
-  private performHit(shot: ShotDef, direction: Direction): void {
+  private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference): void {
     this.hideHeight();
-    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random);
+    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random, prefer);
     this.playStep(step, state);
   }
 
@@ -767,6 +770,8 @@ export class MatchScene extends Phaser.Scene {
       block: step.block,
       errorKind: step.errorKind,
       airHit: step.lob === 'weak',
+      // Hard when the ball comes to the hitter's strike zone, slower off a low ball; a volley on a slow ball gets more pace.
+      speedMul: step.kind === 'serve' ? 1 : paceFactor(step.shot, this.point.ball),
     });
     const duration = flightDuration(flight);
     // The ball leaves the racket spinning: topspin / backspin about the horizontal axis, side spin about the vertical one.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
 import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from './ai';
+import { netVolley } from './point';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
 import { nextFormation, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
@@ -429,5 +430,96 @@ describe('pickGoldenReceiver', () => {
     const better = rating(team[0]) >= rating(team[1]) ? 0 : 1;
     expect(counts[better]).toBeGreaterThanOrEqual(counts[1 - better]);
     expect(counts[1 - better]).toBeGreaterThan(0);
+  });
+});
+
+describe('the net player volleys', () => {
+  it('a defender at the net takes every ball he can reach out of the air', () => {
+    for (const id of ['volley', 'bounce_shot', 'vibora', 'bandeja', 'rally_chiquita', 'bajada_fast']) {
+      expect(netVolley(shot(id), 'net', undefined), id).toBe(true);
+    }
+  });
+  it('but not a lob over him, a smash that leaves the court, a rulo, or anything when he is not at the net', () => {
+    for (const id of ['rally_lob', 'smash_x3', 'smash_x4', 'rulo']) {
+      expect(netVolley(shot(id), 'net', undefined), id).toBe(false);
+    }
+    expect(netVolley(shot('volley'), 'mid', undefined)).toBe(false);
+    expect(netVolley(shot('volley'), 'back', undefined)).toBe(false);
+    expect(netVolley(shot('volley'), 'net', 'weak')).toBe(false);
+  });
+  it('stepHit marks the step as a block (volley) whenever the defender is at the net and the rally continues', () => {
+    let seen = 0;
+    for (let seed = 1; seed <= 60 && seen < 3; seed++) {
+      const st = rallyState({ formation: ['back', 'net'], ball: { height: 'mid', pressure: 0, zone: 'mid' } });
+      const r = stepHit(TEAMS, st, shot('volley'), 'cross', seededRng(seed));
+      if (r.step.outcome !== 'continue') continue;
+      seen++;
+      expect(r.step.block).toBe(true);
+      expect(r.state.ball.glass).toBe(false);
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  it('Flat shot is not offered to a player at the net, the volley is', () => {
+    const net = rallyState({ formation: ['net', 'back'] });
+    const ids = playableShots(shotsOfKind('rally'), net).map((s) => s.id);
+    expect(ids).not.toContain('bounce_shot');
+    expect(ids).toContain('volley');
+    const back = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, zone: 'mid' } });
+    expect(playableShots(shotsOfKind('rally'), back).map((s) => s.id)).toContain('bounce_shot');
+  });
+  it('the ball remembers how fast it was sent', () => {
+    const st = rallyState({ formation: ['back', 'back'] });
+    for (let seed = 1; seed < 40; seed++) {
+      const r = stepHit(TEAMS, st, shot('bounce_shot'), 'cross', seededRng(seed));
+      if (r.step.outcome === 'continue') {
+        expect(r.state.ball.speed).toBe(shot('bounce_shot').flight.speed);
+        return;
+      }
+    }
+  });
+});
+
+describe('CPU hitters look for the gaps', () => {
+  const state = (over: Partial<PointState> = {}): PointState => rallyState({ holder: 1, hitterIdx: 0, formation: ['back', 'back'], ball: { height: 'mid', pressure: 0, zone: 'mid' }, ...over });
+
+  it('a ball aimed at the gap is further from both opponents than the average aimed ball', () => {
+    const rng = seededRng(5);
+    // opponents stand in their lanes (-2.5, +2.5): the best gap is the middle
+    const opp = [{ x: -2.5, z: 2.5 }, { x: 2.5, z: 2.5 }];
+    let middle = 0;
+    for (let i = 0; i < 300; i++) {
+      const { direction } = pickHit(TEAMS, state(), rng, opp);
+      if (direction === 'middle') middle++;
+    }
+    expect(middle).toBeGreaterThan(150);
+  });
+
+  it('avoids the side where the opponents stand: partner shifted to the middle, so the open space is on the line', () => {
+    const rng = seededRng(9);
+    const opp = [{ x: -0.8, z: 2.5 }, { x: 1.0, z: 2.5 }]; // both bunched in the middle
+    const counts = { parallel: 0, cross: 0, middle: 0 } as Record<string, number>;
+    for (let i = 0; i < 300; i++) counts[pickHit(TEAMS, state(), rng, opp).direction]++;
+    expect(counts.middle).toBeLessThan(100);
+  });
+
+  it('asks for a deep ball against opponents at the net and a short one against opponents at the back', () => {
+    const rng = seededRng(3);
+    const net = pickHit(TEAMS, state(), rng, [{ x: -2.5, z: 8 }, { x: 2.5, z: 8 }]);
+    const back = pickHit(TEAMS, state(), rng, [{ x: -2.5, z: 2 }, { x: 2.5, z: 2 }]);
+    if (net.prefer?.depth !== undefined && !net.shot.overFence) expect(net.prefer.depth).toBeGreaterThan(net.shot.landDepth);
+    if (back.prefer?.depth !== undefined && !back.shot.overFence) expect(back.prefer.depth).toBeLessThan(back.shot.landDepth);
+  });
+
+  it('lobs more against opponents at the net, chiquitas more against opponents at the back', () => {
+    const rng = seededRng(21);
+    const count = (opp: Array<{ x: number; z: number }>, test: (id: string) => boolean): number => {
+      let n = 0;
+      for (let i = 0; i < 600; i++) if (test(pickHit(TEAMS, state({ ball: { height: 'low', pressure: 0, zone: 'mid' } }), rng, opp).shot.id)) n++;
+      return n;
+    };
+    const atNet = [{ x: -2.5, z: 8 }, { x: 2.5, z: 8 }];
+    const atBack = [{ x: -2.5, z: 2 }, { x: 2.5, z: 2 }];
+    expect(count(atNet, (id) => id.includes('lob'))).toBeGreaterThan(count(atBack, (id) => id.includes('lob')));
+    expect(count(atBack, (id) => id.includes('chiquita'))).toBeGreaterThan(count(atNet, (id) => id.includes('chiquita')));
   });
 });

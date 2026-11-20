@@ -71,6 +71,8 @@ export interface FlightOpts {
   errorKind?: ErrorKind;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
+  /** Pace of this hit relative to the shot's usual speed (1 = as usual): harder off a high ball, slower off a low one. */
+  speedMul?: number;
 }
 
 export interface Flight {
@@ -92,6 +94,8 @@ export const ARRIVAL_HEIGHT: Record<Height, number> = { high: 2.0, mid: 1.0, low
 export const REBOUND_PEAK: Record<Height, number> = { low: 0.75, mid: 1.5, high: 2.6 };
 
 export const GRAVITY = 9.81;
+/** No shot is faster than this (m/s): about 125 km/h, a hard smash. */
+const MAX_SHOT_SPEED = 35;
 const DT = 1 / 90;
 const MAX_TIME = 6;
 /** The ball must pass the net at least this much above its top edge. */
@@ -530,7 +534,7 @@ function scriptedSideExit(o: FlightOpts): Flight | null {
   for (const xb of [3.4, 3.0, 2.6, 2.2, 1.8, 1.4, 1.0, 0.6, 0.2, 3.8]) {
     for (const ub of [1.6, 2.0, 2.4, 2.8, 3.2, 1.2, 3.6, 4.0, 4.5]) {
       const land = { x: sgn * xb, z: zAt(ub) };
-      const arc = solveArc(from, land, fl.speed, 0, magnus(o.shot, land.x - from.x, land.z - from.z));
+      const arc = solveArc(from, land, Math.min(fl.speed * (o.speedMul ?? 1), MAX_SHOT_SPEED), 0, magnus(o.shot, land.x - from.x, land.z - from.z));
       const vyIn = -from.h / arc.T - 0.5 * arc.g * arc.T; // vertical speed at the floor (negative)
       // floor: keeps part of the horizontal speed, bounces up with part of the vertical one
       const vx2 = arc.vx * FLOOR_KEEP;
@@ -707,7 +711,7 @@ export function buildFlight(o: FlightOpts): Flight {
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
   // A volley from right at the net is much faster than one from mid-court (full boost within 2 m, none from 4.5 m).
   const close = clamp((4.5 - Math.abs(o.from.z - NET_Z)) / 2.5, 0, 1);
-  const speed = fl.speed * (1 + (fl.netBoost ?? 0) * close);
+  const speed = Math.min(fl.speed * (o.speedMul ?? 1) * (1 + (fl.netBoost ?? 0) * close), MAX_SHOT_SPEED);
   // A fast volley from the net skims over the tape; every other ball clears it comfortably.
   const clearance = NET_CLEARANCE - 0.09 * (fl.netBoost ? close : 0);
   const arc = solveArc(from, land, speed, fl.apex, magnus(o.shot, land.x - from.x, land.z - from.z), clearance);

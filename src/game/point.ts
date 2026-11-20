@@ -1,7 +1,7 @@
 import { DIRECTIONS } from './catalog';
 import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
 import { resolveHit, resolveServe, spendGuts, type HitOutcome } from './engine';
-import type { BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
+import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
@@ -206,7 +206,7 @@ function nextBall(
   const chance = lob === 'weak' ? 0 : shot.glassChance ?? 0;
   const glass = chance > 0 && rng() < chance;
   const arrival: Height = glass ? pickRebound(shot.rebound ?? DEFAULT_REBOUND, rng) : shot.out;
-  return { ball: { height: arrival, pressure, lob, glass }, glass, arrival, lob, landDepth };
+  return { ball: { height: arrival, pressure, lob, glass, speed: shot.flight.speed }, glass, arrival, lob, landDepth };
 }
 
 export function stepServe(
@@ -266,7 +266,7 @@ export function stepServe(
       hits: 0,
       holder: recvSide,
       hitterIdx: state.receiverIdx,
-      ball: { height: shot.out, pressure: res.pressure, glass: offGlass, zone: zoneOf(shot.landDepth) },
+      ball: { height: shot.out, pressure: res.pressure, glass: offGlass, zone: zoneOf(shot.landDepth), speed: shot.flight.speed },
       formation,
     },
     step: { ...base, outcome: 'in', pointWinner: null, glass: offGlass, arrival: shot.out },
@@ -278,9 +278,30 @@ export function stepServe(
  * one of 20 depths, at random. The rulo and the smashes that leave the court keep their fixed targets. `depth` is a depth
  * that is already set (a weak lob).
  */
-function aimDepthFor(shot: ShotDef, rng: Rng, landX: number | undefined, depth?: number): { landX?: number; landDepth?: number } {
+function aimDepthFor(
+  shot: ShotDef,
+  rng: Rng,
+  landX: number | undefined,
+  depth?: number,
+  preferDepth?: number,
+): { landX?: number; landDepth?: number } {
   if (landX === undefined) return depth === undefined ? {} : { landDepth: depth };
-  return { landX, landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread) };
+  return { landX, landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread, preferDepth) };
+}
+
+/**
+ * A defender at the net takes the ball out of the air and finishes with a volley, instead of waiting for it to bounce and backing
+ * off to mid-court: every ball he can reach (not a lob over him, not a smash or rulo that leaves the court) is played in front of the net.
+ */
+export function netVolley(shot: ShotDef, defenderFormation: Formation, lob: LobQuality | undefined): boolean {
+  return (
+    defenderFormation === 'net' &&
+    lob === undefined &&
+    shot.kind !== 'serve' &&
+    !isLob(shot) &&
+    shot.overFence !== true &&
+    shot.wall !== 'fence'
+  );
 }
 
 export function stepHit(
@@ -289,6 +310,8 @@ export function stepHit(
   shot: ShotDef,
   chosenDirection: Direction,
   rng: Rng,
+  /** CPU / partner hitters: where they would like to put the ball (the gap in the opponents' set-up). */
+  prefer?: AimPreference,
 ): StepResult {
   if (state.status !== 'rally') throw new Error('Point is not in the rally');
   if (unavailableReason(shot, state) !== null) throw new Error(`${shot.id} cannot be played now`);
@@ -299,7 +322,7 @@ export function stepHit(
   const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
-  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng);
+  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x);
   const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
   const defender = teams[defSide][defIdx];
 
@@ -333,14 +356,16 @@ export function stepHit(
 
   if (res.outcome === 'continue') {
     const next = nextBall(shot, res.pressure, rng, state.ball.height);
-    // A defender at the net blocks a flat/fast shot out of the air: it never bounces, and he plays it at about chest height.
-    const block = shot.blockAtNet === true && state.formation[defSide] === 'net' && next.lob === undefined;
+    // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
+    // for a soft one) and stays at the net.
+    const block = netVolley(shot, state.formation[defSide], next.lob);
     if (block) {
-      next.ball = { height: 'mid', pressure: res.pressure, glass: false };
+      const height: Height = shot.flight.speed >= 15 ? 'mid' : 'low';
+      next.ball = { height, pressure: res.pressure, glass: false, speed: shot.flight.speed };
       next.glass = false;
-      next.arrival = 'mid';
+      next.arrival = height;
     }
-    const aimed = aimDepthFor(shot, rng, landX, next.landDepth);
+    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
     next.ball = { ...next.ball, zone: block ? 'net' : zoneOf(aimed.landDepth ?? shot.landDepth) };
     return {
       state: {
@@ -363,7 +388,7 @@ export function stepHit(
     step: {
       ...step,
       pointWinner: winner,
-      ...aimDepthFor(shot, rng, landX),
+      ...aimDepthFor(shot, rng, landX, undefined, prefer?.depth),
       errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng) : undefined,
     },
   };

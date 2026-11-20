@@ -182,6 +182,14 @@ export interface BallState {
   glass?: boolean;
   /** Where the ball comes down (its first bounce, or the spot it is taken out of the air). */
   zone?: Zone;
+  /** How fast the shot that sent this ball was hit (m/s, its launch speed). */
+  speed?: number;
+}
+
+/** Where a CPU (or partner) hitter would like the ball to go: the aim points closest to these are preferred (x across, depth past the net). */
+export interface AimPreference {
+  x?: number;
+  depth?: number;
 }
 
 /** Position on the court in metres: x across (-5..5), z along (0 = far baseline, 10 = net, 20 = near baseline). */

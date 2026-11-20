@@ -46,17 +46,30 @@ const AIM_HALF_WIDTH = 0.9;
 const AIM_HALF_DEPTH = 1.5;
 
 /** One of the 10 aim points of a direction, chosen at random. */
-export function aimX(direction: Direction, defenderIdx: number, rng: Rng): number {
-  const k = Math.min(AIM_POINTS_X - 1, Math.floor(rng() * AIM_POINTS_X));
-  const offset = ((k - (AIM_POINTS_X - 1) / 2) / ((AIM_POINTS_X - 1) / 2)) * AIM_HALF_WIDTH;
-  return Math.max(-4.6, Math.min(4.6, landingX(direction, defenderIdx) + offset));
+export function aimX(direction: Direction, defenderIdx: number, rng: Rng, prefer?: number): number {
+  let k = Math.min(AIM_POINTS_X - 1, Math.floor(rng() * AIM_POINTS_X));
+  const point = (i: number): number =>
+    Math.max(-4.6, Math.min(4.6, landingX(direction, defenderIdx) + ((i - (AIM_POINTS_X - 1) / 2) / ((AIM_POINTS_X - 1) / 2)) * AIM_HALF_WIDTH));
+  if (prefer !== undefined && rng() < AIM_SKILL) {
+    // a good hitter finds the gap: the aim point nearest to where the ball should go
+    k = 0;
+    for (let i = 1; i < AIM_POINTS_X; i++) if (Math.abs(point(i) - prefer) < Math.abs(point(k) - prefer)) k = i;
+  }
+  return point(k);
 }
+/** How often a CPU hitter really hits the aim point he wants (otherwise the point is random, he misses his spot a little). */
+export const AIM_SKILL = 0.75;
 
 /** One of the 20 aim points in depth around `base` metres past the net, chosen at random. */
-export function aimDepth(base: number, rng: Rng, spread = AIM_HALF_DEPTH): number {
-  const k = Math.min(AIM_POINTS_DEPTH - 1, Math.floor(rng() * AIM_POINTS_DEPTH));
-  const offset = ((k - (AIM_POINTS_DEPTH - 1) / 2) / ((AIM_POINTS_DEPTH - 1) / 2)) * spread;
-  return Math.max(1, Math.min(9, base + offset));
+export function aimDepth(base: number, rng: Rng, spread = AIM_HALF_DEPTH, prefer?: number): number {
+  let k = Math.min(AIM_POINTS_DEPTH - 1, Math.floor(rng() * AIM_POINTS_DEPTH));
+  const point = (i: number): number =>
+    Math.max(1, Math.min(9, base + ((i - (AIM_POINTS_DEPTH - 1) / 2) / ((AIM_POINTS_DEPTH - 1) / 2)) * spread));
+  if (prefer !== undefined && rng() < AIM_SKILL) {
+    k = 0;
+    for (let i = 1; i < AIM_POINTS_DEPTH; i++) if (Math.abs(point(i) - prefer) < Math.abs(point(k) - prefer)) k = i;
+  }
+  return point(k);
 }
 
 /**

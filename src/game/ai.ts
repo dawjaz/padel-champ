@@ -1,7 +1,8 @@
 import { DIRECTIONS, shotsOfKind } from './catalog';
+import { landingX, NET_Z } from './court';
 import { defenseRating, faultChance } from './engine';
-import { playableShots, type PointState, type Teams } from './point';
-import type { Direction, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
+import { isLob, playableShots, type PointState, type Teams } from './point';
+import type { AimPreference, CourtPos, Direction, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -26,36 +27,90 @@ export function pickServe(teams: Teams, state: PointState, rng: Rng): ShotDef {
   return weightedPick(options, weights, rng);
 }
 
-/** CPU choice of shot and direction for a return or rally hit. */
-export function pickHit(teams: Teams, state: PointState, rng: Rng): { shot: ShotDef; direction: Direction } {
+/**
+ * The best x for the ball inside the strip of a direction: the point furthest from both opponents (a gap in their set-up).
+ * `centre` is where the direction usually lands; the strip is as wide as the aim points of that direction.
+ */
+function gapX(centre: number, opp: CourtPos[]): number {
+  let best = centre;
+  let bestGap = -Infinity;
+  for (let i = 0; i < 10; i++) {
+    const x = Math.max(-4.6, Math.min(4.6, centre + ((i - 4.5) / 4.5) * 0.9));
+    const gap = Math.min(...opp.map((o) => Math.abs(o.x - x)));
+    if (gap > bestGap) {
+      bestGap = gap;
+      best = x;
+    }
+  }
+  return best;
+}
+
+/**
+ * CPU / partner choice of shot and direction for a return or rally hit. Hitters look for holes in the opponents' set-up and
+ * run them around: `opp` are the opponents' real positions (they move). With them the hitter prefers
+ *  - lobs when both opponents are at the net, short balls (chiquita) when both are far back;
+ *  - the direction and the aim point furthest from both opponents (a gap between them or behind one of them);
+ *  - a deep ball against opponents at the net, a short one against opponents at the back.
+ * Without positions only the stats of the defenders decide (the old behaviour).
+ */
+export function pickHit(
+  teams: Teams,
+  state: PointState,
+  rng: Rng,
+  opp?: CourtPos[],
+): { shot: ShotDef; direction: Direction; prefer?: AimPreference } {
   const side = state.holder;
   const hitter = teams[side][state.hitterIdx];
   const options = playableShots(shotsOfKind(state.hits === 0 ? 'return' : 'rally'), state);
 
+  // How far the opponents stand from the net (m), on average: small = at the net, large = at the back.
+  const away = opp && opp.length > 0 ? opp.reduce((a, o) => a + Math.abs(o.z - NET_Z), 0) / opp.length : undefined;
+  const atNet = away !== undefined && away < 4;
+  const atBack = away !== undefined && away > 6.5;
+
   const weights = options.map((s) => {
     const affordable = state.guts[hitter.id] >= s.cost ? 1 : 0.15;
-    return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable);
+    let tactic = 1;
+    if (atNet) tactic = isLob(s) ? 2.5 : s.id.includes('chiquita') ? 0.5 : 1;
+    else if (atBack) tactic = s.id.includes('chiquita') ? 2.2 : isLob(s) ? 0.5 : 1;
+    return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);
   });
   const shot = weightedPick(options, weights, rng);
   if (shot.fixedDirection) return { shot, direction: shot.fixedDirection };
 
-  // Aim at the weaker defender, with some randomness; middle only when it is clearly safest.
+  // Aim at the gap (or the weaker defender when the positions are not known), with some randomness.
   const defTeam = teams[side === 0 ? 1 : 0];
   let best: Direction = 'cross';
   let bestScore = -Infinity;
+  let bestX: number | undefined;
   for (const d of DIRECTION_ORDER) {
     const dir = DIRECTIONS[d];
+    const targetIdx = d === 'parallel' ? state.hitterIdx : d === 'cross' ? 1 - state.hitterIdx : state.hitterIdx;
     const rating =
       d === 'middle'
         ? (defenseRating(defTeam[0], dir) + defenseRating(defTeam[1], dir)) / 2
-        : defenseRating(defTeam[d === 'parallel' ? state.hitterIdx : 1 - state.hitterIdx], dir);
-    const score = dir.attack * 30 - rating - dir.risk * 100 + rng() * 25;
+        : defenseRating(defTeam[targetIdx], dir);
+    let score = dir.attack * 30 - rating - dir.risk * 100 + rng() * 25;
+    let x: number | undefined;
+    if (opp && opp.length > 0) {
+      // The middle is aimed between the players, so its centre is the middle of the court.
+      x = gapX(d === 'middle' ? 0 : landingX(d, targetIdx), opp);
+      const gap = Math.min(...opp.map((o) => Math.abs(o.x - x!)));
+      // the gap counts a lot: a ball that is 3 m from both opponents is hard to reach
+      score = dir.attack * 30 - dir.risk * 100 - 0.4 * rating + 14 * Math.min(gap, 3.5) + rng() * 18;
+    }
     if (score > bestScore) {
       bestScore = score;
       best = d;
+      bestX = x;
     }
   }
-  return { shot, direction: best };
+  const prefer: AimPreference | undefined = opp && opp.length > 0 ? { x: bestX } : undefined;
+  if (prefer && !shot.overFence) {
+    if (atNet) prefer.depth = shot.landDepth + 1.5;
+    else if (atBack) prefer.depth = shot.landDepth - 1.5;
+  }
+  return { shot, direction: best, prefer };
 }
 
 /**
