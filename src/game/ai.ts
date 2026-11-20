@@ -1,7 +1,7 @@
 import { DIRECTIONS, shotsOfKind } from './catalog';
 import { defenseRating, faultChance } from './engine';
 import { playableShots, type PointState, type Teams } from './point';
-import type { Direction, ReceiveMode, Rng, ShotDef } from './types';
+import type { Direction, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
@@ -67,4 +67,13 @@ export function pickReceive(teams: Teams, state: PointState, rng: Rng): ReceiveM
   const bounce = receiver.stats.technique + receiver.stats.speed;
   const wall = receiver.stats.defense * 1.5 + 2;
   return weightedPick<ReceiveMode>(['bounce', 'wall'], [bounce, wall], rng);
+}
+
+/**
+ * Golden point: the CPU pair decides which of them receives (and so which side the serve comes to).
+ * The better defender is more likely to take it; a little randomness keeps it unpredictable.
+ */
+export function pickGoldenReceiver(team: PlayerDef[], rng: Rng): number {
+  const weights = team.map((p) => Math.max(0.1, p.stats.defense * 7 + p.stats.speed * 3));
+  return weightedPick(team.map((_, i) => i), weights, rng);
 }

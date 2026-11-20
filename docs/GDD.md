@@ -125,7 +125,10 @@ Stats are 1-10: power, technique, speed, defense.
 - Character creator and equipment (see Visual direction)
 - Landscape support is a maybe; portrait is the primary layout
 
+## Decided (owner, 2026-11-20)
+- Defence is automatic; the human only chooses attacking shots.
+- Golden point: the receiving pair chooses which player receives (side). Implemented in v0.17.
+- Partners keep their own halves on serve (confirmed).
+
 ## Open questions
-- Should the human player also choose how to defend (e.g. read the direction), or stay fully automatic?
-- Golden point: who chooses the receiving side (currently fixed)?
 - Match length and pacing on mobile (target: 3-5 minutes per match)

@@ -65,7 +65,9 @@ export function aimDepth(base: number, rng: Rng, spread = AIM_HALF_DEPTH): numbe
  * A second serve after a fault is taken from the same side. The near team looks up the screen, so its left
  * is -x; the far team looks down the screen, so its left is +x.
  */
-export function serveLane(servingSide: SideIndex, pointsPlayed: number): LaneSign {
+export function serveLane(servingSide: SideIndex, pointsPlayed: number, receiverIdx?: number): LaneSign {
+  // Golden point: the receiving pair chose who receives, so the server stands in the opposite lane (the serve is cross).
+  if (receiverIdx !== undefined) return -laneSign(receiverIdx) as LaneSign;
   const ownLeft: LaneSign = servingSide === 0 ? -1 : 1;
   return pointsPlayed % 2 === 0 ? ownLeft : (-ownLeft as LaneSign);
 }
@@ -100,8 +102,14 @@ export const CENTRE_SERVE_X = 0.9;
  * Partners keep their own halves: when the point is served from the opposite side to the server's own lane,
  * the server steps over to the centre mark, but the partner does not swap sides.
  */
-export function serveSetup(servingSide: SideIndex, pointsPlayed: number, serverIdx: number): ServeSetup {
-  const lane = serveLane(servingSide, pointsPlayed);
+export function serveSetup(
+  servingSide: SideIndex,
+  pointsPlayed: number,
+  serverIdx: number,
+  /** Set at the golden point, when the receiving pair chooses which of them receives. */
+  receiverChoice?: number,
+): ServeSetup {
+  const lane = serveLane(servingSide, pointsPlayed, receiverChoice);
   const recvSide: SideIndex = servingSide === 0 ? 1 : 0;
   const receiverLane = -lane as LaneSign;
   const backZ = formationZ(recvSide, 'back');

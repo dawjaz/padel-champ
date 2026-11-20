@@ -52,3 +52,6 @@ Ask the owner for the full list before redesigning (they offered to write it out
 - Privacy policy, age rating, store screenshots
 - Back up Android keystore and Apple certificates outside git
 - Look: main is the stylized 2D/3D version; the 16-bit pixel version is on `style/16bit` (/16bit/). A true 3D version would need three.js.
+
+## 3D prototype (owner: yes, but later)
+Separate prototype branch with three.js. Not before the match mechanics are developed further.

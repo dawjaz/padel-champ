@@ -1,6 +1,19 @@
 # Handoff
 
-_Last updated: 2026-11-19 (v0.16)_
+_Last updated: 2026-11-20 (v0.17)_
+
+## v0.17: golden point, the receiving pair chooses
+- At 40-40 the **receiving pair chooses who receives**, which sets the serving lane (the serve is always cross; partners keep their halves).
+  `serveLane` / `serveSetup` / `startPoint` take an optional `receiverChoice` (receiver index). `MatchScene.beginPoint` shows a
+  "who receives?" menu when the human pair receives; `pickGoldenReceiver` (ai.ts) decides for the CPU (weights: defense x7 + speed x3).
+- Tests added in court.test.ts and point.test.ts. Checked locally only as far as the sandbox allows: game files typecheck and the new
+  logic was run in a node script; `MatchScene` and vitest are checked by CI. **Play a golden point on a phone** (30-30 -> 40-40).
+- Owner plans to play-test and then rework shot types and shot mechanics.
+
+## Owner decisions, 2026-11-20
+Defence stays automatic; the receiving pair picks the side at the golden point (done in v0.17); partners keep their halves on serve
+(confirmed); three.js 3D prototype later, as a separate branch. **Current focus: deepen the match mechanics** (no new art
+direction, no Capacitor yet). See DECISIONS.md.
 
 ## v0.16: bajada can be run down, smaller characters
 - **Bajada rebound** (`ShotDef.reboundChase`): the defender's rating counts speed more (4 defence + 8 speed) and his position
@@ -194,11 +207,12 @@ title -> match -> result -> rematch once.
 - No `package-lock.json` yet (CI uses `npm install`). Generate it on first install, commit it, then use `npm ci`.
 
 ## Next steps
-1. Collect the owner's feedback on the v0.7 shots (smash, bandeja); bajada is still in the BACKLOG
-2. Art direction with the owner (character look, palette, pixel font), then sprites
-3. Capacitor (Android/iOS) once network is available
-4. Career mode, special moves
-5. Store accounts and release prep (owner)
+1. Check the latest Actions run, play a full match on a phone, fix anything red or odd
+2. Owner play-tests v0.17 (golden point) and gives feedback on shot types and shot mechanics
+3. Balance pass in `src/data/shots.json` (glassChance, rebound weights, weak-lob share, bajada speeds)
+4. Further match mechanics with the owner (per-player parameters, special moves, fatigue/guts use)
+5. Real SFX files (CC0) into `public/assets/audio/sfx/` + manifest; `package-lock.json` and `npm ci`
+6. Later: Capacitor, career mode and equipment, three.js prototype branch, release prep
 
 ## Owner
 Chats in Polish. Wants: Android + iPhone release, browser build for testing, everything kept in GitHub so

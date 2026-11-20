@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
-import { pickHit, pickReceive, pickServe } from './ai';
+import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from './ai';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
 import { nextFormation, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
@@ -33,6 +33,16 @@ describe('startPoint', () => {
     // The near team serves the first point from its left (-x), so the receiver is on the far right: index 1.
     expect(s.serveLane).toBe(-1);
     expect(s.receiverIdx).toBe(1);
+  });
+
+  it('golden point: the receiving pair choice decides the receiver and the serving lane', () => {
+    for (const choice of [0, 1]) {
+      const s = startPoint(freshGuts(), 0, 0, 6, choice);
+      expect(s.receiverIdx).toBe(choice);
+      expect(s.serveLane).toBe(choice === 0 ? 1 : -1); // cross: the server stands in the opposite lane
+    }
+    // without a choice nothing changes
+    expect(startPoint(freshGuts(), 0, 0, 6).serveLane).toBe(-1);
   });
 
   it('copies the guts instead of sharing them', () => {
@@ -402,5 +412,22 @@ describe('shot availability', () => {
       const { shot: s } = pickHit(TEAMS, st, Math.random);
       expect(unavailableReason(s, st)).toBeNull();
     }
+  });
+});
+
+describe('pickGoldenReceiver', () => {
+  it('returns a valid receiver index and favours the better defender', () => {
+    const team = TEAMS[1];
+    const rng = seededRng(7);
+    const counts = [0, 0];
+    for (let i = 0; i < 2000; i++) {
+      const idx = pickGoldenReceiver(team, rng);
+      expect([0, 1]).toContain(idx);
+      counts[idx]++;
+    }
+    const rating = (p: PlayerDef) => p.stats.defense * 7 + p.stats.speed * 3;
+    const better = rating(team[0]) >= rating(team[1]) ? 0 : 1;
+    expect(counts[better]).toBeGreaterThanOrEqual(counts[1 - better]);
+    expect(counts[1 - better]).toBeGreaterThan(0);
   });
 });

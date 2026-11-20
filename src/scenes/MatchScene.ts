@@ -13,7 +13,7 @@ import { FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
 import { drawPanel } from '../ui';
-import { pickHit, pickReceive, pickServe } from '../game/ai';
+import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts } from '../game/engine';
@@ -545,12 +545,41 @@ export class MatchScene extends Phaser.Scene {
   // ---------- flow: serve -> return -> rally ----------
 
   private beginPoint(): void {
+    // Golden point: the receiving pair chooses who receives, which also decides the side the serve comes from.
+    if (!isGoldenPoint(this.matchScore)) {
+      this.startServe();
+      return;
+    }
+    const recvSide = other(this.server);
+    if (recvSide !== HUMAN_SIDE) {
+      const choice = pickGoldenReceiver(TEAMS[recvSide], Math.random);
+      this.say(`GOLDEN POINT: ${TEAMS[recvSide][choice].name} will receive.`);
+      this.startServe(choice);
+      return;
+    }
+    this.setActive(null);
+    this.say('GOLDEN POINT! Who receives?');
+    this.showButtons(
+      'Golden point: who receives?',
+      TEAMS[recvSide].map((pl, i) => ({
+        label: `${pl.name}\n[${laneSign(i) < 0 ? 'left' : 'right'} side]`,
+        tone: 'normal' as Tone,
+        onPick: () => {
+          this.clearMenu();
+          this.startServe(i);
+        },
+      })),
+    );
+  }
+
+  /** Sets up one point: players walk to their serving positions, then the server's turn starts. */
+  private startServe(receiverChoice?: number): void {
     const pointsPlayed = this.matchScore.points[0] + this.matchScore.points[1];
     const idx = this.serverIdx[this.server];
-    this.point = startPoint(this.guts, this.server, idx, pointsPlayed);
+    this.point = startPoint(this.guts, this.server, idx, pointsPlayed, receiverChoice);
 
     // Serve set-up: the server stands in their serving lane, the partner in the middle of their half.
-    const setup = serveSetup(this.server, pointsPlayed, idx);
+    const setup = serveSetup(this.server, pointsPlayed, idx, receiverChoice);
     const recvSide = other(this.server);
     const targets: Record<string, CourtPos> = {
       [TEAMS[this.server][idx].id]: setup.server,

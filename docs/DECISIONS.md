@@ -80,3 +80,9 @@ Availability is data (`requires` in shots.json) evaluated against `BallState` (h
 random rolls (lob quality, glass, rebound height) happen in `stepHit`, so the flight animation only visualises them and
 the game result never depends on the physics. Unavailable shots are hidden from the menu instead of greyed out.
 After a point the ball is simulated freely (`buildCoast`); it is visual only.
+
+## 2026-11-20: owner answers to the open design questions
+- **Defence stays automatic.** The human never picks a defensive action; only attack shots, serve and the glass-serve receive choice have menus.
+- **Golden point: the receiving pair chooses the receiving side** (not implemented yet; today the side is fixed).
+- **Partners keep their own halves on serve** is confirmed (the v0.7 reading was right; `serveSetup` and `CENTRE_SERVE_X` stay).
+- **Real 3D (three.js)** will be a separate prototype branch, but NOT now. Focus first: deepening the match mechanics.

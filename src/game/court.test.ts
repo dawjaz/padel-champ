@@ -114,4 +114,18 @@ describe('formations', () => {
     expect(restPos(0, 1, 'net')).toEqual({ x: LANE_X, z: formationZ(0, 'net') });
     expect(restPos(1, 0, 'back')).toEqual({ x: -LANE_X, z: formationZ(1, 'back') });
   });
+
+  it('golden point: the receiving pair chooses who receives, the serve stays cross and partners keep their halves', () => {
+    for (const side of [0, 1] as const) {
+      for (const choice of [0, 1]) {
+        const s = serveSetup(side, 6, 0, choice);
+        expect(s.receiverIdx).toBe(choice);
+        expect(s.receiver.x).toBe(laneX(choice));
+        expect(Math.sign(s.server.x)).toBe(-Math.sign(s.receiver.x));
+        expect(s.receiverPartner.x).toBe(laneX(1 - choice));
+        expect(s.partner.x).toBe(laneX(1)); // server idx 0: the partner stays in lane 1
+        expect(serveLane(side, 6, choice)).toBe(s.lane);
+      }
+    }
+  });
 });
