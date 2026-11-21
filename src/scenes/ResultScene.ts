@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { getSave } from '../save';
 import type { SideIndex } from '../game/types';
@@ -33,7 +33,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     const won = this.outcome.winner === 0;
     logoText(this, WIDTH / 2, 110, won ? 'YOU WIN!' : 'YOU LOSE', 48, won ? COLORS.yellow : COLORS.red);
 

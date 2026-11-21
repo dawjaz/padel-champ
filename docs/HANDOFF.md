@@ -8,6 +8,11 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.46: shared look for the menu screens
+- `applyScreen(scene, fade)` in `src/hd.ts` (replaces `applyHd` in every menu scene; the match still uses `applyHd`): night gradient, lit court in perspective, drifting lights, vignette, 220 ms fade-in. Buttons sink on press (`ui.ts`).
+- Owner: play-tests of v0.43/v0.44 are fine; prices and opponent difficulty come later. Next topic: visuals and a more attractive layout, then three.js.
+- three.js plan (needs network for `npm install three`, so a NEW chat after the network setting is changed): branch `style/3d`; keep `src/game/` untouched; replace the court and player drawing in MatchScene with a three.js scene behind the Phaser UI (or a Phaser-free scene), reuse `buildFlight` ball paths for the ball, the camera from `art/camera.ts` as the starting TV view; menus stay Phaser. Priorities from the owner: menus/screens, court and players, effects (replays, crowd, broadcast captions).
+
 ## v0.45: menu exit, 10 partners
 - MATCH has a MENU button (top left, tap twice) in quick match and practice; a career match has no exit.
 - 10 partners in `partners.json`, ordered by rating and price: Olek (free default, weakest), Lena 200, Tomek 450, Marco 800, Mia 1300, Kasia 2000, Sofia 3000, Ivan 4200, Diego 6000, Ana 9000. Different profiles (power hitter, defender, technician). PartnerScene pages 5 per screen. Old saves that own Mia keep her.

@@ -3,7 +3,7 @@ import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { buyPartner, choosePartner } from '../career/careerFlow';
 import { PARTNERS } from '../career/season';
 import { STAT_KEYS } from '../game/attributes';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -22,7 +22,7 @@ export class PartnerScene extends Phaser.Scene {
 
   create(): void {
     this.page = 0;
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'PARTNER', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('CalendarScene'));
     this.redraw();

@@ -8,7 +8,7 @@ import levels from '../data/levels.json';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -41,7 +41,7 @@ export class CharacterScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 34, 'HERO', 34, COLORS.yellow);
     const key = ensureCharacterTexture(this, HERO.appearance, 'front');
     this.add.image(58, 150, key).setOrigin(0.5, 1).setScale(1.9 / HD_CHARACTER_SCALE);

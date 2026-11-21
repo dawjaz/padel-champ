@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { BALL_KEY, ensureBallTextures } from '../art/hdTextures';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { BUILD_ID, COLORS, SHOW_FREE_PRACTICE, css, FONT, GAME_TITLE, GAME_VERSION, HD_SCALE, HEIGHT, WIDTH } from '../config';
@@ -17,7 +17,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     this.drawBackdrop();
 
     // Logo: PADEL / CHAMP / [26]

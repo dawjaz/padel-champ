@@ -72,6 +72,8 @@ export function makeButton(
   });
   zone.on('pointerdown', () => {
     sfx('select');
+    // A short press: the button sinks and springs back.
+    scene.tweens.add({ targets: [gfx, text], scale: 0.94, duration: 70, yoyo: true, ease: 'Quad.easeOut' });
     onClick();
   });
   return {

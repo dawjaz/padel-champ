@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
@@ -26,6 +26,7 @@ export class TutorialScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.cameras.main.fadeIn(220, 8, 8, 24);
     this.render();
   }
 
@@ -36,7 +37,7 @@ export class TutorialScene extends Phaser.Scene {
 
   private render(): void {
     this.children.removeAll(true);
-    applyHd(this);
+    applyScreen(this, false);
     const p = PAGES[this.page];
     logoText(this, WIDTH / 2, 70, 'HOW TO PLAY', 30, COLORS.yellow);
     logoText(this, WIDTH / 2, 130, p.title, 22, COLORS.white);

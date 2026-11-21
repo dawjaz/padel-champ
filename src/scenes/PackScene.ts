@@ -3,7 +3,7 @@ import { sfx } from '../audio';
 import { COLORS, css, FONT, HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { SLOT_LABEL } from '../career/gear';
 import type { Drop } from '../career/packs';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { logoText, makeButton } from '../ui';
 
 const RARITY_COLOR: Record<string, number> = { common: COLORS.gray, rare: COLORS.sky, epic: 0xc060ff, legendary: COLORS.yellow };
@@ -27,7 +27,7 @@ export class PackScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 40, this.opened.packName.toUpperCase(), 24, COLORS.yellow);
     const cardH = 84;
     const top = 90;

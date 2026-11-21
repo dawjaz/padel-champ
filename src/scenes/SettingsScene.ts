@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { getSave, resetSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
@@ -10,7 +10,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 80, 'SETTINGS', 36, COLORS.yellow);
 
     const soundLabel = () => `SOUND: ${getSave().settings.sound ? 'ON' : 'OFF'}`;

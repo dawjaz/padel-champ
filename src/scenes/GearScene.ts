@@ -7,7 +7,7 @@ import { levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { PlayerDef } from '../game/types';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -31,7 +31,7 @@ export class GearScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'GEAR', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('CharacterScene'));
     this.redraw();

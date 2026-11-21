@@ -4,7 +4,7 @@ import { activeBracket, enterEvent, entryCheck, skipWeek } from '../career/caree
 import { levelOf } from '../career/profile';
 import { eventName, eventsOfWeek, partnerById, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -17,7 +17,7 @@ export class CalendarScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'CAREER', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('TitleScene'));
     this.redraw();

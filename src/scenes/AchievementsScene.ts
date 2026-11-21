@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { ACHIEVEMENTS, progressOf } from '../career/achievements';
 import { getSave } from '../save';
@@ -16,13 +16,13 @@ export class AchievementsScene extends Phaser.Scene {
 
   create(): void {
     this.page = 0;
-    applyHd(this);
+    this.cameras.main.fadeIn(220, 8, 8, 24);
     this.render();
   }
 
   private render(): void {
     this.children.removeAll(true);
-    applyHd(this);
+    applyScreen(this, false);
     const save = getSave();
     const prog = progressOf(save.stats, save.records, save.profile);
     logoText(this, WIDTH / 2, 50, 'TROPHIES', 30, COLORS.yellow);

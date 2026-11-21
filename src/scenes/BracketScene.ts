@@ -5,7 +5,7 @@ import { heroFrom } from '../career/profile';
 import { STAT_KEYS } from '../game/attributes';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { HERO_ID } from '../career/tournament';
 import { logoText, makeButton } from '../ui';
@@ -21,7 +21,7 @@ export class BracketScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     this.confirm = false;
     const profile = getSave().profile;
     const bracket = activeBracket(profile);

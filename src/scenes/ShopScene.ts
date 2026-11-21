@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
-import { applyHd } from '../hd';
+import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -23,7 +23,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyHd(this);
+    applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'SHOP', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('TitleScene'));
     this.redraw();
