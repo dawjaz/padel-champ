@@ -68,7 +68,7 @@ export class TitleScene extends Phaser.Scene {
     const add = (list: Phaser.GameObjects.GameObject[], b: { parts: Phaser.GameObjects.GameObject[] }): void => {
       list.push(...b.parts);
     };
-    add(mainMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'START MATCH', () => this.scene.start('MatchScene')));
+    add(mainMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'START MATCH', () => this.scene.start('MatchScene', { practice: null })));
     add(mainMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
     add(mainMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'SETTINGS', () => this.scene.start('SettingsScene')));
     add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack' })));

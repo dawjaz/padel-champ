@@ -124,7 +124,8 @@ export class MatchScene extends Phaser.Scene {
     super('MatchScene');
   }
 
-  init(data?: { practice?: 'attack' | 'defend' }): void {
+  // Phaser keeps the data of the previous start when a scene is started without any: a normal match is always started with { practice: null }.
+  init(data?: { practice?: 'attack' | 'defend' | null }): void {
     this.practice = data?.practice ?? null;
     this.pr = { ball: 'mid', glass: false, me: 'back', opp: 'back', result: 'auto', page: 0 };
   }

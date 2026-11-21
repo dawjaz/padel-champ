@@ -48,7 +48,7 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    makeButton(this, WIDTH / 2, 430, 240, 52, 'REMATCH', () => this.scene.start('MatchScene'));
+    makeButton(this, WIDTH / 2, 430, 240, 52, 'REMATCH', () => this.scene.start('MatchScene', { practice: null }));
     makeButton(this, WIDTH / 2, 500, 240, 52, 'TITLE', () => this.scene.start('TitleScene'));
   }
 }

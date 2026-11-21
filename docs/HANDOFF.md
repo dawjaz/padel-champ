@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.31)_
+_Last updated: 2026-11-20 (v0.32)_
+
+## v0.32: bug: START MATCH after Free Practice
+- Phaser re-uses the data of the previous `scene.start` when a scene is started without data, so START MATCH / REMATCH after a practice session opened Free Practice again. Both now start `MatchScene` with `{ practice: null }`. Rule: always pass data explicitly when starting MatchScene.
 
 ## v0.31: rulo on high balls only, more kinds of serve faults
 - Rulo `requires.heights` ['high'].
