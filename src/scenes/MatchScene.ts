@@ -389,9 +389,11 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /** The stroke: contact pose, follow-through, then back to ready. Overhead shots are played with a jump. */
-  private swing(id: string, shot: ShotDef | null): void {
+  private swing(id: string, shot: ShotDef | null, aimDx = 0): void {
     const v = this.views[id];
-    const overhead = shot === null || shot.id.startsWith('smash_') || shot.id === 'bandeja' || shot.id === 'vibora';
+    const overhead = shot === null || shot.id.startsWith('smash_') || shot.id === 'bandeja' || shot.id === 'vibora' || shot.id === 'rulo';
+    // The rulo is hit overhead with the body turned sideways, towards the fence it is played to.
+    if (shot?.id === 'rulo') this.setFacing(id, aimDx >= 0 ? 'right' : 'left');
     const prep = this.stance[id];
     const stance: Stance = overhead ? 'smash' : prep === undefined || prep === 'smash' ? 'fh' : prep;
     v.busyUntil = this.time.now + 420;
@@ -982,7 +984,7 @@ export class MatchScene extends Phaser.Scene {
       racketKind(step.shot.id, step.kind === 'serve', step.shot.flight.speed),
       step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
     );
-    this.swing(attacker.id, step.kind === 'serve' ? null : step.shot);
+    this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
 
     // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who
     // has to play the ball runs to the spot where it will be hit (after the bounce, or after the glass).

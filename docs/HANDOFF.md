@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.26)_
+_Last updated: 2026-11-20 (v0.27)_
+
+## v0.27: rulo
+- Rulo flies slow and in a high parabola with topspin: speed 25 -> 15, apex 1.2 -> 2.6, spin 1.6 -> 1.8 (peak about 3.9 m, flight about 1.3 s to the bounce). The hitter plays it overhead (smash stance) with the body turned sideways towards the fence it is played to (`swing(id, shot, aimDx)`; profile facing, there is no three-quarter view in the sprites).
 
 ## v0.26: vibora
 - Vibora playable on a **mid or high** ball (never low, never off the glass): `requires.heights` ['mid','high']. In Free Practice the `*` shots (not normally playable) stay available on purpose.
