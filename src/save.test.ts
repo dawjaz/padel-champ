@@ -26,9 +26,9 @@ describe('save v1 -> v2', () => {
   it('the profile survives a round trip through the store', () => {
     const store = fakeStore();
     resetSave(store);
-    updateSave((d) => ({ ...d, profile: { ...d.profile, xp: 500, coins: 90, alloc: { ...d.profile.alloc, power: 2 } } }), store);
+    updateSave((d) => ({ ...d, profile: { ...d.profile, xp: 2000, coins: 90, alloc: { ...d.profile.alloc, power: 2 } } }), store);
     const back = parseSave(store.data['padel-champ-26:save']);
-    expect(back.profile.xp).toBe(500);
+    expect(back.profile.xp).toBe(2000);
     expect(back.profile.coins).toBe(90);
     expect(back.profile.alloc.power).toBe(2);
   });
