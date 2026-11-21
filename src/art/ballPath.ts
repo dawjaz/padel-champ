@@ -389,9 +389,17 @@ function simulateAfterBounce(
         const r1 = o.rand();
         const r2 = o.rand();
         const r3 = o.rand();
-        vx = -vx * (0.1 + 0.8 * r1);
-        vz *= -0.5 + 1.6 * r2;
-        vy = vy * 0.5 + 0.8 + 3.2 * r3;
+        const r4 = o.rand();
+        if (r4 < 0.3) {
+          // The mesh swallows the ball: it drops almost straight down a short way off the fence and has lost nearly all its speed.
+          vx = -vx * (0.02 + 0.1 * r1);
+          vz *= (r2 - 0.5) * 0.3;
+          vy = Math.min(vy, 0) * 0.1 + 0.3 + 1.0 * r3;
+        } else {
+          vx = -vx * (0.05 + 0.95 * r1);
+          vz *= -0.9 + 2.2 * r2;
+          vy = vy * 0.5 + 0.5 + 3.8 * r3;
+        }
         kicked = true;
         if (firstContact < 0) firstContact = samples.length;
         events.push({ kind: 'mesh', t, x, z, h });

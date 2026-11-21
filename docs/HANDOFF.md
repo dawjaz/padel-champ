@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.28)_
+_Last updated: 2026-11-20 (v0.29)_
+
+## v0.29: rulo and bajada high speed are defensible
+- **Rulo**: power 1.5 -> 1.02, winnerMargin 16 -> 35. Winners vs the CPU pair: strongest hitter 20% (was 86%), the others 0-4%; most rulos stay in play. The bounce off the mesh is more random: wider speed and direction ranges, and 30% of them are "swallowed" by the mesh (drops a short way off the fence, nearly all speed gone). Visual only (seeded), the outcome does not depend on it.
+- **Bajada high speed**: power 1.6 -> 1.25, winnerMargin 16 -> 32: winners 73% -> about 33% for the strongest hitter (rebound winners included), 24% for the next, the rest less (error rate unchanged, 26%).
+- `REBOUND_BACK_SHARE` 0.5 -> 0.8: the generic rebound-over-the-net winner was too frequent after the vibora change (14% of CPU points); now about 6%, mostly Por Cuatro.
 
 ## v0.28: Por Tres / Por Cuatro
 - Both need a **mid or high** ball (not low) plus the existing weak-lob / net-or-mid conditions.

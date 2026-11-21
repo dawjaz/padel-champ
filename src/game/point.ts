@@ -335,7 +335,7 @@ export function airTake(shot: ShotDef, defenderFormation: Formation, lob: LobQua
 /** A shot at least this fast (m/s) that rebounds off the glass can fly back over the net. */
 export const REBOUND_BACK_SPEED = 22;
 /** ... when the attack beats the defence by at least this share of the winner margin (but not enough for a plain winner). */
-export const REBOUND_BACK_SHARE = 0.5;
+export const REBOUND_BACK_SHARE = 0.8;
 
 /** Free Practice: lets the player play any shot and decide how the hit ends. */
 export interface HitOptions {
