@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.24)_
+_Last updated: 2026-11-20 (v0.25)_
+
+## v0.25: fewer winners against defenders who volley
+- A defender who takes the ball out of the air (net volley or mid-court `airTake`) now defends `AIR_DEFENSE` better (engine.ts: net x1.2, mid x1.12; `HitInput.airTake`). Flat return cross from the net at a mid-court pair: winners 44% -> 15% (net pair: 4%); vs a back pair unchanged (44%). CPU-vs-CPU rallies are longer (avg hits 4.9 -> 5.9). Tune the two multipliers.
 
 ## v0.24: more air balls, lob from the net
 - **Air take** (`airTake`, point.ts): a defender in mid-court plays a ball that lands no deeper than `AIR_TAKE_DEPTH` 7 m from the net out of the air (not lobs, rulo, serves) at `airDist` 2.2 to 4.2 m from the net, as a volley (reuses `block`; `buildFlight({airDist})`). Net defenders already volleyed everything. The rest of the court (deep balls) still bounces. Tune: `AIR_TAKE_DEPTH`, the 0.6 factor.

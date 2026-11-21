@@ -365,6 +365,9 @@ export function stepHit(
     incoming: state.ball,
     defender,
     defenderFormation: state.formation[defSide],
+    // The nominal landing spot decides (the real one is rolled later); a lob never counts.
+    airTake:
+      netVolley(shot, state.formation[defSide], undefined) || airTake(shot, state.formation[defSide], undefined, shot.landDepth) !== undefined,
     rallyLength: state.hits,
     rng,
   });

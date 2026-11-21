@@ -11,6 +11,8 @@ export const ACE_MARGIN = 48;
  * simulation of 20,000 points: ~4 hits after the serve, server wins ~55%, aces < 1%.
  */
 export const DEFENSE_SCALE = 1.3;
+/** Defence multiplier of a player who takes the ball out of the air (volley) instead of running back for it. */
+export const AIR_DEFENSE = { net: 1.2, mid: 1.12 } as const;
 /** Attack multiplier when the hitter cannot pay the guts cost. */
 export const TIRED_FACTOR = 0.6;
 /** Random spread added to each side's score. */
@@ -68,6 +70,8 @@ export interface HitInput {
   defender: PlayerDef;
   /** Where the defender's team stands (only matters for shots with `reboundChase`). */
   defenderFormation?: Formation;
+  /** The defender plays the ball out of the air (a volley at the net or in mid-court): he has time to get there, so he defends better. */
+  airTake?: boolean;
   /** Hits so far in this rally, not counting the serve. */
   rallyLength: number;
   rng: Rng;
@@ -103,8 +107,9 @@ export function resolveHit(i: HitInput): HitResult {
     i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (1 - i.incoming.pressure) +
     i.rng() * RANDOM_SPREAD;
   if (tired) attackScore *= TIRED_FACTOR;
+  const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
-    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined) + i.rng() * RANDOM_SPREAD;
+    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined) * airBonus + i.rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;
