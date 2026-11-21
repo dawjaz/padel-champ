@@ -15,6 +15,25 @@ function fakeStore(initial: Record<string, string> = {}): KeyValueStore & { data
   };
 }
 
+describe('save v1 -> v2', () => {
+  it('an old save keeps its stats and settings and gets a fresh profile', () => {
+    const s = parseSave(JSON.stringify({ version: 1, settings: { sound: false }, stats: { played: 7, won: 4, lost: 3 } }));
+    expect(s.version).toBe(2);
+    expect(s.stats).toEqual({ played: 7, won: 4, lost: 3 });
+    expect(s.profile).toEqual(defaultSave().profile);
+  });
+
+  it('the profile survives a round trip through the store', () => {
+    const store = fakeStore();
+    resetSave(store);
+    updateSave((d) => ({ ...d, profile: { ...d.profile, xp: 500, coins: 90, alloc: { ...d.profile.alloc, power: 2 } } }), store);
+    const back = parseSave(store.data['padel-champ-26:save']);
+    expect(back.profile.xp).toBe(500);
+    expect(back.profile.coins).toBe(90);
+    expect(back.profile.alloc.power).toBe(2);
+  });
+});
+
 describe('parseSave', () => {
   it('returns defaults for empty or broken input', () => {
     expect(parseSave(null)).toEqual(defaultSave());

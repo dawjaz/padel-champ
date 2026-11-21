@@ -68,7 +68,7 @@ Bracket, Rewards.
 
 ## 7. Steps (each one ends with tests, a sim check and a build on Pages)
 - **B1** seven attributes in the engine (done in v0.34): `attributes.ts`, players get all seven, balance kept at 5.
-- **B2** profile, XP, levels, skill points, save v2 migration, character screen.
+- **B2** (done in v0.35) profile, XP, levels, skill points, save v2 migration, character screen. Numbers in `levels.json` (30 levels, 2 points per level, caps 5 to 10).
 - **B3** gear (8 slots), inventory, appearance layers, caps, consumables.
 - **B4** coins, shop, packs and pack opening, drop tables.
 - **B5** career calendar, divisions, draws, opponents from the division, rewards and ranking, partner roster.

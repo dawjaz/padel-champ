@@ -4,10 +4,13 @@
  * unavailable (private mode, blocked), the game still runs and just does not persist.
  */
 
+import { newProfile, sanitizeProfile, type Profile } from './career/profile';
+
 export interface SaveData {
-  version: 1;
+  version: 2;
   settings: { sound: boolean };
   stats: { played: number; won: number; lost: number };
+  profile: Profile;
 }
 
 export interface KeyValueStore {
@@ -19,7 +22,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 1, settings: { sound: true }, stats: { played: 0, won: 0, lost: 0 } };
+  return { version: 2, settings: { sound: true }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile() };
 }
 
 function count(v: unknown): number {
@@ -32,10 +35,12 @@ export function parseSave(raw: string | null): SaveData {
   if (!raw) return base;
   try {
     const p = JSON.parse(raw) as Partial<SaveData> | null;
+    // Version 1 saves have no profile: they migrate to a fresh one.
     return {
-      version: 1,
+      version: 2,
       settings: { sound: typeof p?.settings?.sound === 'boolean' ? p.settings.sound : base.settings.sound },
       stats: { played: count(p?.stats?.played), won: count(p?.stats?.won), lost: count(p?.stats?.lost) },
+      profile: sanitizeProfile(p?.profile),
     };
   } catch {
     return base;

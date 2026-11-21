@@ -68,9 +68,11 @@ export class TitleScene extends Phaser.Scene {
     const add = (list: Phaser.GameObjects.GameObject[], b: { parts: Phaser.GameObjects.GameObject[] }): void => {
       list.push(...b.parts);
     };
-    add(mainMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'START MATCH', () => this.scene.start('MatchScene', { practice: null })));
-    add(mainMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
-    add(mainMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'SETTINGS', () => this.scene.start('SettingsScene')));
+    const MH = 46;
+    add(mainMenu, makeButton(this, WIDTH / 2, 418, 220, MH, 'START MATCH', () => this.scene.start('MatchScene', { practice: null })));
+    add(mainMenu, makeButton(this, WIDTH / 2, 470, 220, MH, 'HERO', () => this.scene.start('CharacterScene')));
+    add(mainMenu, makeButton(this, WIDTH / 2, 522, 220, MH, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
+    add(mainMenu, makeButton(this, WIDTH / 2, 574, 220, MH, 'SETTINGS', () => this.scene.start('SettingsScene')));
     add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack' })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend' })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));
@@ -79,7 +81,7 @@ export class TitleScene extends Phaser.Scene {
     const s = getSave().stats;
     const statsLine = s.played === 0 ? 'NO MATCHES YET' : `PLAYED ${s.played}  WON ${s.won}  LOST ${s.lost}`;
     this.add
-      .text(WIDTH / 2, 598, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, 610, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
       .text(WIDTH / 2, HEIGHT - 14, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })

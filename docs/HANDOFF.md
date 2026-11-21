@@ -8,6 +8,14 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.35: B2, profile, XP, levels, hero screen
+- `src/career/profile.ts` (+ tests) and `src/data/levels.json`: XP curve (60 x (L-1)^1.5), 30 levels, hero starts at 4 in every attribute with 6 free points, +2 points per level, attribute cap 5 at level 1 rising to 10 at level 26 (one step per 5 levels); match rewards (XP and coins by played/win/points/long rally) all in JSON.
+- Save is v2: `profile {xp, coins, alloc}`; v1 saves migrate to a fresh profile; `sanitizeProfile` cuts cheating (points above earned or above the cap).
+- MatchScene: the human hero (Toro, idx 0) now plays with the profile attributes (`heroFrom`), so quick matches and Free Practice use the hero you build; the match tracks points and the longest rally and pays XP and coins at the end. Mia and the CPU team keep their fixed stats.
+- New HERO screen (CharacterScene): level, XP bar, coins, seven attribute bars with + buttons, RESET (free respec for now). Title menu got a HERO button; ResultScene shows the reward, the level bar and LEVEL UP.
+- Tunables to review with the owner: start at 4 (weaker than the old Toro 8/5/5/5), rewards, cap steps.
+- Next: B3 gear (8 slots, inventory, appearance layers, caps, consumables).
+
 ## Planning (2026-11-21): career mode
 - `docs/CAREER.md` = design of attributes (power, spin, technique, accuracy, stamina, speed), XP/levels, gear with bonuses, packs, tournament calendar, code structure and steps B1-B6. Waiting for the owner's answers to its 4 questions before B1. Owner decisions so far: mechanics done, three.js later, online/monetisation later (offline first), gear gives attribute points but tournaments are capped.
 

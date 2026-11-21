@@ -1,0 +1,83 @@
+import { describe, expect, it } from 'vitest';
+import levels from '../data/levels.json';
+import { STAT_KEYS } from '../game/attributes';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, statCap, statValue, xpToReach } from './profile';
+import type { PlayerDef } from '../game/types';
+
+describe('levels', () => {
+  it('xp thresholds grow and levels follow them', () => {
+    for (let l = 1; l < levels.maxLevel; l++) expect(xpToReach(l + 1)).toBeGreaterThan(xpToReach(l));
+    expect(levelOf(0)).toBe(1);
+    expect(levelOf(xpToReach(5))).toBe(5);
+    expect(levelOf(xpToReach(5) - 1)).toBe(4);
+    expect(levelOf(1e9)).toBe(levels.maxLevel);
+    expect(levelProgress(xpToReach(3))).toBeCloseTo(0);
+    expect(levelProgress(1e9)).toBe(1);
+  });
+
+  it('the caps rise with the level and the total points fit under them', () => {
+    expect(statCap(1)).toBe(levels.capBase);
+    expect(statCap(levels.maxLevel)).toBe(levels.statMax);
+    const room = STAT_KEYS.length * (levels.statMax - levels.startStat);
+    expect(pointsEarned(levels.maxLevel)).toBeGreaterThanOrEqual(room); // a maxed hero is reachable
+  });
+});
+
+describe('spending points', () => {
+  it('starts with free points, spends one at a time up to the cap and no further', () => {
+    let p = newProfile();
+    expect(freePoints(p)).toBe(levels.startPoints);
+    p = spend(p, 'power');
+    expect(statValue(p, 'power')).toBe(levels.startStat + 1);
+    expect(freePoints(p)).toBe(levels.startPoints - 1);
+    while (canSpend(p, 'power')) p = spend(p, 'power');
+    expect(statValue(p, 'power')).toBe(statCap(1));
+    expect(spend(p, 'power')).toBe(p);
+    expect(canSpend(p, 'spin')).toBe(freePoints(p) > 0);
+  });
+
+  it('respec gives every point back', () => {
+    const p = respec(spend(spend(newProfile(), 'spin'), 'speed'));
+    expect(freePoints(p)).toBe(levels.startPoints);
+  });
+
+  it('a level up brings new points', () => {
+    const p = award(newProfile(), { xp: xpToReach(4), coins: 0 });
+    expect(levelOf(p.xp)).toBe(4);
+    expect(freePoints(p)).toBe(levels.startPoints + 3 * levels.pointsPerLevel);
+  });
+});
+
+describe('rewards', () => {
+  it('a win pays more than a loss, more points pay more, and nothing is negative', () => {
+    const base = { pointsWon: 10, pointsLost: 20, longestRally: 5 };
+    const win = matchReward({ ...base, won: true });
+    const loss = matchReward({ ...base, won: false });
+    expect(win.xp).toBeGreaterThan(loss.xp);
+    expect(win.coins).toBeGreaterThan(loss.coins);
+    expect(loss.xp).toBeGreaterThan(0);
+    expect(matchReward({ ...base, won: true, pointsWon: 20 }).xp).toBeGreaterThan(win.xp);
+    expect(matchReward({ ...base, won: true, longestRally: 99 }).xp - win.xp).toBeLessThanOrEqual(20);
+  });
+});
+
+describe('storage safety', () => {
+  it('junk becomes a valid profile, cheating is cut to the earned points and the cap', () => {
+    expect(sanitizeProfile(null)).toEqual(newProfile());
+    expect(sanitizeProfile({ xp: -5, coins: 'x', alloc: { power: -3 } })).toEqual(newProfile());
+    const cheat = sanitizeProfile({ xp: 0, alloc: Object.fromEntries(STAT_KEYS.map((k) => [k, 99])) });
+    expect(STAT_KEYS.reduce((n, k) => n + cheat.alloc[k], 0)).toBe(levels.startPoints);
+    for (const k of STAT_KEYS) expect(statValue(cheat, k)).toBeLessThanOrEqual(statCap(1));
+    expect(freePoints(cheat)).toBe(0);
+  });
+
+  it('the hero gets the profile attributes and matching guts', () => {
+    const base = { id: 'toro', name: 'Toro', stats: {}, maxGuts: 1, appearance: {} } as unknown as PlayerDef;
+    const p = spend(spend(award(newProfile(), { xp: xpToReach(6), coins: 0 }), 'stamina'), 'stamina');
+    const hero = heroFrom(base, p);
+    expect(hero.stats.stamina).toBe(levels.startStat + 2);
+    expect(hero.stats.power).toBe(levels.startStat);
+    expect(hero.maxGuts).toBe(Math.round(6 + 0.8 * hero.stats.stamina));
+    expect(hero.id).toBe('toro');
+  });
+});

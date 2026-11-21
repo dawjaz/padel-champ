@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
+import { CharacterScene } from './scenes/CharacterScene';
 import { MatchScene } from './scenes/MatchScene';
 import { ResultScene } from './scenes/ResultScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -21,5 +22,5 @@ new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, MatchScene, ResultScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, MatchScene, ResultScene],
 });

@@ -23,9 +23,12 @@ import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } fro
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
-import { recordResult, updateSave } from '../save';
+import { award, heroFrom, levelOf, matchReward } from '../career/profile';
+import { getSave, recordResult, updateSave } from '../save';
 
-const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
+const BASE_YOU = playersData.you as unknown as PlayerDef[];
+/** The teams of the current match: the human hero (idx 0) has the attributes of the career profile; set in create(). */
+let TEAMS: Teams = [BASE_YOU, playersData.cpu as unknown as PlayerDef[]];
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
 const HUMAN_SIDE: SideIndex = 0;
@@ -78,6 +81,8 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
+  private pointsWon: [number, number] = [0, 0];
+  private longestRally = 0;
   private server: SideIndex = 0;
   /** Which player of each team serves in their next service game. */
   private serverIdx: [number, number] = [0, 0];
@@ -131,6 +136,9 @@ export class MatchScene extends Phaser.Scene {
 
   create(): void {
     applyHd(this);
+    TEAMS = [[heroFrom(BASE_YOU[0], getSave().profile), BASE_YOU[1]], TEAMS[1]];
+    this.pointsWon = [0, 0];
+    this.longestRally = 0;
     this.matchScore = newScore(2);
     this.server = 0;
     this.serverIdx = [0, 0];
@@ -1229,6 +1237,8 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
     this.guts = { ...this.point.guts };
+    this.pointsWon[winner]++;
+    this.longestRally = Math.max(this.longestRally, this.point.hits);
     const res = awardPoint(this.matchScore, winner);
     this.matchScore = res.score;
 
@@ -1258,10 +1268,16 @@ export class MatchScene extends Phaser.Scene {
   private endMatch(winner: SideIndex): void {
     this.clearMenu();
     this.setActive(null);
-    updateSave((d) => recordResult(d, winner === 0));
+    const reward = matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
+    const levelBefore = levelOf(getSave().profile.xp);
+    updateSave((d) => {
+      const r = recordResult(d, winner === 0);
+      return { ...r, profile: award(r.profile, reward) };
+    });
+    const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0 }));
   }
 }
