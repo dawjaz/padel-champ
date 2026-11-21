@@ -1,10 +1,11 @@
 name: Deploy web build to GitHub Pages
 
 # Publishes the game from `main` (stylized 2D/3D look) at the site root, and (if the branch exists and builds) the
-# classic 16-bit version from `style/16bit` under /16bit/. A broken 16-bit branch never blocks the main site.
+# classic 16-bit version from `style/16bit` under /16bit/ and the three.js prototype from `style/3d` under /3d/
+# (open /3d/3d.html). A broken side branch never blocks the main site. A push to `style/3d` redeploys everything.
 on:
   push:
-    branches: [main]
+    branches: [main, style/3d]
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,12 @@ jobs:
         with:
           ref: style/16bit
           path: old16
+      - id: three_checkout
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: style/3d
+          path: old3d
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -52,6 +59,19 @@ jobs:
         run: |
           mkdir -p site/dist/16bit
           cp -r old16/dist/. site/dist/16bit/
+      - id: three_build
+        if: steps.three_checkout.outcome == 'success'
+        continue-on-error: true
+        working-directory: old3d
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Add the three.js prototype under /3d/
+        if: steps.three_build.outcome == 'success'
+        run: |
+          mkdir -p site/dist/3d
+          cp -r old3d/dist/. site/dist/3d/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
