@@ -8,6 +8,10 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.45: menu exit, 10 partners
+- MATCH has a MENU button (top left, tap twice) in quick match and practice; a career match has no exit.
+- 10 partners in `partners.json`, ordered by rating and price: Olek (free default, weakest), Lena 200, Tomek 450, Marco 800, Mia 1300, Kasia 2000, Sofia 3000, Ivan 4200, Diego 6000, Ana 9000. Different profiles (power hitter, defender, technician). PartnerScene pages 5 per screen. Old saves that own Mia keep her.
+
 ## v0.44: owner tweaks
 - Serve-receive decision time doubled (crawl 2.6 s -> 5.2 s). The point banner on the court stays 1/3 longer (1100 -> 1470 ms; the point pause grew by the same).
 

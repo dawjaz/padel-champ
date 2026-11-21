@@ -10,10 +10,10 @@ import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
-import { FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
+import { COLORS, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
-import { drawPanel } from '../ui';
+import { drawPanel, makeButton } from '../ui';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
@@ -219,6 +219,27 @@ export class MatchScene extends Phaser.Scene {
       .setStroke('#000000', 4)
       .setDepth(9001)
       .setVisible(false);
+
+    // Way out to the main menu (quick match and practice; a career match has to be played on): tap twice to leave.
+    if (!this.career) {
+      let armed = false;
+      const exit = makeButton(this, 40, 27, 64, 32, 'MENU', () => {
+        if (!armed) {
+          armed = true;
+          exit.text.setText('SURE?');
+          exit.setAccent(COLORS.red);
+          this.time.delayedCall(2500, () => {
+            armed = false;
+            exit.text.setText('MENU');
+            exit.setAccent(COLORS.white);
+          });
+          return;
+        }
+        this.scene.start('TitleScene');
+      });
+      exit.text.setFontSize(11);
+      for (const part of exit.parts) (part as Phaser.GameObjects.GameObject & { setDepth: (d: number) => unknown }).setDepth(10002);
+    }
 
     this.refreshScore();
     this.refreshGuts();

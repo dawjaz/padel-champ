@@ -92,15 +92,25 @@ describe('a tournament run', () => {
 });
 
 describe('partners', () => {
+  it('there are 10, the default is the weakest and free, and they get better and dearer in order', () => {
+    expect(PARTNERS).toHaveLength(10);
+    const rating = (i: number): number => Object.values(PARTNERS[i].stats).reduce((a, b) => a + b, 0);
+    expect(PARTNERS[0].price).toBe(0);
+    for (let i = 1; i < PARTNERS.length; i++) {
+      expect(PARTNERS[i].price).toBeGreaterThan(PARTNERS[i - 1].price);
+      expect(rating(i)).toBeGreaterThanOrEqual(rating(i - 1));
+    }
+    expect(Math.min(...PARTNERS.map((_, i) => rating(i)))).toBe(rating(0));
+  });
   it('the hero starts with the default, buys others with coins and can switch between owned ones', () => {
     const p = { ...newProfile(), coins: 1000 };
     expect(p.career.partnerId).toBe(PARTNERS[0].id);
     expect(buyPartner({ ...p, coins: 10 }, 'lena')).toBeNull();
     const bought = buyPartner(p, 'lena')!;
     expect(bought.career.partnerId).toBe('lena');
-    expect(bought.coins).toBe(1000 - 400);
+    expect(bought.coins).toBe(1000 - 200);
     expect(buyPartner(bought, 'lena')).toBeNull();
-    expect(choosePartner(bought, 'mia').career.partnerId).toBe('mia');
+    expect(choosePartner(bought, 'olek').career.partnerId).toBe('olek');
     expect(choosePartner(bought, 'diego')).toBe(bought);
   });
 });
@@ -112,8 +122,8 @@ describe('storage safety', () => {
     expect(c.season).toBe(1);
     expect(c.week).toBe(WEEKS);
     expect(c.rankPoints).toBe(0);
-    expect(c.partners).toEqual(['mia', 'lena']);
-    expect(c.partnerId).toBe('mia');
+    expect(c.partners).toEqual(['olek', 'lena']);
+    expect(c.partnerId).toBe('olek');
     expect(c.active).toBeNull();
     expect(c.history).toEqual([]);
     const ok = sanitizeProfile({ career: { active: { eventId: 'club-w1', seed: 4.7, results: [true, 'x', false] } } });
