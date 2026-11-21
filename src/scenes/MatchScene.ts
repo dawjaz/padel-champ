@@ -116,8 +116,8 @@ export class MatchScene extends Phaser.Scene {
 
   /** Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you. */
   private practice: 'attack' | 'defend' | null = null;
-  private pr: { ball: Height; glass: boolean; me: Formation; opp: Formation; result: 'auto' | HitOptions['force']; page: number } = {
-    ball: 'mid', glass: false, me: 'back', opp: 'back', result: 'auto', page: 0,
+  private pr: { ball: Height; glass: boolean; weakLob: boolean; me: Formation; opp: Formation; result: 'auto' | HitOptions['force']; page: number } = {
+    ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0,
   };
 
   constructor() {
@@ -127,7 +127,7 @@ export class MatchScene extends Phaser.Scene {
   // Phaser keeps the data of the previous start when a scene is started without any: a normal match is always started with { practice: null }.
   init(data?: { practice?: 'attack' | 'defend' | null }): void {
     this.practice = data?.practice ?? null;
-    this.pr = { ball: 'mid', glass: false, me: 'back', opp: 'back', result: 'auto', page: 0 };
+    this.pr = { ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0 };
   }
 
   create(): void {
@@ -566,7 +566,7 @@ export class MatchScene extends Phaser.Scene {
       holder,
       hitterIdx,
       hits: 1,
-      ball: { height: this.pr.ball, pressure: 0, glass: this.pr.glass, zone: 'mid', speed: 18 },
+      ball: { height: this.pr.ball, pressure: 0, glass: this.pr.glass, zone: 'mid', speed: 18, lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined },
       formation: [this.pr.me, this.pr.opp],
     };
   }
@@ -601,8 +601,11 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 
+  /** Attacking: serves and the shots that can be played with the ball and positions of the SETUP (the rules are the same as in a match). Defending: every shot the opponents can play. */
   private practiceShots(): ShotDef[] {
-    return [...shotsOfKind('serve'), ...shotsOfKind('return'), ...shotsOfKind('rally')];
+    const all = [...shotsOfKind('serve'), ...shotsOfKind('return'), ...shotsOfKind('rally')];
+    if (this.practice !== 'attack') return all;
+    return all.filter((sh) => sh.kind === 'serve' || unavailableReason(sh, this.point) === null);
   }
 
   private showPracticeButtons(): void {
@@ -612,9 +615,8 @@ export class MatchScene extends Phaser.Scene {
     const pages = Math.ceil(all.length / per);
     this.pr.page %= pages;
     const page = this.pr.page;
-    const st = this.point;
     const items: ButtonSpec[] = all.slice(page * per, (page + 1) * per).map((sh) => ({
-      label: attack && sh.kind !== 'serve' && unavailableReason(sh, st) !== null ? `${sh.name} *` : sh.name,
+      label: sh.name,
       tone: 'normal' as Tone,
       onPick: () => (attack ? this.practicePick(sh) : this.practiceFeed(sh)),
     }));
@@ -624,7 +626,7 @@ export class MatchScene extends Phaser.Scene {
       { label: 'EXIT', tone: 'tired', onPick: () => this.scene.start('TitleScene') },
     );
     if (attack) {
-      this.say('FREE PRACTICE, attacking: pick a shot. (* = not normally playable with this ball; it works here.)');
+      this.say('FREE PRACTICE, attacking: the shots you can play with this ball (change it in SETUP).');
       this.showHeight(this.pr.ball, this.pr.glass ? ', off the glass' : '');
     } else {
       this.say('FREE PRACTICE, defending: pick the shot the opponents play at you, then return it.');
@@ -642,6 +644,7 @@ export class MatchScene extends Phaser.Scene {
       items.push(
         { label: `BALL\n${this.pr.ball.toUpperCase()}`, tone: 'normal', onPick: () => { this.pr.ball = next<Height>(['low', 'mid', 'high'], this.pr.ball); again(); } },
         { label: `OFF GLASS\n${this.pr.glass ? 'YES' : 'NO'}`, tone: 'normal', onPick: () => { this.pr.glass = !this.pr.glass; again(); } },
+        { label: `WEAK LOB\n${this.pr.weakLob ? 'YES' : 'NO'}`, tone: 'normal', onPick: () => { this.pr.weakLob = !this.pr.weakLob; again(); } },
         { label: `RESULT\n${String(this.pr.result).toUpperCase()}`, tone: 'normal', onPick: () => { this.pr.result = next(results, this.pr.result); again(); } },
       );
     }
@@ -659,7 +662,7 @@ export class MatchScene extends Phaser.Scene {
       this.practiceServe(shot, HUMAN_SIDE);
       return;
     }
-    const options: HitOptions = { ignoreRequires: true, force: this.pr.result === 'auto' ? undefined : this.pr.result };
+    const options: HitOptions = { force: this.pr.result === 'auto' ? undefined : this.pr.result };
     if (shot.fixedDirection) {
       this.performHit(shot, shot.fixedDirection, undefined, options);
       return;

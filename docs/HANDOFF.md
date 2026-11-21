@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.32)_
+_Last updated: 2026-11-20 (v0.33)_
+
+## v0.33: Free Practice shows only playable shots; roadmap
+- Free Practice ATTACKING lists only the shots that can be played with the SETUP ball (the match rules, no `*` any more), so e.g. no vibora off the glass or on a low ball. New SETUP switch WEAK LOB (needed for Por Tres / Cuatro). DEFENDING still lists every shot the opponents can play.
+- `docs/ROADMAP.md`: proposed plan (A mechanics, B progression core, C online, D monetisation and compliance, E 3D later). Waiting for the owner's three decisions listed at its end.
 
 ## v0.32: bug: START MATCH after Free Practice
 - Phaser re-uses the data of the previous `scene.start` when a scene is started without data, so START MATCH / REMATCH after a practice session opened Free Practice again. Both now start `MatchScene` with `{ practice: null }`. Rule: always pass data explicitly when starting MatchScene.
