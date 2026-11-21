@@ -80,7 +80,7 @@ export function aimDepth(base: number, rng: Rng, spread = AIM_HALF_DEPTH, prefer
  * is -x; the far team looks down the screen, so its left is +x.
  */
 export function serveLane(servingSide: SideIndex, pointsPlayed: number, receiverIdx?: number): LaneSign {
-  // Golden point: the receiving pair chose who receives, so the server stands in the opposite lane (the serve is cross).
+  // Star Point: the receiving pair chose who receives, so the server stands in the opposite lane (the serve is cross).
   if (receiverIdx !== undefined) return -laneSign(receiverIdx) as LaneSign;
   const ownLeft: LaneSign = servingSide === 0 ? -1 : 1;
   return pointsPlayed % 2 === 0 ? ownLeft : (-ownLeft as LaneSign);
@@ -120,7 +120,7 @@ export function serveSetup(
   servingSide: SideIndex,
   pointsPlayed: number,
   serverIdx: number,
-  /** Set at the golden point, when the receiving pair chooses which of them receives. */
+  /** Set at the Star Point, when the receiving pair chooses which of them receives. */
   receiverChoice?: number,
 ): ServeSetup {
   const lane = serveLane(servingSide, pointsPlayed, receiverChoice);

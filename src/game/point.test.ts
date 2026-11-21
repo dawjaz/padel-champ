@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
-import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from './ai';
+import { pickStarReceiver, pickHit, pickReceive, pickServe } from './ai';
 import { netVolley } from './point';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
@@ -36,7 +36,7 @@ describe('startPoint', () => {
     expect(s.receiverIdx).toBe(1);
   });
 
-  it('golden point: the receiving pair choice decides the receiver and the serving lane', () => {
+  it('Star Point: the receiving pair choice decides the receiver and the serving lane', () => {
     for (const choice of [0, 1]) {
       const s = startPoint(freshGuts(), 0, 0, 6, choice);
       expect(s.receiverIdx).toBe(choice);
@@ -433,13 +433,13 @@ describe('shot availability', () => {
   });
 });
 
-describe('pickGoldenReceiver', () => {
+describe('pickStarReceiver', () => {
   it('returns a valid receiver index and favours the better defender', () => {
     const team = TEAMS[1];
     const rng = seededRng(7);
     const counts = [0, 0];
     for (let i = 0; i < 2000; i++) {
-      const idx = pickGoldenReceiver(team, rng);
+      const idx = pickStarReceiver(team, rng);
       expect([0, 1]).toContain(idx);
       counts[idx]++;
     }

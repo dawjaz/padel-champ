@@ -115,7 +115,7 @@ describe('formations', () => {
     expect(restPos(1, 0, 'back')).toEqual({ x: -LANE_X, z: formationZ(1, 'back') });
   });
 
-  it('golden point: the receiving pair chooses who receives, the serve stays cross and partners keep their halves', () => {
+  it('Star Point: the receiving pair chooses who receives, the serve stays cross and partners keep their halves', () => {
     for (const side of [0, 1] as const) {
       for (const choice of [0, 1]) {
         const s = serveSetup(side, 6, 0, choice);

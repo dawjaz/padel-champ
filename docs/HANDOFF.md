@@ -8,6 +8,14 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.41: Star Point, receive decision in the air, power impact, layout
+- Scoring: the FIP **Star Point** rule replaces the golden point (`scoring.ts`: `deuce` 0..3, `advantage`; at 40-40 advantage is played twice, the third deuce is one deciding point and the receivers choose the side; score line shows DEUCE 1/2, ADVANTAGE, STAR POINT). `pickGoldenReceiver` -> `pickStarReceiver`, `isGoldenPoint` -> `isStarPoint`.
+- Receiving a serve that goes to a wall: the human no longer decides before the serve. The serve is played (racket sound, swing), the ball flies until just before its bounce and then crawls for 2.6 s with the speed in km/h, where it goes (T / body / wide off a glass), pulsing rings at the bounce and at the glass, and a bar that runs out (default: on the bounce). The same seed rebuilds the same flight, which resumes from where it stopped (`previewServe`, `playStep(..., {seed, from, startH})`, `performServe` with a seed). A fault plays without a decision. CPU receivers still decide at once. Serves with no wall (at the opponent, T) never had a choice.
+- The CPU serves with all four serves (hard glass, spin glass, at the opponent, T) chosen by stat x power x safety weights (`pickServe`); it does not yet choose by the receiver's position.
+- Por Cuatro and a strong Por Tres (winner or glass rebound back over the net) mark the court at the bounce: white core flash, glow, shock rings, sparks, a scuff and a small camera shake (`powerImpact`, `powerStyle`).
+- Layout: title menu spacing (the stats line no longer sits on SETTINGS), Boost Bundle text in the shop anchored at the top.
+- Check on a phone: the pause in the serve (does the slow crawl feel right? is 2.6 s enough?) and the strength of the court mark.
+
 ## v0.40: nobody freezes, calmer status line
 - When a ball ends the point (winner, ace, error) or a serve is a fault, nobody stands still any more: the defender runs for the ball (all the way on a winner, about two thirds of the way on an error, a few steps on a fault), the partner covers, the hitting pair follows its shot into the new formation (`performHit` in MatchScene: `movePartner`, `shiftHitters`).
 - Status line: removed "X is going to serve", "X serves: ...", "to return" and the "Point to X" overwrite. The last text (how the point ended, now with "POINT TO YOU/CPU") stays until the next shot replaces it; a won game appends "GAME TO ...".

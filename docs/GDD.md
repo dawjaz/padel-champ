@@ -108,7 +108,7 @@ with a very short delay, so the game keeps moving. Only your own player's serve,
 Lanes are still fixed per player; real court coverage is to be refined with the owner.
 
 ## Scoring
-0/15/30/40, **golden point** at 40-40 (next point wins the game, as in modern padel).
+0/15/30/40, the **Star Point** rule (FIP 2026, used in Premier Padel): at 40-40 advantage is played twice (deuce 1 and 2); at the third deuce one point decides the game and the receiving pair chooses who receives.
 Prototype match: first to 2 games. Serve alternates every game and the serving team swaps its server.
 
 ## Characters (placeholders)
@@ -127,7 +127,7 @@ Stats are 1-10: power, technique, speed, defense.
 
 ## Decided (owner, 2026-11-20)
 - Defence is automatic; the human only chooses attacking shots.
-- Golden point: the receiving pair chooses which player receives (side). Implemented in v0.17.
+- Star Point (deuce 3, replaced the golden point in v0.41): the receiving pair chooses which player receives (side). First implemented as the golden point in v0.17.
 - Partners keep their own halves on serve (confirmed).
 
 ## Open questions

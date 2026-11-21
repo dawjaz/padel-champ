@@ -77,8 +77,8 @@ export class TitleScene extends Phaser.Scene {
     ];
     if (SHOW_FREE_PRACTICE) entries.push(['FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }]);
     entries.push(['SETTINGS', () => this.scene.start('SettingsScene')]);
-    const step = Math.min(52, 172 / (entries.length - 1));
-    entries.forEach(([label, fn], i) => add(mainMenu, makeButton(this, WIDTH / 2, 418 + i * step, 220, step - 8, label, fn)));
+    const step = Math.max(34, Math.min(42, 164 / (entries.length - 1)));
+    entries.forEach(([label, fn], i) => add(mainMenu, makeButton(this, WIDTH / 2, 408 + i * step, 220, step - 8, label, fn)));
     add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack', career: null })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend', career: null })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));
@@ -87,7 +87,7 @@ export class TitleScene extends Phaser.Scene {
     const s = getSave().stats;
     const statsLine = s.played === 0 ? 'NO MATCHES YET' : `PLAYED ${s.played}  WON ${s.won}  LOST ${s.lost}`;
     this.add
-      .text(WIDTH / 2, 610, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
+      .text(WIDTH / 2, 612, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
       .text(WIDTH / 2, HEIGHT - 14, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })

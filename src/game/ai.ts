@@ -125,10 +125,10 @@ export function pickReceive(teams: Teams, state: PointState, rng: Rng): ReceiveM
 }
 
 /**
- * Golden point: the CPU pair decides which of them receives (and so which side the serve comes to).
+ * Star Point: the CPU pair decides which of them receives (and so which side the serve comes to).
  * The better defender is more likely to take it; a little randomness keeps it unpredictable.
  */
-export function pickGoldenReceiver(team: PlayerDef[], rng: Rng): number {
+export function pickStarReceiver(team: PlayerDef[], rng: Rng): number {
   const weights = team.map((p) => Math.max(0.1, p.stats.defense * 7 + p.stats.speed * 3));
   return weightedPick(team.map((_, i) => i), weights, rng);
 }

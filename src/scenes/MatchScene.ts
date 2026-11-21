@@ -14,14 +14,15 @@ import { FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
 import { drawPanel } from '../ui';
-import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
+import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
 import { playableShots, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
-import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
+import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
+import { seededRng } from '../game/rng';
 import { fatigueFactor, gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
@@ -94,6 +95,8 @@ export class MatchScene extends Phaser.Scene {
   private career: CareerMatch | null = null;
   /** The text on the status line (it stays until the next shot replaces it). */
   private lastSaid = '';
+  /** Set for the shot in the air: the court mark at its bounce is stronger (Por Cuatro, a strong Por Tres). */
+  private powerStyle: 'x4' | 'x3' | null = null;
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
@@ -333,6 +336,10 @@ export class MatchScene extends Phaser.Scene {
     } else if (e.kind === 'glass' || e.kind === 'mesh' || e.kind === 'net') {
       impactSound(e.kind, Math.min(1, v / (e.kind === 'net' ? 20 : 24)));
     }
+    if (e.kind === 'bounce' && this.powerStyle !== null) {
+      this.powerImpact(p, this.powerStyle);
+      this.powerStyle = null;
+    }
     if (e.kind === 'bounce') {
       const puff = this.add.ellipse(p.x, p.y, Math.max(4, p.scale * 0.22), Math.max(2, p.scale * 0.09), 0xffffff, 0.55).setDepth(p.y);
       this.tweens.add({ targets: puff, scaleX: 3.4, scaleY: 2, alpha: 0, duration: 340, ease: 'Quad.easeOut', onComplete: () => puff.destroy() });
@@ -344,6 +351,33 @@ export class MatchScene extends Phaser.Scene {
       const flash = this.add.circle(p.x, p.y, Math.max(3, p.scale * 0.15), 0xffffff, 0.8).setDepth(4000);
       this.tweens.add({ targets: flash, scale: 3, alpha: 0, duration: 260, onComplete: () => flash.destroy() });
     }
+  }
+
+  /**
+   * Where a Por Cuatro / strong Por Tres hits the court: a bright flash, a shock ring on the floor, sparks flying out and a scuff mark,
+   * and a small shake of the camera (Por Cuatro), so that one can feel the power go into the floor.
+   */
+  private powerImpact(p: { x: number; y: number; scale: number }, style: 'x4' | 'x3'): void {
+    const big = style === 'x4';
+    const k = big ? 1 : 0.7;
+    const core = this.add.circle(p.x, p.y, Math.max(5, p.scale * 0.3) * k, 0xffffff, 0.95).setDepth(9990);
+    this.tweens.add({ targets: core, scale: 3.2, alpha: 0, duration: 190, ease: 'Quad.easeOut', onComplete: () => core.destroy() });
+    const glow = this.add.ellipse(p.x, p.y, Math.max(10, p.scale * 0.7) * k, Math.max(5, p.scale * 0.3) * k, 0xffb347, 0.75).setDepth(9989);
+    this.tweens.add({ targets: glow, scaleX: 4.2, scaleY: 3, alpha: 0, duration: 380, ease: 'Quad.easeOut', onComplete: () => glow.destroy() });
+    for (let i = 0; i < (big ? 3 : 2); i++) {
+      const ring = this.add.ellipse(p.x, p.y, 16 * k, 7 * k, 0xffffff, 0).setStrokeStyle(big ? 3 : 2, i === 0 ? 0xffe066 : 0xffffff, 1).setDepth(9988);
+      this.tweens.add({ targets: ring, scaleX: 3 + i * 1.6, scaleY: 3 + i * 1.6, alpha: 0, delay: i * 70, duration: 460, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
+    }
+    const n = big ? 10 : 6;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + (i % 2) * 0.2;
+      const len = (big ? 34 : 22) * (0.7 + 0.6 * ((i * 7) % 5) / 4);
+      const spark = this.add.rectangle(p.x, p.y, 8 * k, 2.5 * k, i % 2 === 0 ? 0xffe066 : 0xffffff, 1).setDepth(9991).setRotation(ang);
+      this.tweens.add({ targets: spark, x: p.x + Math.cos(ang) * len, y: p.y + Math.sin(ang) * len * 0.45, alpha: 0, scaleX: 0.3, duration: 330, ease: 'Quad.easeOut', onComplete: () => spark.destroy() });
+    }
+    const scuff = this.add.ellipse(p.x, p.y, 14 * k, 6 * k, 0x000000, 0.28).setDepth(p.y - 1);
+    this.tweens.add({ targets: scuff, alpha: 0, delay: 700, duration: 900, onComplete: () => scuff.destroy() });
+    this.cameras.main.shake(big ? 110 : 70, big ? 0.0035 : 0.002);
   }
 
   /** A big, short-lived banner such as ACE! in the middle of the court, with the shot that won it underneath. */
@@ -528,8 +562,8 @@ export class MatchScene extends Phaser.Scene {
     }
     const s = this.matchScore;
     const [a, b] = pointLabels(s);
-    const golden = isGoldenPoint(s) ? '  GOLDEN POINT' : '';
-    this.scoreText.setText(`YOU ${s.games[0]} - ${s.games[1]} CPU\n${a} - ${b}${golden}`);
+    const deuce = deuceLabel(s);
+    this.scoreText.setText(`YOU ${s.games[0]} - ${s.games[1]} CPU\n${a} - ${b}${deuce ? `  ${deuce}` : ''}`);
   }
 
   private say(msg: string): void {
@@ -775,22 +809,22 @@ export class MatchScene extends Phaser.Scene {
   // ---------- flow: serve -> return -> rally ----------
 
   private beginPoint(): void {
-    // Golden point: the receiving pair chooses who receives, which also decides the side the serve comes from.
-    if (!isGoldenPoint(this.matchScore)) {
+    // Star Point: the receiving pair chooses who receives, which also decides the side the serve comes from.
+    if (!isStarPoint(this.matchScore)) {
       this.startServe();
       return;
     }
     const recvSide = other(this.server);
     if (recvSide !== HUMAN_SIDE) {
-      const choice = pickGoldenReceiver(TEAMS[recvSide], Math.random);
-      this.say(`GOLDEN POINT: ${TEAMS[recvSide][choice].name} will receive.`);
+      const choice = pickStarReceiver(TEAMS[recvSide], Math.random);
+      this.say(`STAR POINT: ${TEAMS[recvSide][choice].name} will receive.`);
       this.startServe(choice);
       return;
     }
     this.setActive(null);
-    this.say('GOLDEN POINT! Who receives?');
+    this.say('STAR POINT! Who receives?');
     this.showButtons(
-      'Golden point: who receives?',
+      'Star Point: who receives?',
       TEAMS[recvSide].map((pl, i) => ({
         label: `${pl.name}\n[${laneSign(i) < 0 ? 'left' : 'right'} side]`,
         tone: 'normal' as Tone,
@@ -887,11 +921,110 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
     this.setActive(receiver.id);
-    this.say(`${TEAMS[st.servingSide][st.serverIdx].name}: ${shot.name}!`);
-    this.showButtons(`${receiver.name}: take it...`, [
-      { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
-      { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
-    ]);
+    this.previewServe(shot);
+  }
+
+  /**
+   * The human receiver decides while the serve is in the air: the ball flies until just before its bounce, then crawls in slow
+   * motion for a moment, with the speed of the serve and the spot where it will hit the glass on the screen and a bar that runs
+   * out. After the choice (or when the bar is empty: on the bounce) the same flight carries on from where it was.
+   */
+  private previewServe(shot: ShotDef): void {
+    const st = this.point;
+    const server = TEAMS[st.servingSide][st.serverIdx];
+    const receiver = TEAMS[other(st.servingSide)][st.receiverIdx];
+    const seed = Math.floor(Math.random() * 1e9);
+    const probe = stepServe(TEAMS, st, shot, seededRng(seed), 'bounce');
+    const startH = this.ballH;
+    const { flight, landX } = this.buildStepFlight(probe.step, seed, startH);
+    const bounce = flight.events.find((e) => e.kind === 'bounce');
+    // A fault is a fault whatever the receiver does: no decision, the serve just plays.
+    if (probe.step.outcome === 'fault') {
+      this.performServe(shot, 'bounce', { seed });
+      return;
+    }
+    if (!bounce || flight.duration <= 0) {
+      this.showButtons(`${receiver.name}: take it...`, [
+        { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
+        { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
+      ]);
+      return;
+    }
+    const total = flightDuration(flight);
+    const pb = bounce.t / flight.duration;
+    const p0 = pb * 0.78;
+    const p1 = pb * 0.93;
+    const kmh = Math.round(shot.flight.speed * (probe.step.second ? SECOND_SERVE_SPEED : 1) * powerSpeedMul(server.stats.power) * 3.6);
+    const where = Math.abs(landX) < 1.2 ? 'to the T' : Math.abs(landX) < 3.4 ? 'at your body' : `wide, off the ${landX < 0 ? 'left' : 'right'} glass`;
+
+    this.say(`${server.name}: ${shot.name}!`);
+    impactSound(racketKind(shot.id, true, shot.flight.speed), Math.max(0.15, Math.min(1, shot.flight.speed / 30)));
+    this.swing(server.id, null, 0);
+    const glassHit = flight.events.find((e) => e.kind === 'glass');
+
+    let progress = 0;
+    this.tweens.addCounter({
+      from: 0,
+      to: p0,
+      duration: total * p0,
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        progress = tween.getValue() ?? 0;
+        const p = ballPoint(flight.path, progress);
+        this.setBall(p.x, p.z, p.h);
+      },
+      onComplete: () => {
+        // The decision: the ball hangs in the air, almost still.
+        let decided = false;
+        let crawl: Phaser.Tweens.Tween | null = null;
+        const choose = (receive: ReceiveMode): void => {
+          if (decided) return;
+          decided = true;
+          crawl?.stop();
+          this.tweens.killTweensOf(this.menu);
+          this.clearMenu();
+          this.performServe(shot, receive, { seed, from: progress, startH });
+        };
+        this.showButtons(`${receiver.name}: take it...`, [
+          { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => choose('bounce') },
+          { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => choose('wall') },
+        ]);
+        const title = this.add
+          .text(WIDTH / 2, 196, `${kmh} km/h`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '32px', fontStyle: 'bold', color: kmh >= 95 ? '#ff9a6a' : '#ffe066' })
+          .setOrigin(0.5)
+          .setStroke('#000000', 6)
+          .setDepth(9995);
+        const sub = this.add
+          .text(WIDTH / 2, 226, `${shot.name.toUpperCase()}  ${where.toUpperCase()}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' })
+          .setOrigin(0.5)
+          .setStroke('#000000', 4)
+          .setDepth(9995);
+        const barBg = this.add.rectangle(WIDTH / 2, 248, 180, 8, 0x000000, 0.6).setStrokeStyle(1, 0xffffff).setDepth(9995);
+        const bar = this.add.rectangle(WIDTH / 2 - 89, 248, 178, 6, 0x5db4ff).setOrigin(0, 0.5).setDepth(9996);
+        this.menu.push(title, sub, barBg, bar);
+        // Where the ball will land and where it will hit the glass.
+        const marks: Array<{ x: number; z: number; h: number; color: number }> = [{ x: bounce.x, z: bounce.z, h: 0, color: 0xffe066 }];
+        if (glassHit) marks.push({ x: glassHit.x, z: glassHit.z, h: glassHit.h, color: 0x9fd8ff });
+        for (const m of marks) {
+          const pr = project(m.x, m.z, m.h);
+          const ring = this.add.ellipse(pr.x, pr.y, 22, m.h > 0 ? 22 : 10, 0xffffff, 0).setStrokeStyle(2, m.color, 1).setDepth(9990);
+          this.tweens.add({ targets: ring, scale: 1.6, alpha: 0.2, duration: 520, yoyo: true, repeat: -1 });
+          this.menu.push(ring);
+        }
+        this.tweens.add({ targets: bar, scaleX: 0, duration: 2600, ease: 'Linear' });
+        crawl = this.tweens.addCounter({
+          from: p0,
+          to: p1,
+          duration: 2600,
+          ease: 'Linear',
+          onUpdate: (tween: Phaser.Tweens.Tween) => {
+            progress = tween.getValue() ?? p0;
+            const p = ballPoint(flight.path, progress);
+            this.setBall(p.x, p.z, p.h);
+          },
+          onComplete: () => choose('bounce'),
+        });
+      },
+    });
   }
 
   private hitTurn(): void {
@@ -960,10 +1093,10 @@ export class MatchScene extends Phaser.Scene {
     this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items);
   }
 
-  private performServe(shot: ShotDef, receive: ReceiveMode): void {
+  private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number }): void {
     this.hideHeight();
-    const { state, step } = stepServe(TEAMS, this.point, shot, Math.random, receive);
-    this.playStep(step, state);
+    const { state, step } = stepServe(TEAMS, this.point, shot, opts?.seed !== undefined ? seededRng(opts.seed) : Math.random, receive);
+    this.playStep(step, state, opts);
   }
 
   private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions): void {
@@ -972,14 +1105,9 @@ export class MatchScene extends Phaser.Scene {
     this.playStep(step, state);
   }
 
-  /** Animates one step (ball flight, hop, movement), then decides what happens next. */
-  private playStep(step: Step, next: PointState): void {
+  /** The flight of the ball for a step (the same seed always gives the same flight). */
+  private buildStepFlight(step: Step, seed: number, startH: number): { flight: Flight; landX: number } {
     const attacker = TEAMS[step.side][step.attackerIdx];
-    const defender = TEAMS[other(step.side)][step.defenderIdx];
-    this.stopCoast();
-    this.guts = { ...next.guts };
-    this.refreshGuts();
-
     const landX =
       step.kind === 'serve'
         ? laneSign(step.defenderIdx) * (step.shot.landX ?? 3)
@@ -990,13 +1118,13 @@ export class MatchScene extends Phaser.Scene {
           : landingX(step.direction, step.defenderIdx);
     const flight = buildFlight({
       from: { ...this.pos[attacker.id] },
-      startH: this.ballH,
+      startH,
       hitterSide: step.side,
       shot: step.shot,
       landX,
       outcome: step.outcome,
       receive: step.receive,
-      seed: Math.floor(Math.random() * 1e9),
+      seed,
       glass: step.kind === 'serve' ? undefined : step.glass,
       arrival: step.arrival,
       landDepth: step.landDepth,
@@ -1010,6 +1138,22 @@ export class MatchScene extends Phaser.Scene {
       speedMul: (step.kind === 'serve' ? (step.second ? SECOND_SERVE_SPEED : 1) : paceFactor(step.shot, this.point.ball)) * powerSpeedMul(attacker.stats.power * (step.powerFactor ?? 1)),
       spinMul: spinMul(attacker.stats.spin),
     });
+    return { flight, landX };
+  }
+
+  /**
+   * Animates one step (ball flight, hop, movement), then decides what happens next. `from` (0..1) resumes a serve that was already
+   * on its way (the receiver's decision): the same seed rebuilds the same flight and it goes on from there.
+   */
+  private playStep(step: Step, next: PointState, opts?: { seed?: number; from?: number; startH?: number }): void {
+    const attacker = TEAMS[step.side][step.attackerIdx];
+    const defender = TEAMS[other(step.side)][step.defenderIdx];
+    this.stopCoast();
+    this.guts = { ...next.guts };
+    this.refreshGuts();
+
+    const { flight, landX } = this.buildStepFlight(step, opts?.seed ?? Math.floor(Math.random() * 1e9), opts?.startH ?? this.ballH);
+    const from = opts?.from ?? 0;
     const duration = flightDuration(flight);
     // The ball leaves the racket spinning: topspin / backspin about the horizontal axis, side spin about the vertical one.
     {
@@ -1023,11 +1167,15 @@ export class MatchScene extends Phaser.Scene {
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
     const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
     this.say(headline);
-    impactSound(
-      racketKind(step.shot.id, step.kind === 'serve', step.shot.flight.speed),
-      step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
-    );
-    this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
+    if (from === 0) {
+      impactSound(
+        racketKind(step.shot.id, step.kind === 'serve', step.shot.flight.speed),
+        step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
+      );
+      this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
+    }
+    // Por Cuatro (and a strong Por Tres) leave a mark where the ball hits the court.
+    this.powerStyle = step.shot.id === 'smash_x4' ? 'x4' : step.shot.id === 'smash_x3' && (step.outcome === 'winner' || step.reboundBack === true) ? 'x3' : null;
 
     // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who
     // has to play the ball runs to the spot where it will be hit (after the bounce, or after the glass).
@@ -1095,21 +1243,24 @@ export class MatchScene extends Phaser.Scene {
       const d = this.pos[defender.id];
       targets[defender.id] = { x: clampX(d.x + 0.4 * (flight.hit.x - d.x)), z: clampZ(d.z + 0.3 * (flight.hit.z - d.z)) };
     }
-    this.movePlayers(targets, duration, undefined, endPose, endFacing);
+    const remain = duration * (1 - from);
+    this.movePlayers(targets, remain, undefined, endPose, endFacing);
     for (const e of flight.events) {
-      const when = flight.duration > 0 ? (e.t / flight.duration) * duration : 0;
-      this.time.delayedCall(when, () => this.impactFx(e, flight.path));
+      const at = flight.duration > 0 ? e.t / flight.duration : 0;
+      if (at < from) continue;
+      this.time.delayedCall((at - from) * duration, () => this.impactFx(e, flight.path));
     }
 
     this.tweens.addCounter({
-      from: 0,
+      from,
       to: 1,
-      duration,
+      duration: remain,
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const p = ballPoint(flight.path, tween.getValue() ?? 0);
         this.setBall(p.x, p.z, p.h);
       },
       onComplete: () => {
+        this.powerStyle = null;
         this.trail = [];
         this.drawTrail();
         this.ballH = flight.hitH;

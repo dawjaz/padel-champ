@@ -97,7 +97,7 @@ export function startPoint(
   servingSide: SideIndex,
   serverIdx: number,
   pointsPlayed: number,
-  /** Golden point only: the receiving pair's choice of who receives (decides the serving lane). */
+  /** Star Point only: the receiving pair's choice of who receives (decides the serving lane). */
   receiverChoice?: number,
 ): PointState {
   const lane = serveLane(servingSide, pointsPlayed, receiverChoice);
