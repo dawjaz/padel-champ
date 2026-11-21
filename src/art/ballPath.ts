@@ -40,7 +40,6 @@ export type FlightOutcome =
   | 'in'
   | 'error'
   | 'winner'
-  | 'intercept'
   | 'continue';
 
 export interface FlightOpts {
@@ -915,21 +914,6 @@ export function buildFlight(opts: FlightOpts): Flight {
   }
   if (!winning) {
     path[path.length - 1] = { t: natural.t, x: hit.x, z: hit.z, h: hit.h };
-  }
-
-  if (o.outcome === 'intercept') {
-    // The defender turns it around, hard and flat, past the original hitter.
-    const origin: Vec = { x: hit.x, z: hit.z, h: hit.h };
-    const back = { x: o.from.x * 0.6, z: NET_Z - away * 7 };
-    const ret = solveArc(origin, back, 22, 0);
-    const t0 = path[path.length - 1].t;
-    const n = Math.max(2, Math.ceil(ret.T / DT));
-    for (let i = 1; i <= n; i++) {
-      const t = (ret.T * i) / n;
-      const p = arcPoint(origin, ret, t);
-      path.push({ t: t0 + t, x: p.x, z: p.z, h: p.h });
-    }
-    events.push({ kind: 'bounce', t: t0 + ret.T, x: back.x, z: back.z, h: 0 });
   }
 
   const end = path[path.length - 1];

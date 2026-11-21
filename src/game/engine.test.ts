@@ -15,7 +15,7 @@ import {
   TIRED_FACTOR,
   type HitInput,
 } from './engine';
-import { fixedRng } from './rng';
+import { fixedRng, seededRng } from './rng';
 import type { Appearance, BallState, PlayerDef, ShotDef } from './types';
 
 const LOOK: Appearance = {
@@ -75,15 +75,18 @@ describe('resolveHit', () => {
     expect(r.outcome).toBe('winner');
   });
 
-  it('lets a strong defender win the point against a weak shot', () => {
-    const r = resolveHit(
-      hit({
-        attacker: player({ technique: 1 }),
-        shot: shot('lob'),
-        defender: player({ defense: 10, speed: 10 }),
-      }),
-    );
-    expect(r.outcome).toBe('intercept');
+  it('never gives the point to the defender outright: a strong defender only keeps the rally going (no intercepts)', () => {
+    for (let seed = 1; seed < 300; seed++) {
+      const r = resolveHit(
+        hit({
+          attacker: player({ technique: 1 }),
+          shot: shot('lob'),
+          defender: player({ defense: 10, speed: 10 }),
+          rng: seededRng(seed),
+        }),
+      );
+      expect(['continue', 'error']).toContain(r.outcome);
+    }
   });
 
   it('continues the rally when both sides are even', () => {

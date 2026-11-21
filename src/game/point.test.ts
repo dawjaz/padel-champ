@@ -587,7 +587,7 @@ describe('Free Practice options', () => {
   it('ignoreRequires plays a shot that is normally unavailable, force decides how the hit ends', () => {
     const st = rallyState({ ball: { height: 'low', pressure: 0, zone: 'mid' } });
     expect(() => stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(1))).toThrow();
-    for (const force of ['winner', 'error', 'intercept', 'continue'] as const) {
+    for (const force of ['winner', 'error', 'continue'] as const) {
       const r = stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(2), undefined, { ignoreRequires: true, force });
       expect(r.step.outcome).toBe(force);
     }

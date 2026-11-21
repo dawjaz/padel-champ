@@ -504,7 +504,7 @@ export function stepHit(
     };
   }
 
-  // winner: the hitter scores. error / intercept: the other side scores.
+  // winner: the hitter scores. error: the other side scores.
   const winner = res.outcome === 'winner' ? side : defSide;
   return {
     state: { ...state, guts, hits: state.hits + 1, status: 'done', winner },

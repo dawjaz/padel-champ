@@ -734,7 +734,7 @@ export class MatchScene extends Phaser.Scene {
   private showPracticeSetup(): void {
     const next = <T,>(list: T[], cur: T): T => list[(list.indexOf(cur) + 1) % list.length];
     const forms: Formation[] = ['net', 'mid', 'back'];
-    const results: Array<'auto' | HitOptions['force']> = ['auto', 'continue', 'winner', 'error', 'intercept', 'rebound'];
+    const results: Array<'auto' | HitOptions['force']> = ['auto', 'continue', 'winner', 'error', 'rebound'];
     const again = (): void => this.showPracticeSetup();
     const items: ButtonSpec[] = [];
     if (this.practice === 'attack') {
@@ -1244,7 +1244,7 @@ export class MatchScene extends Phaser.Scene {
       const tiny = Math.hypot(px - cur.x, pz - cur.z) < 0.5;
       targets[partner.id] = { x: tiny ? clampX(px + (px > 0 ? -0.6 : 0.6)) : px, z: pz };
     };
-    if (out === 'in' || out === 'continue' || out === 'intercept') {
+    if (out === 'in' || out === 'continue') {
       Object.assign(targets, this.rallyTargets(next));
       // The player who has to play the ball picks a stance and stands beside the ball's landing spot.
       // A ball that comes off the back glass (bajada) is played with the back to the glass and the face to the net: the player
@@ -1387,7 +1387,6 @@ export class MatchScene extends Phaser.Scene {
         ace: ['ACE!', '#ffe066'],
         winner: ['WINNER!', '#ffe066'],
         error: ['ERROR', '#ff9a6a'],
-        intercept: ['INTERCEPTED!', '#9fd8ff'],
       };
       const b = banner[step.outcome];
       const how: Partial<Record<string, string>> = {
@@ -1450,9 +1449,6 @@ export class MatchScene extends Phaser.Scene {
             ? `${attacker.name} mishits the rulo straight into the fence. Error!`
             : `${attacker.name} ${this.errorText(step)}. Error!`,
         );
-        break;
-      case 'intercept':
-        endPoint(`${defender.name} reads it and wins the point!`);
         break;
       case 'continue':
         if (this.practice && !this.isHuman(next.holder, next.hitterIdx)) {

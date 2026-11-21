@@ -82,7 +82,7 @@ each shot **green (good fit)**, **orange (poor fit)** or **red (too tired)** for
 1. Unforced-error roll: shot risk + direction risk + rally fatigue - technique skill.
 2. Attack = stat x 10 x shot power x direction x height fit x (1 - pressure) + random(0..20); x0.6 if too tired.
 3. Defence = (defense x 7 + speed x 3) x 1.3 + random(0..20); x0.88 on a middle ball.
-4. Attack - defence > margin: **winner**. Defence - attack > 48 (INTERCEPT_MARGIN): defender wins the point (**intercept**).
+4. Attack - defence > margin: **winner**. A strong defence never wins the point by itself (the old *intercept* was removed: it looked unnatural).
    Otherwise the rally continues, and a narrow attack lead becomes **pressure** on the next hit.
 - Guts: the hitter pays the shot's cost; everyone recovers 1 per point (2 with stamina 8+). Free shots always exist (Lob, T-serve).
 

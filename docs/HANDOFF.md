@@ -19,8 +19,9 @@ _Last updated: 2026-11-21 (v0.49)_
   tournament (`Finished.matches`). ResultScene hides reward, level, bar and HERO after a tournament match, and shows "MATCHES +xp +coins" in the
   final summary. HERO, SHOP (title buttons greyed, note "FINISH THE TOURNAMENT FIRST"), GEAR, PARTNER (calendar button locked) are closed until
   the tournament ends (scenes also redirect). A quick match played meanwhile still pays and shows its reward, but a free pack says "after the tournament".
-- Open with the owner: **INTERCEPTED** (defence beats attack by more than `INTERCEPT_MARGIN` 48, the defender wins the point and the ball is
-  returned fast past the hitter): the owner does not like it, to be discussed and reshaped.
+- **INTERCEPTED removed** (owner: it did not look natural): `INTERCEPT_MARGIN`, the `intercept` outcome, its flight in `ballPath.ts`, the banner and
+  the Free Practice result are gone. A defence that beats the attack by a lot now just keeps the rally going. CPU sim: avg hits 6.7 -> 8.5, server
+  wins 52.8%, 2% of points above 20 hits (longest 31): watch the rally length and the tiredness (see the guts note) when play-testing.
 
 ## v0.34: B1, seven attributes in the engine
 - `src/game/attributes.ts`: power, spin, technique, accuracy, stamina, speed, defense (5 = neutral, all multipliers 1 there).

@@ -3,8 +3,6 @@ import type { BallState, DirectionDef, Formation, PlayerDef, ReceiveMode, Rng, S
 
 /** Default score lead needed to win the point outright (a shot can override it). */
 export const WINNER_MARGIN = 24;
-/** If the defence beats the attack by more than this, the defender wins the point. */
-export const INTERCEPT_MARGIN = 48;
 /** An ace needs this much more than the receiver's defence. */
 export const ACE_MARGIN = 48;
 /**
@@ -73,7 +71,7 @@ export function faultChance(server: PlayerDef, shot: ShotDef): number {
   return clamp(shot.risk - server.stats.technique * TECHNIQUE_SAFETY, 0.02, MAX_ERROR);
 }
 
-export type HitOutcome = 'winner' | 'error' | 'intercept' | 'continue';
+export type HitOutcome = 'winner' | 'error' | 'continue';
 
 export interface HitInput {
   attacker: PlayerDef;
@@ -131,7 +129,6 @@ export function resolveHit(i: HitInput): HitResult {
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;
   let outcome: HitOutcome = 'continue';
   if (diff > margin) outcome = 'winner';
-  else if (-diff > INTERCEPT_MARGIN) outcome = 'intercept';
 
   const pressure = outcome === 'continue' ? clamp(diff / 200, 0, MAX_PRESSURE) : 0;
   return { outcome, attackScore, defenseScore, errorChance: chance, tired, fit, pressure };

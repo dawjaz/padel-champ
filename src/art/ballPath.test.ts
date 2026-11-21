@@ -5,7 +5,7 @@ import type { ShotDef } from '../game/types';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
-const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'intercept', 'continue'];
+const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'continue'];
 const NO_PLAY: FlightOutcome[] = ['fault', 'double-fault', 'error'];
 const dist = (a: { x: number; z: number }, b: { x: number; z: number }): number => Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -159,11 +159,6 @@ describe('buildFlight: real-world behaviour of each shot', () => {
     expect(end.t).toBeGreaterThan(0.5);
   });
 
-  it('turns an intercepted ball around, back towards the hitter', () => {
-    const f = fly('flat', { outcome: 'intercept' });
-    const end = f.path[f.path.length - 1];
-    expect(end.z).toBeGreaterThan(10);
-  });
 });
 
 describe('ballPoint and flightDuration', () => {
