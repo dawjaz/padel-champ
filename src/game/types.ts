@@ -68,6 +68,8 @@ export interface FlightDef {
    * the ball from right to left (clockwise seen from above; a vibora or a kick serve). Used for the rotation of the ball on screen.
    */
   side: number;
+  /** Deadens the floor bounce (multiplies the bounce height and the speed kept): 1 = normal, 0.7 = a ball that dies on the court. */
+  deaden?: number;
   /** Extra speed (share of `speed`) when the hitter is right at the net: a volley from the net is much faster than one from mid-court. */
   netBoost?: number;
 }

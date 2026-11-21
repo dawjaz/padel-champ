@@ -280,8 +280,9 @@ function simulateAfterBounce(
 ): { samples: Sample[]; events: FlightEvent[]; hitIndex: number; end: number; backContact: number } {
   const { spin, wallKick } = o.shot.flight;
   const boost = o.boost ?? 1;
-  const keep = clamp(FLOOR_KEEP + 0.14 * spin, 0.4, 0.95);
-  const restitution = clamp(FLOOR_E + 0.05 * spin, 0.6, 0.8) * boost;
+  const deaden = o.shot.flight.deaden ?? 1;
+  const keep = clamp(FLOOR_KEEP + 0.14 * spin, 0.4, 0.95) * deaden;
+  const restitution = clamp(FLOOR_E + 0.05 * spin, 0.6, 0.8) * boost * deaden;
   const kick = wallKick * (1 + (boost - 1) * 1.5);
 
   const samples: Sample[] = [];

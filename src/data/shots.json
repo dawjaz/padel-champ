@@ -128,9 +128,10 @@
     "wall": "none",
     "desc": "Soft, low and short. Lets you move up to the net.",
     "flight": {
-      "speed": 9,
+      "speed": 7.5,
       "apex": 0,
-      "spin": -0.9,
+      "spin": -0.55,
+      "deaden": 0.72,
       "wallKick": 1.0,
       "side": 0.3
     },
@@ -673,9 +674,10 @@
     },
     "desc": "Soft, low ball at the feet of the net players.",
     "flight": {
-      "speed": 9,
+      "speed": 7.5,
       "apex": 0,
-      "spin": -0.9,
+      "spin": -0.55,
+      "deaden": 0.72,
       "wallKick": 1.0,
       "side": 0.3
     },
