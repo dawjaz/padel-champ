@@ -73,6 +73,8 @@ export interface FlightOpts {
   errorKind?: ErrorKind;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
+  /** Por Cuatro that is not hit well: the defender meets the returning ball at the net, a few metres from it. */
+  netReturn?: boolean;
   /** A winner that comes off the back glass or fence and flies back over the net into the hitter's own half. */
   reboundBack?: boolean;
   /** Pace of this hit relative to the shot's usual speed (1 = as usual): harder off a high ball, slower off a low one. */
@@ -810,7 +812,8 @@ export function buildFlight(o: FlightOpts): Flight {
       if (o.shot.exitVia === 'side') return side;
       // over the back glass at the far end (not after a rebound over the hitter's own end)
       const far = o.hitterSide === 0 ? e.z <= 0.01 : e.z >= 19.99;
-      return !side && far;
+      // ... and clearly over the 4 m of glass and mesh, not into the mesh
+      return !side && far && e.h >= BACK_WALL.glass + BACK_WALL.mesh;
     };
     let fallback = exitOf(sim) ? sim : null;
     if (!wanted(sim)) {
@@ -838,6 +841,17 @@ export function buildFlight(o: FlightOpts): Flight {
   const wallT = wallIdx > 0 ? sim.samples[wallIdx].t : Infinity;
   for (const e of sim.events.slice(1)) if (e.t <= wallT + 1e-9) events.push(e);
 
+  if (o.netReturn === true && !winning && sim.backContact >= 0) {
+    // The ball comes back off the glass and the defender, running to the net, meets it a few metres from the tape.
+    const nearNet = (z: number): boolean => (o.hitterSide === 0 ? z >= NET_Z - 3.5 : z <= NET_Z + 3.5);
+    for (let i = sim.backContact + 1; i <= Math.min(sim.end, sim.samples.length - 1); i++) {
+      const q = sim.samples[i];
+      if (nearNet(q.z) && q.h >= 0.5 && q.h <= 2.3) {
+        sim = { ...sim, hitIndex: i };
+        break;
+      }
+    }
+  }
   const natural = sim.samples[wallIdx > 0 ? wallIdx : sim.hitIndex];
   const hit = clampHit(natural, o.hitterSide);
 
@@ -848,7 +862,7 @@ export function buildFlight(o: FlightOpts): Flight {
     const s0 = sim.samples[wallIdx];
     const origin: Vec = { x: s0.x, z: s0.z, h: Math.max(s0.h, 0.5) };
     const back = { x: clamp(s0.x * 0.4, -3.5, 3.5), z: NET_Z - away * 5.5 };
-    const ret = solveArc(origin, back, 15, 0);
+    const ret = solveArc(origin, back, 15, 1.8);
     const n = Math.max(2, Math.ceil(ret.T / DT));
     for (let i = 1; i <= n; i++) {
       const t = (ret.T * i) / n;

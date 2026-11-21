@@ -578,3 +578,46 @@ describe('Free Practice options', () => {
     expect(rb.step.pointWinner).toBe(0);
   });
 });
+
+describe('Por Tres and Por Cuatro', () => {
+  it('are not offered on a low ball', () => {
+    for (const id of ['smash_x3', 'smash_x4']) {
+      const weak = (height: 'low' | 'mid' | 'high') => rallyState({ formation: ['net', 'back'], ball: { height, pressure: 0, lob: 'weak' } });
+      expect(unavailableReason(shot(id), weak('high')), id).toBeNull();
+      expect(unavailableReason(shot(id), weak('mid')), id).toBeNull();
+      expect(unavailableReason(shot(id), weak('low')), id).not.toBeNull();
+    }
+  });
+
+  it('Por Cuatro winners are either the nail (front of the court) or the deep rebound back over the net', () => {
+    let nail = 0;
+    let rebound = 0;
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    for (let seed = 1; seed < 300; seed++) {
+      const r = stepHit(TEAMS, st, shot('smash_x4'), 'cross', seededRng(seed), undefined, { force: 'winner' }).step;
+      if (r.reboundBack) {
+        rebound++;
+        expect(r.landDepth).toBeGreaterThan(7);
+      } else {
+        nail++;
+        expect(r.landDepth).toBeLessThan(5.5);
+      }
+    }
+    expect(nail).toBeGreaterThan(80);
+    expect(rebound).toBeGreaterThan(80);
+  });
+
+  it('a Por Cuatro that is not hit well comes back and the defender plays it at the net', () => {
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    let seen = 0;
+    for (let seed = 1; seed < 400; seed++) {
+      const r = stepHit(TEAMS, st, shot('smash_x4'), 'cross', seededRng(seed), undefined, { force: 'continue' });
+      if (r.step.netReturn) {
+        seen++;
+        expect(r.state.formation[1]).toBe('net');
+        expect(r.state.ball.height).toBe('mid');
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});

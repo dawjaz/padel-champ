@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.27)_
+_Last updated: 2026-11-20 (v0.28)_
+
+## v0.28: Por Tres / Por Cuatro
+- Both need a **mid or high** ball (not low) plus the existing weak-lob / net-or-mid conditions.
+- **Por Cuatro = the nail.** Winners are one of two kinds (`reboundWin` 0.45 = share of the second): (1) nail: lands in the front of the court (`winLandDepth` 4.6 m from the net), bounces and flies out over the full 4 m of glass + mesh (the exit must be at h >= 4 m, otherwise the boost search falls back to any exit: about 2 of 18 test cases); (2) deeper (`REBOUND_WIN_DEPTH` 8 m): hard bounce, off the back glass, back over the opponents' heads into the attackers' half (`reboundBack`, return arc now has 1.8 m of apex). Badly hit (continue off the glass): `netReturn`: the defender goes to the net (formation 'net') and plays the returning ball as a volley (mid ball) 3.5 m or less from the net.
+- CPU-vs-CPU: rebound winners about 10% of points (was 5%): lower `reboundWin` or `REBOUND_BACK_SHARE` if too many.
 
 ## v0.27: rulo
 - Rulo flies slow and in a high parabola with topspin: speed 25 -> 15, apex 1.2 -> 2.6, spin 1.6 -> 1.8 (peak about 3.9 m, flight about 1.3 s to the bounce). The hitter plays it overhead (smash stance) with the body turned sideways towards the fence it is played to (`swing(id, shot, aimDx)`; profile facing, there is no three-quarter view in the sprites).

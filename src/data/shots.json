@@ -480,6 +480,10 @@
         "net",
         "mid"
       ],
+      "heights": [
+        "mid",
+        "high"
+      ],
       "weakLob": true,
       "glass": false,
       "hint": "weak lob, at the net"
@@ -530,11 +534,15 @@
         "net",
         "mid"
       ],
+      "heights": [
+        "mid",
+        "high"
+      ],
       "weakLob": true,
       "glass": false,
       "hint": "weak lob, at the net"
     },
-    "desc": "Por cuatro: hard into the court. It flies out over the back glass, or comes back off the glass or mesh and stays in play.",
+    "desc": "Por cuatro, the nail: hit very high and very hard into the front of the court, it bounces flat and flies out over the 4 m glass, or (flatter and deeper) off the back glass and back over their heads. Mishit: they get to the net and play it back.",
     "flight": {
       "speed": 31,
       "apex": 0,
@@ -543,6 +551,8 @@
       "side": 0.3
     },
     "exitVia": "back",
+    "reboundWin": 0.45,
+    "winLandDepth": 4.6,
     "glassChance": 0.6,
     "errorKinds": {
       "net": 0.45,

@@ -963,6 +963,7 @@ export class MatchScene extends Phaser.Scene {
       airDist: step.airDist,
       errorKind: step.errorKind,
       reboundBack: step.reboundBack,
+      netReturn: step.netReturn,
       airHit: step.lob === 'weak',
       // Hard when the ball comes to the hitter's strike zone, slower off a low ball; a volley on a slow ball gets more pace.
       speedMul: step.kind === 'serve' ? 1 : paceFactor(step.shot, this.point.ball),

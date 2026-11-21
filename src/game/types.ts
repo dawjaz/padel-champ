@@ -134,6 +134,8 @@ export interface ShotDef {
   flight: FlightDef;
   /** Overrides the default margin needed to win the point outright. */
   winnerMargin?: number;
+  /** Share of the winners of this shot that are the second kind of winner: deeper, off the back glass and back over the opponents' heads (Por Cuatro). */
+  reboundWin?: number;
   /** Smash/rulo: a winning ball flies out over the glass or the fence instead of staying in play. */
   overFence?: boolean;
   /** Rulo: the ball lands this far from the centre line (just beside the side fence); the side comes from the direction. */

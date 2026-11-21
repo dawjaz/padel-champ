@@ -70,6 +70,8 @@ export interface Step {
   block?: boolean;
   /** A defender in mid-court takes the ball out of the air this far (m) from the net (set together with `block`). */
   airDist?: number;
+  /** Por Cuatro that was not hit well: the ball comes back off the glass and the defender, now at the net, plays it back. */
+  netReturn?: boolean;
   /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
   reboundBack?: boolean;
   /** How a mistake or a fault ends (the net, the back glass, the mesh above it). */
@@ -308,6 +310,15 @@ export function netVolley(shot: ShotDef, defenderFormation: Formation, lob: LobQ
   );
 }
 
+/** Where (m from the net) the deeper kind of Por Cuatro winner lands: about 2 m from the back glass. */
+export const REBOUND_WIN_DEPTH = 8;
+
+function withFormation(f: [Formation, Formation], side: SideIndex, to: Formation): [Formation, Formation] {
+  const r: [Formation, Formation] = [f[0], f[1]];
+  r[side] = to;
+  return r;
+}
+
 /** A ball that lands no deeper than this (m from the net) is taken out of the air by a defender in mid-court. */
 export const AIR_TAKE_DEPTH = 7;
 
@@ -405,12 +416,14 @@ export function stepHit(
     ) {
       return {
         state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
-        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, undefined, prefer?.depth) },
+        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, shot.reboundWin !== undefined ? REBOUND_WIN_DEPTH : undefined, prefer?.depth) },
       };
     }
     // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
     // for a soft one) and stays at the net.
     const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
+    // A Por Cuatro that is not hit well comes back off the glass: the defender runs to the net and plays it back (a volley).
+    const netReturn = shot.reboundWin !== undefined && next.glass === true;
     const netBlock = netVolley(shot, state.formation[defSide], next.lob);
     const airDist = netBlock ? undefined : airTake(shot, state.formation[defSide], next.lob, aimed.landDepth ?? shot.landDepth);
     const block = netBlock || airDist !== undefined;
@@ -420,7 +433,12 @@ export function stepHit(
       next.glass = false;
       next.arrival = height;
     }
-    next.ball = { ...next.ball, zone: netBlock ? 'net' : airDist !== undefined ? 'mid' : zoneOf(aimed.landDepth ?? shot.landDepth) };
+    if (netReturn) {
+      next.ball = { height: 'mid', pressure: res.pressure, glass: false, speed: 18 };
+      next.glass = false;
+      next.arrival = 'mid';
+    }
+    next.ball = { ...next.ball, zone: netReturn ? 'net' : netBlock ? 'net' : airDist !== undefined ? 'mid' : zoneOf(aimed.landDepth ?? shot.landDepth) };
     return {
       state: {
         ...state,
@@ -429,9 +447,9 @@ export function stepHit(
         holder: defSide,
         hitterIdx: defIdx,
         ball: next.ball,
-        formation: nextFormation(state.formation, side, shot, next.lob),
+        formation: netReturn ? withFormation(nextFormation(state.formation, side, shot, next.lob), defSide, 'net') : nextFormation(state.formation, side, shot, next.lob),
       },
-      step: { ...step, block: block || undefined, airDist, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aimed },
+      step: { ...step, netReturn: netReturn || undefined, block: block || undefined, airDist, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aimed },
     };
   }
 
@@ -442,7 +460,10 @@ export function stepHit(
     step: {
       ...step,
       pointWinner: winner,
-      ...aimDepthFor(shot, rng, landX, undefined, prefer?.depth),
+      // Por Cuatro winners: the nail into the front of the court (flies out over the 4 m glass) or, deeper, off the back glass.
+      ...(res.outcome === 'winner' && shot.reboundWin !== undefined && rng() < shot.reboundWin
+        ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth) }
+        : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth : undefined, prefer?.depth)),
       errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng) : undefined,
     },
   };
