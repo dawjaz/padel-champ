@@ -54,6 +54,28 @@ Workflow reminders: gameplay changes go to `main` first, then rebase `style/3d` 
   the Free Practice result are gone. A defence that beats the attack by a lot now just keeps the rally going. CPU sim: avg hits 6.7 -> 8.5, server
   wins 52.8%, 2% of points above 20 hits (longest 31): watch the rally length and the tiredness (see the guts note) when play-testing.
 
+## v0.48: three.js prototype (branch `style/3d`, started from `main` v0.47)
+- Branch `style/3d` was recreated from `main` (the old remote `style/3d` was a stale v0.7-era snapshot; the owner agreed to replace it).
+  The 3D look is a PROTOTYPE only: `main` keeps the current 2.5D look. Gameplay changes go to both branches (this branch = `main` + the
+  prototype commit; rebase it onto `main` after every change there).
+- New dependency: `three` (+ `@types/three`). `vite.config.ts` builds two pages: `index.html` (the game) and `3d.html` (prototype). The game
+  bundle does not import three.js.
+- `src/art/three/court3d.ts` (`Court3D`): court slab with lines, glass + mesh walls from `walls.ts` (real stepped layout), posts and rails, net,
+  ball with blob shadow and trail, four players, hit/bounce pulses (flash + floor ring, small shake on a hard glass hit), cameras `tv`
+  (the old `camera.ts` view as a real pinhole camera: 20.4 m high, 27.2 m behind the baseline, 34 deg pitch, vfov 39), `low`, and a free orbit
+  (drag / wheel). Court metres map to three units as x->x, h->y, z->z-10 (net at 0). The near back wall is drawn faint.
+- `src/art/three/player3d.ts` (`Player3D`): low-poly comic big-head player (primitives), run bob, racket swing; colours only
+  (`PlayerLook`): NOT yet driven by `Appearance` / gear.
+- `src/art/three/demo.ts` + `3d.html`: a scripted rally (spin glass serve, flat return, lob, bajada, volley, vibora, bandeja, winning smash x3)
+  played on the REAL `buildFlight` paths (`ballPoint`, `flightDuration`, events -> pulses). Buttons: TV / LOW / FREE / SLOW / PAUSE;
+  `?cam=low|orbit` picks the start camera. Run: `npm run dev` then open `/3d.html`.
+- Checked: typecheck, 257 tests, build; screenshots in headless Chrome (software GL) look right in TV, LOW and FREE. NOT checked on a phone
+  (performance of 2048 shadow map + 2 spotlights is unknown; lower it if needed). The ball is drawn 2.5x its real size for readability.
+- Not done / next: (1) decide the integration: `MatchScene` keeps Phaser UI and shows the three.js canvas as a texture behind it (or a
+  transparent canvas under Phaser), the scene feeds `setBall` / `placePlayer` / `swing` / `pulse` from the same calls it uses now;
+  (2) map `Appearance` and gear to `PlayerLook` (hair, cap, wristband, colours); (3) arena (stands, crowd, LED boards, floodlights), replays and
+  broadcast captions; (4) menus stay Phaser. `src/game/` was not touched.
+
 ## v0.34: B1, seven attributes in the engine
 - `src/game/attributes.ts`: power, spin, technique, accuracy, stamina, speed, defense (5 = neutral, all multipliers 1 there).
 - Power -> ball speed (`speedMul`); spin -> `FlightDef.spin/side` via `FlightOpts.spinMul` and the vibora attack stat; accuracy -> `AIM_SKILL`, aim spread, side-wall risk; stamina -> `maxGuts`, guts recovery, fatigue start; technique/speed/defense as before.
