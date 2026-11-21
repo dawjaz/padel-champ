@@ -656,6 +656,31 @@ export function buildFlight(o: FlightOpts): Flight {
   // side mesh instead (no bounce first) and drops down dead.
   if (o.outcome === 'fault' || o.outcome === 'double-fault' || o.outcome === 'error') {
     const fence = o.shot.wall === 'fence' && o.outcome === 'error';
+    // Too long: the ball bounces beyond the line (out) and runs on.
+    if (!fence && o.errorKind === 'long') {
+      const r = makeRand(o.seed ?? 5);
+      return buildFlight({ ...o, outcome: 'in', errorKind: undefined, landDepth: 7.4 + 1.8 * r(), receive: 'bounce', glass: undefined });
+    }
+    // A serve that bounces in the court and then lands on the mesh over the side glass (out).
+    if (!fence && o.errorKind === 'bouncemesh') {
+      const r = makeRand(o.seed ?? 7);
+      const depth = o.landDepth ?? o.shot.landDepth;
+      const land = { x: o.landX, z: NET_Z + away * depth };
+      const arc = solveArc(from, land, Math.min(fl.speed * (o.speedMul ?? 1), MAX_SHOT_SPEED), fl.apex, magnus(o.shot, land.x - from.x, land.z - from.z), NET_CLEARANCE);
+      sampleArc(from, arc, 0);
+      events.push({ kind: 'bounce', t: arc.T, x: land.x, z: land.z, h: 0 });
+      const wallX = (land.x >= 0 ? 1 : -1) * 4.98;
+      const t2 = 0.5 + 0.2 * r();
+      const targetH = 3.2 + 0.5 * r();
+      const vy = (targetH + 0.5 * GRAVITY * t2 * t2) / t2;
+      const n = Math.max(4, Math.ceil(t2 / DT));
+      for (let i = 1; i <= n; i++) {
+        const u = (t2 * i) / n;
+        path.push({ t: arc.T + u, x: land.x + ((wallX - land.x) * u) / t2, z: land.z + arc.vz * 0.5 * u, h: Math.max(0, vy * u - 0.5 * GRAVITY * u * u) });
+      }
+      const end = path[path.length - 1];
+      return { path, hit: { x: end.x, z: end.z }, hitH: end.h, events, duration: end.t };
+    }
     // A ball that is too hard or too long flies into the back glass (out), or into the mesh above it, without a bounce.
     if (!fence && (o.errorKind === 'glass' || o.errorKind === 'mesh' || o.errorKind === 'side')) {
       const r = makeRand(o.seed ?? Math.round(Math.abs(o.from.x * 977 + o.landX * 131) * 1000) + 11);
@@ -664,7 +689,7 @@ export function buildFlight(o: FlightOpts): Flight {
       const sideSign = o.landX < 0 ? -1 : 1;
       const wallZ = side ? NET_Z + away * clamp(o.shot.landDepth, 2, 8) * (0.35 + 0.45 * r()) : away === -1 ? 0.02 : 19.98;
       const x = side ? sideSign * 4.98 : clamp(o.from.x + (o.landX - o.from.x) * (0.7 + 0.3 * r()), -4.2, 4.2);
-      const targetH = side ? (r() < 0.25 ? 3.2 + 0.5 * r() : 0.5 + 1.7 * r()) : o.errorKind === 'glass' ? 0.35 + 0.9 * r() : 3.15 + 0.6 * r();
+      const targetH = side ? (o.shot.kind === 'serve' ? 0.3 + 0.6 * r() : r() < 0.25 ? 3.2 + 0.5 * r() : 0.5 + 1.7 * r()) : o.errorKind === 'glass' ? 0.35 + 0.9 * r() : 3.15 + 0.6 * r();
       const dist = Math.hypot(x - from.x, wallZ - from.z);
       const T = Math.max(0.3, dist / fl.speed);
       const g = magnus(o.shot, x - from.x, wallZ - from.z).g;

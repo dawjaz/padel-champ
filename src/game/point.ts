@@ -165,7 +165,9 @@ export function playableShots(shots: ShotDef[], state: PointState): ShotDef[] {
   return shots.filter((s) => unavailableReason(s, state) === null);
 }
 
-const DEFAULT_ERRORS: Record<ErrorKind, number> = { net: 0.6, glass: 0.25, mesh: 0.15, side: 0 };
+const DEFAULT_ERRORS: Record<ErrorKind, number> = { net: 0.6, glass: 0.25, mesh: 0.15, side: 0, long: 0, bouncemesh: 0 };
+/** How a faulted serve ends: not only the net but also out in several ways (a serve to a wall can also hit the wall low first or bounce and land on the mesh). */
+const SERVE_ERRORS: Record<ErrorKind, number> = { net: 0.3, glass: 0.12, mesh: 0, side: 0.18, long: 0.25, bouncemesh: 0.15 };
 /** The mesh over the back glass is hit much less often than the glass: a ball that is too long goes low into the glass. */
 const MESH_ERROR_SCALE = 0.35;
 
@@ -178,9 +180,12 @@ export function pickErrorKind(shot: ShotDef, rng: Rng, landX?: number): ErrorKin
     const share = Math.min(0.55, ((Math.abs(landX) - 2.2) / 2.4) * 0.55);
     if (rng() < share) return 'side';
   }
-  const w = shot.errorKinds ?? DEFAULT_ERRORS;
-  const weight = (k: ErrorKind): number => (w[k] ?? 0) * (k === 'mesh' ? MESH_ERROR_SCALE : 1);
-  const order: ErrorKind[] = ['net', 'glass', 'mesh'];
+  const serve = shot.kind === 'serve';
+  const w = serve ? SERVE_ERRORS : (shot.errorKinds ?? DEFAULT_ERRORS);
+  // Only a serve to a side wall can hit it low first or bounce and go on to the mesh.
+  const weight = (k: ErrorKind): number =>
+    serve && shot.wall === 'none' && (k === 'side' || k === 'bouncemesh') ? 0 : (w[k] ?? 0) * (k === 'mesh' ? MESH_ERROR_SCALE : 1);
+  const order: ErrorKind[] = ['net', 'glass', 'mesh', 'side', 'long', 'bouncemesh'];
   const total = order.reduce((a, k) => a + weight(k), 0);
   let roll = rng() * total;
   for (const k of order) {

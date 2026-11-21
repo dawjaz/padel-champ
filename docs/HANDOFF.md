@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.30)_
+_Last updated: 2026-11-20 (v0.31)_
+
+## v0.31: rulo on high balls only, more kinds of serve faults
+- Rulo `requires.heights` ['high'].
+- Faulted serves (`SERVE_ERRORS`, point.ts): net 30%, back glass low 12%, side glass low first 18% (`side`), **long** 25% (bounce beyond the service line, ball runs on), **bouncemesh** 15% (bounces in the court, then lands on the mesh over the side glass). Serves with wall 'none' skip side/bouncemesh. New `ErrorKind`s 'long' and 'bouncemesh' (ballPath.ts error branch; the log/banner text in MatchScene `faultWhere`/`errorText`).
 
 ## v0.30: Por Cuatro defence choice, low glass errors, side-wall errors
 - **Por Cuatro defender judges the ball** (point.ts, continue branch): `EARLY_TAKE` 35% go for it before the glass (volley 2.4 m from the net, `EARLY_TAKE_DIST`), which can be fumbled: `EARLY_TAKE_ERROR` 0.62 minus 0.04 x technique (28-44%), the hitter wins (`step.earlyError`). The rest wait for the glass and run to the net (`netReturn`, v0.28). The deep rebound winner (out of reach) share is still `reboundWin` 0.45.

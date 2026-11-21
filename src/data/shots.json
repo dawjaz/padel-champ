@@ -445,14 +445,13 @@
     "edgeX": 4.55,
     "requires": {
       "heights": [
-        "mid",
         "high"
       ],
       "glass": false,
       "zones": [
         "mid"
       ],
-      "hint": "from the air, ball falling mid-court"
+      "hint": "high ball, from the air, falling mid-court"
     },
     "glassChance": 0
   },

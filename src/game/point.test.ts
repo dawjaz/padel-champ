@@ -650,3 +650,24 @@ describe('errors into the walls and the early Por Cuatro', () => {
     expect(net).toBeGreaterThan(50);
   });
 });
+
+describe('serve fault kinds', () => {
+  it('a faulted serve to a wall ends in several ways, a serve to the open court in fewer', () => {
+    const seen = new Set<string>();
+    const seenOpen = new Set<string>();
+    for (let seed = 1; seed < 600; seed++) {
+      seen.add(pickErrorKind(shot('hard_glass'), seededRng(seed)));
+      seenOpen.add(pickErrorKind(shot('t_serve'), seededRng(seed)));
+    }
+    expect([...seen].sort()).toEqual(['bouncemesh', 'glass', 'long', 'net', 'side']);
+    expect(seenOpen.has('side')).toBe(false);
+    expect(seenOpen.has('long')).toBe(true);
+  });
+  it('the rulo is offered on a high ball only', () => {
+    const r = shot('rulo');
+    const st = (height: 'low' | 'mid' | 'high') => rallyState({ ball: { height, pressure: 0, zone: 'mid' } });
+    expect(unavailableReason(r, st('high'))).toBeNull();
+    expect(unavailableReason(r, st('mid'))).not.toBeNull();
+    expect(unavailableReason(r, st('low'))).not.toBeNull();
+  });
+});

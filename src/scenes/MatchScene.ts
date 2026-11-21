@@ -1104,8 +1104,22 @@ export class MatchScene extends Phaser.Scene {
   private errorText(step: Step): string {
     if (step.errorKind === 'glass') return 'sends it into the back glass without a bounce: out';
     if (step.errorKind === 'mesh') return 'sends it into the fence above the glass: out';
-    if (step.errorKind === 'side') return 'sends it straight into the side wall: out';
+    if (step.errorKind === 'side') return step.kind === 'serve' ? 'hits the glass low first: out' : 'sends it straight into the side wall: out';
+    if (step.errorKind === 'long') return 'bounces beyond the line: out';
+    if (step.errorKind === 'bouncemesh') return 'bounces and then lands on the fence: out';
     return 'hits the net';
+  }
+
+  /** Where a faulted serve went, for the log. */
+  private faultWhere(step: Step): string {
+    switch (step.errorKind) {
+      case 'glass': return 'into the back glass';
+      case 'mesh': return 'into the fence';
+      case 'side': return 'low on the glass first';
+      case 'long': return 'bounce beyond the line';
+      case 'bouncemesh': return 'bounced, then on the fence';
+      default: return 'net';
+    }
   }
 
   private stopCoast(): void {
@@ -1153,8 +1167,8 @@ export class MatchScene extends Phaser.Scene {
           this.time.delayedCall(Math.max(POINT_PAUSE, Math.min(coastMs + 350, 2200)), () => this.practiceMenu());
           break;
         }
-        this.say(`${headline}\nFAULT (${step.errorKind === 'glass' ? 'into the back glass' : step.errorKind === 'mesh' ? 'into the fence' : 'net'})! Second serve.`);
-        this.announce('FAULT', '#ff9a6a');
+        this.say(`${headline}\nFAULT (${this.faultWhere(step)})! Second serve.`);
+        this.announce('FAULT', '#ff9a6a', this.faultWhere(step));
         this.time.delayedCall(FAULT_PAUSE, () => this.serveTurn());
         break;
       case 'double-fault':

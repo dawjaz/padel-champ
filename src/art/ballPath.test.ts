@@ -571,3 +571,25 @@ describe('rebound back over the net', () => {
     }
   });
 });
+
+describe('serve faults that are out', () => {
+  it('a long serve bounces beyond the service line', () => {
+    const f = fly('t_serve', { outcome: 'fault', errorKind: 'long' });
+    const b = f.events.find((e) => e.kind === 'bounce')!;
+    expect(b.z).toBeLessThan(10 - 7); // beyond 7 m from the net
+  });
+  it('a serve can bounce in the court and then land on the mesh', () => {
+    const f = fly('hard_glass', { outcome: 'fault', errorKind: 'bouncemesh' });
+    expect(f.events.some((e) => e.kind === 'bounce')).toBe(true);
+    const end = f.path[f.path.length - 1];
+    expect(Math.abs(end.x)).toBeGreaterThan(4.9);
+    expect(end.h).toBeGreaterThan(3);
+  });
+  it('a serve can hit the side glass low before any bounce', () => {
+    const f = fly('hard_glass', { outcome: 'fault', errorKind: 'side' });
+    const end = f.path[f.path.length - 1];
+    expect(Math.abs(end.x)).toBeGreaterThan(4.9);
+    expect(end.h).toBeLessThan(1);
+    expect(f.events.some((e) => e.kind === 'bounce')).toBe(false);
+  });
+});
