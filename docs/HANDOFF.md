@@ -12,6 +12,7 @@ _Last updated: 2026-11-21 (v0.49)_
 - **Boosts moved to the shop** (`consumables.json`, price and short label each; no boost pack any more). Bought one by one with `buyBoost`, bag max 2 (`MAX_BOOSTS`). Before each tournament match the BRACKET screen lets you pick one boost from the bag (`Inventory.queued`, max 1, consumed with the match). `queued` is cleared when the tournament ends. Boosts apply only in tournament matches.
 - Not yet checked on a phone: ResultScene button rows, ShopScene boost grid, BracketScene picker.
 - **RISKY shots** (owner's choice): a shot the hitter cannot pay for is still playable, but no longer loses attack (`TIRED_FACTOR` removed). Instead error/fault chance gets `RISKY_PER_G` (0.15) for every missing G point (`errorChance`/`faultChance` take `missingGuts`, clamped by `MAX_ERROR` 0.6). The button is red with the label RISKY (was 'tired'). The CPU does not take guts into account when choosing a serve (`ai.ts`).
+- **Guts bar**: the "G 10/10" text next to the player names is now a rounded bar (`drawGutsBar`, `gutsBarColor` in MatchScene): green from 75%, lime from 50%, orange from 30%, red below 30%. Checked in a headless screenshot (name above the bar for opponents, below the feet for the hero).
 - **Publishing**: Pages now also builds `style/3d` and serves it under `/3d/` (open `/3d/3d.html`). The workflow only deploys from `main` (a push to `style/3d` is rejected by the environment rule); to refresh `/3d/` after pushing `style/3d`, re-run the workflow on `main`.
 
 ## v0.49: owner changes after play-tests (main and style/3d)

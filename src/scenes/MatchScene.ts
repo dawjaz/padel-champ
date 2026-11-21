@@ -64,11 +64,23 @@ const VISUAL_HEIGHT_M = 1.75;
 type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
 
 const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666, off: 0x555566 };
+/** Guts bar over/under a player: green when full, lime, orange, red below 30% of the bar. */
+const GUTS_BAR_W = 38;
+const GUTS_BAR_H = 7;
+export function gutsBarColor(ratio: number): number {
+  if (ratio < 0.3) return 0xff4d4d;
+  if (ratio < 0.5) return 0xffa733;
+  if (ratio < 0.75) return 0xd4e04a;
+  return 0x4cd964;
+}
+
 const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999', off: '#777788' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
+  /** Rounded guts bar next to the name (see `drawGutsBar`). */
+  bar: Phaser.GameObjects.Graphics;
   player: PlayerDef;
   side: SideIndex;
   /** Jump height in pixels (animated by the hit "hop"). */
@@ -270,7 +282,8 @@ export class MatchScene extends Phaser.Scene {
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke('#000000', 3)
           .setDepth(9000);
-        this.views[player.id] = { sprite, label, player, side, lift: 0, pose: 'ready', facing: side === 0 ? 'back' : 'front', busyUntil: 0 };
+        const bar = this.add.graphics().setDepth(9000);
+        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing: side === 0 ? 'back' : 'front', busyUntil: 0 };
         this.placeView(player.id);
       });
     });
@@ -284,7 +297,25 @@ export class MatchScene extends Phaser.Scene {
     const scale = (p.scale * VISUAL_HEIGHT_M) / (SPRITE_H * HD_CHARACTER_SCALE);
     const spriteHeight = SPRITE_H * HD_CHARACTER_SCALE * scale;
     v.sprite.setPosition(p.x, p.y - v.lift).setScale(scale).setDepth(p.y);
-    v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : p.y - spriteHeight - 2 - v.lift);
+    // Hero: name below the feet, bar under the name. Opponents: bar right over the head, name above it.
+    const top = p.y - spriteHeight - 2 - v.lift;
+    v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : top - GUTS_BAR_H - 3);
+    this.drawGutsBar(v, p.x, v.side === 0 ? p.y + 6 + 13 : top - GUTS_BAR_H);
+  }
+
+  /** A rounded bar: the fill shrinks with the guts and changes colour from green to red. */
+  private drawGutsBar(v: PlayerView, cx: number, y: number): void {
+    const g = v.bar;
+    const ratio = Math.max(0, Math.min(1, (this.guts[v.player.id] ?? v.player.maxGuts) / v.player.maxGuts));
+    const x = cx - GUTS_BAR_W / 2;
+    g.clear();
+    g.fillStyle(0x10131c, 0.85).fillRoundedRect(x - 1, y - 1, GUTS_BAR_W + 2, GUTS_BAR_H + 2, (GUTS_BAR_H + 2) / 2);
+    if (ratio > 0) {
+      const w = Math.max(GUTS_BAR_H, Math.round(GUTS_BAR_W * ratio));
+      g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(x, y, w, GUTS_BAR_H, GUTS_BAR_H / 2);
+      g.fillStyle(0xffffff, 0.3).fillRoundedRect(x + 2, y + 1, Math.max(2, w - 4), 2, 1);
+    }
+    g.lineStyle(1, 0xffffff, 0.7).strokeRoundedRect(x - 1, y - 1, GUTS_BAR_W + 2, GUTS_BAR_H + 2, (GUTS_BAR_H + 2) / 2);
   }
 
   /** Shadows under players and ball, and the ring under the player who has to act. */
@@ -573,7 +604,8 @@ export class MatchScene extends Phaser.Scene {
 
   private refreshGuts(): void {
     for (const v of Object.values(this.views)) {
-      v.label.setText(`${v.player.name}\nG ${Math.floor(this.guts[v.player.id])}/${v.player.maxGuts}`);
+      v.label.setText(v.player.name);
+      this.placeView(v.player.id);
     }
   }
 
