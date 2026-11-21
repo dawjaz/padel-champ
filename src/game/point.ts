@@ -160,6 +160,8 @@ export function unavailableReason(shot: ShotDef, state: PointState): string | nu
   if (r.formations && !r.formations.includes(state.formation[state.holder])) return r.hint;
   if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
   if (r.glass !== undefined && (state.ball.glass === true) !== r.glass) return r.hint;
+  if (r.air === true && state.ball.air !== true) return r.hint;
+  if (r.noLob === true && state.ball.lob === 'deep') return r.hint;
   if (r.weakLob && state.ball.lob !== 'weak') return r.hint;
   if (r.zones && (state.ball.zone === undefined || !r.zones.includes(state.ball.zone))) return r.hint;
   return null;
@@ -473,12 +475,12 @@ export function stepHit(
     const block = netBlock || airDist !== undefined;
     if (block) {
       const height: Height = shot.flight.speed >= 15 ? 'mid' : 'low';
-      next.ball = { height, pressure: res.pressure, glass: false, speed: shot.flight.speed };
+      next.ball = { height, pressure: res.pressure, glass: false, air: true, speed: shot.flight.speed };
       next.glass = false;
       next.arrival = height;
     }
     if (netReturn) {
-      next.ball = { height: 'mid', pressure: res.pressure, glass: false, speed: 18 };
+      next.ball = { height: 'mid', pressure: res.pressure, glass: false, air: true, speed: 18 };
       next.glass = false;
       next.arrival = 'mid';
     }

@@ -8,6 +8,12 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.42: volley only from the air, volley goes down, no overheads after a lob
+- `ShotRequires.air` (ball must not have bounced) and `ShotRequires.noLob` (not off a deep lob); `BallState.air` is set only for balls a net player or a mid-court defender takes out of the air (block / net return).
+- Volley requires `air: true`: never offered after a bounce. Bandeja and vibora require `noLob`: after a deep lob (bounced, off the glass or not) only both bajadas (glass), flat shot, lob (+ chiquita on low/mid) are offered.
+- Volley flight: `deaden 0.5`, `landDepth 4.8`: steep descent, dead bounce, stays low (test in `ballPath.test.ts`).
+- Open: Chiquita is still limited to low/mid balls; the owner listed it for the high ball after the glass too: decide.
+
 ## v0.41: Star Point, receive decision in the air, power impact, layout
 - Scoring: the FIP **Star Point** rule replaces the golden point (`scoring.ts`: `deuce` 0..3, `advantage`; at 40-40 advantage is played twice, the third deuce is one deciding point and the receivers choose the side; score line shows DEUCE 1/2, ADVANTAGE, STAR POINT). `pickGoldenReceiver` -> `pickStarReceiver`, `isGoldenPoint` -> `isStarPoint`.
 - Receiving a serve that goes to a wall: the human no longer decides before the serve. The serve is played (racket sound, swing), the ball flies until just before its bounce and then crawls for 2.6 s with the speed in km/h, where it goes (T / body / wide off a glass), pulsing rings at the bounce and at the glass, and a bar that runs out (default: on the bounce). The same seed rebuilds the same flight, which resumes from where it stopped (`previewServe`, `playStep(..., {seed, from, startH})`, `performServe` with a seed). A fault plays without a decision. CPU receivers still decide at once. Serves with no wall (at the opponent, T) never had a choice.

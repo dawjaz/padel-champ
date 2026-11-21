@@ -641,7 +641,7 @@ export class MatchScene extends Phaser.Scene {
       holder,
       hitterIdx,
       hits: 1,
-      ball: { height: this.pr.ball, pressure: 0, glass: this.pr.glass, zone: 'mid', speed: 18, lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined },
+      ball: { height: this.pr.ball, pressure: 0, glass: this.pr.glass, air: !this.pr.glass, zone: 'mid', speed: 18, lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined },
       formation: [this.pr.me, this.pr.opp],
     };
   }

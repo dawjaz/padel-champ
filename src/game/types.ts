@@ -92,6 +92,10 @@ export interface ShotRequires {
   heights?: Height[];
   /** true: the ball must have come off the back glass; false: it must be played before it reaches the glass. */
   glass?: boolean;
+  /** true: the ball must be played out of the air, before it has bounced (a volley, a bandeja, a vibora). */
+  air?: boolean;
+  /** true: not playable off a lob that has come down deep (the ball hangs over the player). */
+  noLob?: boolean;
   /** The incoming ball must fall in one of these zones (see `BallState.zone`). */
   zones?: Zone[];
   /** The incoming ball must be a weak lob (one that lands in the middle of the court or near the net). */
@@ -198,6 +202,8 @@ export interface BallState {
   glass?: boolean;
   /** Where the ball comes down (its first bounce, or the spot it is taken out of the air). */
   zone?: Zone;
+  /** The ball is played out of the air (it has not bounced). Missing = it has bounced (or come off the glass). */
+  air?: boolean;
   /** How fast the shot that sent this ball was hit (m/s, its launch speed). */
   speed?: number;
 }

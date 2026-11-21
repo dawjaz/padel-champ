@@ -412,6 +412,18 @@ describe('Magnus effect and lost balls', () => {
   });
 });
 
+describe('the volley goes down', () => {
+  it('descends from the hit to the floor and stays low after the bounce', () => {
+    const f = fly('volley', { from: { x: 1, z: 8.8 }, startH: 1.2, hitterSide: 0, landX: -1.5 });
+    const tb = f.events.find((e) => e.kind === 'bounce')!.t;
+    const before = f.path.filter((p) => p.t <= tb);
+    expect(Math.max(...before.map((p) => p.h))).toBeLessThanOrEqual(1.2 + 1e-6);
+    for (let i = 1; i < before.length; i++) expect(before[i].h).toBeLessThanOrEqual(before[i - 1].h + 1e-9);
+    const after = f.path.filter((p) => p.t > tb && p.t <= tb + 0.4);
+    expect(Math.max(...after.map((p) => p.h))).toBeLessThan(0.6);
+  });
+});
+
 describe('volley speed and the sweep of winners', () => {
   it('is faster from right at the net than from mid-court', () => {
     const v = shot('volley');

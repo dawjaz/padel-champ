@@ -405,8 +405,10 @@ describe('shot availability', () => {
   });
 
   it('offers the volley only before the back glass, and the bajada only after a mid or high rebound', () => {
-    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).toBeNull();
-    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).not.toBeNull();
+    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).toBeNull();
+    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true, air: true } }))).not.toBeNull();
+    // after a bounce there is no volley
+    expect(unavailableReason(shot('volley'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).not.toBeNull();
     expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'mid', pressure: 0, glass: true } }))).toBeNull();
     expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).toBeNull();
     expect(unavailableReason(shot('bajada_fast'), rallyState({ ball: { height: 'low', pressure: 0, glass: true } }))).not.toBeNull();
@@ -467,7 +469,7 @@ describe('the net player volleys', () => {
   it('stepHit marks the step as a block (volley) whenever the defender is at the net and the rally continues', () => {
     let seen = 0;
     for (let seed = 1; seed <= 60 && seen < 3; seed++) {
-      const st = rallyState({ formation: ['back', 'net'], ball: { height: 'mid', pressure: 0, zone: 'mid' } });
+      const st = rallyState({ formation: ['back', 'net'], ball: { height: 'mid', pressure: 0, zone: 'mid', air: true } });
       const r = stepHit(TEAMS, st, shot('volley'), 'cross', seededRng(seed));
       if (r.step.outcome !== 'continue') continue;
       seen++;
@@ -477,12 +479,20 @@ describe('the net player volleys', () => {
     expect(seen).toBeGreaterThan(0);
   });
   it('Flat shot is not offered to a player at the net, the volley is', () => {
-    const net = rallyState({ formation: ['net', 'back'] });
+    const net = rallyState({ formation: ['net', 'back'], ball: { height: 'mid', pressure: 0, zone: 'net', air: true } });
     const ids = playableShots(shotsOfKind('rally'), net).map((s) => s.id);
     expect(ids).not.toContain('bounce_shot');
     expect(ids).toContain('volley');
     const back = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, zone: 'mid' } });
     expect(playableShots(shotsOfKind('rally'), back).map((s) => s.id)).toContain('bounce_shot');
+  });
+  it('after a deep lob (bounced, off the glass or not) there is no volley, bandeja or vibora', () => {
+    for (const glass of [false, true]) {
+      const st = rallyState({ formation: ['back', 'back'], ball: { height: 'high', pressure: 0, zone: 'back', lob: 'deep', glass } });
+      const ids = playableShots(shotsOfKind('rally'), st).map((s) => s.id);
+      for (const id of ['volley', 'bandeja', 'vibora']) expect(ids, id).not.toContain(id);
+      expect(ids).toContain('rally_lob');
+    }
   });
   it('the ball remembers how fast it was sent', () => {
     const st = rallyState({ formation: ['back', 'back'] });

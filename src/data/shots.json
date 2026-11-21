@@ -249,7 +249,8 @@
         "mid",
         "high"
       ],
-      "hint": "mid or high ball, before the glass, not at the net"
+      "hint": "not off a lob: use a bajada or a lob",
+      "noLob": true
     },
     "glassChance": 0.35,
     "blockAtNet": true,
@@ -289,7 +290,8 @@
       "heights": [
         "high"
       ],
-      "hint": "high ball, before the glass"
+      "hint": "not off a lob: use a bajada or a lob",
+      "noLob": true
     },
     "glassChance": 0.3,
     "rebound": {
@@ -361,20 +363,22 @@
       "low": 0.9
     },
     "advance": "net",
-    "landDepth": 5.5,
+    "landDepth": 4.8,
     "wall": "none",
-    "desc": "Hit it out of the air. Best on mid-height balls.",
+    "desc": "Hit it out of the air, down into the court. Best on mid-height balls.",
     "flight": {
       "speed": 21,
       "apex": 0,
       "spin": -0.3,
       "wallKick": 1.0,
       "side": 0.3,
-      "netBoost": 0.3
+      "netBoost": 0.3,
+      "deaden": 0.5
     },
     "requires": {
       "glass": false,
-      "hint": "ball not off the glass"
+      "hint": "volleys only out of the air",
+      "air": true
     },
     "glassChance": 0.15,
     "errorKinds": {
