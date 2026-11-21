@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-20 (v0.33)_
 
+## Planning (2026-11-21): career mode
+- `docs/CAREER.md` = design of attributes (power, spin, technique, accuracy, stamina, speed), XP/levels, gear with bonuses, packs, tournament calendar, code structure and steps B1-B6. Waiting for the owner's answers to its 4 questions before B1. Owner decisions so far: mechanics done, three.js later, online/monetisation later (offline first), gear gives attribute points but tournaments are capped.
+
 ## v0.33: Free Practice shows only playable shots; roadmap
 - Free Practice ATTACKING lists only the shots that can be played with the SETUP ball (the match rules, no `*` any more), so e.g. no vibora off the glass or on a low ball. New SETUP switch WEAK LOB (needed for Por Tres / Cuatro). DEFENDING still lists every shot the opponents can play.
 - `docs/ROADMAP.md`: proposed plan (A mechanics, B progression core, C online, D monetisation and compliance, E 3D later). Waiting for the owner's three decisions listed at its end.
