@@ -8,8 +8,8 @@ export default defineConfig({
   define: { __BUILD__: JSON.stringify((process.env.GITHUB_SHA ?? 'dev').slice(0, 7)) },
   build: {
     chunkSizeWarningLimit: 2000,
-    // Two pages: the game (index.html) and the three.js prototype (3d.html).
-    rollupOptions: { input: { main: 'index.html', three: '3d.html' } },
+    // Two pages: the game (index.html), the three.js prototype (3d.html) and the character viewer (char.html).
+    rollupOptions: { input: { main: 'index.html', three: '3d.html', character: 'char.html' } },
   },
   test: {
     environment: 'node',

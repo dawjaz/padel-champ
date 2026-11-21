@@ -2,7 +2,7 @@ import { SHOTS } from '../../game/catalog';
 import type { CourtPos, SideIndex } from '../../game/types';
 import { ballPoint, buildFlight, flightDuration, HIT_HEIGHT_M, type Flight, type FlightOutcome } from '../ballPath';
 import { Court3D, type CameraMode } from './court3d';
-import type { PlayerLook } from './player3d';
+import type { PlayerLook, Stroke } from './player3d';
 
 /**
  * Prototype page (3d.html): a three.js court where the ball flies along the real `buildFlight` paths of the game.
@@ -40,6 +40,18 @@ const START: CourtPos[] = [
   { x: -2.5, z: 1.6 },
   { x: 2.5, z: 6.5 },
 ];
+
+/** Which animation plays for a shot. Groundstrokes are a forehand or a backhand depending on which side the ball goes. */
+function strokeFor(id: string, kind: string, fromX: number, toX: number): Stroke {
+  if (kind === 'serve') return 'serve';
+  if (id.startsWith('smash')) return 'smash';
+  if (id === 'bandeja') return 'bandeja';
+  if (id === 'vibora') return 'vibora';
+  if (id.startsWith('bajada')) return 'bajada';
+  if (id === 'volley') return 'volley';
+  if (id.includes('lob') || id.includes('chiquita')) return 'lob';
+  return toX < fromX ? 'backhand' : 'forehand';
+}
 
 const stageEl = document.getElementById('stage');
 const labelEl = document.getElementById('label');
@@ -160,7 +172,7 @@ function startStep(): void {
     return;
   }
 
-  court.players[hitter].swing();
+  court.players[hitter].swing(strokeFor(shot.id, shot.kind, hitFrom.x, landX));
   // The other team's nearest player runs to where the ball will be played; his partner covers the other lane.
   const defSide: SideIndex = side === 0 ? 1 : 0;
   if (step.outcome !== 'winner') {
