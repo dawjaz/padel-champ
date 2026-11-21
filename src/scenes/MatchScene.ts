@@ -392,7 +392,7 @@ export class MatchScene extends Phaser.Scene {
       .setAlpha(0)
       .setScale(0.6);
     this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: t, alpha: 0, delay: 1100, duration: 260, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: t, alpha: 0, delay: 1470, duration: 260, onComplete: () => t.destroy() });
     if (!sub) return;
     const chip = this.add.container(WIDTH / 2, 245).setDepth(9995).setAlpha(0).setScale(0.4);
     const label = this.add
@@ -405,7 +405,7 @@ export class MatchScene extends Phaser.Scene {
     bg.strokeRoundedRect(-label.width / 2 - 12, -label.height / 2 - 4, label.width + 24, label.height + 8, 10);
     chip.add([bg, label]);
     this.tweens.add({ targets: chip, alpha: 1, scale: 1, delay: 120, duration: 220, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: chip, alpha: 0, delay: 1150, duration: 260, onComplete: () => chip.destroy() });
+    this.tweens.add({ targets: chip, alpha: 0, delay: 1530, duration: 260, onComplete: () => chip.destroy() });
   }
 
   /** A flash of light and a shock ring where the ball is when a point is won. */
@@ -1011,11 +1011,11 @@ export class MatchScene extends Phaser.Scene {
           this.tweens.add({ targets: ring, scale: 1.6, alpha: 0.2, duration: 520, yoyo: true, repeat: -1 });
           this.menu.push(ring);
         }
-        this.tweens.add({ targets: bar, scaleX: 0, duration: 2600, ease: 'Linear' });
+        this.tweens.add({ targets: bar, scaleX: 0, duration: 5200, ease: 'Linear' });
         crawl = this.tweens.addCounter({
           from: p0,
           to: p1,
-          duration: 2600,
+          duration: 5200,
           ease: 'Linear',
           onUpdate: (tween: Phaser.Tweens.Tween) => {
             progress = tween.getValue() ?? p0;
@@ -1346,7 +1346,7 @@ export class MatchScene extends Phaser.Scene {
     const defender = TEAMS[other(step.side)][step.defenderIdx];
     this.point = next;
 
-    const endPoint = (text: string, delay = Math.max(POINT_PAUSE + 500, Math.min(coastMs + 350, 2200))): void => {
+    const endPoint = (text: string, delay = Math.max(POINT_PAUSE + 870, Math.min(coastMs + 350, 2200) + 370)): void => {
       const winnerLine = step.pointWinner === null ? '' : `  >  POINT TO ${SIDE_NAME[step.pointWinner]}`;
       this.say(`${headline}\n${text}${winnerLine}`);
       const banner: Partial<Record<string, [string, string]>> = {
