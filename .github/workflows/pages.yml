@@ -2,10 +2,10 @@ name: Deploy web build to GitHub Pages
 
 # Publishes the game from `main` (stylized 2D/3D look) at the site root, and (if the branch exists and builds) the
 # classic 16-bit version from `style/16bit` under /16bit/ and the three.js prototype from `style/3d` under /3d/
-# (open /3d/3d.html). A broken side branch never blocks the main site. A push to `style/3d` redeploys everything.
+# (open /3d/3d.html). A broken side branch never blocks the main site. To refresh /3d/ after pushing style/3d, run this workflow on main (workflow_dispatch).
 on:
   push:
-    branches: [main, style/3d]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
