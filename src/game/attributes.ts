@@ -34,3 +34,19 @@ export const edgeRiskMul = (accuracy: number): number => clamp(1.3 - 0.06 * accu
 
 /** The attributes as the engine reads them (all seven). */
 export const statsOf = (p: PlayerDef): Record<StatKey, number> => p.stats;
+
+/**
+ * What the guts (the stamina bar) do: from half the bar and above a player is fresh; below that he gets slower, weaker and less
+ * precise, down to x0.7 on an empty bar. (Separately, a shot he cannot pay for loses 40% of its attack, see TIRED_FACTOR.)
+ */
+export function fatigueFactor(guts: number, maxGuts: number): number {
+  const r = clamp(maxGuts > 0 ? guts / maxGuts : 1, 0, 1);
+  return r >= 0.5 ? 1 : 0.7 + 0.6 * r;
+}
+
+/** The same player with power, accuracy and speed scaled by his fatigue (the player itself when he is fresh). */
+export function fatigued(p: PlayerDef, guts: number | undefined): PlayerDef {
+  const f = guts === undefined ? 1 : fatigueFactor(guts, p.maxGuts);
+  if (f >= 1) return p;
+  return { ...p, stats: { ...p.stats, power: p.stats.power * f, accuracy: p.stats.accuracy * f, speed: p.stats.speed * f } };
+}

@@ -17,12 +17,12 @@ import { drawPanel } from '../ui';
 import { pickGoldenReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
-import { recoverGuts } from '../game/engine';
+import { recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
 import { playableShots, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
-import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
+import { fatigueFactor, gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
@@ -44,8 +44,8 @@ export interface CareerMatch {
 const HUMAN_SIDE: SideIndex = 0;
 const HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
-const CPU_DELAY = 112;
-const NEXT_HIT_DELAY = 175;
+const CPU_DELAY = 56;
+const NEXT_HIT_DELAY = 88;
 /** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
 const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
 const FAULT_PAUSE = 900;
@@ -438,6 +438,12 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 
+  /** 1 for a fresh player, down to 0.7 on an empty guts bar (see `fatigueFactor`). */
+  private freshness(id: string): number {
+    const p = TEAMS.flat().find((q) => q.id === id);
+    return p && this.guts[id] !== undefined ? fatigueFactor(this.guts[id], p.maxGuts) : 1;
+  }
+
   /** Walks players to the given court positions, running (two alternating leg poses) while they move. */
   private movePlayers(
     targets: Record<string, CourtPos>,
@@ -447,6 +453,9 @@ export class MatchScene extends Phaser.Scene {
     endFacing: Record<string, Facing> = {},
   ): void {
     const ids = Object.keys(targets);
+    // Tired players run slower: the move takes longer (by up to 30%) when the slowest of them is on the bar's last legs.
+    const slowest = Math.min(1, ...ids.map((id) => this.freshness(id)));
+    duration = duration / Math.max(0.77, slowest);
     const starts: Record<string, CourtPos> = {};
     for (const id of ids) starts[id] = { ...this.pos[id] };
     const running = new Set(ids.filter((id) => Math.hypot(targets[id].x - starts[id].x, targets[id].z - starts[id].z) > 0.35));
@@ -999,7 +1008,7 @@ export class MatchScene extends Phaser.Scene {
       netReturn: step.netReturn,
       airHit: step.lob === 'weak',
       // Hard when the ball comes to the hitter's strike zone, slower off a low ball; a volley on a slow ball gets more pace.
-      speedMul: (step.kind === 'serve' ? 1 : paceFactor(step.shot, this.point.ball)) * powerSpeedMul(attacker.stats.power),
+      speedMul: (step.kind === 'serve' ? (step.second ? SECOND_SERVE_SPEED : 1) : paceFactor(step.shot, this.point.ball)) * powerSpeedMul(attacker.stats.power * (step.powerFactor ?? 1)),
       spinMul: spinMul(attacker.stats.spin),
     });
     const duration = flightDuration(flight);

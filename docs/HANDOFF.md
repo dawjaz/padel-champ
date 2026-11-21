@@ -8,6 +8,13 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.39: second serve, what the guts do, faster pace, shop layout
+- Second serve (after a fault): attack x0.82 (fewer aces), pressure on the return x0.5, fault chance x0.75, ball speed x0.8 (scene); the receiver returns it with power and accuracy x1.2 (`SECOND_SERVE_*` in engine.ts, `Step.second`).
+- Guts now have a practical effect (`fatigueFactor`/`fatigued` in attributes.ts): from half the bar up nothing changes; below that power, accuracy and speed fall to x0.7 on an empty bar (applied to attacker and defender in `stepHit`, receiver in `stepServe`; ball speed via `Step.powerFactor`; players run up to 30% slower in the animation). The old rule stays: a shot you cannot pay for loses 40% attack. In the sim about 17% of player-points are played below half guts; avg hits 7.05, server wins 52.9%.
+- Pace: the pause before a hit is halved (CPU_DELAY 56 ms, NEXT_HIT_DELAY 88, CPU 44).
+- Shop: the Boost Bundle text no longer runs under the price button; the footer note no longer overlaps BACK.
+- Next: UI polish pass on the other screens (owner's screenshots), then B6.
+
 ## v0.38: B5, career calendar, tournaments, partners
 - `src/career/tournament.ts` (+ tests): 11 divisions in `src/data/divisions.json` (Club, Regional, FIP Rise/Bronze/Silver/Gold/Platinum, Premier P2/P1, Major, Season Finals): level gate, ranking gate, fee, opponent rating (1-10), title prize (coins, XP, ranking points, pack); round shares 8-draw [.2,.5,1], 16-draw [.08,.2,.45,1]. Opponents are generated pairs (`opponents.json`); the bracket is rebuilt from `{event, seed, hero results}` so the save is tiny; other matches are simulated by rating (logistic, slope 0.8).
 - `src/career/season.ts` (+ tests): 24-week season (`calendar.json`, 71 events), ranking points (half carry over to the next season), `Career {season, week, rankPoints, partner(s), active, titles, history}` in the profile (sanitised). `careerFlow.ts`: enter (fee), report match, finish (prize, rank, pack, week), withdraw, skip week, buy/choose partner.

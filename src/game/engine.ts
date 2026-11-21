@@ -14,6 +14,14 @@ export const ACE_MARGIN = 48;
 export const DEFENSE_SCALE = 1.3;
 /** Defence multiplier of a player who takes the ball out of the air (volley) instead of running back for it. */
 export const AIR_DEFENSE = { net: 1.2, mid: 1.12 } as const;
+/** The second serve (after a fault) is slower and safer: less attack (fewer aces), less pressure on the return, fewer faults. */
+export const SECOND_SERVE_POWER = 0.82;
+export const SECOND_SERVE_PRESSURE = 0.5;
+export const SECOND_SERVE_FAULT = 0.75;
+/** Ball speed of the second serve. */
+export const SECOND_SERVE_SPEED = 0.8;
+/** The receiver returns a second serve with more power and accuracy (x1.2). */
+export const SECOND_SERVE_RETURN = 1.2;
 /** Attack multiplier when the hitter cannot pay the guts cost. */
 export const TIRED_FACTOR = 0.6;
 /** Random spread added to each side's score. */
@@ -153,14 +161,16 @@ export function resolveServe(
   cross: DirectionDef,
   rng: Rng,
   receive: ReceiveMode = 'wall',
+  second = false,
 ): ServeResult {
   const tired = serverGuts < shot.cost;
-  if (rng() < faultChance(server, shot)) {
+  if (rng() < faultChance(server, shot) * (second ? SECOND_SERVE_FAULT : 1)) {
     return { outcome: 'fault', attackScore: 0, defenseScore: 0, tired, pressure: 0 };
   }
 
   let attackScore = server.stats[shot.stat] * 10 * shot.power + rng() * RANDOM_SPREAD;
   if (tired) attackScore *= TIRED_FACTOR;
+  if (second) attackScore *= SECOND_SERVE_POWER;
   const walled = shot.wall !== 'none';
   const receiveMod = !walled ? 1 : receive === 'bounce' ? BOUNCE_DEFENSE : WALL_DEFENSE;
   const defenseScore = defenseRating(receiver, cross) * receiveMod + rng() * RANDOM_SPREAD;
@@ -169,7 +179,7 @@ export function resolveServe(
   if (diff > ACE_MARGIN) return { outcome: 'ace', attackScore, defenseScore, tired, pressure: 0 };
 
   const relief = walled && receive === 'bounce' ? BOUNCE_PRESSURE_RELIEF : 1;
-  const pressure = clamp(clamp(diff / 200, 0, MAX_PRESSURE) * (shot.pressureMult ?? 1) * relief, 0, MAX_SERVE_PRESSURE);
+  const pressure = clamp(clamp(diff / 200, 0, MAX_PRESSURE) * (shot.pressureMult ?? 1) * relief * (second ? SECOND_SERVE_PRESSURE : 1), 0, MAX_SERVE_PRESSURE);
   return { outcome: 'in', attackScore, defenseScore, tired, pressure };
 }
 

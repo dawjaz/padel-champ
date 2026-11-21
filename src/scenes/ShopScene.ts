@@ -89,7 +89,7 @@ export class ShopScene extends Phaser.Scene {
         });
         if (def.pity) this.label(28, cy + cardH / 2 - 16, `SURE ${def.pity.min.toUpperCase()}+ EVERY ${def.pity.after} PACKS (${p.inventory.pity[def.id] ?? 0}/${def.pity.after - 1})`, 10, COLORS.sky, false, 0);
       } else {
-        this.label(28, cy - cardH / 2 + 62, 'RANDOM BOOSTS: DRINK, GEL, TAPE, BALLS', 11, COLORS.white, false, 0);
+        this.label(28, cy - cardH / 2 + 62, 'RANDOM BOOSTS FOR THE\nNEXT MATCH: DRINK, GEL,\nGRIP TAPE, FRESH BALLS', 11, COLORS.white, false, 0).setLineSpacing(3);
       }
       const afford = p.coins >= def.price;
       const b = makeButton(this, 282, cy - 10, 96, 44, `${def.price}`, () => this.open(buyPack(getSave().profile, def.id, Math.random), def.name));
@@ -98,6 +98,6 @@ export class ShopScene extends Phaser.Scene {
       this.dyn.push(...b.parts);
       this.label(282, cy + 22, 'COINS', 10, COLORS.gray);
     });
-    this.label(WIDTH / 2, 586, this.note || 'A DUPLICATE TURNS INTO COINS', 11, COLORS.sky);
+    this.label(WIDTH / 2, 562, this.note || 'A DUPLICATE TURNS INTO COINS', 11, COLORS.sky);
   }
 }

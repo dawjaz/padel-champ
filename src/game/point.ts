@@ -1,6 +1,7 @@
 import { DIRECTIONS } from './catalog';
 import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
-import { resolveHit, resolveServe, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
+import { fatigued } from './attributes';
+import { resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
@@ -52,6 +53,10 @@ export interface Step {
   /** Set when this step ended the point. */
   pointWinner: SideIndex | null;
   tired: boolean;
+  /** The second serve after a fault (slower, easier to return). */
+  second?: boolean;
+  /** Power of the hitter now relative to his own (fatigue, the return of a second serve): scales the ball speed. */
+  powerFactor?: number;
   /** Height-fit multiplier (1 for serves). */
   fit: number;
   /** Where the receiver takes the ball: after the first bounce or after the wall. */
@@ -243,9 +248,9 @@ export function stepServe(
   const side = state.servingSide;
   const recvSide = other(side);
   const server = teams[side][state.serverIdx];
-  const receiver = teams[recvSide][state.receiverIdx];
+  const receiver = fatigued(teams[recvSide][state.receiverIdx], state.guts[teams[recvSide][state.receiverIdx].id]);
 
-  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng, receive);
+  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng, receive, state.attempt === 2);
   const guts = { ...state.guts, [server.id]: spendGuts(state.guts[server.id], shot.cost) };
 
   const base = {
@@ -256,6 +261,7 @@ export function stepServe(
     shot,
     direction: 'cross' as const,
     tired: res.tired,
+    second: state.attempt === 2,
     fit: 1,
     // Only a serve that goes to a wall gives the receiver a choice.
     receive: shot.wall === 'none' ? ('bounce' as const) : receive,
@@ -383,13 +389,18 @@ export function stepHit(
   const side = state.holder;
   const defSide = other(side);
   const direction: Direction = shot.fixedDirection ?? chosenDirection;
-  const attacker = teams[side][state.hitterIdx];
+  const hitter = teams[side][state.hitterIdx];
+  // Tired players are slower, weaker and less precise; whoever returns a second serve hits it with more power and accuracy.
+  let attacker = fatigued(hitter, state.guts[hitter.id]);
+  if (state.hits === 0 && state.attempt === 2) {
+    attacker = { ...attacker, stats: { ...attacker.stats, power: attacker.stats.power * SECOND_SERVE_RETURN, accuracy: attacker.stats.accuracy * SECOND_SERVE_RETURN } };
+  }
   const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
   const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
   const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
-  const defender = teams[defSide][defIdx];
+  const defender = fatigued(teams[defSide][defIdx], state.guts[teams[defSide][defIdx].id]);
 
   const rolled = resolveHit({
     attacker,
@@ -420,6 +431,7 @@ export function stepHit(
     outcome: res.outcome,
     pointWinner: null,
     tired: res.tired,
+    powerFactor: attacker.stats.power / Math.max(0.01, hitter.stats.power),
     fit: res.fit,
     // Balls that go to a wall are always taken after the wall, the others after the bounce.
     receive: shot.wall === 'none' ? 'bounce' : 'wall',

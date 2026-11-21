@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
-import { aimSkill, aimSpreadMul, edgeRiskMul, fatigueStart, gutsFor, gutsRecovery, NEUTRAL, powerSpeedMul, spinMul, STAT_KEYS } from './attributes';
+import { fatigued, fatigueFactor, aimSkill, aimSpreadMul, edgeRiskMul, fatigueStart, gutsFor, gutsRecovery, NEUTRAL, powerSpeedMul, spinMul, STAT_KEYS } from './attributes';
 import { aimX } from './court';
 import { errorChance } from './engine';
 import { DIRECTIONS, SHOTS } from './catalog';
@@ -56,5 +56,28 @@ describe('attributes', () => {
     expect(e(withStats({ accuracy: 9 }), 4.6)).toBeLessThan(e(withStats({ accuracy: 3 }), 4.6));
     expect(e(withStats({ stamina: 9 }))).toBeLessThan(e(withStats({ stamina: 3 })));
     expect(e(withStats({ technique: 9 }))).toBeLessThan(e(withStats({ technique: 3 })));
+  });
+});
+
+describe('fatigue (what the guts do)', () => {
+  it('a fresh player and one at half the bar are not affected, an empty bar costs 30%', () => {
+    expect(fatigueFactor(10, 10)).toBe(1);
+    expect(fatigueFactor(5, 10)).toBe(1);
+    expect(fatigueFactor(0, 10)).toBeCloseTo(0.7);
+    expect(fatigueFactor(2.5, 10)).toBeCloseTo(0.85);
+    for (let g = 0; g < 10; g++) expect(fatigueFactor(g + 1, 10)).toBeGreaterThanOrEqual(fatigueFactor(g, 10));
+  });
+
+  it('a tired player has less power, accuracy and speed, and nothing else changes', () => {
+    const p = all[0];
+    expect(fatigued(p, p.maxGuts)).toBe(p);
+    expect(fatigued(p, undefined)).toBe(p);
+    const t = fatigued(p, 0);
+    expect(t.stats.power).toBeCloseTo(p.stats.power * 0.7);
+    expect(t.stats.accuracy).toBeCloseTo(p.stats.accuracy * 0.7);
+    expect(t.stats.speed).toBeCloseTo(p.stats.speed * 0.7);
+    expect(t.stats.technique).toBe(p.stats.technique);
+    expect(t.stats.defense).toBe(p.stats.defense);
+    expect(t.id).toBe(p.id);
   });
 });
