@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-20 (v0.33)_
 
+## v0.34: B1, seven attributes in the engine
+- `src/game/attributes.ts`: power, spin, technique, accuracy, stamina, speed, defense (5 = neutral, all multipliers 1 there).
+- Power -> ball speed (`speedMul`); spin -> `FlightDef.spin/side` via `FlightOpts.spinMul` and the vibora attack stat; accuracy -> `AIM_SKILL`, aim spread, side-wall risk; stamina -> `maxGuts`, guts recovery, fatigue start; technique/speed/defense as before.
+- players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
+- Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
+
 ## Planning (2026-11-21): career mode
 - `docs/CAREER.md` = design of attributes (power, spin, technique, accuracy, stamina, speed), XP/levels, gear with bonuses, packs, tournament calendar, code structure and steps B1-B6. Waiting for the owner's answers to its 4 questions before B1. Owner decisions so far: mechanics done, three.js later, online/monetisation later (offline first), gear gives attribute points but tournaments are capped.
 

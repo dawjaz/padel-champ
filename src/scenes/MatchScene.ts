@@ -22,11 +22,10 @@ import { playableShots, startPoint, stepHit, stepServe, unavailableReason, type 
 import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
+import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
 import { recordResult, updateSave } from '../save';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
-
-const GUTS_RECOVERY_PER_POINT = 2;
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
 const HUMAN_SIDE: SideIndex = 0;
@@ -970,7 +969,8 @@ export class MatchScene extends Phaser.Scene {
       netReturn: step.netReturn,
       airHit: step.lob === 'weak',
       // Hard when the ball comes to the hitter's strike zone, slower off a low ball; a volley on a slow ball gets more pace.
-      speedMul: step.kind === 'serve' ? 1 : paceFactor(step.shot, this.point.ball),
+      speedMul: (step.kind === 'serve' ? 1 : paceFactor(step.shot, this.point.ball)) * powerSpeedMul(attacker.stats.power),
+      spinMul: spinMul(attacker.stats.spin),
     });
     const duration = flightDuration(flight);
     // The ball leaves the racket spinning: topspin / backspin about the horizontal axis, side spin about the vertical one.
@@ -1233,7 +1233,7 @@ export class MatchScene extends Phaser.Scene {
     this.matchScore = res.score;
 
     for (const p of TEAMS.flat()) {
-      this.guts[p.id] = recoverGuts(this.guts[p.id], GUTS_RECOVERY_PER_POINT, p.maxGuts);
+      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina), p.maxGuts);
     }
     this.refreshScore();
     this.refreshGuts();

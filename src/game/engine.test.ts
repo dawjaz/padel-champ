@@ -33,7 +33,7 @@ const LOOK: Appearance = {
 const player = (stats: Partial<PlayerDef['stats']>): PlayerDef => ({
   id: 'p',
   name: 'P',
-  stats: { power: 5, technique: 5, speed: 5, defense: 5, ...stats },
+  stats: { power: 5, spin: 5, technique: 5, accuracy: 5, stamina: 5, speed: 5, defense: 5, ...stats },
   maxGuts: 10,
   appearance: LOOK,
 });

@@ -1,3 +1,4 @@
+import { edgeRiskMul, fatigueStart } from './attributes';
 import type { BallState, DirectionDef, Formation, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 /** Default score lead needed to win the point outright (a shot can override it). */
@@ -51,11 +52,12 @@ export function defenseRating(defender: PlayerDef, direction: DirectionDef, chas
 
 /** Extra risk of a ball aimed right at a side wall (|x| of 4.6 m and more): it is easy to put it straight into the glass or the mesh. */
 export const EDGE_RISK = 0.09;
-export const edgeRisk = (landX: number | undefined): number => (landX === undefined ? 0 : EDGE_RISK * clamp((Math.abs(landX) - 2.4) / 2.2, 0, 1));
+export const edgeRisk = (landX: number | undefined, accuracy = 5): number =>
+  landX === undefined ? 0 : EDGE_RISK * edgeRiskMul(accuracy) * clamp((Math.abs(landX) - 2.4) / 2.2, 0, 1);
 
 export function errorChance(attacker: PlayerDef, shot: ShotDef, direction: DirectionDef, rallyLength: number, landX?: number): number {
-  const fatigue = Math.max(0, rallyLength - FATIGUE_START) * FATIGUE_STEP;
-  const raw = shot.risk + direction.risk + fatigue + edgeRisk(landX) - attacker.stats.technique * TECHNIQUE_SAFETY;
+  const fatigue = Math.max(0, rallyLength - fatigueStart(attacker.stats.stamina, FATIGUE_START)) * FATIGUE_STEP;
+  const raw = shot.risk + direction.risk + fatigue + edgeRisk(landX, attacker.stats.accuracy) - attacker.stats.technique * TECHNIQUE_SAFETY;
   return clamp(raw, MIN_ERROR, MAX_ERROR);
 }
 

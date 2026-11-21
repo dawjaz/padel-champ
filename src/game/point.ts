@@ -307,9 +307,10 @@ function aimDepthFor(
   landX: number | undefined,
   depth?: number,
   preferDepth?: number,
+  accuracy = 5,
 ): { landX?: number; landDepth?: number } {
   if (landX === undefined) return depth === undefined ? {} : { landDepth: depth };
-  return { landX, landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread, preferDepth) };
+  return { landX, landDepth: depth ?? aimDepth(shot.landDepth, rng, shot.depthSpread, preferDepth, accuracy) };
 }
 
 /**
@@ -386,7 +387,7 @@ export function stepHit(
   const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
-  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x);
+  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
   const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
   const defender = teams[defSide][defIdx];
 
@@ -439,19 +440,19 @@ export function stepHit(
     ) {
       return {
         state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
-        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, shot.reboundWin !== undefined ? REBOUND_WIN_DEPTH : undefined, prefer?.depth) },
+        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, shot.reboundWin !== undefined ? REBOUND_WIN_DEPTH : undefined, prefer?.depth, attacker.stats.accuracy) },
       };
     }
     // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
     // for a soft one) and stays at the net.
-    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
+    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth, attacker.stats.accuracy);
     // A Por Cuatro that is not hit well comes back off the glass: the defender runs to the net and plays it back (a volley).
     // The defender judges the ball: he takes it early (before the glass), which is risky, or waits for the glass and runs to the net.
     const early = shot.reboundWin !== undefined && next.lob === undefined && rng() < EARLY_TAKE;
     if (early && rng() < EARLY_TAKE_ERROR - defender.stats.technique * 0.04) {
       return {
         state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
-        step: { ...step, outcome: 'winner', pointWinner: side, earlyError: true, ...aimDepthFor(shot, rng, landX, shot.winLandDepth, prefer?.depth) },
+        step: { ...step, outcome: 'winner', pointWinner: side, earlyError: true, ...aimDepthFor(shot, rng, landX, shot.winLandDepth, prefer?.depth, attacker.stats.accuracy) },
       };
     }
     const netReturn = shot.reboundWin !== undefined && !early && next.glass === true;
@@ -493,8 +494,8 @@ export function stepHit(
       pointWinner: winner,
       // Por Cuatro winners: the nail into the front of the court (flies out over the 4 m glass) or, deeper, off the back glass.
       ...(res.outcome === 'winner' && shot.reboundWin !== undefined && rng() < shot.reboundWin
-        ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth) }
-        : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth : undefined, prefer?.depth)),
+        ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth, attacker.stats.accuracy) }
+        : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth : undefined, prefer?.depth, attacker.stats.accuracy)),
       errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng, landX) : undefined,
     },
   };

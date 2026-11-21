@@ -216,7 +216,7 @@
     "id": "vibora",
     "name": "Vibora",
     "kind": "rally",
-    "stat": "technique",
+    "stat": "spin",
     "power": 1.3,
     "cost": 2,
     "risk": 0.1,

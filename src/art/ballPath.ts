@@ -73,6 +73,8 @@ export interface FlightOpts {
   errorKind?: ErrorKind;
   /** Height class the ball is played at (after the glass: how high it rebounds). Default: the shot's own `out`. */
   arrival?: Height;
+  /** Spin of the hitter relative to the shot's own spin (the spin attribute, 1 = neutral): scales the shot's topspin / backspin / side spin. */
+  spinMul?: number;
   /** Por Cuatro that is not hit well: the defender meets the returning ball at the net, a few metres from it. */
   netReturn?: boolean;
   /** A winner that comes off the back glass or fence and flies back over the net into the hitter's own half. */
@@ -630,7 +632,11 @@ function scriptedSideExit(o: FlightOpts): Flight | null {
   return { path, hit: { x: spot.x, z: spot.z }, hitH: 0, events, duration: end.t };
 }
 
-export function buildFlight(o: FlightOpts): Flight {
+export function buildFlight(opts: FlightOpts): Flight {
+  const o: FlightOpts =
+    opts.spinMul === undefined || opts.spinMul === 1
+      ? opts
+      : { ...opts, spinMul: 1, shot: { ...opts.shot, flight: { ...opts.shot.flight, spin: opts.shot.flight.spin * opts.spinMul, side: opts.shot.flight.side * opts.spinMul } } };
   if ((o.outcome === 'winner' || o.outcome === 'ace') && o.shot.exitVia === 'side' && o.landDepth === undefined) {
     const f = scriptedSideExit(o);
     if (f) return f;

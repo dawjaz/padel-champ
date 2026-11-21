@@ -1,4 +1,5 @@
-export type StatKey = 'power' | 'technique' | 'speed' | 'defense';
+/** The seven attributes (see attributes.ts). 5 is neutral. */
+export type StatKey = 'power' | 'spin' | 'technique' | 'accuracy' | 'stamina' | 'speed' | 'defense';
 
 export type Gender = 'male' | 'female';
 export type HairStyle = 'short' | 'long' | 'ponytail' | 'bun' | 'afro' | 'bald';
@@ -23,8 +24,9 @@ export interface Appearance {
 export interface PlayerDef {
   id: string;
   name: string;
-  /** Stats on a 1-10 scale. */
+  /** Attributes on a 1-10 scale (5 = neutral). */
   stats: Record<StatKey, number>;
+  /** Derived from stamina (`gutsFor`); kept here so that the scenes read one number. */
   maxGuts: number;
   appearance: Appearance;
 }
