@@ -394,13 +394,21 @@ describe('Magnus effect and lost balls', () => {
     const g = fly('bajada_fast', { outcome: 'error', errorKind: 'glass' });
     const end = g.path[g.path.length - 1];
     expect(end.z).toBeLessThan(0.1);
-    expect(end.h).toBeGreaterThan(1.3);
-    expect(end.h).toBeLessThan(3);
+    expect(end.h).toBeGreaterThan(0.3);
+    expect(end.h).toBeLessThan(1.3); // low in the glass, not at the top
     expect(g.events.some((e) => e.kind === 'bounce' || e.kind === 'net')).toBe(false);
     const m = fly('rally_lob', { outcome: 'error', errorKind: 'mesh' });
     expect(m.path[m.path.length - 1].h).toBeGreaterThan(3.1);
     const c = buildCoast(g, 0.6);
     expect(c.events.some((e) => e.kind === 'glass')).toBe(true);
+  });
+
+  it('a ball aimed at the side that is lost goes straight into the side wall, without a bounce', () => {
+    const f = fly('flat', { outcome: 'error', errorKind: 'side', landX: 4.4 });
+    const end = f.path[f.path.length - 1];
+    expect(Math.abs(end.x)).toBeGreaterThan(4.9);
+    expect(end.z).toBeLessThan(10);
+    expect(f.events.some((e) => e.kind === 'bounce' || e.kind === 'net')).toBe(false);
   });
 });
 

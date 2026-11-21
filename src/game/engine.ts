@@ -49,9 +49,13 @@ export function defenseRating(defender: PlayerDef, direction: DirectionDef, chas
   return direction.id === 'middle' ? base * direction.hesitation : base;
 }
 
-export function errorChance(attacker: PlayerDef, shot: ShotDef, direction: DirectionDef, rallyLength: number): number {
+/** Extra risk of a ball aimed right at a side wall (|x| of 4.6 m and more): it is easy to put it straight into the glass or the mesh. */
+export const EDGE_RISK = 0.09;
+export const edgeRisk = (landX: number | undefined): number => (landX === undefined ? 0 : EDGE_RISK * clamp((Math.abs(landX) - 2.4) / 2.2, 0, 1));
+
+export function errorChance(attacker: PlayerDef, shot: ShotDef, direction: DirectionDef, rallyLength: number, landX?: number): number {
   const fatigue = Math.max(0, rallyLength - FATIGUE_START) * FATIGUE_STEP;
-  const raw = shot.risk + direction.risk + fatigue - attacker.stats.technique * TECHNIQUE_SAFETY;
+  const raw = shot.risk + direction.risk + fatigue + edgeRisk(landX) - attacker.stats.technique * TECHNIQUE_SAFETY;
   return clamp(raw, MIN_ERROR, MAX_ERROR);
 }
 
@@ -74,6 +78,8 @@ export interface HitInput {
   airTake?: boolean;
   /** Hits so far in this rally, not counting the serve. */
   rallyLength: number;
+  /** Where the ball is aimed across the court (m): near a side wall it is more likely to be lost. */
+  landX?: number;
   rng: Rng;
 }
 
@@ -97,7 +103,7 @@ export function resolveHit(i: HitInput): HitResult {
   const tired = i.attackerGuts < i.shot.cost;
   const fit = i.shot.fit[i.incoming.height];
   const lowOffGlass = i.incoming.glass === true && i.incoming.height === 'low' ? (i.shot.lowGlassRisk ?? 0) : 0;
-  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength) + lowOffGlass, MIN_ERROR, MAX_ERROR);
+  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX) + lowOffGlass, MIN_ERROR, MAX_ERROR);
 
   if (i.rng() < chance) {
     return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };

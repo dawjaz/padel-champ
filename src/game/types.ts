@@ -98,8 +98,9 @@ export interface ShotRequires {
 export type Zone = 'net' | 'mid' | 'back';
 
 /** How a lost ball ends: into the net, flying into the back glass without a bounce (out), or into the mesh above the glass (out). */
-export type ErrorKind = 'net' | 'glass' | 'mesh';
-export type ErrorKinds = Record<ErrorKind, number>;
+/** How a lost ball ends: into the net, into the back glass (low) or the back mesh (high), or straight into a side wall (a ball aimed at the side). */
+export type ErrorKind = 'net' | 'glass' | 'mesh' | 'side';
+export type ErrorKinds = Partial<Record<ErrorKind, number>>;
 
 /** Quality of a lob: deep into the court, or weak (lands mid-court or close to the net). */
 export type LobQuality = 'deep' | 'weak';

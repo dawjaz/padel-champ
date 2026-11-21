@@ -70,6 +70,8 @@ export interface Step {
   block?: boolean;
   /** A defender in mid-court takes the ball out of the air this far (m) from the net (set together with `block`). */
   airDist?: number;
+  /** Por Cuatro: the defender tried to take it before the glass and fumbled it (the point goes to the hitter). */
+  earlyError?: boolean;
   /** Por Cuatro that was not hit well: the ball comes back off the glass and the defender, now at the net, plays it back. */
   netReturn?: boolean;
   /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
@@ -163,16 +165,26 @@ export function playableShots(shots: ShotDef[], state: PointState): ShotDef[] {
   return shots.filter((s) => unavailableReason(s, state) === null);
 }
 
-const DEFAULT_ERRORS: Record<ErrorKind, number> = { net: 0.6, glass: 0.25, mesh: 0.15 };
+const DEFAULT_ERRORS: Record<ErrorKind, number> = { net: 0.6, glass: 0.25, mesh: 0.15, side: 0 };
+/** The mesh over the back glass is hit much less often than the glass: a ball that is too long goes low into the glass. */
+const MESH_ERROR_SCALE = 0.35;
 
-/** How a lost ball ends: a roll on the weights of the shot. */
-export function pickErrorKind(shot: ShotDef, rng: Rng): ErrorKind {
+/**
+ * How a lost ball ends: a roll on the weights of the shot. A ball aimed towards a side wall (|landX| over 2.2 m) often goes
+ * straight into that wall instead (up to 55% at the very edge).
+ */
+export function pickErrorKind(shot: ShotDef, rng: Rng, landX?: number): ErrorKind {
+  if (landX !== undefined && Math.abs(landX) > 2.2 && shot.wall !== 'fence') {
+    const share = Math.min(0.55, ((Math.abs(landX) - 2.2) / 2.4) * 0.55);
+    if (rng() < share) return 'side';
+  }
   const w = shot.errorKinds ?? DEFAULT_ERRORS;
+  const weight = (k: ErrorKind): number => (w[k] ?? 0) * (k === 'mesh' ? MESH_ERROR_SCALE : 1);
   const order: ErrorKind[] = ['net', 'glass', 'mesh'];
-  const total = order.reduce((a, k) => a + w[k], 0);
+  const total = order.reduce((a, k) => a + weight(k), 0);
   let roll = rng() * total;
   for (const k of order) {
-    roll -= w[k];
+    roll -= weight(k);
     if (roll <= 0) return k;
   }
   return 'net';
@@ -310,6 +322,11 @@ export function netVolley(shot: ShotDef, defenderFormation: Formation, lob: LobQ
   );
 }
 
+/** Por Cuatro: the share of defenders who go for it before the glass, the base risk of that, and where (m from the net) they play it. */
+export const EARLY_TAKE = 0.35;
+export const EARLY_TAKE_ERROR = 0.62;
+export const EARLY_TAKE_DIST = 2.4;
+
 /** Where (m from the net) the deeper kind of Por Cuatro winner lands: about 2 m from the back glass. */
 export const REBOUND_WIN_DEPTH = 8;
 
@@ -380,6 +397,7 @@ export function stepHit(
     airTake:
       netVolley(shot, state.formation[defSide], undefined) || airTake(shot, state.formation[defSide], undefined, shot.landDepth) !== undefined,
     rallyLength: state.hits,
+    landX,
     rng,
   });
   const force = options?.force;
@@ -423,9 +441,17 @@ export function stepHit(
     // for a soft one) and stays at the net.
     const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
     // A Por Cuatro that is not hit well comes back off the glass: the defender runs to the net and plays it back (a volley).
-    const netReturn = shot.reboundWin !== undefined && next.glass === true;
+    // The defender judges the ball: he takes it early (before the glass), which is risky, or waits for the glass and runs to the net.
+    const early = shot.reboundWin !== undefined && next.lob === undefined && rng() < EARLY_TAKE;
+    if (early && rng() < EARLY_TAKE_ERROR - defender.stats.technique * 0.04) {
+      return {
+        state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
+        step: { ...step, outcome: 'winner', pointWinner: side, earlyError: true, ...aimDepthFor(shot, rng, landX, shot.winLandDepth, prefer?.depth) },
+      };
+    }
+    const netReturn = shot.reboundWin !== undefined && !early && next.glass === true;
     const netBlock = netVolley(shot, state.formation[defSide], next.lob);
-    const airDist = netBlock ? undefined : airTake(shot, state.formation[defSide], next.lob, aimed.landDepth ?? shot.landDepth);
+    const airDist = early ? EARLY_TAKE_DIST : netBlock ? undefined : airTake(shot, state.formation[defSide], next.lob, aimed.landDepth ?? shot.landDepth);
     const block = netBlock || airDist !== undefined;
     if (block) {
       const height: Height = shot.flight.speed >= 15 ? 'mid' : 'low';
@@ -464,7 +490,7 @@ export function stepHit(
       ...(res.outcome === 'winner' && shot.reboundWin !== undefined && rng() < shot.reboundWin
         ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth) }
         : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth : undefined, prefer?.depth)),
-      errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng) : undefined,
+      errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng, landX) : undefined,
     },
   };
 }

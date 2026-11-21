@@ -1104,6 +1104,7 @@ export class MatchScene extends Phaser.Scene {
   private errorText(step: Step): string {
     if (step.errorKind === 'glass') return 'sends it into the back glass without a bounce: out';
     if (step.errorKind === 'mesh') return 'sends it into the fence above the glass: out';
+    if (step.errorKind === 'side') return 'sends it straight into the side wall: out';
     return 'hits the net';
   }
 
@@ -1134,7 +1135,7 @@ export class MatchScene extends Phaser.Scene {
         error:
           step.shot.wall === 'fence'
             ? `${step.shot.name} into the fence`
-            : `${step.shot.name}: ${step.errorKind === 'glass' ? 'out, back glass' : step.errorKind === 'mesh' ? 'out, fence' : 'net'}`,
+            : `${step.shot.name}: ${step.errorKind === 'glass' ? 'out, back glass' : step.errorKind === 'mesh' ? 'out, fence' : step.errorKind === 'side' ? 'out, side wall' : 'net'}`,
       };
       if (b) this.announce(b[0], b[1], how[step.outcome]);
       if (step.outcome === 'ace' || step.outcome === 'winner') {
@@ -1173,7 +1174,9 @@ export class MatchScene extends Phaser.Scene {
         break;
       case 'winner':
         endPoint(
-          step.reboundBack
+          step.earlyError
+            ? `${defender.name} goes for the Por Cuatro before the glass and fumbles it. Point!`
+            : step.reboundBack
             ? `${attacker.name}: the ball comes off the glass and flies back over the net. Point!`
             : step.shot.overFence
             ? `${attacker.name} hits it out over the fence!`

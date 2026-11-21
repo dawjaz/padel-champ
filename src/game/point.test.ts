@@ -621,3 +621,32 @@ describe('Por Tres and Por Cuatro', () => {
     expect(seen).toBeGreaterThan(0);
   });
 });
+
+describe('errors into the walls and the early Por Cuatro', () => {
+  it('a ball aimed at the side wall is more often lost, and then often straight into that wall', () => {
+    let side = 0;
+    let total = 0;
+    for (let seed = 1; seed < 400; seed++) {
+      expect(pickErrorKind(shot('flat'), seededRng(seed), 0)).not.toBe('side');
+      total++;
+      if (pickErrorKind(shot('flat'), seededRng(seed), 4.5) === 'side') side++;
+    }
+    expect(side / total).toBeGreaterThan(0.3);
+  });
+
+  it('a Por Cuatro that is taken early (before the glass) is sometimes fumbled: the hitter wins the point', () => {
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    let fumbled = 0;
+    let early = 0;
+    let net = 0;
+    for (let seed = 1; seed < 600; seed++) {
+      const r = stepHit(TEAMS, st, shot('smash_x4'), 'cross', seededRng(seed), undefined, { force: 'continue' });
+      if (r.step.earlyError) fumbled++;
+      else if (r.step.block) early++;
+      else if (r.step.netReturn) net++;
+    }
+    expect(fumbled).toBeGreaterThan(20);
+    expect(early).toBeGreaterThan(20);
+    expect(net).toBeGreaterThan(50);
+  });
+});

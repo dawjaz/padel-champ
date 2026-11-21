@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.29)_
+_Last updated: 2026-11-20 (v0.30)_
+
+## v0.30: Por Cuatro defence choice, low glass errors, side-wall errors
+- **Por Cuatro defender judges the ball** (point.ts, continue branch): `EARLY_TAKE` 35% go for it before the glass (volley 2.4 m from the net, `EARLY_TAKE_DIST`), which can be fumbled: `EARLY_TAKE_ERROR` 0.62 minus 0.04 x technique (28-44%), the hitter wins (`step.earlyError`). The rest wait for the glass and run to the net (`netReturn`, v0.28). The deep rebound winner (out of reach) share is still `reboundWin` 0.45.
+- **Errors into the back glass are low** (0.35-1.25 m, was 1.4-2.7); mesh errors weigh x0.35 (`MESH_ERROR_SCALE`).
+- **Side wall**: new `ErrorKind` 'side'. A ball aimed past |x| 2.2 m goes straight into the side wall (glass, 25% mesh) with up to 55% of its errors, and the error chance rises up to +9% at the edge (`EDGE_RISK`, `HitInput.landX`). `ErrorKinds` is a Partial now.
 
 ## v0.29: rulo and bajada high speed are defensible
 - **Rulo**: power 1.5 -> 1.02, winnerMargin 16 -> 35. Winners vs the CPU pair: strongest hitter 20% (was 86%), the others 0-4%; most rulos stay in play. The bounce off the mesh is more random: wider speed and direction ranges, and 30% of them are "swallowed" by the mesh (drops a short way off the fence, nearly all speed gone). Visual only (seeded), the outcome does not depend on it.

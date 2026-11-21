@@ -657,11 +657,14 @@ export function buildFlight(o: FlightOpts): Flight {
   if (o.outcome === 'fault' || o.outcome === 'double-fault' || o.outcome === 'error') {
     const fence = o.shot.wall === 'fence' && o.outcome === 'error';
     // A ball that is too hard or too long flies into the back glass (out), or into the mesh above it, without a bounce.
-    if (!fence && (o.errorKind === 'glass' || o.errorKind === 'mesh')) {
+    if (!fence && (o.errorKind === 'glass' || o.errorKind === 'mesh' || o.errorKind === 'side')) {
       const r = makeRand(o.seed ?? Math.round(Math.abs(o.from.x * 977 + o.landX * 131) * 1000) + 11);
-      const wallZ = away === -1 ? 0.02 : 19.98;
-      const x = clamp(o.from.x + (o.landX - o.from.x) * (0.7 + 0.3 * r()), -4.2, 4.2);
-      const targetH = o.errorKind === 'glass' ? 1.4 + 1.3 * r() : 3.15 + 0.6 * r();
+      const side = o.errorKind === 'side';
+      // Back glass: low (a ball that is too long goes into the lower part of the glass); side wall: glass, or now and then the mesh above it.
+      const sideSign = o.landX < 0 ? -1 : 1;
+      const wallZ = side ? NET_Z + away * clamp(o.shot.landDepth, 2, 8) * (0.35 + 0.45 * r()) : away === -1 ? 0.02 : 19.98;
+      const x = side ? sideSign * 4.98 : clamp(o.from.x + (o.landX - o.from.x) * (0.7 + 0.3 * r()), -4.2, 4.2);
+      const targetH = side ? (r() < 0.25 ? 3.2 + 0.5 * r() : 0.5 + 1.7 * r()) : o.errorKind === 'glass' ? 0.35 + 0.9 * r() : 3.15 + 0.6 * r();
       const dist = Math.hypot(x - from.x, wallZ - from.z);
       const T = Math.max(0.3, dist / fl.speed);
       const g = magnus(o.shot, x - from.x, wallZ - from.z).g;
