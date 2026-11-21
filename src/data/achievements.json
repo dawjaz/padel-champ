@@ -1,0 +1,19 @@
+[
+  { "id": "first_win", "name": "First Win", "desc": "Win a match.", "stat": "won", "n": 1, "coins": 30 },
+  { "id": "ten_wins", "name": "Regular", "desc": "Win 10 matches.", "stat": "won", "n": 10, "coins": 100 },
+  { "id": "fifty_wins", "name": "Club Legend", "desc": "Win 50 matches.", "stat": "won", "n": 50, "coins": 400 },
+  { "id": "played_25", "name": "Court Rat", "desc": "Play 25 matches.", "stat": "played", "n": 25, "coins": 80 },
+  { "id": "streak_3", "name": "On Fire", "desc": "Win 3 matches in a row.", "stat": "bestStreak", "n": 3, "coins": 60 },
+  { "id": "streak_7", "name": "Unstoppable", "desc": "Win 7 matches in a row.", "stat": "bestStreak", "n": 7, "coins": 250 },
+  { "id": "rally_15", "name": "Long Rally", "desc": "Play a rally of 15 hits.", "stat": "longestRally", "n": 15, "coins": 50 },
+  { "id": "rally_30", "name": "Marathon", "desc": "Play a rally of 30 hits.", "stat": "longestRally", "n": 30, "coins": 200 },
+  { "id": "shutout", "name": "Bagel", "desc": "Win a match without losing a game.", "stat": "shutouts", "n": 1, "coins": 80 },
+  { "id": "level_5", "name": "Rising Star", "desc": "Reach level 5.", "stat": "level", "n": 5, "coins": 60 },
+  { "id": "level_15", "name": "Pro", "desc": "Reach level 15.", "stat": "level", "n": 15, "coins": 200 },
+  { "id": "level_30", "name": "Maxed Out", "desc": "Reach level 30.", "stat": "level", "n": 30, "coins": 800 },
+  { "id": "gear_5", "name": "Collector", "desc": "Own 12 pieces of gear.", "stat": "gearOwned", "n": 12, "coins": 60 },
+  { "id": "gear_15", "name": "Equipment Room", "desc": "Own 24 pieces of gear.", "stat": "gearOwned", "n": 24, "coins": 250 },
+  { "id": "title_1", "name": "Champion", "desc": "Win a tournament.", "stat": "titles", "n": 1, "coins": 120 },
+  { "id": "title_5", "name": "Serial Winner", "desc": "Win 5 tournaments.", "stat": "titles", "n": 5, "coins": 500 },
+  { "id": "partner_2", "name": "Team Player", "desc": "Sign a new partner.", "stat": "partners", "n": 2, "coins": 80 }
+]

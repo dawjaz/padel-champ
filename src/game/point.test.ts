@@ -486,11 +486,13 @@ describe('the net player volleys', () => {
     const back = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, zone: 'mid' } });
     expect(playableShots(shotsOfKind('rally'), back).map((s) => s.id)).toContain('bounce_shot');
   });
-  it('after a deep lob (bounced, off the glass or not) there is no volley, bandeja or vibora', () => {
+  it('after a deep lob: bandeja and vibora only when the ball has not come off the glass; never a volley', () => {
     for (const glass of [false, true]) {
       const st = rallyState({ formation: ['back', 'back'], ball: { height: 'high', pressure: 0, zone: 'back', lob: 'deep', glass } });
       const ids = playableShots(shotsOfKind('rally'), st).map((s) => s.id);
-      for (const id of ['volley', 'bandeja', 'vibora']) expect(ids, id).not.toContain(id);
+      expect(ids).not.toContain('volley');
+      expect(ids.includes('bandeja'), 'bandeja').toBe(!glass);
+      expect(ids.includes('bajada_fast'), 'bajada').toBe(glass);
       expect(ids).toContain('rally_lob');
     }
   });

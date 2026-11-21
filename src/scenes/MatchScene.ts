@@ -28,6 +28,7 @@ import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
 import { award, heroFrom, levelOf, matchReward } from '../career/profile';
+import { claim, newlyEarned, progressOf, recordMatch } from '../career/achievements';
 import { getSave, recordResult, updateSave } from '../save';
 
 const BASE_YOU = playersData.you as unknown as PlayerDef[];
@@ -1470,7 +1471,7 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     const reward = matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
     const levelBefore = levelOf(getSave().profile.xp);
-    const out: { finished?: Finished } = {};
+    const out: { finished?: Finished; trophies: string[] } = { trophies: [] };
     updateSave((d) => {
       const r = recordResult(d, winner === 0);
       let profile = award(r.profile, reward);
@@ -1479,12 +1480,17 @@ export class MatchScene extends Phaser.Scene {
         profile = rep.profile;
         out.finished = rep.finished;
       }
-      return { ...r, profile };
+      // Records and achievements (they count after the tournament result too).
+      const records = recordMatch(r.records, { won: winner === 0, longestRally: this.longestRally, gamesLost: this.matchScore.games[1] });
+      const earned = newlyEarned(progressOf(r.stats, records, profile), r.achievements);
+      const claimed = claim(profile, r.achievements, earned);
+      out.trophies = earned.map((a) => `${a.name} +${a.coins}`);
+      return { ...r, profile: claimed.profile, records, achievements: claimed.unlocked };
     });
     const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize } : undefined }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize } : undefined }));
   }
 }

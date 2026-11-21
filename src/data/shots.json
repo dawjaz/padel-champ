@@ -249,8 +249,7 @@
         "mid",
         "high"
       ],
-      "hint": "not off a lob: use a bajada or a lob",
-      "noLob": true
+      "hint": "ball not off the glass"
     },
     "glassChance": 0.35,
     "blockAtNet": true,
@@ -290,8 +289,7 @@
       "heights": [
         "high"
       ],
-      "hint": "not off a lob: use a bajada or a lob",
-      "noLob": true
+      "hint": "ball not off the glass"
     },
     "glassChance": 0.3,
     "rebound": {

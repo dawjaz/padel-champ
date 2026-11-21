@@ -8,8 +8,14 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.43: B6 achievements, tutorial
+- `src/career/achievements.ts` + `src/data/achievements.json` (17 goals, coin rewards); `SaveData` has `achievements` and `records` (streak, best streak, longest rally, shutouts) and `settings.tutorialSeen`. Checked in `MatchScene.endMatch`; the result screen lists new trophies; `AchievementsScene` (menu TROPHIES).
+- `TutorialScene`: 5 pages, shown once before the first QUICK MATCH, again via SETTINGS > HOW TO PLAY.
+- Balance: no change (no play-test data yet). Pacing: level 10 about 13 matches, level 30 about 75.
+
 ## v0.42: volley only from the air, volley goes down, no overheads after a lob
 - `ShotRequires.air` (ball must not have bounced) and `ShotRequires.noLob` (not off a deep lob); `BallState.air` is set only for balls a net player or a mid-court defender takes out of the air (block / net return).
+- Correction (same session, owner): bandeja and vibora ARE offered after a deep lob that did not touch the glass (`noLob` is no longer used by the data; the code stays). After a glass rebound only bajadas, flat shot, lob.
 - Volley requires `air: true`: never offered after a bounce. Bandeja and vibora require `noLob`: after a deep lob (bounced, off the glass or not) only both bajadas (glass), flat shot, lob (+ chiquita on low/mid) are offered.
 - Volley flight: `deaden 0.5`, `landDepth 4.8`: steep descent, dead bounce, stays low (test in `ballPath.test.ts`).
 - Open: Chiquita is still limited to low/mid balls; the owner listed it for the high ball after the glass too: decide.

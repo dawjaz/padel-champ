@@ -72,7 +72,7 @@ Bracket, Rewards.
 - **B3** (done in v0.36) gear (8 slots), inventory, appearance layers (cap, wristband), level gates, consumables. Sets and legendary items wait for packs.
 - **B4** (done in v0.37) coins, shop, packs and pack opening, drop tables with visible odds and a pity rule, one free pack per level up.
 - **B5** (done in v0.38) career calendar, divisions, draws, opponents from the division, rewards and ranking, partner roster.
-- **B6** achievements, tutorial, balance pass with the owner's play-tests.
+- **B6** (done in v0.43) 17 achievements with coin rewards (TROPHIES screen, shown on the result screen), a 5-page tutorial (first QUICK MATCH, then SETTINGS > HOW TO PLAY), pacing check. Open: tune XP and prices from the owner's play-tests (about 75 matches to level 30 at a 55% win rate).
 
 ## Open decisions (small, defaults chosen)
 Level cap: 50 levels, 3 skill points per level, an attribute is capped at level + 10 (a level-1 hero cannot put 40 points into one attribute).

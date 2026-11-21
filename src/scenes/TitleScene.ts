@@ -70,10 +70,11 @@ export class TitleScene extends Phaser.Scene {
     };
     // Free Practice stays in the game but is hidden from the menu (set SHOW_FREE_PRACTICE in config.ts to bring it back).
     const entries: Array<[string, () => void]> = [
-      ['QUICK MATCH', () => this.scene.start('MatchScene', { practice: null, career: null })],
+      ['QUICK MATCH', () => this.scene.start(getSave().settings.tutorialSeen ? 'MatchScene' : 'TutorialScene', getSave().settings.tutorialSeen ? { practice: null, career: null } : { next: 'MatchScene', data: { practice: null, career: null } })],
       ['CAREER', () => this.scene.start('CalendarScene')],
       ['HERO', () => this.scene.start('CharacterScene')],
       ['SHOP', () => this.scene.start('ShopScene')],
+      ['TROPHIES', () => this.scene.start('AchievementsScene')],
     ];
     if (SHOW_FREE_PRACTICE) entries.push(['FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }]);
     entries.push(['SETTINGS', () => this.scene.start('SettingsScene')]);

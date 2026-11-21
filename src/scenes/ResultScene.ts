@@ -16,6 +16,8 @@ export interface ResultData {
   packs?: number;
   /** A career match: the tournament goes on or ends here. */
   career?: boolean;
+  /** Achievements unlocked by this match: "Name +coins". */
+  trophies?: string[];
   finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string } };
 }
 
@@ -27,7 +29,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, finished: data.finished };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, trophies: data.trophies ?? [], finished: data.finished };
   }
 
   create(): void {
@@ -78,6 +80,12 @@ export class ResultScene extends Phaser.Scene {
       this.add
         .text(WIDTH / 2, 416, `FREE PACK x${this.outcome.packs}: OPEN IT IN THE SHOP`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.sky) })
         .setOrigin(0.5);
+    }
+    const trophies = this.outcome.trophies ?? [];
+    if (trophies.length > 0) {
+      this.add
+        .text(WIDTH / 2, 566, `ACHIEVEMENT!\n${trophies.slice(0, 3).join('\n')}${trophies.length > 3 ? `\n+${trophies.length - 3} MORE` : ''}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.yellow), align: 'center' })
+        .setOrigin(0.5, 0);
     }
     this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);
     const barW = Math.round(198 * levelProgress(prof.xp));

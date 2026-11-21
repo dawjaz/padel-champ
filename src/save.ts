@@ -4,13 +4,17 @@
  * unavailable (private mode, blocked), the game still runs and just does not persist.
  */
 
+import { emptyRecords, sanitizeRecords, sanitizeUnlocked, type Records } from './career/achievements';
 import { newProfile, sanitizeProfile, type Profile } from './career/profile';
 
 export interface SaveData {
   version: 2;
-  settings: { sound: boolean };
+  settings: { sound: boolean; tutorialSeen: boolean };
   stats: { played: number; won: number; lost: number };
   profile: Profile;
+  /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
+  achievements: string[];
+  records: Records;
 }
 
 export interface KeyValueStore {
@@ -22,7 +26,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords() };
 }
 
 function count(v: unknown): number {
@@ -38,9 +42,13 @@ export function parseSave(raw: string | null): SaveData {
     // Version 1 saves have no profile: they migrate to a fresh one.
     return {
       version: 2,
-      settings: { sound: typeof p?.settings?.sound === 'boolean' ? p.settings.sound : base.settings.sound },
+      settings: { sound: typeof p?.settings?.sound === 'boolean' ? p.settings.sound : base.settings.sound,
+        tutorialSeen: p?.settings?.tutorialSeen === true,
+      },
       stats: { played: count(p?.stats?.played), won: count(p?.stats?.won), lost: count(p?.stats?.lost) },
       profile: sanitizeProfile(p?.profile),
+      achievements: sanitizeUnlocked(p?.achievements),
+      records: sanitizeRecords(p?.records),
     };
   } catch {
     return base;
