@@ -12,7 +12,7 @@ import {
   resolveHit,
   resolveServe,
   spendGuts,
-  TIRED_FACTOR,
+  RISKY_PER_G,
   type HitInput,
 } from './engine';
 import { fixedRng, seededRng } from './rng';
@@ -108,11 +108,18 @@ describe('resolveHit', () => {
     expect(onHigh.attackScore).toBeGreaterThan(onLow.attackScore);
   });
 
-  it('weakens the attack when the hitter is too tired', () => {
+  it('a shot the hitter cannot pay for is risky: more error chance per missing guts point, no weaker attack', () => {
     const fresh = resolveHit(hit({ shot: shot('rulo'), attackerGuts: 10 }));
     const tired = resolveHit(hit({ shot: shot('rulo'), attackerGuts: 0 }));
+    expect(fresh.tired).toBe(false);
     expect(tired.tired).toBe(true);
-    expect(tired.attackScore).toBeCloseTo(fresh.attackScore * TIRED_FACTOR);
+    expect(tired.attackScore).toBeCloseTo(fresh.attackScore);
+    const cost = shot('rulo').cost;
+    const a = player({});
+    const base = errorChance(a, shot('rulo'), DIRECTIONS.cross, 0);
+    expect(errorChance(a, shot('rulo'), DIRECTIONS.cross, 0, undefined, 1)).toBeCloseTo(base + RISKY_PER_G);
+    expect(errorChance(a, shot('rulo'), DIRECTIONS.cross, 0, undefined, 2)).toBeGreaterThan(errorChance(a, shot('rulo'), DIRECTIONS.cross, 0, undefined, 1));
+    expect(cost).toBeGreaterThan(0);
   });
 
   it('weakens the attack under pressure', () => {

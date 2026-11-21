@@ -20,8 +20,8 @@ export const SECOND_SERVE_FAULT = 0.75;
 export const SECOND_SERVE_SPEED = 0.8;
 /** The receiver returns a second serve with more power and accuracy (x1.2). */
 export const SECOND_SERVE_RETURN = 1.2;
-/** Attack multiplier when the hitter cannot pay the guts cost. */
-export const TIRED_FACTOR = 0.6;
+/** Extra error (fault) chance for every guts point the hitter is short of when he plays a shot he cannot pay for ("RISKY"). */
+export const RISKY_PER_G = 0.15;
 /** Random spread added to each side's score. */
 export const RANDOM_SPREAD = 20;
 /** Rally length after which every extra hit adds a little error chance. */
@@ -61,14 +61,14 @@ export const EDGE_RISK = 0.09;
 export const edgeRisk = (landX: number | undefined, accuracy = 5): number =>
   landX === undefined ? 0 : EDGE_RISK * edgeRiskMul(accuracy) * clamp((Math.abs(landX) - 2.4) / 2.2, 0, 1);
 
-export function errorChance(attacker: PlayerDef, shot: ShotDef, direction: DirectionDef, rallyLength: number, landX?: number): number {
+export function errorChance(attacker: PlayerDef, shot: ShotDef, direction: DirectionDef, rallyLength: number, landX?: number, missingGuts = 0): number {
   const fatigue = Math.max(0, rallyLength - fatigueStart(attacker.stats.stamina, FATIGUE_START)) * FATIGUE_STEP;
-  const raw = shot.risk + direction.risk + fatigue + edgeRisk(landX, attacker.stats.accuracy) - attacker.stats.technique * TECHNIQUE_SAFETY;
+  const raw = shot.risk + direction.risk + fatigue + edgeRisk(landX, attacker.stats.accuracy) - attacker.stats.technique * TECHNIQUE_SAFETY + missingGuts * RISKY_PER_G;
   return clamp(raw, MIN_ERROR, MAX_ERROR);
 }
 
-export function faultChance(server: PlayerDef, shot: ShotDef): number {
-  return clamp(shot.risk - server.stats.technique * TECHNIQUE_SAFETY, 0.02, MAX_ERROR);
+export function faultChance(server: PlayerDef, shot: ShotDef, missingGuts = 0): number {
+  return clamp(shot.risk - server.stats.technique * TECHNIQUE_SAFETY + missingGuts * RISKY_PER_G, 0.02, MAX_ERROR);
 }
 
 export type HitOutcome = 'winner' | 'error' | 'continue';
@@ -108,10 +108,11 @@ export interface HitResult {
  * which is called once for the error roll and twice for the score spreads, in that order.
  */
 export function resolveHit(i: HitInput): HitResult {
-  const tired = i.attackerGuts < i.shot.cost;
+  const missing = Math.max(0, i.shot.cost - i.attackerGuts);
+  const tired = missing > 0;
   const fit = i.shot.fit[i.incoming.height];
   const lowOffGlass = i.incoming.glass === true && i.incoming.height === 'low' ? (i.shot.lowGlassRisk ?? 0) : 0;
-  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX) + lowOffGlass, MIN_ERROR, MAX_ERROR);
+  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass, MIN_ERROR, MAX_ERROR);
 
   if (i.rng() < chance) {
     return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };
@@ -120,7 +121,6 @@ export function resolveHit(i: HitInput): HitResult {
   let attackScore =
     i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (1 - i.incoming.pressure) +
     i.rng() * RANDOM_SPREAD;
-  if (tired) attackScore *= TIRED_FACTOR;
   const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
     defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined) * airBonus + i.rng() * RANDOM_SPREAD;
@@ -160,13 +160,13 @@ export function resolveServe(
   receive: ReceiveMode = 'wall',
   second = false,
 ): ServeResult {
-  const tired = serverGuts < shot.cost;
-  if (rng() < faultChance(server, shot) * (second ? SECOND_SERVE_FAULT : 1)) {
+  const missing = Math.max(0, shot.cost - serverGuts);
+  const tired = missing > 0;
+  if (rng() < faultChance(server, shot, missing) * (second ? SECOND_SERVE_FAULT : 1)) {
     return { outcome: 'fault', attackScore: 0, defenseScore: 0, tired, pressure: 0 };
   }
 
   let attackScore = server.stats[shot.stat] * 10 * shot.power + rng() * RANDOM_SPREAD;
-  if (tired) attackScore *= TIRED_FACTOR;
   if (second) attackScore *= SECOND_SERVE_POWER;
   const walled = shot.wall !== 'none';
   const receiveMod = !walled ? 1 : receive === 'bounce' ? BOUNCE_DEFENSE : WALL_DEFENSE;

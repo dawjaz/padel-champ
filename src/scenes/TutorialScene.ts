@@ -7,7 +7,7 @@ import { logoText, makeButton } from '../ui';
 const PAGES: Array<{ title: string; lines: string[] }> = [
   { title: 'THE POINT', lines: ['Padel is played in pairs, with', 'walls. Every ball you hit has to', 'cross the net and bounce in the', 'court before it touches anything.', '', 'You choose each shot from a menu:', 'pick the TYPE, then the SHOT,', 'then the DIRECTION.'] },
   { title: 'SERVE AND RECEIVE', lines: ['Serve to the body, the T or the', 'glass. A fault gives a slower,', 'easier second serve.', '', 'When the opponent serves, the ball', 'flies in slow motion: read its', 'speed and direction, THEN pick', 'how to return it.'] },
-  { title: 'GUTS (G)', lines: ['Every shot costs guts. A tired', 'player is slower, weaker and less', 'accurate; below half the bar the', 'drop starts. Soft shots recover.', '', 'A shot you cannot pay for loses', '40% of its attack. Drinks and', 'gels from the shop help.'] },
+  { title: 'GUTS (G)', lines: ['Every shot costs guts. A tired', 'player is slower, weaker and less', 'accurate; below half the bar the', 'drop starts. Soft shots recover.', '', 'A shot you cannot pay for is', 'RISKY (red): +15% chance to', 'miss per missing G. Boosts help.'] },
   { title: 'WHAT CAN I PLAY?', lines: ['The menu only offers shots that', 'fit the ball:', '', 'VOLLEY: only out of the air.', 'BAJADA: only off the back glass.', 'BANDEJA, VIBORA: high balls that', 'did not touch the glass.', 'SMASH: weak lobs. LOB: any time.'] },
   { title: 'CAREER', lines: ['Win matches for XP and coins.', 'Spend skill points on your hero,', 'open packs for gear, play knockout', 'tournaments in the CAREER calendar', 'and climb the ranking.', '', 'Tournament ties are best of one', 'match. Trophies pay bonus coins.'] },
 ];

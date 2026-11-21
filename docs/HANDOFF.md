@@ -11,7 +11,8 @@ _Last updated: 2026-11-21 (v0.49)_
 - **GEAR**: a gold star on a category button when it holds gear not yet seen (`Inventory.seen`, `hasNewIn`, `markSeen`). Old saves treat all owned gear as seen.
 - **Boosts moved to the shop** (`consumables.json`, price and short label each; no boost pack any more). Bought one by one with `buyBoost`, bag max 2 (`MAX_BOOSTS`). Before each tournament match the BRACKET screen lets you pick one boost from the bag (`Inventory.queued`, max 1, consumed with the match). `queued` is cleared when the tournament ends. Boosts apply only in tournament matches.
 - Not yet checked on a phone: ResultScene button rows, ShopScene boost grid, BracketScene picker.
-- **Open question**: what should happen when a hero cannot pay a shot's guts cost. Now it is playable with attack x0.6 (`TIRED_FACTOR`) and a " tired" label; options discussed with the owner: red/disabled button, or a much higher error chance.
+- **RISKY shots** (owner's choice): a shot the hitter cannot pay for is still playable, but no longer loses attack (`TIRED_FACTOR` removed). Instead error/fault chance gets `RISKY_PER_G` (0.15) for every missing G point (`errorChance`/`faultChance` take `missingGuts`, clamped by `MAX_ERROR` 0.6). The button is red with the label RISKY (was 'tired'). The CPU does not take guts into account when choosing a serve (`ai.ts`).
+- **Publishing**: Pages now also builds `style/3d` and serves it under `/3d/` (open `/3d/3d.html`). The workflow only deploys from `main` (a push to `style/3d` is rejected by the environment rule); to refresh `/3d/` after pushing `style/3d`, re-run the workflow on `main`.
 
 ## v0.49: owner changes after play-tests (main and style/3d)
 - **Flat shot** (`bounce_shot`) no longer flies back over the net off the back glass: new `ShotDef.noReboundBack` (set in shots.json, checked

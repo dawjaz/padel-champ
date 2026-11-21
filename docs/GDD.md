@@ -84,7 +84,7 @@ each shot **green (good fit)**, **orange (poor fit)** or **red (too tired)** for
 3. Defence = (defense x 7 + speed x 3) x 1.3 + random(0..20); x0.88 on a middle ball.
 4. Attack - defence > margin: **winner**. A strong defence never wins the point by itself (the old *intercept* was removed: it looked unnatural).
    Otherwise the rally continues, and a narrow attack lead becomes **pressure** on the next hit.
-- Guts: the hitter pays the shot's cost; everyone recovers 2 per point (3 with stamina 8+). Free shots always exist (Lob, T-serve).
+- Guts: the hitter pays the shot's cost; everyone recovers 2 per point (3 with stamina 8+). A shot you cannot pay for is RISKY: +15% error chance per missing G. Free shots always exist (Lob, T-serve).
 
 ### Positions
 Formation is **net** or **back** per team and changes with the shot (`advance` in the data):

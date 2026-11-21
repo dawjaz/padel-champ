@@ -37,7 +37,7 @@ export const statsOf = (p: PlayerDef): Record<StatKey, number> => p.stats;
 
 /**
  * What the guts (the stamina bar) do: from half the bar and above a player is fresh; below that he gets slower, weaker and less
- * precise, down to x0.7 on an empty bar. (Separately, a shot he cannot pay for loses 40% of its attack, see TIRED_FACTOR.)
+ * precise, down to x0.7 on an empty bar. (Separately, a shot he cannot pay for is RISKY: extra error chance per missing guts point, see RISKY_PER_G.)
  */
 export function fatigueFactor(guts: number, maxGuts: number): number {
   const r = clamp(maxGuts > 0 ? guts / maxGuts : 1, 0, 1);

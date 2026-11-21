@@ -644,7 +644,7 @@ export class MatchScene extends Phaser.Scene {
     this.busy = false;
   }
 
-  /** Colour hint for a shot: red = too tired, green = good against this ball, orange = poor. */
+  /** Colour hint for a shot: red = RISKY (not enough guts), green = good against this ball, orange = poor. */
   private toneFor(shot: ShotDef, hitter: PlayerDef): Tone {
     if (this.guts[hitter.id] < shot.cost) return 'tired';
     const fit = shot.fit[this.point.ball.height];
@@ -914,7 +914,7 @@ export class MatchScene extends Phaser.Scene {
       this.showButtons(
         `${server.name}: serve${tag}`,
         shotsOfKind('serve').map((s) => ({
-          label: `${s.name}\n[${s.cost}]${this.guts[server.id] < s.cost ? ' tired' : ''}`,
+          label: `${s.name}\n[${s.cost}]${this.guts[server.id] < s.cost ? ' RISKY' : ''}`,
           tone: this.toneFor(s, server),
           onPick: () => this.chooseReceive(s),
         })),
@@ -1098,7 +1098,7 @@ export class MatchScene extends Phaser.Scene {
     const context = st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : st.ball.lob === 'deep' ? ', deep lob' : '';
     const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()}${context})`;
     const label = (sh: ShotDef): string => {
-      const tired = this.guts[hitter.id] < sh.cost ? ' tired' : '';
+      const tired = this.guts[hitter.id] < sh.cost ? ' RISKY' : '';
       return sh.menuLabel ? `${sh.menuLabel} [${sh.cost}]${tired}` : `${sh.name}\n[${sh.cost}]${tired}`;
     };
     // Only the shots that can be played now are offered.
@@ -1199,7 +1199,7 @@ export class MatchScene extends Phaser.Scene {
     }
 
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
-    const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (tired)' : ''}`;
+    const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (risky)' : ''}`;
     this.say(headline);
     if (from === 0) {
       impactSound(
