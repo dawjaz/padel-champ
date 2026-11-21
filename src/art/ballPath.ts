@@ -65,6 +65,8 @@ export interface FlightOpts {
   glass?: boolean;
   /** A defender at the net blocks the ball out of the air in front of him, before it bounces. */
   block?: boolean;
+  /** With `block`: distance from the net (m) where the ball is taken (default: right in front of the net). */
+  airDist?: number;
   /** A weak lob: the defender hits it out of the air (smash, vibora, bandeja) instead of letting it bounce. */
   airHit?: boolean;
   /** How a lost ball ends (fault or error): the net, the back glass without a bounce, or the mesh above the glass. */
@@ -726,7 +728,7 @@ export function buildFlight(o: FlightOpts): Flight {
   if ((o.block || o.airHit) && (o.outcome === 'continue' || o.outcome === 'in')) {
     let tHit = -1;
     if (o.block) {
-      const zb = NET_Z + away * Math.min(1.6, depth * 0.5);
+      const zb = NET_Z + away * (o.airDist ?? Math.min(1.6, depth * 0.5));
       const t = arc.vz !== 0 ? (zb - from.z) / arc.vz : -1;
       if (t > 0 && t < arc.T) tHit = t;
     } else {

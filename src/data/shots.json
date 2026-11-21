@@ -337,13 +337,6 @@
       "net": 0.2,
       "glass": 0.45,
       "mesh": 0.35
-    },
-    "requires": {
-      "formations": [
-        "mid",
-        "back"
-      ],
-      "hint": "not from the net"
     }
   },
   {

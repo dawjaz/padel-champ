@@ -219,10 +219,24 @@ describe('blocks at the net', () => {
   });
 
   it('does not block when the defender is not at the net, or against a lob', () => {
-    const st = rallyState({ formation: ['back', 'mid'] });
+    const st = rallyState({ formation: ['back', 'back'] });
     expect(stepHit(TEAMS, st, shot('vibora'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5])).step.block).toBe(undefined);
     const lob = rallyState({ formation: net });
     expect(stepHit(TEAMS, lob, shot('rally_lob'), 'cross', fixedRng([0.99, 0.5, 0.5, 0.5, 0.5])).step.block).toBe(undefined);
+  });
+
+  it('a defender in mid-court takes a ball into the middle of the court out of the air, not one into the back third', () => {
+    const st = rallyState({ formation: ['back', 'mid'] });
+    let air = 0;
+    let deep = 0;
+    for (let seed = 1; seed < 200; seed++) {
+      const soft = stepHit(TEAMS, st, shot('chiquita'), 'cross', seededRng(seed), undefined, { ignoreRequires: true, force: 'continue' }).step;
+      if (soft.block) air++;
+      const l = stepHit(TEAMS, st, shot('rally_lob'), 'cross', seededRng(seed), undefined, { force: 'continue' }).step;
+      if (l.block) deep++;
+    }
+    expect(air).toBeGreaterThan(150);
+    expect(deep).toBe(0);
   });
 
   it('calls the flat shot "Flat shot"', () => {
@@ -269,9 +283,9 @@ describe('who plays the ball, lost balls and the two bajadas', () => {
 });
 
 describe('lob rules', () => {
-  it('is not offered to a player at the net', () => {
+  it('is offered from every position, the net included', () => {
     const lob = shot('rally_lob');
-    expect(unavailableReason(lob, rallyState({ formation: ['net', 'back'] }))).not.toBeNull();
+    expect(unavailableReason(lob, rallyState({ formation: ['net', 'back'] }))).toBeNull();
     expect(unavailableReason(lob, rallyState({ formation: ['mid', 'back'] }))).toBeNull();
     expect(unavailableReason(lob, rallyState({ formation: ['back', 'back'] }))).toBeNull();
   });

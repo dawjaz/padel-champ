@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.23)_
+_Last updated: 2026-11-20 (v0.24)_
+
+## v0.24: more air balls, lob from the net
+- **Air take** (`airTake`, point.ts): a defender in mid-court plays a ball that lands no deeper than `AIR_TAKE_DEPTH` 7 m from the net out of the air (not lobs, rulo, serves) at `airDist` 2.2 to 4.2 m from the net, as a volley (reuses `block`; `buildFlight({airDist})`). Net defenders already volleyed everything. The rest of the court (deep balls) still bounces. Tune: `AIR_TAKE_DEPTH`, the 0.6 factor.
+- Lob (`rally_lob`) is now offered from the net too (the formation restriction is gone).
 
 ## v0.23: tuning from Free Practice (owner's notes)
 - Chiquita (both variants): speed 9 -> 7.5, spin -0.9 -> -0.55 (flatter), new `flight.deaden` 0.72 (multiplies floor bounce height and kept speed; generic knob for any shot). First-bounce height about halved (1.0 -> 0.46 m from the baseline).

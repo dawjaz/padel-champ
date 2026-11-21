@@ -958,6 +958,7 @@ export class MatchScene extends Phaser.Scene {
       arrival: step.arrival,
       landDepth: step.landDepth,
       block: step.block,
+      airDist: step.airDist,
       errorKind: step.errorKind,
       reboundBack: step.reboundBack,
       airHit: step.lob === 'weak',

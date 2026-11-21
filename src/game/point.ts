@@ -68,6 +68,8 @@ export interface Step {
   landX?: number;
   /** The defender at the net blocks the ball out of the air. */
   block?: boolean;
+  /** A defender in mid-court takes the ball out of the air this far (m) from the net (set together with `block`). */
+  airDist?: number;
   /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
   reboundBack?: boolean;
   /** How a mistake or a fault ends (the net, the back glass, the mesh above it). */
@@ -306,6 +308,19 @@ export function netVolley(shot: ShotDef, defenderFormation: Formation, lob: LobQ
   );
 }
 
+/** A ball that lands no deeper than this (m from the net) is taken out of the air by a defender in mid-court. */
+export const AIR_TAKE_DEPTH = 7;
+
+/**
+ * A defender in mid-court takes a ball that is coming into the middle or the front two thirds of the court out of the air, instead of
+ * waiting for the bounce. Returns the distance from the net (m) where he plays it, or undefined when he lets it bounce.
+ */
+export function airTake(shot: ShotDef, defenderFormation: Formation, lob: LobQuality | undefined, landDepth: number): number | undefined {
+  if (defenderFormation !== 'mid' || lob !== undefined || landDepth > AIR_TAKE_DEPTH) return undefined;
+  if (shot.kind === 'serve' || isLob(shot) || shot.overFence === true || shot.wall === 'fence' || shot.flight.speed < 6) return undefined;
+  return Math.min(Math.max(landDepth * 0.6, 2.2), Math.max(landDepth * 0.75, 0.8), 4.2);
+}
+
 /** A shot at least this fast (m/s) that rebounds off the glass can fly back over the net. */
 export const REBOUND_BACK_SPEED = 22;
 /** ... when the attack beats the defence by at least this share of the winner margin (but not enough for a plain winner). */
@@ -392,15 +407,17 @@ export function stepHit(
     }
     // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
     // for a soft one) and stays at the net.
-    const block = netVolley(shot, state.formation[defSide], next.lob);
+    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
+    const netBlock = netVolley(shot, state.formation[defSide], next.lob);
+    const airDist = netBlock ? undefined : airTake(shot, state.formation[defSide], next.lob, aimed.landDepth ?? shot.landDepth);
+    const block = netBlock || airDist !== undefined;
     if (block) {
       const height: Height = shot.flight.speed >= 15 ? 'mid' : 'low';
       next.ball = { height, pressure: res.pressure, glass: false, speed: shot.flight.speed };
       next.glass = false;
       next.arrival = height;
     }
-    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth);
-    next.ball = { ...next.ball, zone: block ? 'net' : zoneOf(aimed.landDepth ?? shot.landDepth) };
+    next.ball = { ...next.ball, zone: netBlock ? 'net' : airDist !== undefined ? 'mid' : zoneOf(aimed.landDepth ?? shot.landDepth) };
     return {
       state: {
         ...state,
@@ -411,7 +428,7 @@ export function stepHit(
         ball: next.ball,
         formation: nextFormation(state.formation, side, shot, next.lob),
       },
-      step: { ...step, block: block || undefined, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aimed },
+      step: { ...step, block: block || undefined, airDist, glass: next.glass, arrival: next.arrival, lob: next.lob, ...aimed },
     };
   }
 
