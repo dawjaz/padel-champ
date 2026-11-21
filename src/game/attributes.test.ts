@@ -18,7 +18,7 @@ describe('attributes', () => {
     expect(aimSkill(NEUTRAL)).toBeCloseTo(0.75);
     expect(fatigueStart(NEUTRAL)).toBe(6);
     expect(gutsFor(NEUTRAL)).toBe(10);
-    expect(gutsRecovery(NEUTRAL)).toBe(1);
+    expect(gutsRecovery(NEUTRAL)).toBe(2);
   });
 
   it('more of an attribute is always better, never worse', () => {

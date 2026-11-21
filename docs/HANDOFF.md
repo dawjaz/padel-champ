@@ -5,11 +5,13 @@ _Last updated: 2026-11-21 (v0.49)_
 ## v0.51: second batch of owner notes (main and style/3d)
 - **Flat return** after a cross on serve receive was too easy a winner: `flat.winnerMargin` 24 -> 60 in `shots.json` (test in `point.test.ts`).
 - Result screen: after a tournament there is **GO TO SHOP**, and TITLE is now **MAIN MENU**.
-- **Start SP is 2** (`levels.json: startPoints`); `pointsPerLevel` is still 2. A won tournament still gives several levels, so more than 2 SP (open question for the owner, see below).
+- **Start SP is 2** (`levels.json: startPoints`); `pointsPerLevel` is still 2.
+- **Slower XP curve** (owner's choice): `xpBase` 60 -> 300 (exponent still 1.5), so a won tournament gives about 1 level (2 SP) at entry level instead of 3-6. Level 30 now needs 46,851 XP. Existing saves keep their XP, so their level drops; stat caps (`levelsPerCap`) and gear/division `minLevel` gates were NOT rescaled, so progression through them is now much slower: re-tune together if the pace feels wrong.
+- **Guts recovery back to +2 per point at stamina 5** (`1 + 0.2 * stamina`, rounded).
 - **GEAR**: a gold star on a category button when it holds gear not yet seen (`Inventory.seen`, `hasNewIn`, `markSeen`). Old saves treat all owned gear as seen.
 - **Boosts moved to the shop** (`consumables.json`, price and short label each; no boost pack any more). Bought one by one with `buyBoost`, bag max 2 (`MAX_BOOSTS`). Before each tournament match the BRACKET screen lets you pick one boost from the bag (`Inventory.queued`, max 1, consumed with the match). `queued` is cleared when the tournament ends. Boosts apply only in tournament matches.
 - Not yet checked on a phone: ResultScene button rows, ShopScene boost grid, BracketScene picker.
-- **Open question**: "2 SP after a won tournament". At 2 SP per level a Club Cup is about 4 levels = 8 SP. Options: fewer SP per level, or fewer levels per tournament (XP curve).
+- **Open question**: what should happen when a hero cannot pay a shot's guts cost. Now it is playable with attack x0.6 (`TIRED_FACTOR`) and a " tired" label; options discussed with the owner: red/disabled button, or a much higher error chance.
 
 ## v0.49: owner changes after play-tests (main and style/3d)
 - **Flat shot** (`bounce_shot`) no longer flies back over the net off the back glass: new `ShotDef.noReboundBack` (set in shots.json, checked
