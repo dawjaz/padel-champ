@@ -8,6 +8,11 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.40: nobody freezes, calmer status line
+- When a ball ends the point (winner, ace, error) or a serve is a fault, nobody stands still any more: the defender runs for the ball (all the way on a winner, about two thirds of the way on an error, a few steps on a fault), the partner covers, the hitting pair follows its shot into the new formation (`performHit` in MatchScene: `movePartner`, `shiftHitters`).
+- Status line: removed "X is going to serve", "X serves: ...", "to return" and the "Point to X" overwrite. The last text (how the point ended, now with "POINT TO YOU/CPU") stays until the next shot replaces it; a won game appends "GAME TO ...".
+- Aiming grid (unchanged): 10 points across x 20 in depth = 200 aim points per shot, about 18 cm apart; the real limit is the aim spread (+-0.9 m across, +-1.5 m in depth), not the density.
+
 ## v0.39: second serve, what the guts do, faster pace, shop layout
 - Second serve (after a fault): attack x0.82 (fewer aces), pressure on the return x0.5, fault chance x0.75, ball speed x0.8 (scene); the receiver returns it with power and accuracy x1.2 (`SECOND_SERVE_*` in engine.ts, `Step.second`).
 - Guts now have a practical effect (`fatigueFactor`/`fatigued` in attributes.ts): from half the bar up nothing changes; below that power, accuracy and speed fall to x0.7 on an empty bar (applied to attacker and defender in `stepHit`, receiver in `stepServe`; ball speed via `Step.powerFactor`; players run up to 30% slower in the animation). The old rule stays: a shot you cannot pay for loses 40% attack. In the sim about 17% of player-points are played below half guts; avg hits 7.05, server wins 52.9%.

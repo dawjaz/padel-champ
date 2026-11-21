@@ -92,6 +92,8 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
   private career: CareerMatch | null = null;
+  /** The text on the status line (it stays until the next shot replaces it). */
+  private lastSaid = '';
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
@@ -531,6 +533,7 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private say(msg: string): void {
+    this.lastSaid = msg;
     this.logText.setText(msg);
   }
 
@@ -760,7 +763,6 @@ export class MatchScene extends Phaser.Scene {
       [TEAMS[recvSide][setup.receiverIdx].id]: setup.receiver,
       [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
     };
-    this.say(`${server.name} serves: ${shot.name}.`);
     this.movePlayers(targets, 450, () => {
       this.stance[server.id] = 'smash';
       this.setPose(server.id, 'smashPrep');
@@ -815,13 +817,11 @@ export class MatchScene extends Phaser.Scene {
       [TEAMS[recvSide][setup.receiverIdx].id]: setup.receiver,
       [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
     };
-    const server = TEAMS[this.server][idx];
     for (const id of Object.keys(this.views)) {
       this.setFacing(id, this.defaultFacing(id));
       this.setPose(id, 'ready');
     }
     this.setActive(null);
-    this.say(`${server.name} (${SIDE_NAME[this.server]}) is going to serve.`);
     this.movePlayers(targets, 450, () => {
       // The ball of the last point is never stopped: it is put down for the serve only when it has finished rolling.
       const place = (): void => {
@@ -865,7 +865,6 @@ export class MatchScene extends Phaser.Scene {
       );
     } else {
       this.setActive(null);
-      this.say(`${server.name} serves${tag}.`);
       const shot = pickServe(TEAMS, st, Math.random);
       this.time.delayedCall(CPU_DELAY, () => this.chooseReceive(shot));
     }
@@ -1036,6 +1035,33 @@ export class MatchScene extends Phaser.Scene {
     const targets: Record<string, CourtPos> = {};
     const endPose: Record<string, PoseName> = {};
     const endFacing: Record<string, Facing> = {};
+    const defSideNow = other(step.side);
+    const clampX = (x: number): number => Math.max(-4.2, Math.min(4.2, x));
+    const clampZ = (z: number): number => Math.max(defSideNow === 0 ? NET_Z + 1.2 : 1, Math.min(defSideNow === 0 ? 19 : NET_Z - 1.2, z));
+    /** Nobody stands still: the hitting pair follows the shot into its new formation, shifted towards the side the ball was sent to. */
+    const shiftHitters = (): void => {
+      const shift = Math.max(-1.2, Math.min(1.2, 0.25 * landX));
+      for (const p of TEAMS[step.side]) {
+        const t = targets[p.id];
+        targets[p.id] = { x: clampX(t.x + shift), z: t.z };
+      }
+    };
+    // Both players are in the game. The partner covers the court: he slides across towards the ball (so the pair closes the
+    // middle), drops back or comes forward with his partner, and never stands closer than about 1.8 m to him.
+    const movePartner = (): void => {
+      const partner = TEAMS[defSideNow][1 - step.defenderIdx];
+      const base = targets[partner.id];
+      const spot = targets[defender.id];
+      let px = base.x + 0.55 * (flight.hit.x - base.x);
+      const gap = 1.8;
+      if (Math.abs(px - spot.x) < gap) px = spot.x + (base.x >= spot.x ? gap : -gap);
+      px = clampX(px);
+      const pz = clampZ(base.z + 0.6 * (spot.z - base.z));
+      // Never stand still: if the new spot is almost where he is, he takes a small step to the side that covers the court.
+      const cur = this.pos[partner.id];
+      const tiny = Math.hypot(px - cur.x, pz - cur.z) < 0.5;
+      targets[partner.id] = { x: tiny ? clampX(px + (px > 0 ? -0.6 : 0.6)) : px, z: pz };
+    };
     if (out === 'in' || out === 'continue' || out === 'intercept') {
       Object.assign(targets, this.rallyTargets(next));
       // The player who has to play the ball picks a stance and stands beside the ball's landing spot.
@@ -1046,36 +1072,28 @@ export class MatchScene extends Phaser.Scene {
       this.stance[defender.id] = stance;
       targets[defender.id] = standingSpot(other(step.side), stance, flight.hit, offGlass ? REBOUND_BEHIND_BALL : 0);
       endPose[defender.id] = poseOf(stance, step.block ? 'Hit' : 'Prep');
-      // Both players are in the game. The partner covers the court: he slides across towards the ball (so the pair closes the
-      // middle), drops back or comes forward with his partner, and never stands closer than about 1.8 m to him.
-      const defSide = other(step.side);
-      const partner = TEAMS[defSide][1 - step.defenderIdx];
-      const base = targets[partner.id];
-      const spot = targets[defender.id];
-      const zMin = defSide === 0 ? NET_Z + 1.2 : 1;
-      const zMax = defSide === 0 ? 19 : NET_Z - 1.2;
-      let px = base.x + 0.55 * (flight.hit.x - base.x);
-      const gap = 1.8;
-      if (Math.abs(px - spot.x) < gap) px = spot.x + (base.x >= spot.x ? gap : -gap);
-      px = Math.max(-4.2, Math.min(4.2, px));
-      const pz = Math.max(zMin, Math.min(zMax, base.z + 0.6 * (spot.z - base.z)));
-      // Never stand still: if the new spot is almost where he is, he takes a small step to the side that covers the court.
-      const cur = this.pos[partner.id];
-      const tiny = Math.hypot(px - cur.x, pz - cur.z) < 0.5;
-      targets[partner.id] = { x: tiny ? Math.max(-4.2, Math.min(4.2, px + (px > 0 ? -0.6 : 0.6))) : px, z: pz };
-      // The hitting pair also shifts towards the side the ball was sent to, together.
-      const shift = Math.max(-1.2, Math.min(1.2, 0.25 * landX));
-      for (const p of TEAMS[step.side]) {
-        const t = targets[p.id];
-        targets[p.id] = { x: Math.max(-4.2, Math.min(4.2, t.x + shift)), z: t.z };
-      }
-    } else if (out === 'winner' || out === 'ace') {
-      // The defender runs for it all the way, but cannot get there in time...
+      movePartner();
+      shiftHitters();
+    } else if (out === 'winner' || out === 'ace' || out === 'error') {
+      // The point ends with this ball, but nobody freezes: the defender runs for it (all the way when it is a winner, but he cannot get
+      // there in time and lunges a moment too late; a part of the way when it is an error, then he watches it go), the partner covers,
+      // and the hitting pair follows its shot.
+      Object.assign(targets, this.rallyTargets(next));
       const d = this.pos[defender.id];
       const stance = chooseStance(other(step.side), d.x, flight.hit.x, flight.hitH);
-      targets[defender.id] = standingSpot(other(step.side), stance, flight.hit);
-      // ...and lunges for it a moment too late.
-      endPose[defender.id] = poseOf(stance, 'Hit');
+      const spot = standingSpot(other(step.side), stance, flight.hit);
+      if (out === 'error') {
+        targets[defender.id] = { x: clampX(d.x + 0.65 * (spot.x - d.x)), z: clampZ(d.z + 0.45 * (spot.z - d.z)) };
+      } else {
+        targets[defender.id] = spot;
+        endPose[defender.id] = poseOf(stance, 'Hit');
+      }
+      movePartner();
+      shiftHitters();
+    } else {
+      // A fault or a double fault: the receivers take a few steps towards the ball and stop when it is clearly out.
+      const d = this.pos[defender.id];
+      targets[defender.id] = { x: clampX(d.x + 0.4 * (flight.hit.x - d.x)), z: clampZ(d.z + 0.3 * (flight.hit.z - d.z)) };
     }
     this.movePlayers(targets, duration, undefined, endPose, endFacing);
     for (const e of flight.events) {
@@ -1177,7 +1195,8 @@ export class MatchScene extends Phaser.Scene {
     this.point = next;
 
     const endPoint = (text: string, delay = Math.max(POINT_PAUSE + 500, Math.min(coastMs + 350, 2200))): void => {
-      this.say(`${headline}\n${text}`);
+      const winnerLine = step.pointWinner === null ? '' : `  >  POINT TO ${SIDE_NAME[step.pointWinner]}`;
+      this.say(`${headline}\n${text}${winnerLine}`);
       const banner: Partial<Record<string, [string, string]>> = {
         'double-fault': ['DOUBLE FAULT', '#ff9a6a'],
         ace: ['ACE!', '#ffe066'],
@@ -1226,7 +1245,7 @@ export class MatchScene extends Phaser.Scene {
           this.time.delayedCall(1300, () => this.practiceMenu());
           break;
         }
-        this.say(`${headline}\n${defender.name} to return.`);
+        this.say(headline);
         this.time.delayedCall(this.isHuman(next.holder, next.hitterIdx) ? NEXT_HIT_DELAY : CPU_NEXT_HIT_DELAY, () => this.hitTurn());
         break;
       case 'winner':
@@ -1288,10 +1307,9 @@ export class MatchScene extends Phaser.Scene {
     if (res.gameWon) {
       this.server = other(this.server);
       this.serverIdx[this.server] = 1 - this.serverIdx[this.server];
-      this.say(`Game to ${SIDE_NAME[winner]}!`);
+      this.say(`${this.lastSaid}\nGAME TO ${SIDE_NAME[winner]}!`);
       this.time.delayedCall(GAME_PAUSE, () => this.beginPoint());
     } else {
-      this.say(`Point to ${SIDE_NAME[winner]}.`);
       this.time.delayedCall(POINT_PAUSE, () => this.beginPoint());
     }
   }
