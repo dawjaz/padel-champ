@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-21 (v0.49)_
 
+## v0.52: 3D character (branch style/3d only)
+- `src/art/three/player3d.ts` is now a jointed skeleton (hips, waist, neck, shoulders, elbows, wrist, knees, ankles), driven by pure pose functions: `READY`, `runPose(phase)`, `strokePose(stroke, t)` with nine strokes (forehand, backhand, volley, lob, serve, smash, bandeja, vibora, bajada). Feet stay planted when he crouches; `strokeContact()` says when the racket meets the ball.
+- `char.html` (+ `charviewer.ts`) is a viewer for one character: buttons per stroke, IDLE, RUN, SLOW; `?stroke=smash&t=0.36&yaw=0.7&nobar=1` freezes a pose for screenshots. Published at `/3d/char.html`; the match demo is `/3d/3d.html`.
+- The demo maps shots to strokes (`strokeFor`). Known rough spots: the forehand follow-through puts the racket in front of the face, the ball leaves at the start of the swing (contact comes 0.1-0.5 s later), right-handed only, no leg motion for side steps.
+- Stylised, not realistic: realistic would need modelled characters and padel animations as assets (see the chat notes: three paths).
+
 ## v0.51: second batch of owner notes (main and style/3d)
 - **Flat return** after a cross on serve receive was too easy a winner: `flat.winnerMargin` 24 -> 60 in `shots.json` (test in `point.test.ts`).
 - Result screen: after a tournament there is **GO TO SHOP**, and TITLE is now **MAIN MENU**.
