@@ -28,7 +28,6 @@
    "name": "Court Visor Cap",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "accuracy": 1,
     "technique": 1
@@ -41,7 +40,6 @@
    "name": "Tour Cap",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "accuracy": 2,
     "spin": 1
@@ -66,7 +64,6 @@
    "name": "Dry-Fit Shirt",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "stamina": 2
    },
@@ -78,7 +75,6 @@
    "name": "Tour Shirt",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "stamina": 2,
     "defense": 1
@@ -103,7 +99,6 @@
    "name": "Flex Shorts",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "speed": 2
    },
@@ -115,7 +110,6 @@
    "name": "Tour Shorts",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "speed": 2,
     "stamina": 1
@@ -140,7 +134,6 @@
    "name": "Power Sprint Shoes",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "power": 2
    },
@@ -152,7 +145,6 @@
    "name": "Grip Master Shoes",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "speed": 2,
     "defense": 1
@@ -177,7 +169,6 @@
    "name": "Spin Control Racket",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "spin": 2
    },
@@ -189,7 +180,6 @@
    "name": "Carbon Pro Racket",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "power": 2,
     "accuracy": 1
@@ -214,7 +204,6 @@
    "name": "Grip Wristband",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "technique": 2
    },
@@ -226,7 +215,6 @@
    "name": "Tour Wristband",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "spin": 2,
     "technique": 1
@@ -250,7 +238,6 @@
    "name": "Tour Bag",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "stamina": 1,
     "defense": 1
@@ -262,7 +249,6 @@
    "name": "Team Bag",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "stamina": 2,
     "defense": 1
@@ -285,7 +271,6 @@
    "name": "Pro Balls",
    "rarity": "rare",
    "minLevel": 5,
-   "unlock": 5,
    "bonus": {
     "power": 2
    }
@@ -296,11 +281,107 @@
    "name": "Tour Balls",
    "rarity": "epic",
    "minLevel": 12,
-   "unlock": 12,
    "bonus": {
     "power": 1,
     "spin": 1,
     "accuracy": 1
+   }
+  },
+  {
+   "id": "cap_champ",
+   "slot": "head",
+   "name": "Champion Cap",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "accuracy": 2,
+    "technique": 1,
+    "spin": 1
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "top_champ",
+   "slot": "top",
+   "name": "Champion Shirt",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "stamina": 2,
+    "defense": 2
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "sh_champ",
+   "slot": "shorts",
+   "name": "Champion Shorts",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "speed": 3,
+    "stamina": 1
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "sho_champ",
+   "slot": "shoes",
+   "name": "Champion Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "speed": 2,
+    "power": 2
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "rk_champ",
+   "slot": "racket",
+   "name": "Champion Racket",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "spin": 2
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "wb_champ",
+   "slot": "wristband",
+   "name": "Champion Wristband",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "spin": 2,
+    "technique": 2
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "bag_champ",
+   "slot": "bag",
+   "name": "Champion Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "stamina": 2,
+    "defense": 1,
+    "speed": 1
+   }
+  },
+  {
+   "id": "ball_champ",
+   "slot": "balls",
+   "name": "Champion Balls",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 1,
+    "spin": 1,
+    "accuracy": 2
    }
   }
  ]

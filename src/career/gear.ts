@@ -3,6 +3,7 @@
 // An item can be equipped only from its `minLevel`; items with `unlock` come to the inventory at that level (packs add more in B4).
 
 import consumablesData from '../data/consumables.json';
+import packsData from '../data/packs.json';
 import gearData from '../data/gear.json';
 import type { Appearance, StatKey } from '../game/types';
 
@@ -34,6 +35,10 @@ export interface Consumable {
 export interface Inventory {
   owned: string[];
   equipped: Partial<Record<Slot, string>>;
+  /** Unopened packs (from level-ups): pack id -> count. */
+  packs: Record<string, number>;
+  /** Packs opened since the last item of the pity rarity, per pack id (see packs.ts). */
+  pity: Record<string, number>;
   /** Consumables in stock. */
   stock: Record<string, number>;
   /** Consumables chosen for the next match (used up when it starts). */
@@ -43,6 +48,7 @@ export interface Inventory {
 export const SLOTS = gearData.slots as Slot[];
 export const GEAR = gearData.items as GearItem[];
 export const CONSUMABLES = consumablesData.items as Consumable[];
+const packIds = packsData.packs.map((p) => p.id);
 export const MAX_QUEUED = consumablesData.maxQueued;
 
 export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g.id === id);
@@ -61,7 +67,7 @@ export const SLOT_LABEL: Record<Slot, string> = {
 };
 
 export function newInventory(): Inventory {
-  return syncUnlocks({ owned: [], equipped: {}, stock: { ...consumablesData.starter }, queued: [] }, 1);
+  return syncUnlocks({ owned: [], equipped: {}, packs: {}, pity: {}, stock: { ...consumablesData.starter }, queued: [] }, 1);
 }
 
 /** Adds the items that unlock at or below this level. */
@@ -159,7 +165,7 @@ export function sanitizeInventory(raw: unknown, level: number): Inventory {
   const o = (raw ?? null) as Partial<Record<string, unknown>> | null;
   if (!o) return newInventory();
   const ids = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-  const owned = syncUnlocks({ owned: [...new Set(ids(o.owned).filter((id) => gearById(id)))], equipped: {}, stock: {}, queued: [] }, level).owned;
+  const owned = syncUnlocks({ owned: [...new Set(ids(o.owned).filter((id) => gearById(id)))], equipped: {}, packs: {}, pity: {}, stock: {}, queued: [] }, level).owned;
   const equipped: Partial<Record<Slot, string>> = {};
   const eq = (o.equipped ?? {}) as Record<string, unknown>;
   for (const slot of SLOTS) {
@@ -173,5 +179,12 @@ export function sanitizeInventory(raw: unknown, level: number): Inventory {
     stock[c.id] = typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
   }
   const queued = [...new Set(ids(o.queued).filter((id) => (stock[id] ?? 0) > 0))].slice(0, MAX_QUEUED);
-  return { owned, equipped, stock, queued };
+  const counts = (v: unknown): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const [k, n] of Object.entries((v ?? {}) as Record<string, unknown>)) {
+      if (typeof n === 'number' && Number.isFinite(n) && n > 0 && packIds.includes(k)) out[k] = Math.floor(n);
+    }
+    return out;
+  };
+  return { owned, equipped, packs: counts(o.packs), pity: counts(o.pity), stock, queued };
 }

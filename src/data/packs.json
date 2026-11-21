@@ -1,0 +1,47 @@
+{
+ "dup": {
+  "common": 15,
+  "rare": 40,
+  "epic": 100,
+  "legendary": 250
+ },
+ "levelUpPack": "gear",
+ "packs": [
+  {
+   "id": "gear",
+   "name": "Gear Pack",
+   "price": 150,
+   "items": 2,
+   "odds": {
+    "common": 70,
+    "rare": 26,
+    "epic": 4
+   },
+   "pity": {
+    "after": 6,
+    "min": "rare"
+   }
+  },
+  {
+   "id": "premium",
+   "name": "Premium Pack",
+   "price": 500,
+   "items": 3,
+   "odds": {
+    "rare": 70,
+    "epic": 26,
+    "legendary": 4
+   },
+   "pity": {
+    "after": 5,
+    "min": "epic"
+   }
+  },
+  {
+   "id": "boost",
+   "name": "Boost Bundle",
+   "price": 80,
+   "consumables": 3
+  }
+ ]
+}

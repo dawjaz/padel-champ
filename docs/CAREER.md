@@ -70,7 +70,7 @@ Bracket, Rewards.
 - **B1** seven attributes in the engine (done in v0.34): `attributes.ts`, players get all seven, balance kept at 5.
 - **B2** (done in v0.35) profile, XP, levels, skill points, save v2 migration, character screen. Numbers in `levels.json` (30 levels, 2 points per level, caps 5 to 10).
 - **B3** (done in v0.36) gear (8 slots), inventory, appearance layers (cap, wristband), level gates, consumables. Sets and legendary items wait for packs.
-- **B4** coins, shop, packs and pack opening, drop tables.
+- **B4** (done in v0.37) coins, shop, packs and pack opening, drop tables with visible odds and a pity rule, one free pack per level up.
 - **B5** career calendar, divisions, draws, opponents from the division, rewards and ranking, partner roster.
 - **B6** achievements, tutorial, balance pass with the owner's play-tests.
 

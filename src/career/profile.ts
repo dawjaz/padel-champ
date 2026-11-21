@@ -2,6 +2,7 @@
 // All numbers live in src/data/levels.json.
 
 import levels from '../data/levels.json';
+import packsData from '../data/packs.json';
 import { applyLook, gearBonus, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
@@ -89,7 +90,11 @@ export function matchReward(m: MatchSummary): Reward {
 
 export function award(p: Profile, r: Reward): Profile {
   const xp = p.xp + r.xp;
-  return { ...p, xp, coins: p.coins + r.coins, inventory: syncUnlocks(p.inventory, levelOf(xp)) };
+  const gained = levelOf(xp) - levelOf(p.xp);
+  const inv = syncUnlocks(p.inventory, levelOf(xp));
+  // Every level up brings one free pack.
+  const packs = gained > 0 ? { ...inv.packs, [packsData.levelUpPack]: (inv.packs[packsData.levelUpPack] ?? 0) + gained } : inv.packs;
+  return { ...p, xp, coins: p.coins + r.coins, inventory: { ...inv, packs } };
 }
 
 /** Makes a stored profile safe: whole numbers, nothing above the level cap, never more points than earned. */

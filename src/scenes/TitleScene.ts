@@ -3,7 +3,7 @@ import { ensureCharacterTexture } from '../art/characterTexture';
 import { applyHd } from '../hd';
 import { BALL_KEY, ensureBallTextures } from '../art/hdTextures';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
-import { BUILD_ID, COLORS, css, FONT, GAME_TITLE, GAME_VERSION, HD_SCALE, HEIGHT, WIDTH } from '../config';
+import { BUILD_ID, COLORS, SHOW_FREE_PRACTICE, css, FONT, GAME_TITLE, GAME_VERSION, HD_SCALE, HEIGHT, WIDTH } from '../config';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
@@ -68,11 +68,17 @@ export class TitleScene extends Phaser.Scene {
     const add = (list: Phaser.GameObjects.GameObject[], b: { parts: Phaser.GameObjects.GameObject[] }): void => {
       list.push(...b.parts);
     };
-    const MH = 46;
-    add(mainMenu, makeButton(this, WIDTH / 2, 418, 220, MH, 'START MATCH', () => this.scene.start('MatchScene', { practice: null })));
-    add(mainMenu, makeButton(this, WIDTH / 2, 470, 220, MH, 'HERO', () => this.scene.start('CharacterScene')));
-    add(mainMenu, makeButton(this, WIDTH / 2, 522, 220, MH, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
-    add(mainMenu, makeButton(this, WIDTH / 2, 574, 220, MH, 'SETTINGS', () => this.scene.start('SettingsScene')));
+    const MH = SHOW_FREE_PRACTICE ? 38 : 46;
+    // Free Practice stays in the game but is hidden from the menu (set SHOW_FREE_PRACTICE in config.ts to bring it back).
+    const rows = SHOW_FREE_PRACTICE ? [406, 450, 494, 538, 582] : [418, 470, 522, 574];
+    let row = 0;
+    add(mainMenu, makeButton(this, WIDTH / 2, rows[row++], 220, MH, 'START MATCH', () => this.scene.start('MatchScene', { practice: null })));
+    add(mainMenu, makeButton(this, WIDTH / 2, rows[row++], 220, MH, 'HERO', () => this.scene.start('CharacterScene')));
+    add(mainMenu, makeButton(this, WIDTH / 2, rows[row++], 220, MH, 'SHOP', () => this.scene.start('ShopScene')));
+    if (SHOW_FREE_PRACTICE) {
+      add(mainMenu, makeButton(this, WIDTH / 2, rows[row++], 220, MH, 'FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }));
+    }
+    add(mainMenu, makeButton(this, WIDTH / 2, rows[row], 220, MH, 'SETTINGS', () => this.scene.start('SettingsScene')));
     add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack' })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend' })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));

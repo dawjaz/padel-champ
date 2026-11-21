@@ -84,29 +84,29 @@ export class GearScene extends Phaser.Scene {
     });
 
     // Items of the chosen slot
-    this.label(WIDTH / 2, 326, SLOT_LABEL[this.slot], 13, COLORS.white, true);
+    this.label(WIDTH / 2, 322, SLOT_LABEL[this.slot], 13, COLORS.white, true);
     itemsOfSlot(this.slot).forEach((it: GearItem, i) => {
-      const y = 360 + i * 44;
+      const y = 352 + i * 38;
       const owned = inv.owned.includes(it.id);
       const usable = owned && level >= it.minLevel;
       const on = inv.equipped[this.slot] === it.id;
       const text = usable ? `${on ? '* ' : ''}${it.name}   ${bonusText(it.bonus)}` : `${it.name}   LEVEL ${it.minLevel}`;
-      this.button(WIDTH / 2, y, 330, 38, text, 11, on ? COLORS.yellow : RARITY_COLOR[it.rarity], () => {
+      this.button(WIDTH / 2, y, 330, 34, text, 11, on ? COLORS.yellow : RARITY_COLOR[it.rarity], () => {
         if (!usable) return;
         this.save((v) => (on ? unequip(v, this.slot) : equip(v, it.id, level)));
       }, !usable);
     });
 
     // Boosts for the next match
-    this.label(WIDTH / 2, 500, `BOOSTS FOR THE NEXT MATCH (${inv.queued.length}/${MAX_QUEUED})`, 11, COLORS.white, true);
+    this.label(WIDTH / 2, 498, `BOOSTS FOR THE NEXT MATCH (${inv.queued.length}/${MAX_QUEUED})`, 11, COLORS.white, true);
     CONSUMABLES.forEach((c, i) => {
       const n = inv.stock[c.id] ?? 0;
       const queued = inv.queued.includes(c.id);
-      this.button(51 + i * 86, 536, 80, 44, `${c.name.split(' ')[0].toUpperCase()}\nx${n}`, 10, queued ? COLORS.yellow : COLORS.gray, () => {
+      this.button(51 + i * 86, 530, 80, 44, `${c.name.split(' ')[0].toUpperCase()}\nx${n}`, 10, queued ? COLORS.yellow : COLORS.gray, () => {
         this.note = `${c.name.toUpperCase()}: ${c.desc}`;
         this.save((v) => toggleQueued(v, c.id));
       }, n === 0 && !queued);
     });
-    this.label(WIDTH / 2, 574, this.note, 10, COLORS.sky).setWordWrapWidth(340);
+    this.label(WIDTH / 2, 566, this.note, 10, COLORS.sky).setWordWrapWidth(340);
   }
 }

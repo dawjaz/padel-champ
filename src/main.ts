@@ -3,6 +3,8 @@ import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
 import { CharacterScene } from './scenes/CharacterScene';
 import { GearScene } from './scenes/GearScene';
+import { PackScene } from './scenes/PackScene';
+import { ShopScene } from './scenes/ShopScene';
 import { MatchScene } from './scenes/MatchScene';
 import { ResultScene } from './scenes/ResultScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -23,5 +25,5 @@ new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, MatchScene, ResultScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, MatchScene, ResultScene],
 });

@@ -12,8 +12,8 @@ export interface ResultData {
   reward?: Reward;
   /** The new level when the match brought a level up, else 0. */
   levelUp?: number;
-  /** Names of the gear items that this match unlocked. */
-  unlocked?: string[];
+  /** Free packs this match brought (one per level up). */
+  packs?: number;
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -24,7 +24,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, unlocked: data.unlocked ?? [] };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0 };
   }
 
   create(): void {
@@ -65,9 +65,9 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(WIDTH / 2, 378, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', fontStyle: 'bold', color: css(this.outcome.levelUp ? COLORS.yellow : COLORS.white) })
       .setOrigin(0.5);
-    if (this.outcome.unlocked && this.outcome.unlocked.length > 0) {
+    if (this.outcome.packs) {
       this.add
-        .text(WIDTH / 2, 416, `NEW GEAR: ${this.outcome.unlocked.slice(0, 3).join(', ').toUpperCase()}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.sky), align: 'center', wordWrap: { width: 330 } })
+        .text(WIDTH / 2, 416, `FREE PACK x${this.outcome.packs}: OPEN IT IN THE SHOP`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.sky) })
         .setOrigin(0.5);
     }
     this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);

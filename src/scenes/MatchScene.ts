@@ -23,7 +23,7 @@ import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } fro
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
-import { boostOf, consumeQueued, unlockedBetween } from '../career/gear';
+import { boostOf, consumeQueued } from '../career/gear';
 import { award, heroFrom, levelOf, matchReward } from '../career/profile';
 import { getSave, recordResult, updateSave } from '../save';
 
@@ -1288,6 +1288,6 @@ export class MatchScene extends Phaser.Scene {
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, unlocked: unlockedBetween(levelBefore, levelAfter).map((g) => g.name) }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore) }));
   }
 }

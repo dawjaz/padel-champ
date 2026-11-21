@@ -8,6 +8,15 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.37: B4, coins, shop, packs; Free Practice hidden
+- Free Practice is hidden from the title menu (`SHOW_FREE_PRACTICE = false` in config.ts; all code is kept; the menu re-lays out for 4 or 5 buttons).
+- `src/career/packs.ts` (+ tests) and `src/data/packs.json`: Gear Pack (150 coins, 2 items: 70% common, 26% rare, 4% epic; sure rare+ every 6 packs), Premium Pack (500, 3 items: 70% rare, 26% epic, 4% legendary; sure epic+ every 5), Boost Bundle (80, 3 consumables). A duplicate pays coins (15/40/100/250). Odds and the pity counter are shown in the shop.
+- gear.json: 8 legendary items added (minLevel 20, +4 bonus). Rare/epic/legendary are now pack-only (no level unlock; commons are owned from the start). An owned item still needs its `minLevel` to be equipped.
+- Every level up brings one free Gear Pack (`inventory.packs`, opened from the top of the SHOP); ResultScene shows FREE PACK. Inventory also keeps `pity`.
+- New scenes: SHOP (title menu) and PackScene (tap to turn the cards one by one). Real money is still not involved.
+- Economy to review with the owner: about 40-70 coins per match; a Gear Pack is 2-4 matches.
+- Next: B5 career calendar (divisions, knockout draws, opponents from the division, rewards, ranking, partner roster).
+
 ## v0.36: B3, gear and consumables; vibora not at the net
 - Vibora has `formations: [mid, back]`: not offered to a team that stands at the net (test in point.test.ts).
 - `src/career/gear.ts` (+ tests), `src/data/gear.json` (8 slots x common/rare/epic = 24 items; bonus total 1/2/3 by rarity, e.g. Power Sprint Shoes +2 Power), `src/data/consumables.json` (isotonic +10% guts recovery, gel +2 max guts, grip tape +2 technique, fresh balls +2 spin; 2 of each at the start, max 3 queued).
