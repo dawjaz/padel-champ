@@ -102,3 +102,14 @@ describe('opPixels', () => {
     expect(widths[0]).toBeLessThan(Math.max(...widths));
   });
 });
+
+describe('cap and wristband (gear)', () => {
+  const base = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' } as const;
+  it('add shapes in every view and leave the character unchanged without them', () => {
+    for (const facing of ['front', 'back', 'left', 'right'] as const) {
+      const plain = buildCharacter({ ...base }, facing).length;
+      expect(buildCharacter({ ...base, cap: '#ff0000' }, facing).length, facing).toBeGreaterThan(plain);
+      expect(buildCharacter({ ...base, wristband: '#00ff00' }, facing).length, facing).toBe(plain + 1);
+    }
+  });
+});

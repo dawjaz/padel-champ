@@ -251,6 +251,13 @@ export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = '
 
   // --- headband ---
   if (a.headband) rect(7, 10, 18, 2, hex(a.headband));
+  // --- cap: crown over the hair, brim over the forehead (front view only) ---
+  if (a.cap) {
+    const cap = hex(a.cap);
+    disc(16, 8, 10, 5.5, cap);
+    rect(6, 8, 20, 3, cap);
+    if (!back) rect(8, 11, 16, 2, shade(cap, 0.7));
+  }
 
   // --- racket arm and racket, drawn from the pose (the racket hand is on the right of the player) ---
   const out = back ? 1 : -1;
@@ -267,6 +274,7 @@ export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = '
   }
   const hand = { x: shoulder.x + out * spec.hand.dx, y: shoulder.y + spec.hand.dy };
   chain(shoulder, hand);
+  if (a.wristband) disc(shoulder.x + (hand.x - shoulder.x) * 0.88, shoulder.y + (hand.y - shoulder.y) * 0.88, 2, 2, hex(a.wristband));
   const sin = Math.sin(spec.angle);
   const cos = Math.cos(spec.angle);
   for (let i = 1; i <= 3; i++) disc(hand.x + out * sin * i, hand.y - cos * i, 0.8, 0.8, WHITE);
@@ -343,6 +351,7 @@ function buildProfile(a: Appearance, facing: 'left' | 'right', pose: PoseName): 
     if (pp.off) chain(shoulder, { x: shoulder.x + pp.off.fx, y: shoulder.y + pp.off.fy });
     const hand = { x: shoulder.x + pp.hand.fx, y: shoulder.y + pp.hand.fy };
     chain(shoulder, hand);
+    if (a.wristband) disc(shoulder.x + (hand.x - shoulder.x) * 0.88, shoulder.y + (hand.y - shoulder.y) * 0.88, 2, 2, hex(a.wristband));
     const sin = Math.sin(pp.angle);
     const cos = Math.cos(pp.angle);
     for (let i = 1; i <= 3; i++) disc(hand.x + sin * i, hand.y - cos * i, 0.8, 0.8, WHITE);
@@ -401,6 +410,12 @@ function buildProfile(a: Appearance, facing: 'left' | 'right', pose: PoseName): 
     }
   }
   if (a.headband) rect(8, 9, 18, 2, accent);
+  if (a.cap) {
+    const cap = hex(a.cap);
+    disc(14, 8, 9, 5.5, cap);
+    rect(5, 8, 18, 3, cap);
+    rect(21, 10, 8, 2, shade(cap, 0.7));
+  }
   rect(21, 13, 2, 4, EYE);
   rect(21, 13, 1, 1, WHITE);
   rect(25, 16, 2, 3, skinLo);

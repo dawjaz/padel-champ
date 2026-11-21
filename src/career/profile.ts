@@ -2,6 +2,7 @@
 // All numbers live in src/data/levels.json.
 
 import levels from '../data/levels.json';
+import { applyLook, gearBonus, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
 
@@ -12,6 +13,8 @@ export interface Profile {
   coins: number;
   /** Skill points put into each attribute (on top of `levels.startStat`). */
   alloc: Alloc;
+  /** Gear, consumables (see gear.ts). */
+  inventory: Inventory;
 }
 
 export interface MatchSummary {
@@ -30,7 +33,7 @@ export interface Reward {
 
 export const emptyAlloc = (): Alloc => Object.fromEntries(STAT_KEYS.map((k) => [k, 0])) as Alloc;
 
-export const newProfile = (): Profile => ({ xp: 0, coins: 0, alloc: emptyAlloc() });
+export const newProfile = (): Profile => ({ xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -85,7 +88,8 @@ export function matchReward(m: MatchSummary): Reward {
 }
 
 export function award(p: Profile, r: Reward): Profile {
-  return { ...p, xp: p.xp + r.xp, coins: p.coins + r.coins };
+  const xp = p.xp + r.xp;
+  return { ...p, xp, coins: p.coins + r.coins, inventory: syncUnlocks(p.inventory, levelOf(xp)) };
 }
 
 /** Makes a stored profile safe: whole numbers, nothing above the level cap, never more points than earned. */
@@ -102,11 +106,14 @@ export function sanitizeProfile(raw: unknown): Profile {
     alloc[k] = Math.max(0, v);
     left -= alloc[k];
   }
-  return { xp, coins: n(o.coins), alloc };
+  return { xp, coins: n(o.coins), alloc, inventory: sanitizeInventory(o.inventory, level) };
 }
 
-/** The playable hero: the base player (name, look) with the attributes of the profile. */
-export function heroFrom(base: PlayerDef, p: Profile): PlayerDef {
-  const stats = Object.fromEntries(STAT_KEYS.map((k) => [k, statValue(p, k)])) as Record<StatKey, number>;
-  return { ...base, stats, maxGuts: gutsFor(stats.stamina) };
+/** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */
+export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef {
+  const gear = gearBonus(p.inventory);
+  const stats = Object.fromEntries(
+    STAT_KEYS.map((k) => [k, Math.min(levels.statMax, statValue(p, k) + gear[k] + (boost?.stats[k] ?? 0))]),
+  ) as Record<StatKey, number>;
+  return { ...base, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: applyLook(base.appearance, p.inventory) };
 }

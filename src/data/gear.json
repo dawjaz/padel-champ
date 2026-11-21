@@ -1,0 +1,307 @@
+{
+ "slots": [
+  "head",
+  "top",
+  "shorts",
+  "shoes",
+  "racket",
+  "wristband",
+  "bag",
+  "balls"
+ ],
+ "items": [
+  {
+   "id": "cap_club",
+   "slot": "head",
+   "name": "Club Cap",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "technique": 1
+   },
+   "color": "#e8554e"
+  },
+  {
+   "id": "cap_visor",
+   "slot": "head",
+   "name": "Court Visor Cap",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "accuracy": 1,
+    "technique": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "cap_pro",
+   "slot": "head",
+   "name": "Tour Cap",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "accuracy": 2,
+    "spin": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "top_club",
+   "slot": "top",
+   "name": "Club Shirt",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "stamina": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "top_tech",
+   "slot": "top",
+   "name": "Dry-Fit Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "stamina": 2
+   },
+   "color": "#35c4a8"
+  },
+  {
+   "id": "top_pro",
+   "slot": "top",
+   "name": "Tour Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "stamina": 2,
+    "defense": 1
+   },
+   "color": "#3a6df0"
+  },
+  {
+   "id": "sh_club",
+   "slot": "shorts",
+   "name": "Club Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#2b2b5e"
+  },
+  {
+   "id": "sh_flex",
+   "slot": "shorts",
+   "name": "Flex Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "speed": 2
+   },
+   "color": "#1a1a1a"
+  },
+  {
+   "id": "sh_pro",
+   "slot": "shorts",
+   "name": "Tour Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "speed": 2,
+    "stamina": 1
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "sho_club",
+   "slot": "shoes",
+   "name": "Club Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "sho_power",
+   "slot": "shoes",
+   "name": "Power Sprint Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "power": 2
+   },
+   "color": "#e8554e"
+  },
+  {
+   "id": "sho_grip",
+   "slot": "shoes",
+   "name": "Grip Master Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "speed": 2,
+    "defense": 1
+   },
+   "color": "#00a800"
+  },
+  {
+   "id": "rk_club",
+   "slot": "racket",
+   "name": "Club Racket",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#f2a33a"
+  },
+  {
+   "id": "rk_spin",
+   "slot": "racket",
+   "name": "Spin Control Racket",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "spin": 2
+   },
+   "color": "#8a2be2"
+  },
+  {
+   "id": "rk_pro",
+   "slot": "racket",
+   "name": "Carbon Pro Racket",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "power": 2,
+    "accuracy": 1
+   },
+   "color": "#15151c"
+  },
+  {
+   "id": "wb_club",
+   "slot": "wristband",
+   "name": "Club Wristband",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "spin": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "wb_grip",
+   "slot": "wristband",
+   "name": "Grip Wristband",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "technique": 2
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "wb_pro",
+   "slot": "wristband",
+   "name": "Tour Wristband",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "spin": 2,
+    "technique": 1
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "bag_club",
+   "slot": "bag",
+   "name": "Club Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "stamina": 1
+   }
+  },
+  {
+   "id": "bag_tour",
+   "slot": "bag",
+   "name": "Tour Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "stamina": 1,
+    "defense": 1
+   }
+  },
+  {
+   "id": "bag_team",
+   "slot": "bag",
+   "name": "Team Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "stamina": 2,
+    "defense": 1
+   }
+  },
+  {
+   "id": "ball_club",
+   "slot": "balls",
+   "name": "Training Balls",
+   "rarity": "common",
+   "minLevel": 1,
+   "unlock": 1,
+   "bonus": {
+    "spin": 1
+   }
+  },
+  {
+   "id": "ball_pro",
+   "slot": "balls",
+   "name": "Pro Balls",
+   "rarity": "rare",
+   "minLevel": 5,
+   "unlock": 5,
+   "bonus": {
+    "power": 2
+   }
+  },
+  {
+   "id": "ball_tour",
+   "slot": "balls",
+   "name": "Tour Balls",
+   "rarity": "epic",
+   "minLevel": 12,
+   "unlock": 12,
+   "bonus": {
+    "power": 1,
+    "spin": 1,
+    "accuracy": 1
+   }
+  }
+ ]
+}

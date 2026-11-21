@@ -19,6 +19,10 @@ export interface Appearance {
   shoes: string;
   racket: string;
   headband?: string;
+  /** Cap (head slot): colour of the crown; the brim is a darker shade. */
+  cap?: string;
+  /** Wristband on the racket hand. */
+  wristband?: string;
 }
 
 export interface PlayerDef {

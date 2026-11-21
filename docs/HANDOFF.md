@@ -8,6 +8,16 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.36: B3, gear and consumables; vibora not at the net
+- Vibora has `formations: [mid, back]`: not offered to a team that stands at the net (test in point.test.ts).
+- `src/career/gear.ts` (+ tests), `src/data/gear.json` (8 slots x common/rare/epic = 24 items; bonus total 1/2/3 by rarity, e.g. Power Sprint Shoes +2 Power), `src/data/consumables.json` (isotonic +10% guts recovery, gel +2 max guts, grip tape +2 technique, fresh balls +2 spin; 2 of each at the start, max 3 queued).
+- Rules: total attribute = base + skill points + gear + boost, capped at `statMax` (10); an item needs its `minLevel` (common 1, rare 5, epic 12) to be equipped; items with `unlock` arrive in the inventory at that level (ResultScene shows NEW GEAR); packs in B4 add the rest. Sets and legendary items are not done yet.
+- `Profile.inventory {owned, equipped, stock, queued}` is part of the save (sanitised on load). `heroFrom(base, profile, boost)` applies gear, boost and the look.
+- Look: `Appearance.cap` (new drawing, all four views) and `Appearance.wristband`; shirt/shorts/shoes/racket colours come from the gear; bag and balls have no look yet (only bonuses).
+- MatchScene: queued consumables boost the match and are used up at its start (not in Free Practice); guts can be fractional (shown floored).
+- New GEAR screen (from HERO): hero preview with the look, 8 slots, items of the chosen slot, boosts. HERO shows gear bonuses in yellow.
+- Next: B4 coins, shop, packs and pack opening, drop tables (odds visible).
+
 ## v0.35: B2, profile, XP, levels, hero screen
 - `src/career/profile.ts` (+ tests) and `src/data/levels.json`: XP curve (60 x (L-1)^1.5), 30 levels, hero starts at 4 in every attribute with 6 free points, +2 points per level, attribute cap 5 at level 1 rising to 10 at level 26 (one step per 5 levels); match rewards (XP and coins by played/win/points/long rally) all in JSON.
 - Save is v2: `profile {xp, coins, alloc}`; v1 saves migrate to a fresh profile; `sanitizeProfile` cuts cheating (points above earned or above the cap).

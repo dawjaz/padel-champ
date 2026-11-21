@@ -671,3 +671,19 @@ describe('serve fault kinds', () => {
     expect(unavailableReason(r, st('low'))).not.toBeNull();
   });
 });
+
+describe('vibora and the net', () => {
+  it('is not playable by a team that stands at the net, but is from mid and back', () => {
+    const vibora = SHOTS.find((s) => s.id === 'vibora')!;
+    const base = startPoint({}, 0, 0, 0);
+    const st = (f: 'net' | 'mid' | 'back'): PointState => ({
+      ...base,
+      holder: 0,
+      formation: [f, 'back'],
+      ball: { ...base.ball, height: 'mid', glass: false },
+    });
+    expect(unavailableReason(vibora, st('net'))).not.toBeNull();
+    expect(unavailableReason(vibora, st('mid'))).toBeNull();
+    expect(unavailableReason(vibora, st('back'))).toBeNull();
+  });
+});

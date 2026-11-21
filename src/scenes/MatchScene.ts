@@ -23,6 +23,7 @@ import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } fro
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
+import { boostOf, consumeQueued, unlockedBetween } from '../career/gear';
 import { award, heroFrom, levelOf, matchReward } from '../career/profile';
 import { getSave, recordResult, updateSave } from '../save';
 
@@ -83,6 +84,8 @@ export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
+  /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
+  private recoveryPct = 0;
   private server: SideIndex = 0;
   /** Which player of each team serves in their next service game. */
   private serverIdx: [number, number] = [0, 0];
@@ -136,7 +139,14 @@ export class MatchScene extends Phaser.Scene {
 
   create(): void {
     applyHd(this);
-    TEAMS = [[heroFrom(BASE_YOU[0], getSave().profile), BASE_YOU[1]], TEAMS[1]];
+    const profile = getSave().profile;
+    // Queued consumables boost one real match (not Free Practice) and are used up when it starts.
+    const boost = this.practice ? undefined : boostOf(profile.inventory);
+    this.recoveryPct = boost?.recoveryPct ?? 0;
+    TEAMS = [[heroFrom(BASE_YOU[0], profile, boost), BASE_YOU[1]], TEAMS[1]];
+    if (boost && profile.inventory.queued.length > 0) {
+      updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: consumeQueued(d.profile.inventory) } }));
+    }
     this.pointsWon = [0, 0];
     this.longestRally = 0;
     this.matchScore = newScore(2);
@@ -484,7 +494,7 @@ export class MatchScene extends Phaser.Scene {
 
   private refreshGuts(): void {
     for (const v of Object.values(this.views)) {
-      v.label.setText(`${v.player.name}\nG ${this.guts[v.player.id]}/${v.player.maxGuts}`);
+      v.label.setText(`${v.player.name}\nG ${Math.floor(this.guts[v.player.id])}/${v.player.maxGuts}`);
     }
   }
 
@@ -1243,7 +1253,7 @@ export class MatchScene extends Phaser.Scene {
     this.matchScore = res.score;
 
     for (const p of TEAMS.flat()) {
-      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina), p.maxGuts);
+      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina) * (p.id === TEAMS[0][0].id ? 1 + this.recoveryPct : 1), p.maxGuts);
     }
     this.refreshScore();
     this.refreshGuts();
@@ -1278,6 +1288,6 @@ export class MatchScene extends Phaser.Scene {
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0 }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, unlocked: unlockedBetween(levelBefore, levelAfter).map((g) => g.name) }));
   }
 }

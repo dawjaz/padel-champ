@@ -1,0 +1,39 @@
+{
+ "maxQueued": 3,
+ "starter": {
+  "isotonic": 2,
+  "gel": 2,
+  "grip_tape": 2,
+  "fresh_balls": 2
+ },
+ "items": [
+  {
+   "id": "isotonic",
+   "name": "Isotonic Drink",
+   "desc": "+10% guts recovered after every point",
+   "recoveryPct": 0.1
+  },
+  {
+   "id": "gel",
+   "name": "Energy Gel",
+   "desc": "+2 max guts",
+   "maxGuts": 2
+  },
+  {
+   "id": "grip_tape",
+   "name": "Grip Tape",
+   "desc": "+2 technique",
+   "stats": {
+    "technique": 2
+   }
+  },
+  {
+   "id": "fresh_balls",
+   "name": "Fresh Balls",
+   "desc": "+2 spin",
+   "stats": {
+    "spin": 2
+   }
+  }
+ ]
+}

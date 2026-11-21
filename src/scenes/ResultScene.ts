@@ -12,6 +12,8 @@ export interface ResultData {
   reward?: Reward;
   /** The new level when the match brought a level up, else 0. */
   levelUp?: number;
+  /** Names of the gear items that this match unlocked. */
+  unlocked?: string[];
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -22,7 +24,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0 };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, unlocked: data.unlocked ?? [] };
   }
 
   create(): void {
@@ -63,12 +65,17 @@ export class ResultScene extends Phaser.Scene {
     this.add
       .text(WIDTH / 2, 378, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', fontStyle: 'bold', color: css(this.outcome.levelUp ? COLORS.yellow : COLORS.white) })
       .setOrigin(0.5);
+    if (this.outcome.unlocked && this.outcome.unlocked.length > 0) {
+      this.add
+        .text(WIDTH / 2, 416, `NEW GEAR: ${this.outcome.unlocked.slice(0, 3).join(', ').toUpperCase()}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.sky), align: 'center', wordWrap: { width: 330 } })
+        .setOrigin(0.5);
+    }
     this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);
     const barW = Math.round(198 * levelProgress(prof.xp));
     if (barW > 0) this.add.rectangle(WIDTH / 2 - 99, 398, barW, 6, COLORS.sky).setOrigin(0, 0.5);
 
-    makeButton(this, WIDTH / 2, 430, 240, 52, 'REMATCH', () => this.scene.start('MatchScene', { practice: null }));
-    makeButton(this, WIDTH / 2 - 62, 500, 116, 52, 'HERO', () => this.scene.start('CharacterScene'));
-    makeButton(this, WIDTH / 2 + 62, 500, 116, 52, 'TITLE', () => this.scene.start('TitleScene'));
+    makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null }));
+    makeButton(this, WIDTH / 2 - 62, 512, 116, 48, 'HERO', () => this.scene.start('CharacterScene'));
+    makeButton(this, WIDTH / 2 + 62, 512, 116, 48, 'TITLE', () => this.scene.start('TitleScene'));
   }
 }

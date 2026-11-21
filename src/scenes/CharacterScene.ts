@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
+import { gearBonus } from '../career/gear';
 import { canSpend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import playersData from '../data/players.json';
@@ -44,11 +45,12 @@ export class CharacterScene extends Phaser.Scene {
     logoText(this, WIDTH / 2, 34, 'HERO', 34, COLORS.yellow);
     const key = ensureCharacterTexture(this, HERO.appearance, 'front');
     this.add.image(58, 150, key).setOrigin(0.5, 1).setScale(1.9 / HD_CHARACTER_SCALE);
-    makeButton(this, WIDTH / 2 - 62, 596, 116, 44, 'RESET', () => {
+    makeButton(this, 62, 596, 104, 44, 'RESET', () => {
       updateSave((d) => ({ ...d, profile: respec(d.profile) }));
       this.redraw();
     });
-    makeButton(this, WIDTH / 2 + 62, 596, 116, 44, 'BACK', () => this.scene.start('TitleScene'));
+    makeButton(this, WIDTH / 2, 596, 104, 44, 'GEAR', () => this.scene.start('GearScene'));
+    makeButton(this, WIDTH - 62, 596, 104, 44, 'BACK', () => this.scene.start('TitleScene'));
     this.redraw();
   }
 
@@ -79,6 +81,7 @@ export class CharacterScene extends Phaser.Scene {
     this.text(WIDTH / 2, 186, free > 0 ? `${free} SKILL POINT${free === 1 ? '' : 'S'} TO SPEND` : 'NO FREE SKILL POINTS', 14, free > 0 ? COLORS.yellow : COLORS.gray, true);
 
     const cap = statCap(level);
+    const gear = gearBonus(p.inventory);
     STAT_KEYS.forEach((k, i) => {
       const y = 232 + i * 48;
       const v = statValue(p, k);
@@ -96,7 +99,8 @@ export class CharacterScene extends Phaser.Scene {
           g.fillRect(x, y - 9, 11, 18);
         }
       }
-      this.text(290, y, String(v), 14, COLORS.white, true, 0.5);
+      this.text(280, y, String(v), 14, COLORS.white, true, 0.5);
+      if (gear[k] > 0) this.text(296, y, `+${gear[k]}`, 12, COLORS.yellow, true, 0);
       const ok = canSpend(p, k);
       const b = makeButton(this, 330, y, 36, 36, '+', () => {
         updateSave((d) => ({ ...d, profile: spend(d.profile, k) }));
