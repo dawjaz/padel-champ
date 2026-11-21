@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio';
+import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { SLOT_LABEL } from '../career/gear';
 import type { Drop } from '../career/packs';
@@ -43,32 +44,68 @@ export class PackScene extends Phaser.Scene {
 
     const cards = this.opened.drops.map((d, i) => {
       const cy = top + i * step + cardH / 2;
-      const g = this.add.graphics();
+      // The card is drawn around its own centre so that it can flip (scaleX) like a real card.
+      const g = this.add.graphics().setPosition(WIDTH / 2, cy);
       const frame = (color: number, width: number): void => {
         g.clear();
         g.fillStyle(COLORS.panel, 1);
-        g.fillRoundedRect(15, cy - cardH / 2, 330, cardH, 10);
+        g.fillRoundedRect(-165, -cardH / 2, 330, cardH, 10);
+        g.fillStyle(0xffffff, 0.08);
+        g.fillRoundedRect(-161, -cardH / 2 + 3, 322, cardH * 0.35, 8);
         g.lineStyle(width, color, 1);
-        g.strokeRoundedRect(15, cy - cardH / 2, 330, cardH, 10);
+        g.strokeRoundedRect(-165, -cardH / 2, 330, cardH, 10);
       };
       frame(COLORS.gray, 2);
       const q = text(WIDTH / 2, cy, '?', 36, COLORS.gray, true, 0.5);
-      return () => {
-        q.destroy();
-        if (d.kind === 'gear') {
-          const color = RARITY_COLOR[d.item.rarity];
-          frame(color, 4);
-          text(30, cy - 26, d.item.rarity.toUpperCase(), 11, color, true);
-          text(30, cy - 6, d.item.name.toUpperCase(), 16, COLORS.white, true);
-          const bonus = Object.entries(d.item.bonus).map(([k, v]) => `+${v} ${SHORT[k]}`).join('  ');
-          text(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, COLORS.yellow, true);
-          text(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? COLORS.gray : COLORS.sky, true);
-        } else {
-          frame(COLORS.green, 3);
-          text(30, cy - 14, 'BOOST', 11, COLORS.green, true);
-          text(30, cy + 10, d.name.toUpperCase(), 16, COLORS.white, true);
+      // A face-down card waits with a slow pulse.
+      const pulse = this.tweens.add({ targets: [g, q], scaleX: 1.02, scaleY: 1.04, duration: 700 + i * 90, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const burst = (color: number, strong: boolean): void => {
+        const ring = this.add.ellipse(WIDTH / 2, cy, 40, 20, color, 0).setStrokeStyle(4, color, 1).setDepth(20);
+        this.tweens.add({ targets: ring, scaleX: 9, scaleY: 5, alpha: 0, duration: 520, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
+        const n = strong ? 16 : 7;
+        for (let k = 0; k < n; k++) {
+          const ang = (k / n) * Math.PI * 2 + i;
+          const dot = this.add.circle(WIDTH / 2, cy, strong ? 3 : 2, color, 1).setDepth(21);
+          this.tweens.add({ targets: dot, x: WIDTH / 2 + Math.cos(ang) * (110 + (k % 3) * 22), y: cy + Math.sin(ang) * (46 + (k % 3) * 10), alpha: 0, duration: 600, ease: 'Cubic.easeOut', onComplete: () => dot.destroy() });
         }
-        sfx(d.kind === 'gear' && d.item.rarity !== 'common' ? 'win' : 'point');
+      };
+      return () => {
+        pulse.stop();
+        g.setScale(1);
+        q.destroy();
+        const reveal = (): void => {
+          const shine = d.kind === 'gear' && (d.item.rarity === 'epic' || d.item.rarity === 'legendary');
+          const added: Phaser.GameObjects.GameObject[] = [];
+          const t = (...args: Parameters<typeof text>): void => { added.push(text(...args)); };
+          if (d.kind === 'gear') {
+            const color = RARITY_COLOR[d.item.rarity];
+            frame(color, 4);
+            t(30, cy - 26, d.item.rarity.toUpperCase(), 11, color, true);
+            t(30, cy - 6, d.item.name.toUpperCase(), 16, COLORS.white, true);
+            const bonus = Object.entries(d.item.bonus).map(([k, v]) => `+${v} ${SHORT[k]}`).join('  ');
+            t(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, COLORS.yellow, true);
+            t(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? COLORS.gray : COLORS.sky, true);
+            const ic = this.add.graphics();
+            drawIcon(ic, d.item.slot, 310, cy, 40, color);
+            added.push(ic);
+            if (d.item.rarity !== 'common') burst(color, shine);
+            if (shine) this.cameras.main.flash(180, 255, 240, 170);
+          } else {
+            frame(COLORS.green, 3);
+            t(30, cy - 14, 'BOOST', 11, COLORS.green, true);
+            t(30, cy + 10, d.name.toUpperCase(), 16, COLORS.white, true);
+            const ic = this.add.graphics();
+            drawIcon(ic, 'boost', 310, cy, 36, COLORS.green);
+            added.push(ic);
+            burst(COLORS.green, false);
+          }
+          for (const o of added) (o as Phaser.GameObjects.GameObject & { setAlpha: (a: number) => unknown }).setAlpha(0);
+          this.tweens.add({ targets: added, alpha: 1, duration: 160 });
+          this.tweens.add({ targets: g, scaleX: 1, duration: 140, ease: 'Back.easeOut' });
+          sfx(d.kind === 'gear' && d.item.rarity !== 'common' ? 'win' : 'point');
+        };
+        // Flip: the card narrows to a line, then opens showing the face.
+        this.tweens.add({ targets: g, scaleX: 0.02, duration: 110, ease: 'Quad.easeIn', onComplete: reveal });
       };
     });
 

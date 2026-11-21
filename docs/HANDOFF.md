@@ -8,6 +8,11 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.47: icons and pack opening
+- `src/art/icons.ts`: vector icons (8 gear slots, 7 attributes, coin, boost, trophy) drawn with Graphics. Used on HERO (attribute rows), GEAR (slot buttons now show the item name and a rarity-coloured icon), SHOP (coin) and the pack cards.
+- Pack opening: face-down cards pulse, tap flips a card (scaleX), rare+ gets a ring and sparkles, epic/legendary also a screen flash; item or boost icon on the card.
+- Not checked on a phone: icon sizes and positions on HERO and GEAR.
+
 ## v0.46: shared look for the menu screens
 - `applyScreen(scene, fade)` in `src/hd.ts` (replaces `applyHd` in every menu scene; the match still uses `applyHd`): night gradient, lit court in perspective, drifting lights, vignette, 220 ms fade-in. Buttons sink on press (`ui.ts`).
 - Owner: play-tests of v0.43/v0.44 are fine; prices and opponent difficulty come later. Next topic: visuals and a more attractive layout, then three.js.

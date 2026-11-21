@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
+import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { gearBonus } from '../career/gear';
 import { canSpend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, xpToReach } from '../career/profile';
@@ -85,8 +86,11 @@ export class CharacterScene extends Phaser.Scene {
     STAT_KEYS.forEach((k, i) => {
       const y = 232 + i * 48;
       const v = statValue(p, k);
-      this.text(20, y - 8, LABEL[k], 14, COLORS.white, true, 0);
-      this.text(20, y + 9, HINT[k], 10, COLORS.gray, false, 0);
+      const ic = this.add.graphics();
+      drawIcon(ic, k, 30, y, 24, COLORS.sky);
+      this.dyn.push(ic);
+      this.text(48, y - 8, LABEL[k], 14, COLORS.white, true, 0);
+      this.text(48, y + 9, HINT[k], 10, COLORS.gray, false, 0);
       const g = this.add.graphics();
       this.dyn.push(g);
       for (let s = 0; s < levels.statMax; s++) {

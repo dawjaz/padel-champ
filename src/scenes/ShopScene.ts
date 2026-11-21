@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
 import { applyScreen } from '../hd';
@@ -51,7 +52,10 @@ export class ShopScene extends Phaser.Scene {
     for (const o of this.dyn) o.destroy();
     this.dyn = [];
     const p = getSave().profile;
-    this.label(WIDTH - 16, 62, `COINS ${p.coins}`, 14, COLORS.yellow, true, 1);
+    const coinG = this.add.graphics();
+    drawIcon(coinG, 'coin', WIDTH - 24, 62, 16, COLORS.yellow);
+    this.dyn.push(coinG);
+    this.label(WIDTH - 38, 62, `${p.coins}`, 14, COLORS.yellow, true, 1);
 
     // Free packs (one per level up)
     let y = 84;

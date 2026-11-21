@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
+import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { applyLook, CONSUMABLES, equip, gearBonus, itemsOfSlot, MAX_QUEUED, SLOT_LABEL, SLOTS, toggleQueued, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { levelOf } from '../career/profile';
@@ -77,10 +78,14 @@ export class GearScene extends Phaser.Scene {
       const x = i % 2 === 0 ? 92 : 268;
       const y = 154 + Math.floor(i / 2) * 40;
       const g = inv.equipped[s] ? itemsOfSlot(s).find((it) => it.id === inv.equipped[s]) : undefined;
-      this.button(x, y, 170, 34, `${SLOT_LABEL[s]}: ${g ? g.name.replace(/ (Cap|Shirt|Shorts|Shoes|Racket|Wristband|Bag|Balls)$/i, '') : '-'}`, 10, s === this.slot ? COLORS.yellow : g ? RARITY_COLOR[g.rarity] : COLORS.gray, () => {
+      const accent = s === this.slot ? COLORS.yellow : g ? RARITY_COLOR[g.rarity] : COLORS.gray;
+      this.button(x, y, 170, 34, g ? g.name.replace(/ (Cap|Shirt|Shorts|Shoes|Racket|Wristband|Bag|Balls)$/i, '') : SLOT_LABEL[s], 10, accent, () => {
         this.slot = s;
         this.redraw();
-      });
+      }, !g);
+      const ic = this.add.graphics().setDepth(5);
+      drawIcon(ic, s, x - 70, y, 20, g ? RARITY_COLOR[g.rarity] : COLORS.gray);
+      this.dyn.push(ic);
     });
 
     // Items of the chosen slot
