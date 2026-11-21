@@ -2,6 +2,16 @@
 
 _Last updated: 2026-11-21 (v0.49)_
 
+## Plan for next sessions (agreed 2026-11-21, owner chats in Polish)
+Order is a proposal; the owner can reorder.
+1. **Balance after the latest changes (do first).** The XP curve was slowed (`xpBase` 300) but stat caps (`levelsPerCap`), gear and division `minLevel` gates, shop prices and prizes were NOT rescaled: re-tune them together. Play-test RISKY (+15 pp per missing G), rally length after INTERCEPT was removed, and guts at +2 per point. Tune opponent difficulty per division (never tuned).
+2. **Check on a phone** what was changed without a device test: ResultScene button rows (GO TO SHOP / MAIN MENU), ShopScene boost grid, BracketScene boost picker, the new guts bar.
+3. **New gamification.** Daily and weekly challenges and streaks (coins or packs as rewards); a collection screen with gear sets and legendary items (builds on the "new" stars); rivals with short dialogue in the career; one special move per player with a short animation.
+4. **Look and sound.** More hair styles and accessories in the editor, hero animations (run, celebrate), hit effects; real SFX and music instead of the Web Audio beeps; app icon and splash screen.
+5. **Release.** Capacitor for Android and iOS, a Playwright smoke test (title -> match -> result), Google Play and Apple accounts, privacy policy, store screenshots. Keep signing material out of git.
+6. **3D stays a prototype on `style/3d`** (`/3d/3d.html`, `/3d/char.html`). The owner is not sure about it yet; `main` keeps the stylised 2D/3D look.
+Workflow reminders: gameplay changes go to `main` first, then rebase `style/3d` onto it and push both (3D-look-only changes go to `style/3d` only); Pages deploys only from `main`, so push `style/3d` before `main` when `/3d/` should update; bump `GAME_VERSION` in `src/config.ts` with every section here.
+
 ## v0.52: 3D character (branch style/3d only)
 - `src/art/three/player3d.ts` is now a jointed skeleton (hips, waist, neck, shoulders, elbows, wrist, knees, ankles), driven by pure pose functions: `READY`, `runPose(phase)`, `strokePose(stroke, t)` with nine strokes (forehand, backhand, volley, lob, serve, smash, bandeja, vibora, bajada). Feet stay planted when he crouches; `strokeContact()` says when the racket meets the ball.
 - `char.html` (+ `charviewer.ts`) is a viewer for one character: buttons per stroke, IDLE, RUN, SLOW; `?stroke=smash&t=0.36&yaw=0.7&nobar=1` freezes a pose for screenshots. Published at `/3d/char.html`; the match demo is `/3d/3d.html`.
