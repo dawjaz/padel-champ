@@ -410,6 +410,7 @@
       "wallKick": 1.0,
       "side": 0.0
     },
+    "noReboundBack": true,
     "glassChance": 0.55,
     "blockAtNet": true,
     "requires": {

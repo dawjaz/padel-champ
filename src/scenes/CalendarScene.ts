@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
-import { activeBracket, enterEvent, entryCheck, skipWeek } from '../career/careerFlow';
+import { activeBracket, enterEvent, entryCheck, skipWeek, tournamentActive } from '../career/careerFlow';
 import { levelOf } from '../career/profile';
 import { eventName, eventsOfWeek, partnerById, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
@@ -81,7 +81,11 @@ export class CalendarScene extends Phaser.Scene {
     }
 
     const partner = partnerById(c.partnerId);
-    this.button(WIDTH / 2, y + 20, 330, 38, `PARTNER: ${(partner?.name ?? '-').toUpperCase()}`, 13, COLORS.sky, () => this.scene.start('PartnerScene'));
+    // The partner is chosen between tournaments only.
+    const lockedPartner = tournamentActive(p);
+    this.button(WIDTH / 2, y + 20, 330, 38, `PARTNER: ${(partner?.name ?? '-').toUpperCase()}${lockedPartner ? '  (LOCKED)' : ''}`, 13, lockedPartner ? COLORS.gray : COLORS.sky, () => {
+      if (!lockedPartner) this.scene.start('PartnerScene');
+    }, lockedPartner);
     y += 56;
 
     if (c.history.length > 0) {

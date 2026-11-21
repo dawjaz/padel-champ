@@ -1,6 +1,26 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.33)_
+_Last updated: 2026-11-21 (v0.49)_
+
+## v0.49: owner changes after play-tests (main and style/3d)
+- **Flat shot** (`bounce_shot`) no longer flies back over the net off the back glass: new `ShotDef.noReboundBack` (set in shots.json, checked
+  in `stepHit`). The generic rule (shots >= 22 m/s that come off the glass) is unchanged for the others (vibora, bajada, smashes); in the
+  CPU sim it fell from 4.1% to 0.9% of points.
+- **Receiving a serve to a wall**: decision time is `receiveDecisionMs(guts, maxGuts)` (attributes.ts): 6.2 s at full G (was 5.2 s), down to 40%
+  of that (2.5 s) at empty G. When the bar runs out the receiver never touches the ball: `stepServe(..., late = true)` turns a serve that is in
+  into an ace (`step.late`, text "did not decide in time"); a fault stays a fault. The scene rebuilds the ace flight (same path up to the bounce,
+  longer after it) and converts the resume point (`progress * in.duration / ace.duration`).
+- **Guts recovery** is `max(1, round(0.2 * stamina))` per point: 1 at stamina 5 (2 only from stamina 8), was 2. **Balance warning**: in a
+  CPU-vs-CPU sim (CPU does not manage its G) 70% of player-points are below half G by point 11 and 86% by point 21 (with +2: about 31% / 37%),
+  so fatigue (power, accuracy, speed down to x0.7) now dominates the second half of a match. Decide with the owner: more max G, cheaper shots,
+  or recovery on game change.
+- **Tournaments** (`career/careerFlow.ts`, `season.ts`): while `career.active` is set, match rewards are NOT paid per match. They are kept in
+  `active.pending {xp, coins}` and paid with the prize in `finish()` (also on withdraw), so level ups, free packs and the summary come after the
+  tournament (`Finished.matches`). ResultScene hides reward, level, bar and HERO after a tournament match, and shows "MATCHES +xp +coins" in the
+  final summary. HERO, SHOP (title buttons greyed, note "FINISH THE TOURNAMENT FIRST"), GEAR, PARTNER (calendar button locked) are closed until
+  the tournament ends (scenes also redirect). A quick match played meanwhile still pays and shows its reward, but a free pack says "after the tournament".
+- Open with the owner: **INTERCEPTED** (defence beats attack by more than `INTERCEPT_MARGIN` 48, the defender wins the point and the ball is
+  returned fast past the hitter): the owner does not like it, to be discussed and reshaped.
 
 ## v0.34: B1, seven attributes in the engine
 - `src/game/attributes.ts`: power, spin, technique, accuracy, stamina, speed, defense (5 = neutral, all multipliers 1 there).

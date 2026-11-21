@@ -368,7 +368,7 @@ describe('whole points (CPU vs CPU, seeded)', () => {
       hitsTotal += state.hits;
       if (state.winner === servingSide) serverWins++;
       guts = { ...state.guts };
-      for (const p of TEAMS.flat()) guts[p.id] = recoverGuts(guts[p.id], 2, p.maxGuts);
+      for (const p of TEAMS.flat()) guts[p.id] = recoverGuts(guts[p.id], 1, p.maxGuts);
     }
 
     const avgHits = hitsTotal / N;
@@ -569,6 +569,12 @@ describe('rebound back over the net', () => {
     }
     expect(found).toBeGreaterThan(0);
   });
+  it('the flat shot never flies back over the net, even when it beats the defence by a lot', () => {
+    for (let seed = 1; seed < 3000; seed++) {
+      const r = stepHit(TEAMS, rallyState(), shot('bounce_shot'), 'cross', seededRng(seed));
+      expect(r.step.reboundBack).toBeUndefined();
+    }
+  });
   it('soft shots never rebound back', () => {
     for (let seed = 1; seed < 500; seed++) {
       const r = stepHit(TEAMS, rallyState(), shot('chiquita'), 'cross', seededRng(seed));
@@ -697,5 +703,29 @@ describe('vibora and the net', () => {
     expect(unavailableReason(vibora, st('net'))).not.toBeNull();
     expect(unavailableReason(vibora, st('mid'))).toBeNull();
     expect(unavailableReason(vibora, st('back'))).toBeNull();
+  });
+});
+
+describe('serve: the receiver is too late', () => {
+  it('a serve that is in becomes an ace for the server, a fault stays a fault', () => {
+    let aces = 0;
+    let faults = 0;
+    for (let seed = 1; seed < 400; seed++) {
+      const st = startPoint(freshGuts(), 0, 0, 0);
+      const normal = stepServe(TEAMS, st, shot('hard_glass'), seededRng(seed), 'bounce');
+      const late = stepServe(TEAMS, st, shot('hard_glass'), seededRng(seed), 'bounce', true);
+      if (normal.step.outcome === 'fault') {
+        expect(late.step.outcome).toBe('fault');
+        faults++;
+      } else {
+        expect(late.step.outcome).toBe('ace');
+        expect(late.step.pointWinner).toBe(0);
+        expect(late.state.status).toBe('done');
+        if (normal.step.outcome === 'in') expect(late.step.late).toBe(true);
+        aces++;
+      }
+    }
+    expect(aces).toBeGreaterThan(0);
+    expect(faults).toBeGreaterThan(0);
   });
 });

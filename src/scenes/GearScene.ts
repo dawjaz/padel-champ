@@ -9,6 +9,7 @@ import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { PlayerDef } from '../game/types';
 import { applyScreen } from '../hd';
+import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -32,6 +33,11 @@ export class GearScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Upgrades, gear, packs and the shop are closed while a tournament is going on.
+    if (tournamentActive(getSave().profile)) {
+      this.scene.start('TitleScene');
+      return;
+    }
     applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'GEAR', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('CharacterScene'));

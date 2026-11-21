@@ -81,6 +81,8 @@ export interface Step {
   netReturn?: boolean;
   /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
   reboundBack?: boolean;
+  /** Serve: the receiver did not decide in time and never touched the ball, so it is an ace. */
+  late?: boolean;
   /** How a mistake or a fault ends (the net, the back glass, the mesh above it). */
   errorKind?: ErrorKind;
 }
@@ -245,6 +247,8 @@ export function stepServe(
   shot: ShotDef,
   rng: Rng,
   receive: ReceiveMode = 'wall',
+  /** The receiver ran out of time to decide: a serve that is in becomes an ace (a fault stays a fault). */
+  late = false,
 ): StepResult {
   if (state.status !== 'serve') throw new Error('Point is not at the serve');
   const side = state.servingSide;
@@ -279,10 +283,10 @@ export function stepServe(
       step: { ...base, outcome: 'double-fault', pointWinner: recvSide, errorKind },
     };
   }
-  if (res.outcome === 'ace') {
+  if (res.outcome === 'ace' || late) {
     return {
       state: { ...state, guts, status: 'done', winner: side },
-      step: { ...base, outcome: 'ace', pointWinner: side },
+      step: { ...base, outcome: 'ace', pointWinner: side, ...(late && res.outcome !== 'ace' ? { late: true } : {}) },
     };
   }
 
@@ -449,6 +453,7 @@ export function stepHit(
         next.glass &&
         !isLob(shot) &&
         shot.wall !== 'fence' &&
+        shot.noReboundBack !== true &&
         shot.flight.speed >= REBOUND_BACK_SPEED &&
         res.attackScore - res.defenseScore > winMargin * REBOUND_BACK_SHARE)
     ) {

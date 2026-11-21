@@ -23,7 +23,7 @@ import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchS
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { seededRng } from '../game/rng';
-import { fatigueFactor, gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
+import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
@@ -949,7 +949,8 @@ export class MatchScene extends Phaser.Scene {
   /**
    * The human receiver decides while the serve is in the air: the ball flies until just before its bounce, then crawls in slow
    * motion for a moment, with the speed of the serve and the spot where it will hit the glass on the screen and a bar that runs
-   * out. After the choice (or when the bar is empty: on the bounce) the same flight carries on from where it was.
+   * out. After the choice the same flight carries on from where it was. The time depends on the receiver's guts (G): the fewer he
+   * has, the less time. When the bar runs out the receiver never touches the ball and the server gets an ace.
    */
   private previewServe(shot: ShotDef): void {
     const st = this.point;
@@ -983,6 +984,7 @@ export class MatchScene extends Phaser.Scene {
     impactSound(racketKind(shot.id, true, shot.flight.speed), Math.max(0.15, Math.min(1, shot.flight.speed / 30)));
     this.swing(server.id, null, 0);
     const glassHit = flight.events.find((e) => e.kind === 'glass');
+    const decisionMs = receiveDecisionMs(this.guts[receiver.id] ?? receiver.maxGuts, receiver.maxGuts);
 
     let progress = 0;
     this.tweens.addCounter({
@@ -998,12 +1000,22 @@ export class MatchScene extends Phaser.Scene {
         // The decision: the ball hangs in the air, almost still.
         let decided = false;
         let crawl: Phaser.Tweens.Tween | null = null;
-        const choose = (receive: ReceiveMode): void => {
+        const choose = (receive: ReceiveMode | 'late'): void => {
           if (decided) return;
           decided = true;
           crawl?.stop();
           this.tweens.killTweensOf(this.menu);
           this.clearMenu();
+          if (receive === 'late') {
+            // Too slow: the receiver never touches the ball. The ace flight is the same up to the bounce but lasts longer, so the
+            // point where the ball hangs is converted to a share of the new flight.
+            this.hideHeight();
+            const ace = stepServe(TEAMS, this.point, shot, seededRng(seed), 'bounce', true);
+            const aceFlight = this.buildStepFlight(ace.step, seed, startH).flight;
+            const from = aceFlight.duration > 0 ? (progress * flight.duration) / aceFlight.duration : progress;
+            this.playStep(ace.step, ace.state, { seed, from, startH });
+            return;
+          }
           this.performServe(shot, receive, { seed, from: progress, startH });
         };
         this.showButtons(`${receiver.name}: take it...`, [
@@ -1032,18 +1044,18 @@ export class MatchScene extends Phaser.Scene {
           this.tweens.add({ targets: ring, scale: 1.6, alpha: 0.2, duration: 520, yoyo: true, repeat: -1 });
           this.menu.push(ring);
         }
-        this.tweens.add({ targets: bar, scaleX: 0, duration: 5200, ease: 'Linear' });
+        this.tweens.add({ targets: bar, scaleX: 0, duration: decisionMs, ease: 'Linear' });
         crawl = this.tweens.addCounter({
           from: p0,
           to: p1,
-          duration: 5200,
+          duration: decisionMs,
           ease: 'Linear',
           onUpdate: (tween: Phaser.Tweens.Tween) => {
             progress = tween.getValue() ?? p0;
             const p = ballPoint(flight.path, progress);
             this.setBall(p.x, p.z, p.h);
           },
-          onComplete: () => choose('bounce'),
+          onComplete: () => choose('late'),
         });
       },
     });
@@ -1410,7 +1422,7 @@ export class MatchScene extends Phaser.Scene {
         endPoint('DOUBLE FAULT!');
         break;
       case 'ace':
-        endPoint('ACE!');
+        endPoint(step.late ? `${defender.name} did not decide in time and never touched it. ACE!` : 'ACE!');
         break;
       case 'in':
         if (this.practice && !this.isHuman(next.holder, next.hitterIdx)) {
@@ -1495,9 +1507,10 @@ export class MatchScene extends Phaser.Scene {
     const out: { finished?: Finished; trophies: string[] } = { trophies: [] };
     updateSave((d) => {
       const r = recordResult(d, winner === 0);
-      let profile = award(r.profile, reward);
+      // In a tournament the match pays nothing yet: the reward is kept and paid out with the prize when the tournament ends.
+      let profile = this.career ? r.profile : award(r.profile, reward);
       if (this.career) {
-        const rep = reportMatch(profile, winner === 0);
+        const rep = reportMatch(profile, winner === 0, reward);
         profile = rep.profile;
         out.finished = rep.finished;
       }
@@ -1512,6 +1525,6 @@ export class MatchScene extends Phaser.Scene {
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize } : undefined }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
-import { fatigued, fatigueFactor, aimSkill, aimSpreadMul, edgeRiskMul, fatigueStart, gutsFor, gutsRecovery, NEUTRAL, powerSpeedMul, spinMul, STAT_KEYS } from './attributes';
+import { fatigued, fatigueFactor, receiveDecisionMs, RECEIVE_DECISION_MS, aimSkill, aimSpreadMul, edgeRiskMul, fatigueStart, gutsFor, gutsRecovery, NEUTRAL, powerSpeedMul, spinMul, STAT_KEYS } from './attributes';
 import { aimX } from './court';
 import { errorChance } from './engine';
 import { DIRECTIONS, SHOTS } from './catalog';
@@ -18,7 +18,7 @@ describe('attributes', () => {
     expect(aimSkill(NEUTRAL)).toBeCloseTo(0.75);
     expect(fatigueStart(NEUTRAL)).toBe(6);
     expect(gutsFor(NEUTRAL)).toBe(10);
-    expect(gutsRecovery(NEUTRAL)).toBe(2);
+    expect(gutsRecovery(NEUTRAL)).toBe(1);
   });
 
   it('more of an attribute is always better, never worse', () => {
@@ -79,5 +79,14 @@ describe('fatigue (what the guts do)', () => {
     expect(t.stats.technique).toBe(p.stats.technique);
     expect(t.stats.defense).toBe(p.stats.defense);
     expect(t.id).toBe(p.id);
+  });
+});
+
+describe('receiveDecisionMs', () => {
+  it('is the full time at full guts and shrinks as the guts run out', () => {
+    expect(receiveDecisionMs(10, 10)).toBe(RECEIVE_DECISION_MS);
+    expect(receiveDecisionMs(0, 10)).toBeLessThan(receiveDecisionMs(5, 10));
+    for (let g = 0; g < 10; g++) expect(receiveDecisionMs(g, 10)).toBeLessThan(receiveDecisionMs(g + 1, 10));
+    expect(receiveDecisionMs(0, 10)).toBeGreaterThan(2000);
   });
 });

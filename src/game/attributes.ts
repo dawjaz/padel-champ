@@ -11,8 +11,8 @@ const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.m
 /** Guts (the stamina bar) of a player: 10 at stamina 5. */
 export const gutsFor = (stamina: number): number => Math.round(6 + 0.8 * stamina);
 
-/** Guts recovered after every point: 2 at stamina 5. */
-export const gutsRecovery = (stamina: number): number => Math.max(1, Math.round(1 + 0.2 * stamina));
+/** Guts recovered after every point: 1 at stamina 5 (2 only from stamina 8). */
+export const gutsRecovery = (stamina: number): number => Math.max(1, Math.round(0.2 * stamina));
 
 /** The rally length after which a hit starts to add error chance: 6 at stamina 5, one more hit for about every 1.7 points. */
 export const fatigueStart = (stamina: number, base = 6): number => base + (stamina - NEUTRAL) * 0.6;
@@ -49,4 +49,15 @@ export function fatigued(p: PlayerDef, guts: number | undefined): PlayerDef {
   const f = guts === undefined ? 1 : fatigueFactor(guts, p.maxGuts);
   if (f >= 1) return p;
   return { ...p, stats: { ...p.stats, power: p.stats.power * f, accuracy: p.stats.accuracy * f, speed: p.stats.speed * f } };
+}
+
+/** Time (ms) a receiver has to decide how to take a serve that goes to a wall, with full guts. */
+export const RECEIVE_DECISION_MS = 6200;
+/** With empty guts the receiver has this share of that time. */
+export const RECEIVE_MIN_SHARE = 0.4;
+
+/** Decision time for receiving a serve: the fewer guts (G) the receiver has left, the less time he gets. */
+export function receiveDecisionMs(guts: number, maxGuts: number): number {
+  const r = clamp(maxGuts > 0 ? guts / maxGuts : 1, 0, 1);
+  return Math.round(RECEIVE_DECISION_MS * (RECEIVE_MIN_SHARE + (1 - RECEIVE_MIN_SHARE) * r));
 }

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { applyScreen } from '../hd';
 import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
 import { getSave } from '../save';
+import { tournamentActive } from '../career/careerFlow';
 import type { SideIndex } from '../game/types';
 import { levelOf, levelProgress, type Reward } from '../career/profile';
 import { logoText, makeButton } from '../ui';
@@ -18,7 +19,7 @@ export interface ResultData {
   career?: boolean;
   /** Achievements unlocked by this match: "Name +coins". */
   trophies?: string[];
-  finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string } };
+  finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string }; matches: Reward };
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -66,20 +67,30 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const prof = getSave().profile;
+    // While a tournament is going on nothing about the hero changes or is shown (XP, level, free packs): that comes with the
+    // tournament summary, and the hero, gear and shop are locked until then.
+    const locked = tournamentActive(prof);
+    // A match of the tournament itself shows none of it; a quick match played meanwhile still shows its reward.
+    const hideProgress = locked && this.outcome.career;
     const lvl = levelOf(prof.xp);
     const rw = this.outcome.reward;
-    if (rw) {
+    if (!hideProgress) {
+      if (rw) {
+        this.add
+          .text(WIDTH / 2, 352, `${fin ? 'MATCHES  ' : ''}+${rw.xp} XP    +${rw.coins} COINS`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '16px', fontStyle: 'bold', color: css(COLORS.yellow) })
+          .setOrigin(0.5);
+      }
       this.add
-        .text(WIDTH / 2, 352, `+${rw.xp} XP    +${rw.coins} COINS`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '16px', fontStyle: 'bold', color: css(COLORS.yellow) })
+        .text(WIDTH / 2, 378, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', fontStyle: 'bold', color: css(this.outcome.levelUp ? COLORS.yellow : COLORS.white) })
         .setOrigin(0.5);
-    }
-    this.add
-      .text(WIDTH / 2, 378, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', fontStyle: 'bold', color: css(this.outcome.levelUp ? COLORS.yellow : COLORS.white) })
-      .setOrigin(0.5);
-    if (this.outcome.packs) {
-      this.add
-        .text(WIDTH / 2, 416, `FREE PACK x${this.outcome.packs}: OPEN IT IN THE SHOP`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.sky) })
-        .setOrigin(0.5);
+      if (this.outcome.packs) {
+        this.add
+          .text(WIDTH / 2, 416, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.sky) })
+          .setOrigin(0.5);
+      }
+      this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);
+      const barW = Math.round(198 * levelProgress(prof.xp));
+      if (barW > 0) this.add.rectangle(WIDTH / 2 - 99, 398, barW, 6, COLORS.sky).setOrigin(0, 0.5);
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {
@@ -87,16 +98,17 @@ export class ResultScene extends Phaser.Scene {
         .text(WIDTH / 2, 566, `ACHIEVEMENT!\n${trophies.slice(0, 3).join('\n')}${trophies.length > 3 ? `\n+${trophies.length - 3} MORE` : ''}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.yellow), align: 'center' })
         .setOrigin(0.5, 0);
     }
-    this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);
-    const barW = Math.round(198 * levelProgress(prof.xp));
-    if (barW > 0) this.add.rectangle(WIDTH / 2 - 99, 398, barW, 6, COLORS.sky).setOrigin(0, 0.5);
 
     if (this.outcome.career) {
       makeButton(this, WIDTH / 2, 448, 240, 48, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'));
     } else {
       makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }));
     }
-    makeButton(this, WIDTH / 2 - 62, 512, 116, 48, 'HERO', () => this.scene.start('CharacterScene'));
-    makeButton(this, WIDTH / 2 + 62, 512, 116, 48, 'TITLE', () => this.scene.start('TitleScene'));
+    if (locked) {
+      makeButton(this, WIDTH / 2, 512, 240, 48, 'TITLE', () => this.scene.start('TitleScene'));
+    } else {
+      makeButton(this, WIDTH / 2 - 62, 512, 116, 48, 'HERO', () => this.scene.start('CharacterScene'));
+      makeButton(this, WIDTH / 2 + 62, 512, 116, 48, 'TITLE', () => this.scene.start('TitleScene'));
+    }
   }
 }

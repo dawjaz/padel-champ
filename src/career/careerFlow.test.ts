@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeBracket, buyPartner, choosePartner, enterEvent, entryCheck, reportMatch, skipWeek, withdraw } from './careerFlow';
-import { award, newProfile, sanitizeProfile, xpToReach, type Profile } from './profile';
+import { activeBracket, buyPartner, choosePartner, enterEvent, entryCheck, reportMatch, skipWeek, tournamentActive, withdraw } from './careerFlow';
+import { award, levelOf, newProfile, sanitizeProfile, xpToReach, type Profile } from './profile';
 import { advanceWeek, entryProblem, eventsOfWeek, EVENTS, newCareer, PARTNERS, sanitizeCareer, WEEKS } from './season';
 import { divisionById } from './tournament';
 
@@ -88,6 +88,61 @@ describe('a tournament run', () => {
     expect(f.prize.coins).toBe(Math.round(divisionById('club')!.title.coins * 0.2));
     expect(f.profile.career.active).toBeNull();
     expect(withdraw(newProfile())).toBeNull();
+  });
+});
+
+describe('rewards during a tournament', () => {
+  it('match rewards are kept until the tournament ends: no XP, coins, level or packs change before', () => {
+    let p = enterEvent({ ...newProfile(), coins: 50 }, 'club-w1', 3)!;
+    expect(tournamentActive(p)).toBe(true);
+    const before = { xp: p.xp, coins: p.coins, packs: { ...p.inventory.packs } };
+    const rep = reportMatch(p, true, { xp: 40, coins: 25 });
+    expect(rep.finished).toBeUndefined();
+    p = rep.profile;
+    expect(p.xp).toBe(before.xp);
+    expect(p.coins).toBe(before.coins);
+    expect(p.inventory.packs).toEqual(before.packs);
+    expect(p.career.active!.pending).toEqual({ xp: 40, coins: 25 });
+  });
+
+  it('they are paid out with the prize at the end, and a level up (with its free pack) comes only then', () => {
+    let p = enterEvent(newProfile(), 'club-w1', 3)!;
+    const big = xpToReach(3);
+    let finished;
+    for (let r = 0; r < 4 && !finished; r++) {
+      const rep = reportMatch(p, true, { xp: big, coins: 10 });
+      p = rep.profile;
+      finished = rep.finished;
+      if (!finished) expect(levelOf(p.xp)).toBe(1);
+    }
+    expect(finished).toBeDefined();
+    expect(finished!.matches.coins).toBeGreaterThanOrEqual(10);
+    expect(finished!.matches.xp).toBeGreaterThanOrEqual(big);
+    expect(levelOf(p.xp)).toBeGreaterThan(1);
+    expect(p.coins).toBe(finished!.matches.coins + finished!.prize.coins);
+    expect(p.inventory.packs.gear ?? 0).toBeGreaterThan(0);
+    expect(tournamentActive(p)).toBe(false);
+  });
+
+  it('a lost match ends the tournament and pays what the matches earned; withdrawing pays the pending reward too', () => {
+    const lost = reportMatch(enterEvent(newProfile(), 'club-w1', 5)!, false, { xp: 20, coins: 15 });
+    expect(lost.finished!.matches).toEqual({ xp: 20, coins: 15 });
+    expect(lost.profile.xp).toBe(20);
+    expect(lost.profile.coins).toBe(15);
+    let p = enterEvent(newProfile(), 'club-w1', 9)!;
+    p = reportMatch(p, true, { xp: 30, coins: 12 }).profile;
+    const f = withdraw(p)!;
+    expect(f.profile.coins).toBe(12 + f.prize.coins);
+    expect(f.profile.xp).toBe(30 + f.prize.xp);
+  });
+
+  it('the pending reward survives a save (sanitize) and bad values are cut', () => {
+    let p = enterEvent(newProfile(), 'club-w1', 3)!;
+    p = reportMatch(p, true, { xp: 40, coins: 25 }).profile;
+    expect(sanitizeCareer(JSON.parse(JSON.stringify(p.career))).active!.pending).toEqual({ xp: 40, coins: 25 });
+    const bad = JSON.parse(JSON.stringify(p.career));
+    bad.active.pending = { xp: -5, coins: 'x' };
+    expect(sanitizeCareer(bad).active!.pending).toEqual({ xp: 0, coins: 0 });
   });
 });
 

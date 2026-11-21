@@ -3,6 +3,7 @@ import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
 import { applyScreen } from '../hd';
+import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
 import { logoText, makeButton } from '../ui';
 
@@ -24,6 +25,11 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Upgrades, gear, packs and the shop are closed while a tournament is going on.
+    if (tournamentActive(getSave().profile)) {
+      this.scene.start('TitleScene');
+      return;
+    }
     applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'SHOP', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('TitleScene'));

@@ -19,6 +19,8 @@ export interface ActiveTournament {
   seed: number;
   /** The hero's results, round by round. */
   results: boolean[];
+  /** XP and coins of the matches played in this tournament: paid out with the prize when it ends (nothing changes for the hero before). */
+  pending?: { xp: number; coins: number };
 }
 
 export interface HistoryEntry {
@@ -104,7 +106,13 @@ export function sanitizeCareer(raw: unknown): Career {
   let active: ActiveTournament | null = null;
   const a = o.active as Partial<ActiveTournament> | null | undefined;
   if (a && typeof a.eventId === 'string' && eventById(a.eventId) && typeof a.seed === 'number' && Number.isFinite(a.seed) && Array.isArray(a.results)) {
-    active = { eventId: a.eventId, seed: Math.floor(a.seed), results: a.results.filter((r): r is boolean => typeof r === 'boolean').slice(0, 4) };
+    const pend = a.pending && typeof a.pending === 'object' ? (a.pending as Partial<Record<string, unknown>>) : null;
+    active = {
+      eventId: a.eventId,
+      seed: Math.floor(a.seed),
+      results: a.results.filter((r): r is boolean => typeof r === 'boolean').slice(0, 4),
+      ...(pend ? { pending: { xp: n(pend.xp, 0), coins: n(pend.coins, 0) } } : {}),
+    };
   }
   const history = (Array.isArray(o.history) ? o.history : [])
     .filter((h): h is HistoryEntry => !!h && typeof h.event === 'string' && typeof h.division === 'string' && !!divisionById(h.division))

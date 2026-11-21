@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
-import { buyPartner, choosePartner } from '../career/careerFlow';
+import { buyPartner, choosePartner, tournamentActive } from '../career/careerFlow';
 import { PARTNERS } from '../career/season';
 import { STAT_KEYS } from '../game/attributes';
 import { applyScreen } from '../hd';
@@ -22,6 +22,11 @@ export class PartnerScene extends Phaser.Scene {
 
   create(): void {
     this.page = 0;
+    // The partner can only be changed between tournaments.
+    if (tournamentActive(getSave().profile)) {
+      this.scene.start('CalendarScene');
+      return;
+    }
     applyScreen(this);
     logoText(this, WIDTH / 2, 30, 'PARTNER', 30, COLORS.yellow);
     makeButton(this, WIDTH / 2, 608, 160, 40, 'BACK', () => this.scene.start('CalendarScene'));

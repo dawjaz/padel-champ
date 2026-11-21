@@ -7,6 +7,7 @@ import { BUILD_ID, COLORS, SHOW_FREE_PRACTICE, css, FONT, GAME_TITLE, GAME_VERSI
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
+import { tournamentActive } from '../career/careerFlow';
 import { logoText, makeButton } from '../ui';
 
 const HEROES = playersData.you as unknown as PlayerDef[];
@@ -59,6 +60,9 @@ export class TitleScene extends Phaser.Scene {
       });
     });
 
+    const st = getSave().stats;
+    const statsLine = st.played === 0 ? 'NO MATCHES YET' : `PLAYED ${st.played}  WON ${st.won}  LOST ${st.lost}`;
+
     // Menu
     const mainMenu: Phaser.GameObjects.GameObject[] = [];
     const practiceMenu: Phaser.GameObjects.GameObject[] = [];
@@ -79,15 +83,27 @@ export class TitleScene extends Phaser.Scene {
     if (SHOW_FREE_PRACTICE) entries.push(['FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }]);
     entries.push(['SETTINGS', () => this.scene.start('SettingsScene')]);
     const step = Math.max(34, Math.min(42, 164 / (entries.length - 1)));
-    entries.forEach(([label, fn], i) => add(mainMenu, makeButton(this, WIDTH / 2, 408 + i * step, 220, step - 8, label, fn)));
+    // While a tournament is going on the hero and the shop are locked: upgrades happen between tournaments.
+    const locked = tournamentActive(getSave().profile);
+    let note: Phaser.GameObjects.Text | null = null;
+    entries.forEach(([label, fn], i) => {
+      const lock = locked && (label === 'HERO' || label === 'SHOP');
+      const b = makeButton(this, WIDTH / 2, 408 + i * step, 220, step - 8, label, lock ? () => {
+        note?.setText('FINISH THE TOURNAMENT FIRST').setColor(css(COLORS.yellow));
+        this.time.delayedCall(2200, () => note?.setText(statsLine).setColor(css(COLORS.gray)));
+      } : fn);
+      if (lock) {
+        b.text.setAlpha(0.4);
+        b.setAccent(COLORS.gray);
+      }
+      add(mainMenu, b);
+    });
     add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack', career: null })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend', career: null })));
     add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));
     show(practiceMenu, false);
 
-    const s = getSave().stats;
-    const statsLine = s.played === 0 ? 'NO MATCHES YET' : `PLAYED ${s.played}  WON ${s.won}  LOST ${s.lost}`;
-    this.add
+    note = this.add
       .text(WIDTH / 2, 612, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
     this.add
