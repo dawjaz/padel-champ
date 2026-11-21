@@ -3,7 +3,7 @@ import { ensureCharacterTexture } from '../art/characterTexture';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
-import { applyLook, CONSUMABLES, equip, gearBonus, itemsOfSlot, MAX_QUEUED, SLOT_LABEL, SLOTS, toggleQueued, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { applyLook, equip, gearBonus, hasNewIn, itemsOfSlot, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -26,7 +26,6 @@ const bonusText = (b: Partial<Record<string, number>>): string =>
 export class GearScene extends Phaser.Scene {
   private dyn: Phaser.GameObjects.GameObject[] = [];
   private slot: Slot = 'shoes';
-  private note = 'TAP A BOOST TO USE IT IN YOUR NEXT MATCH';
 
   constructor() {
     super('GearScene');
@@ -66,11 +65,20 @@ export class GearScene extends Phaser.Scene {
   }
 
   private redraw(): void {
-    for (const o of this.dyn) o.destroy();
+    for (const o of this.dyn) {
+      this.tweens.killTweensOf(o);
+      o.destroy();
+    }
     this.dyn = [];
-    const p = getSave().profile;
-    const inv = p.inventory;
+    let p = getSave().profile;
     const level = levelOf(p.xp);
+    // What is new in the slot on screen is seen now; the other slots show a star until they are opened.
+    const seenInv = markSeen(p.inventory, this.slot, level);
+    if (seenInv !== p.inventory) {
+      updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: markSeen(d.profile.inventory, this.slot, level) } }));
+      p = getSave().profile;
+    }
+    const inv = p.inventory;
 
     const key = ensureCharacterTexture(this, applyLook(HERO.appearance, inv), 'front');
     this.dyn.push(this.add.image(46, 124, key).setOrigin(0.5, 1).setScale(1.5 / HD_CHARACTER_SCALE));
@@ -92,6 +100,13 @@ export class GearScene extends Phaser.Scene {
       const ic = this.add.graphics().setDepth(5);
       drawIcon(ic, s, x - 70, y, 20, g ? RARITY_COLOR[g.rarity] : COLORS.gray);
       this.dyn.push(ic);
+      // A star on the category when something new can be put on.
+      if (s !== this.slot && hasNewIn(inv, s, level)) {
+        const star = this.add.graphics().setDepth(6).setPosition(x + 76, y - 12);
+        drawIcon(star, 'star', 0, 0, 20, 0xffe066);
+        this.tweens.add({ targets: star, scale: 1.25, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.dyn.push(star);
+      }
     });
 
     // Items of the chosen slot
@@ -107,17 +122,5 @@ export class GearScene extends Phaser.Scene {
         this.save((v) => (on ? unequip(v, this.slot) : equip(v, it.id, level)));
       }, !usable);
     });
-
-    // Boosts for the next match
-    this.label(WIDTH / 2, 498, `BOOSTS FOR THE NEXT MATCH (${inv.queued.length}/${MAX_QUEUED})`, 11, COLORS.white, true);
-    CONSUMABLES.forEach((c, i) => {
-      const n = inv.stock[c.id] ?? 0;
-      const queued = inv.queued.includes(c.id);
-      this.button(51 + i * 86, 530, 80, 44, `${c.name.split(' ')[0].toUpperCase()}\nx${n}`, 10, queued ? COLORS.yellow : COLORS.gray, () => {
-        this.note = `${c.name.toUpperCase()}: ${c.desc}`;
-        this.save((v) => toggleQueued(v, c.id));
-      }, n === 0 && !queued);
-    });
-    this.label(WIDTH / 2, 566, this.note, 10, COLORS.sky).setWordWrapWidth(340);
   }
 }

@@ -36,12 +36,6 @@
     "after": 5,
     "min": "epic"
    }
-  },
-  {
-   "id": "boost",
-   "name": "Boost Bundle",
-   "price": 80,
-   "consumables": 3
   }
  ]
 }

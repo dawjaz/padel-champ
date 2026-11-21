@@ -157,8 +157,8 @@ export class MatchScene extends Phaser.Scene {
   create(): void {
     applyHd(this);
     const profile = getSave().profile;
-    // Queued consumables boost one real match (not Free Practice) and are used up when it starts.
-    const boost = this.practice ? undefined : boostOf(profile.inventory);
+    // The boost chosen before a tournament match boosts that match only and is used up when it starts.
+    const boost = this.career ? boostOf(profile.inventory) : undefined;
     this.recoveryPct = boost?.recoveryPct ?? 0;
     const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
     TEAMS = [[heroFrom(BASE_YOU[0], profile, boost), partner], this.career ? this.career.opponents : DEFAULT_CPU];

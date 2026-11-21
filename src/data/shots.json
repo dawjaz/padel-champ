@@ -210,6 +210,7 @@
       "side": 0.0
     },
     "glassChance": 0.2,
+    "winnerMargin": 60,
     "blockAtNet": true
   },
   {

@@ -6,7 +6,7 @@ import type Phaser from 'phaser';
 export type IconKind =
   | 'head' | 'top' | 'shorts' | 'shoes' | 'racket' | 'wristband' | 'bag' | 'balls'
   | 'power' | 'spin' | 'technique' | 'accuracy' | 'stamina' | 'speed' | 'defense'
-  | 'coin' | 'boost' | 'trophy';
+  | 'coin' | 'boost' | 'trophy' | 'star';
 
 export function drawIcon(g: Phaser.GameObjects.Graphics, kind: IconKind, x: number, y: number, size: number, color: number): void {
   const u = size / 16; // 16 design units
@@ -109,6 +109,25 @@ export function drawIcon(g: Phaser.GameObjects.Graphics, kind: IconKind, x: numb
       poly([[8, 1.5], [12.5, 8], [11.5, 12], [8, 14.5], [4.5, 12], [3.5, 8]]);
       g.fillStyle(0xffffff, 0.35);
       g.fillCircle(X(6.5), Y(9), 1.6 * u);
+      break;
+    case 'star': // five-point star with a dark outline, for "new"
+      {
+        const pts: number[][] = [];
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 5;
+          const r = i % 2 === 0 ? 7.6 : 3.2;
+          pts.push([8 + Math.cos(a) * r, 8 + Math.sin(a) * r]);
+        }
+        g.fillStyle(dark, 0.9);
+        g.beginPath();
+        pts.forEach(([a, b], i) => (i === 0 ? g.moveTo(X(8 + (a - 8) * 1.22), Y(8 + (b - 8) * 1.22)) : g.lineTo(X(8 + (a - 8) * 1.22), Y(8 + (b - 8) * 1.22))));
+        g.closePath();
+        g.fillPath();
+        g.fillStyle(color, 1);
+        poly(pts);
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(X(6.6), Y(6.2), 1.1 * u);
+      }
       break;
     case 'trophy':
       g.fillRoundedRect(X(4), Y(2), 8 * u, 7 * u, 2 * u);

@@ -1,7 +1,7 @@
 {
   "maxLevel": 30,
   "startStat": 4,
-  "startPoints": 6,
+  "startPoints": 2,
   "pointsPerLevel": 2,
   "statMax": 10,
   "capBase": 5,

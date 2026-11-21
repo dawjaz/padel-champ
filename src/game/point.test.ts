@@ -553,6 +553,12 @@ describe('CPU hitters look for the gaps', () => {
   });
 });
 
+describe('flat return', () => {
+  it('is not a near-automatic winner: it needs a big margin, so a standing defender usually gets it back', () => {
+    expect(shot('flat').winnerMargin ?? 0).toBeGreaterThanOrEqual(50);
+  });
+});
+
 describe('rebound back over the net', () => {
   it('a hard shot that comes off the glass and beats the defence clearly ends the point for the attackers', () => {
     let found = 0;

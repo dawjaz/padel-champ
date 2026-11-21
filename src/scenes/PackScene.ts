@@ -90,14 +90,6 @@ export class PackScene extends Phaser.Scene {
             added.push(ic);
             if (d.item.rarity !== 'common') burst(color, shine);
             if (shine) this.cameras.main.flash(180, 255, 240, 170);
-          } else {
-            frame(COLORS.green, 3);
-            t(30, cy - 14, 'BOOST', 11, COLORS.green, true);
-            t(30, cy + 10, d.name.toUpperCase(), 16, COLORS.white, true);
-            const ic = this.add.graphics();
-            drawIcon(ic, 'boost', 310, cy, 36, COLORS.green);
-            added.push(ic);
-            burst(COLORS.green, false);
           }
           for (const o of added) (o as Phaser.GameObjects.GameObject & { setAlpha: (a: number) => unknown }).setAlpha(0);
           this.tweens.add({ targets: added, alpha: 1, duration: 160 });

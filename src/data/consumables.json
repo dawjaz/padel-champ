@@ -1,23 +1,20 @@
 {
- "maxQueued": 3,
- "starter": {
-  "isotonic": 2,
-  "gel": 2,
-  "grip_tape": 2,
-  "fresh_balls": 2
- },
  "items": [
   {
    "id": "isotonic",
    "name": "Isotonic Drink",
    "desc": "+10% guts recovered after every point",
-   "recoveryPct": 0.1
+   "recoveryPct": 0.1,
+   "price": 50,
+   "short": "+10% G REGEN"
   },
   {
    "id": "gel",
    "name": "Energy Gel",
    "desc": "+2 max guts",
-   "maxGuts": 2
+   "maxGuts": 2,
+   "price": 60,
+   "short": "+2 MAX G"
   },
   {
    "id": "grip_tape",
@@ -25,7 +22,9 @@
    "desc": "+2 technique",
    "stats": {
     "technique": 2
-   }
+   },
+   "price": 70,
+   "short": "+2 TECHNIQUE"
   },
   {
    "id": "fresh_balls",
@@ -33,7 +32,10 @@
    "desc": "+2 spin",
    "stats": {
     "spin": 2
-   }
+   },
+   "price": 70,
+   "short": "+2 SPIN"
   }
- ]
+ ],
+ "maxBoosts": 2
 }

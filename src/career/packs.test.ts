@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { seededRng } from '../game/rng';
-import { gearById, newInventory } from './gear';
-import { buyPack, canBuy, DUPLICATE_COINS, LEVEL_UP_PACK, oddsOf, openPack, openStockPack, packById, PACKS, rollRarity } from './packs';
-import { award, levelOf, newProfile, xpToReach } from './profile';
+import { CONSUMABLES, gearById, newInventory } from './gear';
+import { boostProblem, buyBoost, buyPack, canBuy, DUPLICATE_COINS, LEVEL_UP_PACK, oddsOf, openPack, openStockPack, packById, PACKS, rollRarity } from './packs';
+import { award, levelOf, newProfile, xpToReach, type Profile } from './profile';
 
 describe('pack data', () => {
   it('odds add up to 100% and every pack gives something', () => {
     for (const p of PACKS) {
-      expect((p.items ?? 0) + (p.consumables ?? 0), p.id).toBeGreaterThan(0);
+      expect(p.items ?? 0, p.id).toBeGreaterThan(0);
       if (p.items) expect(oddsOf(p).reduce((a, o) => a + o.percent, 0), p.id).toBeCloseTo(100, 0);
       expect(p.price, p.id).toBeGreaterThan(0);
     }
@@ -72,12 +72,22 @@ describe('opening', () => {
     expect(r.profile.inventory.pity.gear).toBeUndefined();
   });
 
-  it('the boost bundle gives consumables into the stock', () => {
-    const p = newProfile();
-    const before = Object.values(p.inventory.stock).reduce((a, b) => a + b, 0);
-    const r = openPack(p, 'boost', seededRng(5));
-    expect(r.drops.length).toBe(3);
-    expect(Object.values(r.profile.inventory.stock).reduce((a, b) => a + b, 0)).toBe(before + 3);
+  it('boosts are bought one by one into a bag of two', () => {
+    const price = CONSUMABLES[0].price;
+    const poor = { ...newProfile(), coins: price - 1 };
+    expect(boostProblem(poor, CONSUMABLES[0].id)).toMatch(/coins/);
+    expect(buyBoost(poor, CONSUMABLES[0].id)).toBeNull();
+    let p: Profile = { ...newProfile(), coins: 10000 };
+    p = buyBoost(p, CONSUMABLES[0].id)!;
+    expect(p.coins).toBe(10000 - price);
+    p = buyBoost(p, CONSUMABLES[1].id)!;
+    expect(p.inventory.boosts).toEqual([CONSUMABLES[0].id, CONSUMABLES[1].id]);
+    expect(boostProblem(p, CONSUMABLES[2].id)).toBe('bag full');
+    expect(buyBoost(p, CONSUMABLES[2].id)).toBeNull();
+    expect(buyBoost(p, 'nope')).toBeNull();
+  });
+  it('there is no random boost bundle any more', () => {
+    expect(packById('boost')).toBeUndefined();
   });
 });
 

@@ -30,6 +30,10 @@ export interface Consumable {
   stats?: Bonus;
   maxGuts?: number;
   recoveryPct?: number;
+  /** Short effect text for buttons. */
+  short: string;
+  /** Price in coins in the shop. */
+  price: number;
 }
 
 export interface Inventory {
@@ -39,17 +43,22 @@ export interface Inventory {
   packs: Record<string, number>;
   /** Packs opened since the last item of the pity rarity, per pack id (see packs.ts). */
   pity: Record<string, number>;
-  /** Consumables in stock. */
-  stock: Record<string, number>;
-  /** Consumables chosen for the next match (used up when it starts). */
+  /** Boosts in the bag (consumable ids, at most `MAX_BOOSTS`): bought in the shop, used one per tournament match. */
+  boosts: string[];
+  /** The boost chosen for the next tournament match (used up when it starts); it is still in `boosts` until then. */
   queued: string[];
+  /** Gear the player has already looked at in the GEAR screen: anything owned, wearable and not in here is NEW (a star on its category). */
+  seen: string[];
 }
 
 export const SLOTS = gearData.slots as Slot[];
 export const GEAR = gearData.items as GearItem[];
 export const CONSUMABLES = consumablesData.items as Consumable[];
 const packIds = packsData.packs.map((p) => p.id);
-export const MAX_QUEUED = consumablesData.maxQueued;
+/** At most this many boosts in the bag (so two for a tournament). */
+export const MAX_BOOSTS: number = consumablesData.maxBoosts;
+/** One boost per match. */
+export const MAX_QUEUED = 1;
 
 export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g.id === id);
 export const consumableById = (id: string): Consumable | undefined => CONSUMABLES.find((c) => c.id === id);
@@ -67,7 +76,8 @@ export const SLOT_LABEL: Record<Slot, string> = {
 };
 
 export function newInventory(): Inventory {
-  return syncUnlocks({ owned: [], equipped: {}, packs: {}, pity: {}, stock: { ...consumablesData.starter }, queued: [] }, 1);
+  const inv = syncUnlocks({ owned: [], equipped: {}, packs: {}, pity: {}, boosts: [], queued: [], seen: [] }, 1);
+  return { ...inv, seen: [...inv.owned] }; // the starting gear is not news
 }
 
 /** Adds the items that unlock at or below this level. */
@@ -126,12 +136,34 @@ export function applyLook(base: Appearance, inv: Inventory): Appearance {
   return a;
 }
 
-// ---------- consumables ----------
+// ---------- new gear (the star in the GEAR screen) ----------
 
+/** Owned gear of a slot that can be worn now and has not been looked at yet. */
+export function newItemsOfSlot(inv: Inventory, slot: Slot, level: number): GearItem[] {
+  return itemsOfSlot(slot).filter((g) => inv.owned.includes(g.id) && level >= g.minLevel && !inv.seen.includes(g.id));
+}
+
+export const hasNewIn = (inv: Inventory, slot: Slot, level: number): boolean => newItemsOfSlot(inv, slot, level).length > 0;
+
+/** The player opened this slot: what is new in it counts as seen. */
+export function markSeen(inv: Inventory, slot: Slot, level: number): Inventory {
+  const fresh = newItemsOfSlot(inv, slot, level);
+  return fresh.length === 0 ? inv : { ...inv, seen: [...inv.seen, ...fresh.map((g) => g.id)] };
+}
+
+// ---------- boosts ----------
+
+/** Adds a bought boost to the bag, or returns the inventory unchanged when the bag is full or the boost is unknown. */
+export function addBoost(inv: Inventory, id: string): Inventory {
+  if (!consumableById(id) || inv.boosts.length >= MAX_BOOSTS) return inv;
+  return { ...inv, boosts: [...inv.boosts, id] };
+}
+
+/** Picks the boost for the next match (one only), or takes the pick back. Only a boost in the bag can be picked. */
 export function toggleQueued(inv: Inventory, id: string): Inventory {
-  if (inv.queued.includes(id)) return { ...inv, queued: inv.queued.filter((q) => q !== id) };
-  if (inv.queued.length >= MAX_QUEUED || (inv.stock[id] ?? 0) <= 0 || !consumableById(id)) return inv;
-  return { ...inv, queued: [...inv.queued, id] };
+  if (inv.queued.includes(id)) return { ...inv, queued: [] };
+  if (!inv.boosts.includes(id)) return inv;
+  return { ...inv, queued: [id] };
 }
 
 export interface Boost {
@@ -153,32 +185,50 @@ export function boostOf(inv: Inventory): Boost {
   return boost;
 }
 
-/** Uses up the queued consumables (the match starts). */
+/** Uses up the chosen boost (the match starts): one copy leaves the bag. */
 export function consumeQueued(inv: Inventory): Inventory {
-  const stock = { ...inv.stock };
-  for (const id of inv.queued) stock[id] = Math.max(0, (stock[id] ?? 0) - 1);
-  return { ...inv, stock, queued: [] };
+  const boosts = [...inv.boosts];
+  for (const id of inv.queued) {
+    const at = boosts.indexOf(id);
+    if (at >= 0) boosts.splice(at, 1);
+  }
+  return { ...inv, boosts, queued: [] };
 }
 
-/** Makes a stored inventory safe: known items only, equipped items must be owned, stock whole numbers, queued must be in stock. */
+/** Makes a stored inventory safe: known items only, equipped items must be owned, at most `MAX_BOOSTS` known boosts, the pick must be in the bag. */
 export function sanitizeInventory(raw: unknown, level: number): Inventory {
   const o = (raw ?? null) as Partial<Record<string, unknown>> | null;
   if (!o) return newInventory();
   const ids = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-  const owned = syncUnlocks({ owned: [...new Set(ids(o.owned).filter((id) => gearById(id)))], equipped: {}, packs: {}, pity: {}, stock: {}, queued: [] }, level).owned;
+  const owned = syncUnlocks({ owned: [...new Set(ids(o.owned).filter((id) => gearById(id)))], equipped: {}, packs: {}, pity: {}, boosts: [], queued: [], seen: [] }, level).owned;
   const equipped: Partial<Record<Slot, string>> = {};
   const eq = (o.equipped ?? {}) as Record<string, unknown>;
   for (const slot of SLOTS) {
     const id = eq[slot];
     if (typeof id === 'string' && owned.includes(id) && gearById(id)?.slot === slot && level >= (gearById(id)?.minLevel ?? 99)) equipped[slot] = id;
   }
-  const stock: Record<string, number> = {};
-  const st = (o.stock ?? {}) as Record<string, unknown>;
-  for (const c of CONSUMABLES) {
-    const v = st[c.id];
-    stock[c.id] = typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  let boosts = ids(o.boosts).filter((id) => consumableById(id));
+  if (!Array.isArray(o.boosts)) {
+    // An old save kept a stock per boost: keep at most what the bag holds now.
+    const st = (o.stock ?? {}) as Record<string, unknown>;
+    boosts = [];
+    for (const c of CONSUMABLES) {
+      const v = st[c.id];
+      for (let i = 0; typeof v === 'number' && Number.isFinite(v) && i < Math.floor(v); i++) boosts.push(c.id);
+    }
   }
-  const queued = [...new Set(ids(o.queued).filter((id) => (stock[id] ?? 0) > 0))].slice(0, MAX_QUEUED);
+  boosts = boosts.slice(0, MAX_BOOSTS);
+  const left = [...boosts];
+  const queued: string[] = [];
+  for (const id of ids(o.queued)) {
+    const at = left.indexOf(id);
+    if (at >= 0 && queued.length < MAX_QUEUED) {
+      queued.push(id);
+      left.splice(at, 1);
+    }
+  }
+  // An old save has no `seen`: everything owned counts as seen, so nothing shows a star by surprise.
+  const seen = Array.isArray(o.seen) ? [...new Set(ids(o.seen).filter((id) => owned.includes(id)))] : [...owned];
   const counts = (v: unknown): Record<string, number> => {
     const out: Record<string, number> = {};
     for (const [k, n] of Object.entries((v ?? {}) as Record<string, unknown>)) {
@@ -186,5 +236,5 @@ export function sanitizeInventory(raw: unknown, level: number): Inventory {
     }
     return out;
   };
-  return { owned, equipped, packs: counts(o.packs), pity: counts(o.pity), stock, queued };
+  return { owned, equipped, packs: counts(o.packs), pity: counts(o.pity), boosts, queued, seen };
 }

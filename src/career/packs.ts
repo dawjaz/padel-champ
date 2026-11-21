@@ -2,7 +2,7 @@
 // comes only from the injected `rng`. Data: src/data/packs.json.
 
 import packsData from '../data/packs.json';
-import { CONSUMABLES, GEAR, type GearItem, type Inventory, type Rarity } from './gear';
+import { addBoost, consumableById, GEAR, MAX_BOOSTS, type GearItem, type Inventory, type Rarity } from './gear';
 import type { Rng } from '../game/types';
 import type { Profile } from './profile';
 
@@ -12,17 +12,13 @@ export interface PackDef {
   price: number;
   /** Gear items in the pack. */
   items?: number;
-  /** Consumables in the pack. */
-  consumables?: number;
   /** Percent weights per rarity (sum 100). */
   odds?: Partial<Record<Rarity, number>>;
   /** After `after - 1` packs without an item of `min` or better, the next pack gives one for sure. */
   pity?: { after: number; min: Rarity };
 }
 
-export type Drop =
-  | { kind: 'gear'; item: GearItem; duplicate: boolean; coins: number }
-  | { kind: 'consumable'; id: string; name: string };
+export type Drop = { kind: 'gear'; item: GearItem; duplicate: boolean; coins: number };
 
 export const PACKS = packsData.packs as PackDef[];
 export const LEVEL_UP_PACK: string = packsData.levelUpPack;
@@ -74,18 +70,12 @@ export function openPack(profile: Profile, packId: string, rng: Rng): Opened {
     if (pityMin && rank(item.rarity) >= rank(pityMin)) gotPity = true;
     drops.push({ kind: 'gear', item, duplicate, coins: refund });
   }
-  const stock = { ...inv.stock };
-  for (let i = 0; i < (def.consumables ?? 0); i++) {
-    const c = CONSUMABLES[Math.floor(rng() * CONSUMABLES.length)];
-    stock[c.id] = (stock[c.id] ?? 0) + 1;
-    drops.push({ kind: 'consumable', id: c.id, name: c.name });
-  }
   const pity = { ...inv.pity };
   if (def.pity) {
     if (gotPity) delete pity[def.id];
     else pity[def.id] = (pity[def.id] ?? 0) + 1;
   }
-  return { profile: { ...profile, coins, inventory: { ...inv, stock, pity } }, drops };
+  return { profile: { ...profile, coins, inventory: { ...inv, pity } }, drops };
 }
 
 export const canBuy = (p: Profile, packId: string): boolean => {
@@ -115,4 +105,19 @@ export function oddsOf(def: PackDef): { rarity: Rarity; percent: number }[] {
   const odds = def.odds ?? {};
   const total = RARITIES.reduce((a, r) => a + (odds[r] ?? 0), 0);
   return RARITIES.filter((r) => (odds[r] ?? 0) > 0).map((r) => ({ rarity: r, percent: Math.round(((odds[r] ?? 0) / total) * 1000) / 10 }));
+}
+
+/** Why a boost cannot be bought now (text), or null when it can. */
+export function boostProblem(p: Profile, id: string): string | null {
+  const c = consumableById(id);
+  if (!c) return 'unknown boost';
+  if (p.inventory.boosts.length >= MAX_BOOSTS) return 'bag full';
+  if (p.coins < c.price) return 'not enough coins';
+  return null;
+}
+
+/** Buys a boost for the bag (at most `MAX_BOOSTS` at a time), or returns null. */
+export function buyBoost(p: Profile, id: string): Profile | null {
+  if (boostProblem(p, id) !== null) return null;
+  return { ...p, coins: p.coins - consumableById(id)!.price, inventory: addBoost(p.inventory, id) };
 }

@@ -95,20 +95,27 @@ export class ResultScene extends Phaser.Scene {
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {
       this.add
-        .text(WIDTH / 2, 566, `ACHIEVEMENT!\n${trophies.slice(0, 3).join('\n')}${trophies.length > 3 ? `\n+${trophies.length - 3} MORE` : ''}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.yellow), align: 'center' })
+        .text(WIDTH / 2, 590, `ACHIEVEMENT!\n${trophies.slice(0, 2).join('\n')}${trophies.length > 2 ? `\n+${trophies.length - 2} MORE` : ''}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.yellow), align: 'center' })
         .setOrigin(0.5, 0);
     }
 
+    const small = (b: { text: Phaser.GameObjects.Text }): void => void b.text.setFontSize(15);
     if (this.outcome.career) {
       makeButton(this, WIDTH / 2, 448, 240, 48, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'));
     } else {
       makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }));
     }
     if (locked) {
-      makeButton(this, WIDTH / 2, 512, 240, 48, 'TITLE', () => this.scene.start('TitleScene'));
+      // A tournament is still going on: no hero, gear or shop.
+      makeButton(this, WIDTH / 2, 510, 240, 48, 'MAIN MENU', () => this.scene.start('TitleScene'));
+    } else if (fin) {
+      // The tournament is over: now the hero can be upgraded and the shop is open.
+      small(makeButton(this, WIDTH / 2 - 62, 502, 116, 44, 'HERO', () => this.scene.start('CharacterScene')));
+      small(makeButton(this, WIDTH / 2 + 62, 502, 116, 44, 'GO TO SHOP', () => this.scene.start('ShopScene')));
+      makeButton(this, WIDTH / 2, 554, 240, 44, 'MAIN MENU', () => this.scene.start('TitleScene'));
     } else {
-      makeButton(this, WIDTH / 2 - 62, 512, 116, 48, 'HERO', () => this.scene.start('CharacterScene'));
-      makeButton(this, WIDTH / 2 + 62, 512, 116, 48, 'TITLE', () => this.scene.start('TitleScene'));
+      small(makeButton(this, WIDTH / 2 - 62, 510, 116, 48, 'HERO', () => this.scene.start('CharacterScene')));
+      small(makeButton(this, WIDTH / 2 + 62, 510, 116, 48, 'MAIN MENU', () => this.scene.start('TitleScene')));
     }
   }
 }

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { drawIcon } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
-import { buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
+import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
+import { CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
 import { applyScreen } from '../hd';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
@@ -12,7 +13,6 @@ const RARITY_COLOR: Record<string, number> = { common: COLORS.gray, rare: COLORS
 const describe = (p: PackDef): string => {
   const parts: string[] = [];
   if (p.items) parts.push(`${p.items} GEAR`);
-  if (p.consumables) parts.push(`${p.consumables} BOOSTS`);
   return parts.join(' + ');
 };
 
@@ -75,7 +75,7 @@ export class ShopScene extends Phaser.Scene {
       y += 42;
     }
 
-    const cardH = 132;
+    const cardH = 118;
     const gap = 8;
     const top = Math.max(y, 90);
     PACKS.forEach((def, i) => {
@@ -98,8 +98,6 @@ export class ShopScene extends Phaser.Scene {
           this.label(110, cy - cardH / 2 + 62 + row * 15, `${o.percent}%`, 11, COLORS.white, false, 0);
         });
         if (def.pity) this.label(28, cy + cardH / 2 - 16, `SURE ${def.pity.min.toUpperCase()}+ EVERY ${def.pity.after} PACKS (${p.inventory.pity[def.id] ?? 0}/${def.pity.after - 1})`, 10, COLORS.sky, false, 0);
-      } else {
-        this.label(28, cy - cardH / 2 + 56, 'RANDOM BOOSTS FOR THE\nNEXT MATCH: DRINK, GEL,\nGRIP TAPE, FRESH BALLS', 11, COLORS.white, false, 0).setOrigin(0, 0).setLineSpacing(3);
       }
       const afford = p.coins >= def.price;
       const b = makeButton(this, 282, cy - 10, 96, 44, `${def.price}`, () => this.open(buyPack(getSave().profile, def.id, Math.random), def.name));
@@ -108,6 +106,31 @@ export class ShopScene extends Phaser.Scene {
       this.dyn.push(...b.parts);
       this.label(282, cy + 22, 'COINS', 10, COLORS.gray);
     });
-    this.label(WIDTH / 2, 562, this.note || 'A DUPLICATE TURNS INTO COINS', 11, COLORS.sky);
+
+    // Boosts: bought here, kept in the bag (two at most) and used one per tournament match.
+    const boostTop = top + PACKS.length * (cardH + gap) + 2;
+    this.label(WIDTH / 2, boostTop + 10, `BOOSTS  (BAG ${p.inventory.boosts.length}/${MAX_BOOSTS})`, 12, COLORS.white, true);
+    CONSUMABLES.forEach((c, i) => {
+      const bx = 98 + (i % 2) * 164;
+      const by = boostTop + 40 + Math.floor(i / 2) * 50;
+      const problem = boostProblem(p, c.id);
+      const b = makeButton(this, bx, by, 158, 44, `${c.name.toUpperCase()}\n${c.short}  ${c.price}`, () => {
+        const next = buyBoost(getSave().profile, c.id);
+        if (!next) {
+          this.note = (boostProblem(getSave().profile, c.id) ?? 'CANNOT BUY').toUpperCase();
+        } else {
+          updateSave((d) => ({ ...d, profile: next }));
+          this.note = `${c.name.toUpperCase()} IS IN YOUR BAG`;
+        }
+        this.redraw();
+      });
+      b.text.setFontSize(10);
+      b.setAccent(problem ? COLORS.gray : COLORS.green);
+      b.text.setAlpha(problem ? 0.45 : 1);
+      this.dyn.push(...b.parts);
+    });
+    const bag = p.inventory.boosts.map((id) => consumableById(id)?.name.toUpperCase() ?? id);
+    this.label(WIDTH / 2, boostTop + 148, `IN YOUR BAG: ${bag.length > 0 ? bag.join(', ') : 'EMPTY'}`, 11, COLORS.yellow, true);
+    this.label(WIDTH / 2, boostTop + 168, this.note || 'USE ONE BOOST BEFORE EACH TOURNAMENT MATCH', 10, COLORS.sky);
   }
 }

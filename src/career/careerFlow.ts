@@ -46,6 +46,7 @@ function finish(p: Profile, bracket: Bracket): Finished {
   if (prize.pack) {
     next = { ...next, inventory: { ...next.inventory, packs: { ...next.inventory.packs, [prize.pack]: (next.inventory.packs[prize.pack] ?? 0) + 1 } } };
   }
+  next = { ...next, inventory: { ...next.inventory, queued: [] } }; // a boost picked for a match that was never played stays in the bag
   const history = [...next.career.history, { season: next.career.season, event: eventName(event), division: event.division, roundsWon: bracket.roundsWon, champion }].slice(-HISTORY_LIMIT);
   const career = advanceWeek({ ...next.career, active: null, rankPoints: next.career.rankPoints + prize.rank, titles: next.career.titles + (champion ? 1 : 0), history });
   return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches };

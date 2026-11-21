@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { activeBracket, withdraw } from '../career/careerFlow';
+import { consumableById, toggleQueued } from '../career/gear';
 import { heroFrom } from '../career/profile';
 import { STAT_KEYS } from '../game/attributes';
 import playersData from '../data/players.json';
@@ -65,6 +66,27 @@ export class BracketScene extends Phaser.Scene {
     const y0 = 96 + round.length * (rowH + 4) + 10;
     text(WIDTH / 2, y0 + 8, `NEXT: ${opp.name.toUpperCase()}`, 14, COLORS.white, true);
     text(WIDTH / 2, y0 + 30, `OPPONENT ${opp.rating.toFixed(1)}   YOU ${heroAvg.toFixed(1)}`, 12, opp.rating > heroAvg + 0.5 ? COLORS.red : opp.rating < heroAvg - 0.5 ? COLORS.green : COLORS.yellow, true);
+
+    // One boost from the bag can be used in this match (bought in the shop between tournaments).
+    const inv = profile.inventory;
+    const bagIds = [...new Set(inv.boosts)];
+    if (bagIds.length === 0) {
+      text(WIDTH / 2, 470, 'NO BOOSTS IN THE BAG (BUY THEM IN THE SHOP)', 10, COLORS.gray);
+    } else {
+      text(WIDTH / 2, 446, 'USE A BOOST IN THIS MATCH?', 11, COLORS.white, true);
+      bagIds.forEach((id, i) => {
+        const c = consumableById(id)!;
+        const count = inv.boosts.filter((b) => b === id).length;
+        const on = inv.queued.includes(id);
+        const bx = WIDTH / 2 + (i - (bagIds.length - 1) / 2) * 168;
+        const b = makeButton(this, bx, 480, 160, 40, `${on ? '* ' : ''}${c.name.toUpperCase()}${count > 1 ? ` x${count}` : ''}\n${c.short}`, () => {
+          updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: toggleQueued(d.profile.inventory, id) } }));
+          this.scene.restart();
+        });
+        b.text.setFontSize(10);
+        b.setAccent(on ? COLORS.yellow : COLORS.sky);
+      });
+    }
 
     makeButton(this, WIDTH / 2, 536, 260, 50, 'PLAY MATCH', () => this.scene.start('MatchScene', { practice: null, career: { opponents: opp.players, name: bracket.division.name } }));
     const leave = makeButton(this, WIDTH / 2, 596, 200, 38, 'WITHDRAW', () => {
