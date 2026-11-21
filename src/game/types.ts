@@ -70,6 +70,10 @@ export interface FlightDef {
   side: number;
   /** Deadens the floor bounce (multiplies the bounce height and the speed kept): 1 = normal, 0.7 = a ball that dies on the court. */
   deaden?: number;
+  /** Multiplies only the bounce height off the floor (the speed along the court is kept): a cut ball that stays low. */
+  bounceMul?: number;
+  /** Multiplies the height of the rebound off the back glass (1 = normal, 0.6 = a cut ball that comes off low). */
+  reboundMul?: number;
   /** Extra speed (share of `speed`) when the hitter is right at the net: a volley from the net is much faster than one from mid-court. */
   netBoost?: number;
 }

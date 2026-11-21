@@ -229,20 +229,23 @@
     "advance": "net",
     "landDepth": 6,
     "wall": "side",
-    "desc": "Sliced overhead with side spin. Needs a high ball.",
+    "desc": "Cut overhead with side spin: flat, and low off the glass. Needs a mid or high ball.",
     "flight": {
-      "speed": 23,
+      "speed": 27,
       "apex": 0,
-      "spin": -0.5,
+      "spin": -0.2,
+      "bounceMul": 0.75,
+      "reboundMul": 0.6,
       "wallKick": 1.35,
       "side": 1.3
     },
     "requires": {
       "glass": false,
       "heights": [
+        "mid",
         "high"
       ],
-      "hint": "high ball, before the glass"
+      "hint": "mid or high ball, before the glass"
     },
     "glassChance": 0.35,
     "blockAtNet": true,

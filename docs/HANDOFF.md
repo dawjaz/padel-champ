@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-20 (v0.25)_
+_Last updated: 2026-11-20 (v0.26)_
+
+## v0.26: vibora
+- Vibora playable on a **mid or high** ball (never low, never off the glass): `requires.heights` ['mid','high']. In Free Practice the `*` shots (not normally playable) stay available on purpose.
+- Flatter and cut: speed 23 -> 27, backspin -0.5 -> -0.2, new `flight.bounceMul` 0.75 (floor bounce height only, speed along the court kept) and `flight.reboundMul` 0.6 (rebound height off the back glass). First-bounce height from the baseline 1.36 -> about 0.8 m; the ball still reaches the glass. `deaden` (speed + bounce) would have stopped it short of the glass, hence the separate knobs.
 
 ## v0.25: fewer winners against defenders who volley
 - A defender who takes the ball out of the air (net volley or mid-court `airTake`) now defends `AIR_DEFENSE` better (engine.ts: net x1.2, mid x1.12; `HitInput.airTake`). Flat return cross from the net at a mid-court pair: winners 44% -> 15% (net pair: 4%); vs a back pair unchanged (44%). CPU-vs-CPU rallies are longer (avg hits 4.9 -> 5.9). Tune the two multipliers.
