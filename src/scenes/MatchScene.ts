@@ -23,13 +23,22 @@ import { awardPoint, isGoldenPoint, newScore, pointLabels, type MatchScore } fro
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { gutsRecovery, powerSpeedMul, spinMul } from '../game/attributes';
+import { reportMatch, type Finished } from '../career/careerFlow';
+import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
 import { award, heroFrom, levelOf, matchReward } from '../career/profile';
 import { getSave, recordResult, updateSave } from '../save';
 
 const BASE_YOU = playersData.you as unknown as PlayerDef[];
 /** The teams of the current match: the human hero (idx 0) has the attributes of the career profile; set in create(). */
-let TEAMS: Teams = [BASE_YOU, playersData.cpu as unknown as PlayerDef[]];
+const DEFAULT_CPU = playersData.cpu as unknown as PlayerDef[];
+let TEAMS: Teams = [BASE_YOU, DEFAULT_CPU];
+
+/** A career match: the opponent pair of the bracket (the partner comes from the career). */
+export interface CareerMatch {
+  opponents: PlayerDef[];
+  name: string;
+}
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
 const HUMAN_SIDE: SideIndex = 0;
@@ -82,6 +91,7 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
+  private career: CareerMatch | null = null;
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
@@ -132,8 +142,9 @@ export class MatchScene extends Phaser.Scene {
   }
 
   // Phaser keeps the data of the previous start when a scene is started without any: a normal match is always started with { practice: null }.
-  init(data?: { practice?: 'attack' | 'defend' | null }): void {
+  init(data?: { practice?: 'attack' | 'defend' | null; career?: CareerMatch | null }): void {
     this.practice = data?.practice ?? null;
+    this.career = data?.career ?? null;
     this.pr = { ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0 };
   }
 
@@ -143,7 +154,8 @@ export class MatchScene extends Phaser.Scene {
     // Queued consumables boost one real match (not Free Practice) and are used up when it starts.
     const boost = this.practice ? undefined : boostOf(profile.inventory);
     this.recoveryPct = boost?.recoveryPct ?? 0;
-    TEAMS = [[heroFrom(BASE_YOU[0], profile, boost), BASE_YOU[1]], TEAMS[1]];
+    const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
+    TEAMS = [[heroFrom(BASE_YOU[0], profile, boost), partner], this.career ? this.career.opponents : DEFAULT_CPU];
     if (boost && profile.inventory.queued.length > 0) {
       updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: consumeQueued(d.profile.inventory) } }));
     }
@@ -1280,14 +1292,21 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     const reward = matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
     const levelBefore = levelOf(getSave().profile.xp);
+    const out: { finished?: Finished } = {};
     updateSave((d) => {
       const r = recordResult(d, winner === 0);
-      return { ...r, profile: award(r.profile, reward) };
+      let profile = award(r.profile, reward);
+      if (this.career) {
+        const rep = reportMatch(profile, winner === 0);
+        profile = rep.profile;
+        out.finished = rep.finished;
+      }
+      return { ...r, profile };
     });
     const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore) }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize } : undefined }));
   }
 }

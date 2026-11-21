@@ -1,0 +1,132 @@
+{
+ "default": "mia",
+ "partners": [
+  {
+   "id": "mia",
+   "name": "Mia",
+   "stats": {
+    "power": 5,
+    "spin": 7,
+    "technique": 8,
+    "accuracy": 7,
+    "stamina": 6,
+    "speed": 7,
+    "defense": 4
+   },
+   "price": 0,
+   "appearance": {
+    "gender": "female",
+    "skin": "#8d5524",
+    "hairStyle": "ponytail",
+    "hairColor": "#2a1608",
+    "shirt": "#f6d743",
+    "bottom": "#e8554e",
+    "bottomStyle": "skirt",
+    "shoes": "#f2a33a",
+    "racket": "#e8554e",
+    "headband": "#e8554e"
+   }
+  },
+  {
+   "id": "lena",
+   "name": "Lena",
+   "stats": {
+    "power": 5,
+    "spin": 5,
+    "technique": 5,
+    "accuracy": 5,
+    "stamina": 5,
+    "speed": 5,
+    "defense": 5
+   },
+   "price": 400,
+   "appearance": {
+    "gender": "female",
+    "skin": "#f1c27d",
+    "hairStyle": "bun",
+    "hairColor": "#7a4a1d",
+    "shirt": "#3a6df0",
+    "bottom": "#f4f4f4",
+    "bottomStyle": "skirt",
+    "shoes": "#f4f4f4",
+    "racket": "#15151c"
+   }
+  },
+  {
+   "id": "marco",
+   "name": "Marco",
+   "stats": {
+    "power": 6,
+    "spin": 6,
+    "technique": 7,
+    "accuracy": 6,
+    "stamina": 6,
+    "speed": 6,
+    "defense": 6
+   },
+   "price": 900,
+   "appearance": {
+    "gender": "male",
+    "skin": "#e0ac69",
+    "hairStyle": "short",
+    "hairColor": "#1a1a1a",
+    "shirt": "#00a800",
+    "bottom": "#1a1a1a",
+    "bottomStyle": "shorts",
+    "shoes": "#f4f4f4",
+    "racket": "#f2a33a"
+   }
+  },
+  {
+   "id": "sofia",
+   "name": "Sofia",
+   "stats": {
+    "power": 7,
+    "spin": 8,
+    "technique": 7,
+    "accuracy": 8,
+    "stamina": 7,
+    "speed": 7,
+    "defense": 7
+   },
+   "price": 2000,
+   "appearance": {
+    "gender": "female",
+    "skin": "#c68642",
+    "hairStyle": "long",
+    "hairColor": "#0d0d0d",
+    "shirt": "#c060ff",
+    "bottom": "#2b2b5e",
+    "bottomStyle": "skirt",
+    "shoes": "#e8554e",
+    "racket": "#f6d743"
+   }
+  },
+  {
+   "id": "diego",
+   "name": "Diego",
+   "stats": {
+    "power": 9,
+    "spin": 8,
+    "technique": 9,
+    "accuracy": 8,
+    "stamina": 8,
+    "speed": 8,
+    "defense": 9
+   },
+   "price": 4500,
+   "appearance": {
+    "gender": "male",
+    "skin": "#8d5524",
+    "hairStyle": "afro",
+    "hairColor": "#0d0d0d",
+    "shirt": "#d82800",
+    "bottom": "#f4f4f4",
+    "bottomStyle": "shorts",
+    "shoes": "#15151c",
+    "racket": "#3cbcfc",
+    "headband": "#f8b800"
+   }
+  }
+ ]
+}

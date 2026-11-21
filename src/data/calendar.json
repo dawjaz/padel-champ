@@ -1,0 +1,432 @@
+{
+ "weeks": 24,
+ "rankCarry": 0.5,
+ "events": [
+  {
+   "id": "club-w1",
+   "week": 1,
+   "division": "club",
+   "city": "Doha"
+  },
+  {
+   "id": "rise-w1",
+   "week": 1,
+   "division": "rise",
+   "city": "Malaga"
+  },
+  {
+   "id": "club-w2",
+   "week": 2,
+   "division": "club",
+   "city": "Rome"
+  },
+  {
+   "id": "regional-w2",
+   "week": 2,
+   "division": "regional",
+   "city": "Brussels"
+  },
+  {
+   "id": "club-w3",
+   "week": 3,
+   "division": "club",
+   "city": "Sao Paulo"
+  },
+  {
+   "id": "bronze-w3",
+   "week": 3,
+   "division": "bronze",
+   "city": "Madrid"
+  },
+  {
+   "id": "club-w4",
+   "week": 4,
+   "division": "club",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "regional-w4",
+   "week": 4,
+   "division": "regional",
+   "city": "Warsaw"
+  },
+  {
+   "id": "rise-w4",
+   "week": 4,
+   "division": "rise",
+   "city": "Berlin"
+  },
+  {
+   "id": "silver-w4",
+   "week": 4,
+   "division": "silver",
+   "city": "Riyadh"
+  },
+  {
+   "id": "club-w5",
+   "week": 5,
+   "division": "club",
+   "city": "Barcelona"
+  },
+  {
+   "id": "club-w6",
+   "week": 6,
+   "division": "club",
+   "city": "Gdansk"
+  },
+  {
+   "id": "regional-w6",
+   "week": 6,
+   "division": "regional",
+   "city": "Amsterdam"
+  },
+  {
+   "id": "gold-w6",
+   "week": 6,
+   "division": "gold",
+   "city": "Vienna"
+  },
+  {
+   "id": "club-w7",
+   "week": 7,
+   "division": "club",
+   "city": "Stockholm"
+  },
+  {
+   "id": "rise-w7",
+   "week": 7,
+   "division": "rise",
+   "city": "Dubai"
+  },
+  {
+   "id": "bronze-w7",
+   "week": 7,
+   "division": "bronze",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "club-w8",
+   "week": 8,
+   "division": "club",
+   "city": "Madrid"
+  },
+  {
+   "id": "regional-w8",
+   "week": 8,
+   "division": "regional",
+   "city": "Paris"
+  },
+  {
+   "id": "silver-w8",
+   "week": 8,
+   "division": "silver",
+   "city": "Athens"
+  },
+  {
+   "id": "platinum-w8",
+   "week": 8,
+   "division": "platinum",
+   "city": "Rome"
+  },
+  {
+   "id": "club-w9",
+   "week": 9,
+   "division": "club",
+   "city": "Doha"
+  },
+  {
+   "id": "p2-w9",
+   "week": 9,
+   "division": "p2",
+   "city": "Valencia"
+  },
+  {
+   "id": "club-w10",
+   "week": 10,
+   "division": "club",
+   "city": "Rome"
+  },
+  {
+   "id": "regional-w10",
+   "week": 10,
+   "division": "regional",
+   "city": "Brussels"
+  },
+  {
+   "id": "rise-w10",
+   "week": 10,
+   "division": "rise",
+   "city": "Sevilla"
+  },
+  {
+   "id": "major-w10",
+   "week": 10,
+   "division": "major",
+   "city": "Doha"
+  },
+  {
+   "id": "club-w11",
+   "week": 11,
+   "division": "club",
+   "city": "Sao Paulo"
+  },
+  {
+   "id": "bronze-w11",
+   "week": 11,
+   "division": "bronze",
+   "city": "Madrid"
+  },
+  {
+   "id": "club-w12",
+   "week": 12,
+   "division": "club",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "regional-w12",
+   "week": 12,
+   "division": "regional",
+   "city": "Warsaw"
+  },
+  {
+   "id": "silver-w12",
+   "week": 12,
+   "division": "silver",
+   "city": "Riyadh"
+  },
+  {
+   "id": "gold-w12",
+   "week": 12,
+   "division": "gold",
+   "city": "Malaga"
+  },
+  {
+   "id": "p1-w12",
+   "week": 12,
+   "division": "p1",
+   "city": "Milan"
+  },
+  {
+   "id": "club-w13",
+   "week": 13,
+   "division": "club",
+   "city": "Barcelona"
+  },
+  {
+   "id": "rise-w13",
+   "week": 13,
+   "division": "rise",
+   "city": "Lisbon"
+  },
+  {
+   "id": "club-w14",
+   "week": 14,
+   "division": "club",
+   "city": "Gdansk"
+  },
+  {
+   "id": "regional-w14",
+   "week": 14,
+   "division": "regional",
+   "city": "Amsterdam"
+  },
+  {
+   "id": "club-w15",
+   "week": 15,
+   "division": "club",
+   "city": "Stockholm"
+  },
+  {
+   "id": "bronze-w15",
+   "week": 15,
+   "division": "bronze",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "major-w15",
+   "week": 15,
+   "division": "major",
+   "city": "Gdansk"
+  },
+  {
+   "id": "club-w16",
+   "week": 16,
+   "division": "club",
+   "city": "Madrid"
+  },
+  {
+   "id": "regional-w16",
+   "week": 16,
+   "division": "regional",
+   "city": "Paris"
+  },
+  {
+   "id": "rise-w16",
+   "week": 16,
+   "division": "rise",
+   "city": "Mexico City"
+  },
+  {
+   "id": "silver-w16",
+   "week": 16,
+   "division": "silver",
+   "city": "Athens"
+  },
+  {
+   "id": "platinum-w16",
+   "week": 16,
+   "division": "platinum",
+   "city": "Rome"
+  },
+  {
+   "id": "club-w17",
+   "week": 17,
+   "division": "club",
+   "city": "Doha"
+  },
+  {
+   "id": "p2-w17",
+   "week": 17,
+   "division": "p2",
+   "city": "Valencia"
+  },
+  {
+   "id": "club-w18",
+   "week": 18,
+   "division": "club",
+   "city": "Rome"
+  },
+  {
+   "id": "regional-w18",
+   "week": 18,
+   "division": "regional",
+   "city": "Brussels"
+  },
+  {
+   "id": "gold-w18",
+   "week": 18,
+   "division": "gold",
+   "city": "Dubai"
+  },
+  {
+   "id": "club-w19",
+   "week": 19,
+   "division": "club",
+   "city": "Sao Paulo"
+  },
+  {
+   "id": "rise-w19",
+   "week": 19,
+   "division": "rise",
+   "city": "Vienna"
+  },
+  {
+   "id": "bronze-w19",
+   "week": 19,
+   "division": "bronze",
+   "city": "Madrid"
+  },
+  {
+   "id": "club-w20",
+   "week": 20,
+   "division": "club",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "regional-w20",
+   "week": 20,
+   "division": "regional",
+   "city": "Warsaw"
+  },
+  {
+   "id": "silver-w20",
+   "week": 20,
+   "division": "silver",
+   "city": "Riyadh"
+  },
+  {
+   "id": "p1-w20",
+   "week": 20,
+   "division": "p1",
+   "city": "Milan"
+  },
+  {
+   "id": "club-w21",
+   "week": 21,
+   "division": "club",
+   "city": "Barcelona"
+  },
+  {
+   "id": "club-w22",
+   "week": 22,
+   "division": "club",
+   "city": "Gdansk"
+  },
+  {
+   "id": "regional-w22",
+   "week": 22,
+   "division": "regional",
+   "city": "Amsterdam"
+  },
+  {
+   "id": "rise-w22",
+   "week": 22,
+   "division": "rise",
+   "city": "Milan"
+  },
+  {
+   "id": "major-w22",
+   "week": 22,
+   "division": "major",
+   "city": "Barcelona"
+  },
+  {
+   "id": "club-w23",
+   "week": 23,
+   "division": "club",
+   "city": "Stockholm"
+  },
+  {
+   "id": "bronze-w23",
+   "week": 23,
+   "division": "bronze",
+   "city": "Bordeaux"
+  },
+  {
+   "id": "club-w24",
+   "week": 24,
+   "division": "club",
+   "city": "Madrid"
+  },
+  {
+   "id": "regional-w24",
+   "week": 24,
+   "division": "regional",
+   "city": "Paris"
+  },
+  {
+   "id": "silver-w24",
+   "week": 24,
+   "division": "silver",
+   "city": "Athens"
+  },
+  {
+   "id": "gold-w24",
+   "week": 24,
+   "division": "gold",
+   "city": "Lisbon"
+  },
+  {
+   "id": "platinum-w24",
+   "week": 24,
+   "division": "platinum",
+   "city": "Rome"
+  },
+  {
+   "id": "finals-w24",
+   "week": 24,
+   "division": "finals",
+   "city": "Buenos Aires"
+  }
+ ]
+}

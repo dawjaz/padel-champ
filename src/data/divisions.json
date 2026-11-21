@@ -1,0 +1,183 @@
+{
+ "divisions": [
+  {
+   "id": "club",
+   "name": "Club Cup",
+   "draw": 8,
+   "minLevel": 1,
+   "minRank": 0,
+   "fee": 0,
+   "rating": 3.0,
+   "title": {
+    "coins": 150,
+    "xp": 150,
+    "rank": 50
+   },
+   "titlePack": "gear"
+  },
+  {
+   "id": "regional",
+   "name": "Regional Open",
+   "draw": 16,
+   "minLevel": 3,
+   "minRank": 0,
+   "fee": 20,
+   "rating": 3.8,
+   "title": {
+    "coins": 300,
+    "xp": 250,
+    "rank": 100
+   },
+   "titlePack": "gear"
+  },
+  {
+   "id": "rise",
+   "name": "FIP Rise",
+   "draw": 16,
+   "minLevel": 6,
+   "minRank": 0,
+   "fee": 40,
+   "rating": 4.6,
+   "title": {
+    "coins": 500,
+    "xp": 400,
+    "rank": 160
+   },
+   "titlePack": "gear"
+  },
+  {
+   "id": "bronze",
+   "name": "FIP Bronze",
+   "draw": 16,
+   "minLevel": 9,
+   "minRank": 0,
+   "fee": 60,
+   "rating": 5.4,
+   "title": {
+    "coins": 800,
+    "xp": 600,
+    "rank": 250
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "silver",
+   "name": "FIP Silver",
+   "draw": 16,
+   "minLevel": 12,
+   "minRank": 0,
+   "fee": 100,
+   "rating": 6.2,
+   "title": {
+    "coins": 1200,
+    "xp": 900,
+    "rank": 400
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "gold",
+   "name": "FIP Gold",
+   "draw": 16,
+   "minLevel": 15,
+   "minRank": 0,
+   "fee": 150,
+   "rating": 7.0,
+   "title": {
+    "coins": 1800,
+    "xp": 1300,
+    "rank": 600
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "platinum",
+   "name": "FIP Platinum",
+   "draw": 16,
+   "minLevel": 18,
+   "minRank": 0,
+   "fee": 220,
+   "rating": 7.8,
+   "title": {
+    "coins": 2600,
+    "xp": 1800,
+    "rank": 800
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "p2",
+   "name": "Premier P2",
+   "draw": 16,
+   "minLevel": 21,
+   "minRank": 400,
+   "fee": 300,
+   "rating": 8.4,
+   "title": {
+    "coins": 3800,
+    "xp": 2500,
+    "rank": 1000
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "p1",
+   "name": "Premier P1",
+   "draw": 16,
+   "minLevel": 24,
+   "minRank": 900,
+   "fee": 400,
+   "rating": 9.0,
+   "title": {
+    "coins": 5500,
+    "xp": 3300,
+    "rank": 1500
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "major",
+   "name": "Major",
+   "draw": 16,
+   "minLevel": 27,
+   "minRank": 1800,
+   "fee": 600,
+   "rating": 9.6,
+   "title": {
+    "coins": 9000,
+    "xp": 4300,
+    "rank": 2000
+   },
+   "titlePack": "premium"
+  },
+  {
+   "id": "finals",
+   "name": "Season Finals",
+   "draw": 8,
+   "minLevel": 28,
+   "minRank": 3000,
+   "fee": 0,
+   "rating": 10.0,
+   "title": {
+    "coins": 6000,
+    "xp": 3000,
+    "rank": 1000
+   },
+   "titlePack": "premium"
+  }
+ ],
+ "roundShare": {
+  "8": [
+   0.2,
+   0.5,
+   1.0
+  ],
+  "16": [
+   0.08,
+   0.2,
+   0.45,
+   1.0
+  ]
+ },
+ "upsetSlope": 0.8
+}

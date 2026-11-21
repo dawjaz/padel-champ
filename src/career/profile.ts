@@ -3,6 +3,7 @@
 
 import levels from '../data/levels.json';
 import packsData from '../data/packs.json';
+import { newCareer, sanitizeCareer, type Career } from './season';
 import { applyLook, gearBonus, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
@@ -16,6 +17,8 @@ export interface Profile {
   alloc: Alloc;
   /** Gear, consumables (see gear.ts). */
   inventory: Inventory;
+  /** Calendar, ranking, the tournament in progress and the partner (see season.ts). */
+  career: Career;
 }
 
 export interface MatchSummary {
@@ -34,7 +37,7 @@ export interface Reward {
 
 export const emptyAlloc = (): Alloc => Object.fromEntries(STAT_KEYS.map((k) => [k, 0])) as Alloc;
 
-export const newProfile = (): Profile => ({ xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory() });
+export const newProfile = (): Profile => ({ xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -111,7 +114,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     alloc[k] = Math.max(0, v);
     left -= alloc[k];
   }
-  return { xp, coins: n(o.coins), alloc, inventory: sanitizeInventory(o.inventory, level) };
+  return { xp, coins: n(o.coins), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */

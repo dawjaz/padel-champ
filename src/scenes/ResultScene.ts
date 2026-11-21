@@ -14,6 +14,9 @@ export interface ResultData {
   levelUp?: number;
   /** Free packs this match brought (one per level up). */
   packs?: number;
+  /** A career match: the tournament goes on or ends here. */
+  career?: boolean;
+  finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string } };
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -24,7 +27,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0 };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, finished: data.finished };
   }
 
   create(): void {
@@ -45,8 +48,14 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const s = getSave().stats;
+    const fin = this.outcome.finished;
+    const summary = fin
+      ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}\n+${fin.prize.coins} COINS  +${fin.prize.xp} XP  +${fin.prize.rank} RANK${fin.prize.pack ? '  +PACK' : ''}`
+      : this.outcome.career
+        ? 'ROUND WON: THE TOURNAMENT GOES ON'
+        : `PLAYED ${s.played}\nWON ${s.won}   LOST ${s.lost}`;
     this.add
-      .text(WIDTH / 2, 300, `PLAYED ${s.played}\nWON ${s.won}   LOST ${s.lost}`, {
+      .text(WIDTH / 2, 296, summary, {
         fontFamily: FONT, resolution: HD_SCALE,
         fontSize: '16px',
         color: css(COLORS.sky),
@@ -74,7 +83,11 @@ export class ResultScene extends Phaser.Scene {
     const barW = Math.round(198 * levelProgress(prof.xp));
     if (barW > 0) this.add.rectangle(WIDTH / 2 - 99, 398, barW, 6, COLORS.sky).setOrigin(0, 0.5);
 
-    makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null }));
+    if (this.outcome.career) {
+      makeButton(this, WIDTH / 2, 448, 240, 48, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'));
+    } else {
+      makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }));
+    }
     makeButton(this, WIDTH / 2 - 62, 512, 116, 48, 'HERO', () => this.scene.start('CharacterScene'));
     makeButton(this, WIDTH / 2 + 62, 512, 116, 48, 'TITLE', () => this.scene.start('TitleScene'));
   }

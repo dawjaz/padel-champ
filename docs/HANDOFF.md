@@ -8,6 +8,14 @@ _Last updated: 2026-11-20 (v0.33)_
 - players.json has all seven; `maxGuts = gutsFor(stamina)`. Sim at defaults unchanged: avg hits 7.4, server wins 53.8%. 193 tests pass.
 - Next: B2 (profile, XP, levels, skill points, save v2, character screen). docs/CAREER.md updated with the owner's decisions (13+, coins, 8 gear slots, consumables, real-tour calendar).
 
+## v0.38: B5, career calendar, tournaments, partners
+- `src/career/tournament.ts` (+ tests): 11 divisions in `src/data/divisions.json` (Club, Regional, FIP Rise/Bronze/Silver/Gold/Platinum, Premier P2/P1, Major, Season Finals): level gate, ranking gate, fee, opponent rating (1-10), title prize (coins, XP, ranking points, pack); round shares 8-draw [.2,.5,1], 16-draw [.08,.2,.45,1]. Opponents are generated pairs (`opponents.json`); the bracket is rebuilt from `{event, seed, hero results}` so the save is tiny; other matches are simulated by rating (logistic, slope 0.8).
+- `src/career/season.ts` (+ tests): 24-week season (`calendar.json`, 71 events), ranking points (half carry over to the next season), `Career {season, week, rankPoints, partner(s), active, titles, history}` in the profile (sanitised). `careerFlow.ts`: enter (fee), report match, finish (prize, rank, pack, week), withdraw, skip week, buy/choose partner.
+- Partners (`partners.json`): Mia (free), Lena 400, Marco 900, Sofia 2000, Diego 4500 coins; fixed attributes.
+- Scenes: CAREER hub (CalendarScene), BracketScene (round, pairings, next opponent, strength comparison, play/withdraw), PartnerScene; ResultScene has CONTINUE in career; MatchScene takes `{career: {opponents, name}}` (always pass `career: null` for other matches; the CPU team is reset every match). The title menu is now QUICK MATCH, CAREER, HERO, SHOP, SETTINGS (and Free Practice when `SHOW_FREE_PRACTICE`).
+- Balance data (sim, uniform attributes, point win rate of the first team): 5v5 51%, 6v5 67%, 7v5 91%, 8v5 97%, 4v3 57%. One point of average attribute is worth a lot, so the division ratings step 0.8 and are about the hero's level cap at the level gate (hero cap 5 at levels 1-5, +1 per 5 levels). Tune `rating` and the prize numbers after the owner's play-test.
+- Next: B6 (achievements, tutorial, balance pass) and a UI polish pass for all menu screens (the owner will send screenshots of overlaps).
+
 ## v0.37: B4, coins, shop, packs; Free Practice hidden
 - Free Practice is hidden from the title menu (`SHOW_FREE_PRACTICE = false` in config.ts; all code is kept; the menu re-lays out for 4 or 5 buttons).
 - `src/career/packs.ts` (+ tests) and `src/data/packs.json`: Gear Pack (150 coins, 2 items: 70% common, 26% rare, 4% epic; sure rare+ every 6 packs), Premium Pack (500, 3 items: 70% rare, 26% epic, 4% legendary; sure epic+ every 5), Boost Bundle (80, 3 consumables). A duplicate pays coins (15/40/100/250). Odds and the pity counter are shown in the shop.

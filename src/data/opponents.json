@@ -1,0 +1,101 @@
+{
+ "first": [
+  "Alex",
+  "Bruno",
+  "Carla",
+  "Diana",
+  "Erik",
+  "Fran",
+  "Gabi",
+  "Hugo",
+  "Iris",
+  "Jon",
+  "Kasia",
+  "Leo",
+  "Marta",
+  "Nico",
+  "Olga",
+  "Pablo",
+  "Rita",
+  "Sam",
+  "Tina",
+  "Uli",
+  "Vera",
+  "Wiktor",
+  "Zoe",
+  "Adam",
+  "Berta",
+  "Cesar",
+  "Dora",
+  "Emil",
+  "Flora",
+  "Gus"
+ ],
+ "last": [
+  "Silva",
+  "Moreno",
+  "Kowal",
+  "Rossi",
+  "Novak",
+  "Duarte",
+  "Klein",
+  "Santos",
+  "Lopez",
+  "Weber",
+  "Costa",
+  "Marin",
+  "Berg",
+  "Ortega",
+  "Lund",
+  "Vidal",
+  "Pires",
+  "Haas",
+  "Rey",
+  "Soto"
+ ],
+ "skin": [
+  "#f1c27d",
+  "#e0ac69",
+  "#c68642",
+  "#8d5524",
+  "#5c3a21"
+ ],
+ "hair": [
+  "#0d0d0d",
+  "#2a1608",
+  "#7a4a1d",
+  "#c9a24d",
+  "#8a3b12",
+  "#d8d8d8"
+ ],
+ "shirt": [
+  "#e8554e",
+  "#3a6df0",
+  "#00a800",
+  "#f6d743",
+  "#c060ff",
+  "#35c4a8",
+  "#f4f4f4",
+  "#d82800"
+ ],
+ "bottom": [
+  "#2b2b5e",
+  "#1a1a1a",
+  "#14423a",
+  "#f4f4f4",
+  "#e8554e"
+ ],
+ "shoes": [
+  "#f4f4f4",
+  "#15151c",
+  "#f2a33a",
+  "#e8554e"
+ ],
+ "racket": [
+  "#f2a33a",
+  "#e8554e",
+  "#3cbcfc",
+  "#15151c",
+  "#c060ff"
+ ]
+}

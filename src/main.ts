@@ -5,6 +5,9 @@ import { CharacterScene } from './scenes/CharacterScene';
 import { GearScene } from './scenes/GearScene';
 import { PackScene } from './scenes/PackScene';
 import { ShopScene } from './scenes/ShopScene';
+import { BracketScene } from './scenes/BracketScene';
+import { CalendarScene } from './scenes/CalendarScene';
+import { PartnerScene } from './scenes/PartnerScene';
 import { MatchScene } from './scenes/MatchScene';
 import { ResultScene } from './scenes/ResultScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -25,5 +28,5 @@ new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, MatchScene, ResultScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene],
 });
