@@ -23,6 +23,7 @@ import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchS
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { seededRng } from '../game/rng';
+import { flipCoin, tossWinner, type CoinFace } from '../game/toss';
 import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
@@ -263,7 +264,78 @@ export class MatchScene extends Phaser.Scene {
     this.refreshScore();
     this.refreshGuts();
     if (this.practice) this.practiceMenu();
-    else this.beginPoint();
+    else this.coinToss();
+  }
+
+  // ---------- coin toss: the side that wins it serves first ----------
+
+  private coinToss(): void {
+    this.setActive(null);
+    this.say('COIN TOSS: call it!');
+    this.showButtons('Coin toss', [
+      { label: 'HEADS', tone: 'normal', onPick: () => this.flipCoinAnimation('heads') },
+      { label: 'TAILS', tone: 'normal', onPick: () => this.flipCoinAnimation('tails') },
+    ]);
+    const hint = this.add
+      .text(WIDTH / 2, 205, 'TOSS A COIN', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '30px', fontStyle: 'bold', color: '#ffe066' })
+      .setOrigin(0.5)
+      .setStroke('#000000', 6)
+      .setDepth(9995);
+    const sub = this.add
+      .text(WIDTH / 2, 240, 'the winner serves first', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', fontStyle: 'bold', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setStroke('#000000', 4)
+      .setDepth(9995);
+    this.menu.push(hint, sub);
+  }
+
+  private flipCoinAnimation(call: CoinFace): void {
+    this.clearMenu();
+    const result = flipCoin(Math.random);
+    const winner = tossWinner(call, result, HUMAN_SIDE);
+    const baseY = 330;
+    const coin = this.add.container(WIDTH / 2, baseY).setDepth(9996);
+    const rim = this.add.ellipse(0, 0, 54, 54, 0xb8860b).setStrokeStyle(3, 0x5a3d00);
+    const face = this.add.ellipse(0, 0, 44, 44, 0xffd447).setStrokeStyle(2, 0xfff2a8);
+    const mark = this.add
+      .text(0, 0, 'H', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '26px', fontStyle: 'bold', color: '#7a5200' })
+      .setOrigin(0.5);
+    coin.add([rim, face, mark]);
+    const shadow = this.add.ellipse(WIDTH / 2, baseY + 36, 40, 10, 0x000000, 0.35).setDepth(9994);
+    // Heads ends after whole turns, tails after a half turn more.
+    const angleEnd = (result === 'heads' ? 5 : 5.5) * Math.PI * 2;
+    sfx('select');
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 1500,
+      ease: 'Sine.easeInOut',
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        const t = tween.getValue() ?? 0;
+        const a = angleEnd * t;
+        const c = Math.cos(a);
+        coin.setY(baseY - Math.sin(Math.PI * t) * 130);
+        coin.setScale(1 + 0.25 * Math.sin(Math.PI * t), Math.max(0.04, Math.abs(c)) * (1 + 0.25 * Math.sin(Math.PI * t)));
+        mark.setText(c >= 0 ? 'H' : 'T');
+        shadow.setScale(1 - 0.5 * Math.sin(Math.PI * t));
+      },
+      onComplete: () => {
+        coin.setScale(1.15);
+        this.tweens.add({ targets: coin, scale: 1, duration: 160, yoyo: false });
+        sfx('point');
+        const word = result.toUpperCase();
+        const you = winner === HUMAN_SIDE;
+        this.say(`${word}! ${you ? 'You win the toss' : `${SIDE_NAME[winner]} wins the toss`} and serve${you ? '' : 's'} first.`);
+        this.announce(you ? 'YOU SERVE FIRST!' : `${SIDE_NAME[winner]} SERVES FIRST`, you ? '#7dff9a' : '#ffb36a', `${word}: ${you ? 'you called it' : 'wrong call'}`, 205, 28);
+        this.time.delayedCall(1900, () => {
+          coin.destroy();
+          shadow.destroy();
+          this.server = winner;
+          this.serverIdx = [0, 0];
+          this.beginPoint();
+        });
+      },
+    });
   }
 
   // ---------- arena: a pre-rendered, lit picture of the court (see art/hd/arenaHd.ts) ----------

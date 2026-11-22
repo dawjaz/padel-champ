@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.59)_
+_Last updated: 2026-11-22 (v0.60)_
+
+## v0.60: coin toss before every match
+- New `src/game/toss.ts` (`flipCoin(rng)`, `tossWinner(call, result, caller)`, tested in `toss.test.ts`). `MatchScene.coinToss()` runs at the start of every quick and career match (not in practice): the player calls HEADS or TAILS, the coin flies up and spins (flat gold coin with an H/T face, shadow on the court), then the result is announced and the winner serves first (`this.server = winner`; before this the human always served first).
+- Practice mode has no toss. Match data, scoring and the rest of the serve rotation are unchanged (the server swaps after each game as before).
+- Checked in headless Chromium (screens: call buttons, coin in flight, result, first point served by the toss winner). Sound is only the existing placeholder `select`/`point` beeps: a coin sound and a nicer coin (rim/edge) are open polish items.
 
 ## v0.59: receive decision: SPEED and SPIN chips
 - Under the km/h number two colour-coded chips: `SPEED: SLOW/MEDIUM/FAST` (km/h < 78 / < 95 / above) and `SPIN: LOW/MEDIUM/HIGH` (`hypot(spin, side) x spinMul(server)` < 0.6 / < 1.2 / above). Green = easy, yellow = medium, red = hard. The owner rejected a third GLASS chip (too much to read in a few seconds) and the per-button risk word for now.
