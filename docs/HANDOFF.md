@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.68)_
+_Last updated: 2026-11-22 (v0.69)_
+
+## v0.69: minus buttons on the Hero screen
+- Every stat row has a `-` button next to `+` (`unspend` / `canUnspend` in `profile.ts`, test added). It takes one skill point back (never below the start value, 4) and frees the point; RESET POINTS still takes everything back.
+- The coins and XP the owner saw on the hero are real earnings from earlier career matches kept in the browser's save (quick matches pay nothing since v0.62). They are not a bug. Settings > RESET SAVE (tap twice) wipes the whole save, profile included.
 
 ## v0.68: fix: a faulted serve no longer flies off the glass into the net
 - **Cause:** `buildCoast` (the ball's free flight after a fault or error) took its start velocity from the last two samples of the flight. For a serve fault of kind `long` (and some wall balls) the flight path ends with a tiny "snap" segment that moves the ball to the hit point in one frame, so the fake speed was 30+ m/s. The ball left the back corner at that speed, crossed the court and hit the net at up to 18 m/s.

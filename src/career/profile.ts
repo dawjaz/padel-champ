@@ -79,6 +79,13 @@ export function spend(p: Profile, key: StatKey): Profile {
   return canSpend(p, key) ? { ...p, alloc: { ...p.alloc, [key]: p.alloc[key] + 1 } } : p;
 }
 
+export const canUnspend = (p: Profile, key: StatKey): boolean => p.alloc[key] > 0;
+
+/** Takes one skill point back from a stat (never below the starting value). */
+export function unspend(p: Profile, key: StatKey): Profile {
+  return canUnspend(p, key) ? { ...p, alloc: { ...p.alloc, [key]: p.alloc[key] - 1 } } : p;
+}
+
 /** Takes the whole allocation back (free for now; a cost can come with the shop). */
 export const respec = (p: Profile): Profile => ({ ...p, alloc: emptyAlloc() });
 

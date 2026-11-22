@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, statCap, statValue, xpToReach } from './profile';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, statCap, statValue, unspend, xpToReach } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -20,6 +20,24 @@ describe('levels', () => {
     expect(statCap(levels.maxLevel)).toBe(levels.statMax);
     const room = STAT_KEYS.length * (levels.statMax - levels.startStat);
     expect(pointsEarned(levels.maxLevel)).toBeGreaterThanOrEqual(room); // a maxed hero is reachable
+  });
+});
+
+describe('taking a point back', () => {
+  it('returns one point from a stat, never below the start, and frees it again', () => {
+    let p = newProfile();
+    const before = freePoints(p);
+    const base = statValue(p, 'power');
+    expect(unspend(p, 'power')).toBe(p);
+    p = spend(spend(p, 'power'), 'speed');
+    expect(statValue(p, 'power')).toBe(base + 1);
+    expect(freePoints(p)).toBe(before - 2);
+    p = unspend(p, 'power');
+    expect(statValue(p, 'power')).toBe(base);
+    expect(freePoints(p)).toBe(before - 1);
+    p = unspend(unspend(p, 'power'), 'speed');
+    expect(statValue(p, 'power')).toBe(base);
+    expect(freePoints(p)).toBe(before);
   });
 });
 

@@ -3,7 +3,7 @@ import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
 import { gearBonus } from '../career/gear';
-import { canSpend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, xpToReach } from '../career/profile';
+import { canSpend, canUnspend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, unspend, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -117,8 +117,8 @@ export class CharacterScene extends Phaser.Scene {
       this.text(64, y + 17, LABEL[k], 14, TC.navy, 0, true);
       this.text(64, y + 36, HINT[k], 10, TC.sub, 0);
       // Bar: value in blue, gear bonus in orange, the part above the level cap shaded.
-      const bx0 = 172;
-      const bw = 92;
+      const bx0 = 168;
+      const bw = 72;
       const g = this.add.graphics();
       drawBar(g, bx0, y + 20, bw, 14, v / max, TC.blue);
       const bonus = Math.min(gear[k], max - v);
@@ -133,16 +133,24 @@ export class CharacterScene extends Phaser.Scene {
         g.lineBetween(bx0 + 1 + (bw - 2) * (cap / max), y + 18, bx0 + 1 + (bw - 2) * (cap / max), y + 36);
       }
       this.dyn.push(g);
-      this.text(270, y + 26, String(v), 16, TC.navy, 0, true);
-      if (gear[k] > 0) this.text(286, y + 26, `+${gear[k]}`, 12, TC.orange, 0);
+      this.text(246, y + 26, String(v), 16, TC.navy, 0, true);
+      if (gear[k] > 0) this.text(260, y + 26, `+${gear[k]}`, 11, TC.orange, 0);
       const ok = canSpend(p, k);
-      const b = makeThemeButton(this, 326, y + 25, 36, 36, '+', () => {
+      const b = makeThemeButton(this, 330, y + 25, 32, 36, '+', () => {
         updateSave((d) => ({ ...d, profile: spend(d.profile, k) }));
         this.redraw();
       }, ok ? 'primary' : 'secondary', 24);
       b.text.setAlpha(ok ? 1 : 0.35);
       if (!ok) b.bg.disableInteractive();
       this.dyn.push(...b.parts);
+      const can = canUnspend(p, k);
+      const m = makeThemeButton(this, 292, y + 25, 32, 36, '-', () => {
+        updateSave((d) => ({ ...d, profile: unspend(d.profile, k) }));
+        this.redraw();
+      }, 'secondary', 24);
+      m.text.setAlpha(can ? 1 : 0.3);
+      if (!can) m.bg.disableInteractive();
+      this.dyn.push(...m.parts);
     });
     this.text(WIDTH / 2, 580, `SHADED PART OF THE BAR UNLOCKS WITH LEVEL (CAP NOW ${cap})`, 10, TC.sub);
   }
