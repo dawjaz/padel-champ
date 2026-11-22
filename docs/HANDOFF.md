@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.67)_
+_Last updated: 2026-11-22 (v0.68)_
+
+## v0.68: fix: a faulted serve no longer flies off the glass into the net
+- **Cause:** `buildCoast` (the ball's free flight after a fault or error) took its start velocity from the last two samples of the flight. For a serve fault of kind `long` (and some wall balls) the flight path ends with a tiny "snap" segment that moves the ball to the hit point in one frame, so the fake speed was 30+ m/s. The ball left the back corner at that speed, crossed the court and hit the net at up to 18 m/s.
+- **Fix:** the start velocity is now the median-speed segment of the last three, which ignores a snapped last segment (`src/art/ballPath.ts`). Worst net-hit speed after a serve fault: 18.5 → about 5 m/s. Wall physics itself (glass restitution 0.76, mesh 0.3, speed-dependent normal restitution in rallies) was checked and is fine: after every wall hit the ball is slower than before.
+- **Tests:** two regression tests in `ballPath.test.ts` (no serve fault hits the net faster than 8 m/s; a coast never leaves faster than its flight plus 8 m/s of gravity gain, for every shot, fault/error and error kind). The first fails on the old code.
+- **Tool:** `scripts/simFault.ts` (`npx vite-node scripts/simFault.ts`) prints end-of-flight speed, speed after the walls and net-hit speed for each serve and fault kind.
+- Not changed: fault kinds and their probabilities. Check on the phone that faults now look calm; if the ball still feels too lively off the glass, lower `GLASS_E` or `GLASS_KEEP`.
+- Next: phase 3 (match UI in the new look).
 
 ## v0.67: new look, step 2 (all menu screens) + Spanish/English names
 - **Names**: players, partners and opponents renamed to Spanish/English names (display names only; ids and stats unchanged, so saves keep working).

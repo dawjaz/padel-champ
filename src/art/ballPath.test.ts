@@ -653,3 +653,45 @@ describe('serve faults stay in the court', () => {
     expect(problems.slice(0, 5)).toEqual([]);
   });
 });
+
+describe('buildCoast: a lost ball dies calmly', () => {
+  const segSpeed = (a: { t: number; x: number; z: number; h: number }, b: typeof a): number => Math.hypot(b.x - a.x, b.z - a.z, b.h - a.h) / (b.t - a.t);
+
+  it('a faulted serve never rebounds off the walls into the net at speed', () => {
+    const kinds = ['net', 'glass', 'side', 'long', 'bouncemesh'] as const;
+    const bad: string[] = [];
+    for (const s of SHOTS.filter((x) => x.kind === 'serve')) {
+      for (const k of kinds) {
+        for (let seed = 1; seed <= 40; seed++) {
+          const f = buildFlight({ from: { x: -2.5, z: 18.5 }, startH: 0.9, hitterSide: 0, shot: s, landX: s.landX ?? 3, outcome: 'fault', errorKind: k, seed, receive: 'bounce' });
+          const c = buildCoast(f, 0.5);
+          const net = c.events.find((e) => e.kind === 'net');
+          if (!net) continue;
+          const i = c.path.findIndex((p) => p.t >= net.t);
+          const v = i > 0 ? segSpeed(c.path[i - 1], c.path[i]) : 0;
+          if (v > 8) bad.push(`${s.id}/${k}/${seed}: ${v.toFixed(1)} m/s`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('the ball never leaves faster than the flight carried it (a snapped last segment is ignored)', () => {
+    const bad: string[] = [];
+    for (const s of SHOTS) {
+      for (const outcome of ['fault', 'error'] as const) {
+        for (const k of ['glass', 'side', 'long', 'mesh', 'bouncemesh', 'net'] as const) {
+          const f = buildFlight({ from: { x: -2.5, z: 17.5 }, startH: 1, hitterSide: 0, shot: s, landX: 3, outcome, errorKind: k, seed: 7, receive: 'bounce' });
+          const c = buildCoast(f, 0.5);
+          let peakFlight = 0;
+          for (let i = 1; i < f.path.length; i++) peakFlight = Math.max(peakFlight, segSpeed(f.path[i - 1], f.path[i]));
+          let peakCoast = 0;
+          for (let i = 1; i < c.path.length; i++) peakCoast = Math.max(peakCoast, segSpeed(c.path[i - 1], c.path[i]));
+          // Gravity can add a little when the ball drops from height; anything beyond that is energy from nowhere.
+          if (peakCoast > peakFlight + 8) bad.push(`${s.id}/${outcome}/${k}: flight ${peakFlight.toFixed(1)} coast ${peakCoast.toFixed(1)}`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});

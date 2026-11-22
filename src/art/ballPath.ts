@@ -997,17 +997,30 @@ export function buildCoast(flight: Flight, spin: number): Coast {
   const path = flight.path;
   const n = path.length;
   const last = path[n - 1];
-  const prev = path[Math.max(0, n - 2)];
-  const dt = last.t - prev.t;
   const start: Sample = { t: 0, x: last.x, z: last.z, h: last.h };
-  if (n < 2 || dt <= 0) return { path: [start], events: [], duration: 0 };
+  if (n < 2 || last.t - path[n - 2].t <= 0) return { path: [start], events: [], duration: 0 };
+
+  // The ball leaves with the velocity of the flight's last stretch. A path can end with a tiny "snap" segment that moves the
+  // ball to the exact hit point in one frame (a huge, fake speed): so take the median-speed segment of the last three.
+  const segs = [];
+  for (let i = Math.max(1, n - 3); i < n; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const d = b.t - a.t;
+    if (d <= 1e-6) continue;
+    const v = { x: (b.x - a.x) / d, z: (b.z - a.z) / d, h: (b.h - a.h) / d };
+    segs.push({ ...v, sp: Math.hypot(v.x, v.z, v.h) });
+  }
+  if (segs.length === 0) return { path: [start], events: [], duration: 0 };
+  segs.sort((p, q) => p.sp - q.sp);
+  const v0 = segs[Math.floor((segs.length - 1) / 2)];
 
   let x = last.x;
   let z = last.z;
   let h = last.h;
-  let vx = (last.x - prev.x) / dt;
-  let vz = (last.z - prev.z) / dt;
-  let vy = (last.h - prev.h) / dt;
+  let vx = v0.x;
+  let vz = v0.z;
+  let vy = v0.h;
   let inside = Math.abs(x) <= 5 + 1e-6 && z >= -1e-6 && z <= 20 + 1e-6 && flight.events.every((e) => e.kind !== 'out');
   let rolling = false;
   const e = clamp(0.62 + 0.04 * spin, 0.5, 0.7);
