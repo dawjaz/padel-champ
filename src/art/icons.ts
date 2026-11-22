@@ -138,3 +138,21 @@ export function drawIcon(g: Phaser.GameObjects.Graphics, kind: IconKind, x: numb
       break;
   }
 }
+
+/** The outline of a racket head by shape, for the GEAR list: a small side-on silhouette with a handle, centred on (x, y). */
+export function drawRacketShape(g: Phaser.GameObjects.Graphics, shape: 'diamond' | 'teardrop' | 'round' | undefined, x: number, y: number, size: number, color: number): void {
+  const u = size / 20;
+  g.fillStyle(color, 1);
+  g.lineStyle(Math.max(1.4, u * 1.6), color, 1);
+  const P = (px: number, py: number): { x: number; y: number } => ({ x: x + px * u, y: y + py * u });
+  const poly = (pts: Array<[number, number]>): void => {
+    g.beginPath();
+    pts.forEach(([a, b], i) => (i === 0 ? g.moveTo(P(a, b).x, P(a, b).y) : g.lineTo(P(a, b).x, P(a, b).y)));
+    g.closePath();
+    g.strokePath();
+  };
+  if (shape === 'round') g.strokeCircle(P(0, -3).x, P(0, -3).y, 6.8 * u);
+  else if (shape === 'diamond') poly([[0, -10], [6.5, -5], [5, -1.5], [0, 3], [-5, -1.5], [-6.5, -5], [-3.2, -9.2]]);
+  else poly([[0, -10.5], [5.4, -7.5], [5.8, -3.5], [2.2, 2.6], [-2.2, 2.6], [-5.8, -3.5], [-5.4, -7.5]]);
+  g.fillRect(P(-1, 3).x, P(-1, 3).y, 2 * u, 7 * u);
+}

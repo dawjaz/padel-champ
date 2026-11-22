@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { ensureCharacterTexture } from '../art/characterTexture';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
-import { drawIcon } from '../art/icons';
+import { drawIcon, drawRacketShape } from '../art/icons';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
-import { applyLook, equip, gearBonus, hasNewIn, itemsOfSlot, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { applyLook, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, itemsOfBrand, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -25,7 +25,8 @@ const bonusText = (b: Partial<Record<string, number>>): string =>
 
 export class GearScene extends Phaser.Scene {
   private dyn: Phaser.GameObjects.GameObject[] = [];
-  private slot: Slot = 'shoes';
+  private slot: Slot = 'racket';
+  private brand = 'adaro';
 
   constructor() {
     super('GearScene');
@@ -49,14 +50,6 @@ export class GearScene extends Phaser.Scene {
       .setOrigin(originX, 0.5);
     this.dyn.push(t);
     return t;
-  }
-
-  private button(x: number, y: number, w: number, h: number, text: string, size: number, accent: number, onClick: () => void, dim = false): void {
-    const b = makeButton(this, x, y, w, h, text, onClick);
-    b.text.setFontSize(size);
-    b.setAccent(accent);
-    if (dim) b.text.setAlpha(0.45);
-    this.dyn.push(...b.parts);
   }
 
   private save(fn: (inv: Inventory) => Inventory): void {
@@ -87,40 +80,68 @@ export class GearScene extends Phaser.Scene {
     const lines = STAT_KEYS.filter((k) => bonus[k] > 0).map((k) => `+${bonus[k]} ${SHORT[k]}`);
     this.label(100, 96, lines.length > 0 ? lines.join('   ') : 'NOTHING EQUIPPED', 12, COLORS.yellow, true, 0).setWordWrapWidth(240);
 
-    // Slots, two columns
+    // Slots: five tabs in a row (icon, rarity colour of what is worn, star when something new can be put on)
     SLOTS.forEach((s, i) => {
-      const x = i % 2 === 0 ? 92 : 268;
-      const y = 154 + Math.floor(i / 2) * 40;
-      const g = inv.equipped[s] ? itemsOfSlot(s).find((it) => it.id === inv.equipped[s]) : undefined;
+      const x = 36 + i * 72;
+      const y = 164;
+      const g = inv.equipped[s] ? gearById(inv.equipped[s]!) : undefined;
       const accent = s === this.slot ? COLORS.yellow : g ? RARITY_COLOR[g.rarity] : COLORS.gray;
-      this.button(x, y, 170, 34, g ? g.name.replace(/ (Cap|Shirt|Shorts|Shoes|Racket|Wristband|Bag|Balls)$/i, '') : SLOT_LABEL[s], 10, accent, () => {
+      const b = makeButton(this, x, y, 66, 52, '', () => {
         this.slot = s;
         this.redraw();
-      }, !g);
+      });
+      b.setAccent(accent);
+      this.dyn.push(...b.parts);
       const ic = this.add.graphics().setDepth(5);
-      drawIcon(ic, s, x - 70, y, 20, g ? RARITY_COLOR[g.rarity] : COLORS.gray);
+      drawIcon(ic, s, x, y - 8, 22, g ? RARITY_COLOR[g.rarity] : COLORS.gray);
       this.dyn.push(ic);
-      // A star on the category when something new can be put on.
+      this.label(x, y + 16, SLOT_LABEL[s], 9, s === this.slot ? COLORS.yellow : COLORS.gray, true).setDepth(6);
       if (s !== this.slot && hasNewIn(inv, s, level)) {
-        const star = this.add.graphics().setDepth(6).setPosition(x + 76, y - 12);
+        const star = this.add.graphics().setDepth(6).setPosition(x + 25, y - 22);
         drawIcon(star, 'star', 0, 0, 20, 0xffe066);
         this.tweens.add({ targets: star, scale: 1.25, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.dyn.push(star);
       }
     });
 
-    // Items of the chosen slot
-    this.label(WIDTH / 2, 322, SLOT_LABEL[this.slot], 13, COLORS.white, true);
-    itemsOfSlot(this.slot).forEach((it: GearItem, i) => {
-      const y = 352 + i * 38;
+    // Brands: six tabs
+    BRANDS.forEach((br, i) => {
+      const x = 32 + (i % 6) * 59;
+      const y = 226;
+      const own = itemsOfBrand(this.slot, br.id).filter((it) => inv.owned.includes(it.id)).length;
+      const b = makeButton(this, x, y, 56, 34, br.name.toUpperCase(), () => {
+        this.brand = br.id;
+        this.redraw();
+      });
+      b.text.setFontSize(9).setY(y - 4);
+      b.setAccent(br.id === this.brand ? COLORS.yellow : parseInt(br.colors[1].slice(1), 16));
+      this.dyn.push(...b.parts);
+      this.label(x, y + 9, `${own}/4`, 8, own > 0 ? COLORS.white : COLORS.gray).setDepth(6);
+    });
+    const br = brandById(this.brand)!;
+    this.label(WIDTH / 2, 262, `${br.name.toUpperCase()}: ${br.tag.toUpperCase()}`, 11, COLORS.sky, true);
+
+    // The four models of this brand in this slot, from basic to elite
+    itemsOfBrand(this.slot, this.brand).forEach((it: GearItem, i) => {
+      const y = 306 + i * 52;
       const owned = inv.owned.includes(it.id);
       const usable = owned && level >= it.minLevel;
       const on = inv.equipped[this.slot] === it.id;
-      const text = usable ? `${on ? '* ' : ''}${it.name}   ${bonusText(it.bonus)}` : `${it.name}   LEVEL ${it.minLevel}`;
-      this.button(WIDTH / 2, y, 330, 34, text, 11, on ? COLORS.yellow : RARITY_COLOR[it.rarity], () => {
+      const status = !owned ? 'NOT OWNED' : level < it.minLevel ? `LEVEL ${it.minLevel}` : on ? 'WORN' : '';
+      const text = `${on ? '* ' : ''}${it.name}\n${bonusText(it.bonus)}${status ? `   ${status}` : ''}`;
+      const b = makeButton(this, WIDTH / 2 + 12, y, 296, 46, text, () => {
         if (!usable) return;
         this.save((v) => (on ? unequip(v, this.slot) : equip(v, it.id, level)));
-      }, !usable);
+      });
+      b.text.setFontSize(11).setAlign('center');
+      b.setAccent(on ? COLORS.yellow : RARITY_COLOR[it.rarity]);
+      if (!usable) b.text.setAlpha(0.45);
+      this.dyn.push(...b.parts);
+      const ic = this.add.graphics().setDepth(5);
+      if (it.shape) drawRacketShape(ic, it.shape, 34, y + 2, 34, usable ? RARITY_COLOR[it.rarity] : COLORS.gray);
+      else drawIcon(ic, it.slot, 34, y, 26, usable ? RARITY_COLOR[it.rarity] : COLORS.gray);
+      this.dyn.push(ic);
     });
+    this.label(WIDTH / 2, 520, 'MODELS GET BETTER AND NEED A HIGHER LEVEL', 10, COLORS.gray);
   }
 }

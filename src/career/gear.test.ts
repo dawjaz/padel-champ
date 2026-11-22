@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { Appearance, PlayerDef } from '../game/types';
-import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, itemsOfSlot, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
+import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, BRANDS, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
 import { award, heroFrom, newProfile, spend, xpToReach } from './profile';
 
 const look: Appearance = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' };
@@ -10,51 +10,68 @@ const look: Appearance = { gender: 'male', skin: '#c68642', hairStyle: 'short', 
 const own = (inv: Inventory, ...ids: string[]): Inventory => ({ ...inv, owned: [...inv.owned, ...ids] });
 
 describe('gear data', () => {
-  it('every slot has a common, a rare, an epic and a legendary item; bonuses grow with rarity and use real attributes', () => {
+  it('five slots, six brands, four models each (common to legendary): 120 items; bonuses grow with rarity and use real attributes', () => {
     const size = { common: 1, rare: 2, epic: 3, legendary: 4 } as Record<string, number>;
+    expect(SLOTS).toEqual(['top', 'shorts', 'shoes', 'racket', 'bag']);
+    expect(BRANDS).toHaveLength(6);
+    expect(GEAR).toHaveLength(120);
     for (const slot of SLOTS) {
-      expect(itemsOfSlot(slot).map((g) => g.rarity)).toEqual(['common', 'rare', 'epic', 'legendary']);
+      expect(itemsOfSlot(slot)).toHaveLength(24);
+      for (const b of BRANDS) expect(itemsOfBrand(slot, b.id).map((g) => g.rarity), `${b.id} ${slot}`).toEqual(['common', 'rare', 'epic', 'legendary']);
     }
+    for (const g of GEAR.filter((x) => x.slot === 'racket')) expect(['diamond', 'teardrop', 'round'], g.id).toContain(g.shape);
+    for (const g of GEAR.filter((x) => x.slot !== 'racket')) expect(g.shape, g.id).toBeUndefined();
     for (const g of GEAR) {
       const total = Object.values(g.bonus).reduce((a, b) => a + (b ?? 0), 0);
       expect(total, g.id).toBe(size[g.rarity]);
       for (const k of Object.keys(g.bonus)) expect(STAT_KEYS, g.id).toContain(k);
-      if (g.slot !== 'bag' && g.slot !== 'balls') expect(/^#[0-9a-f]{6}$/.test(g.color ?? ''), g.id).toBe(true);
+      expect(/^#[0-9a-f]{6}$/.test(g.color ?? ''), g.id).toBe(true);
+      expect(BRANDS.map((b) => b.id), g.id).toContain(g.brand);
     }
     expect(new Set(GEAR.map((g) => g.id)).size).toBe(GEAR.length);
   });
 });
 
 describe('inventory', () => {
-  it('a new hero owns the common gear only; the rest comes from packs', () => {
+  it('a new hero owns the five basic items of the all-round brand only; the rest comes from packs', () => {
     const inv = newInventory();
-    expect(inv.owned).toContain('sho_club');
-    expect(inv.owned).not.toContain('sho_power');
+    expect([...inv.owned].sort()).toEqual(SLOTS.map((s) => `adaro_${s}_1`).sort());
+    expect(inv.owned).not.toContain('toropad_shoes_2');
     expect(syncUnlocks(inv, 30)).toBe(inv);
     expect(unlockedBetween(1, 30)).toEqual([]);
   });
 
   it('equip needs ownership and the level, replaces the slot, and unequip clears it', () => {
     let inv = newInventory();
-    expect(canEquip(inv, 'sho_power', 1)).toBe(false);
-    expect(equip(inv, 'sho_power', 1)).toBe(inv);
-    inv = own(inv, 'sho_power');
-    expect(canEquip(inv, 'sho_power', 4)).toBe(false);
-    inv = equip(equip(inv, 'sho_club', 5), 'sho_power', 5);
-    expect(inv.equipped.shoes).toBe('sho_power');
-    expect(gearBonus(inv).power).toBe(2);
+    expect(canEquip(inv, 'toropad_shoes_2', 1)).toBe(false);
+    expect(equip(inv, 'toropad_shoes_2', 1)).toBe(inv);
+    inv = own(inv, 'toropad_shoes_2');
+    expect(canEquip(inv, 'toropad_shoes_2', 4)).toBe(false);
+    inv = equip(equip(inv, 'adaro_shoes_1', 5), 'toropad_shoes_2', 5);
+    expect(inv.equipped.shoes).toBe('toropad_shoes_2');
+    expect(gearBonus(inv).power).toBe(1);
+    expect(gearBonus(inv).defense).toBe(1);
     expect(unequip(inv, 'shoes').equipped.shoes).toBeUndefined();
   });
 
-  it('colours of equipped items go into the look, the rest stays', () => {
-    let inv = own(newInventory(), 'cap_pro', 'sho_power', 'wb_pro');
-    inv = equip(equip(equip(inv, 'cap_pro', 12), 'sho_power', 12), 'wb_pro', 12);
+  it('colours and the racket shape of equipped items go into the look, the rest stays', () => {
+    let inv = own(newInventory(), 'toropad_racket_4', 'noctra_shoes_3');
+    inv = equip(equip(inv, 'toropad_racket_4', 20), 'noctra_shoes_3', 20);
     const a = applyLook(look, inv);
-    expect(a.cap).toBe(gearById('cap_pro')!.color);
-    expect(a.shoes).toBe(gearById('sho_power')!.color);
-    expect(a.wristband).toBe(gearById('wb_pro')!.color);
+    expect(a.racket).toBe(gearById('toropad_racket_4')!.color);
+    expect(a.racketShape).toBe('diamond');
+    expect(a.shoes).toBe(gearById('noctra_shoes_3')!.color);
     expect(a.shirt).toBe(look.shirt);
     expect(applyLook(look, newInventory())).toEqual(look);
+  });
+
+  it('old gear (first release) is gone and pays coins back by rarity; free starters pay nothing', () => {
+    expect(legacyRefund({ owned: ['cap_club', 'sho_club', 'rk_spin', 'cap_pro', 'rk_champ', 'rk_champ', 'nope'] })).toBe(40 + 100 + 250);
+    expect(legacyRefund(null)).toBe(0);
+    expect(legacyRefund({ owned: ['adaro_racket_1'] })).toBe(0);
+    const inv = sanitizeInventory({ owned: ['cap_pro', 'sho_club'], equipped: { shoes: 'sho_club' } }, 30);
+    expect(inv.owned).not.toContain('cap_pro');
+    expect(inv.equipped.shoes).toBeUndefined();
   });
 });
 
@@ -63,8 +80,8 @@ describe('the hero with gear and boosts', () => {
 
   it('gear adds to the attributes and never past the maximum', () => {
     let p = award(newProfile(), { xp: xpToReach(5), coins: 0 });
-    p = { ...p, inventory: equip(own(p.inventory, 'sho_power'), 'sho_power', 5) };
-    expect(heroFrom(base, p).stats.power).toBe(levels.startStat + 2);
+    p = { ...p, inventory: equip(own(p.inventory, 'toropad_shoes_2'), 'toropad_shoes_2', 5) };
+    expect(heroFrom(base, p).stats.power).toBe(levels.startStat + 1);
     for (let i = 0; i < 20; i++) p = spend(p, 'power');
     expect(heroFrom(base, p).stats.power).toBeLessThanOrEqual(levels.statMax);
   });
@@ -125,10 +142,11 @@ describe('old saves', () => {
 describe('storage safety', () => {
   it('junk becomes a valid inventory, unknown or unowned or too-high items are dropped', () => {
     expect(sanitizeInventory(null, 1)).toEqual(newInventory());
-    const bad = sanitizeInventory({ owned: ['nope', 'sho_club'], packs: { gear: 2.7, nope: 5 }, pity: { gear: -1 }, equipped: { shoes: 'sho_power', head: 'cap_club', top: 'sho_club' }, boosts: ['gel', 'nope', 'isotonic', 'gel'], queued: ['gel', 'isotonic', 'isotonic'] }, 1);
+    const bad = sanitizeInventory({ owned: ['nope', 'adaro_shoes_1'], packs: { gear: 2.7, nope: 5 }, pity: { gear: -1 }, equipped: { shoes: 'toropad_shoes_2', racket: 'adaro_racket_1', top: 'adaro_shoes_1', head: 'cap_club' }, boosts: ['gel', 'nope', 'isotonic', 'gel'], queued: ['gel', 'isotonic', 'isotonic'] }, 1);
     expect(bad.equipped.shoes).toBeUndefined(); // not owned or not unlocked yet
     expect(bad.equipped.top).toBeUndefined(); // wrong slot
-    expect(bad.equipped.head).toBe('cap_club'); // common gear is unlocked at level 1 and so owned
+    expect(bad.equipped.racket).toBe('adaro_racket_1'); // a starter is unlocked at level 1 and so owned
+    expect(Object.keys(bad.equipped)).not.toContain('head'); // the cap slot is gone
     expect(bad.packs).toEqual({ gear: 2 });
     expect(bad.pity).toEqual({});
     expect(bad.boosts).toEqual(['gel', 'isotonic']); // unknown dropped, at most two

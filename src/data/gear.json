@@ -1,388 +1,1570 @@
 {
  "slots": [
-  "head",
   "top",
   "shorts",
   "shoes",
   "racket",
-  "wristband",
-  "bag",
-  "balls"
+  "bag"
  ],
  "items": [
   {
-   "id": "cap_club",
-   "slot": "head",
-   "name": "Club Cap",
+   "id": "bavole_top_1",
+   "slot": "top",
+   "brand": "bavole",
+   "name": "Bavolé Basic Shirt",
    "rarity": "common",
    "minLevel": 1,
-   "unlock": 1,
+   "bonus": {
+    "stamina": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "bavole_top_2",
+   "slot": "top",
+   "brand": "bavole",
+   "name": "Bavolé Pro Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "stamina": 1,
+    "spin": 1
+   },
+   "color": "#2f6df0"
+  },
+  {
+   "id": "bavole_top_3",
+   "slot": "top",
+   "brand": "bavole",
+   "name": "Bavolé Technical Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "stamina": 2,
+    "spin": 1
+   },
+   "color": "#17306b"
+  },
+  {
+   "id": "bavole_top_4",
+   "slot": "top",
+   "brand": "bavole",
+   "name": "Bavolé Elite Shirt",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "stamina": 2,
+    "spin": 2
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "bavole_shorts_1",
+   "slot": "shorts",
+   "brand": "bavole",
+   "name": "Bavolé Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#2f6df0"
+  },
+  {
+   "id": "bavole_shorts_2",
+   "slot": "shorts",
+   "brand": "bavole",
+   "name": "Bavolé Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
+    "power": 1
+   },
+   "color": "#17306b"
+  },
+  {
+   "id": "bavole_shorts_3",
+   "slot": "shorts",
+   "brand": "bavole",
+   "name": "Bavolé Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "power": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "bavole_shorts_4",
+   "slot": "shorts",
+   "brand": "bavole",
+   "name": "Bavolé Elite Shorts",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "speed": 2,
+    "power": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "bavole_shoes_1",
+   "slot": "shoes",
+   "brand": "bavole",
+   "name": "Bavolé Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#17306b"
+  },
+  {
+   "id": "bavole_shoes_2",
+   "slot": "shoes",
+   "brand": "bavole",
+   "name": "Bavolé Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "speed": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "bavole_shoes_3",
+   "slot": "shoes",
+   "brand": "bavole",
+   "name": "Bavolé Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "speed": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "bavole_shoes_4",
+   "slot": "shoes",
+   "brand": "bavole",
+   "name": "Bavolé Elite Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "speed": 2
+   },
+   "color": "#2f6df0"
+  },
+  {
+   "id": "bavole_racket_1",
+   "slot": "racket",
+   "brand": "bavole",
+   "name": "Bavolé Origan",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "spin": 1
+   },
+   "shape": "teardrop",
+   "color": "#f6d743"
+  },
+  {
+   "id": "bavole_racket_2",
+   "slot": "racket",
+   "brand": "bavole",
+   "name": "Bavolé Contrix",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "spin": 1,
+    "power": 1
+   },
+   "shape": "round",
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "bavole_racket_3",
+   "slot": "racket",
+   "brand": "bavole",
+   "name": "Bavolé Aerix",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "spin": 2,
+    "power": 1
+   },
+   "shape": "teardrop",
+   "color": "#2f6df0"
+  },
+  {
+   "id": "bavole_racket_4",
+   "slot": "racket",
+   "brand": "bavole",
+   "name": "Bavolé Vyrax",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "spin": 2,
+    "power": 2
+   },
+   "shape": "diamond",
+   "color": "#17306b"
+  },
+  {
+   "id": "bavole_bag_1",
+   "slot": "bag",
+   "brand": "bavole",
+   "name": "Bavolé Basic Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "stamina": 1
+   },
+   "color": "#2f6df0"
+  },
+  {
+   "id": "bavole_bag_2",
+   "slot": "bag",
+   "brand": "bavole",
+   "name": "Bavolé Pro Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "stamina": 1,
+    "spin": 1
+   },
+   "color": "#17306b"
+  },
+  {
+   "id": "bavole_bag_3",
+   "slot": "bag",
+   "brand": "bavole",
+   "name": "Bavolé Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "stamina": 2,
+    "spin": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "bavole_bag_4",
+   "slot": "bag",
+   "brand": "bavole",
+   "name": "Bavolé Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "stamina": 2,
+    "spin": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "toropad_top_1",
+   "slot": "top",
+   "brand": "toropad",
+   "name": "Toropad Basic Shirt",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "toropad_top_2",
+   "slot": "top",
+   "brand": "toropad",
+   "name": "Toropad Pro Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "stamina": 1
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "toropad_top_3",
+   "slot": "top",
+   "brand": "toropad",
+   "name": "Toropad Technical Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "toropad_top_4",
+   "slot": "top",
+   "brand": "toropad",
+   "name": "Toropad Elite Shirt",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "stamina": 2
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "toropad_shorts_1",
+   "slot": "shorts",
+   "brand": "toropad",
+   "name": "Toropad Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "toropad_shorts_2",
+   "slot": "shorts",
+   "brand": "toropad",
+   "name": "Toropad Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "speed": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "toropad_shorts_3",
+   "slot": "shorts",
+   "brand": "toropad",
+   "name": "Toropad Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "speed": 1
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "toropad_shorts_4",
+   "slot": "shorts",
+   "brand": "toropad",
+   "name": "Toropad Elite Shorts",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "speed": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "toropad_shoes_1",
+   "slot": "shoes",
+   "brand": "toropad",
+   "name": "Toropad Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "toropad_shoes_2",
+   "slot": "shoes",
+   "brand": "toropad",
+   "name": "Toropad Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "defense": 1
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "toropad_shoes_3",
+   "slot": "shoes",
+   "brand": "toropad",
+   "name": "Toropad Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "defense": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "toropad_shoes_4",
+   "slot": "shoes",
+   "brand": "toropad",
+   "name": "Toropad Elite Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "defense": 2
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "toropad_racket_1",
+   "slot": "racket",
+   "brand": "toropad",
+   "name": "Toropad Avanto",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "shape": "diamond",
+   "color": "#f8b800"
+  },
+  {
+   "id": "toropad_racket_2",
+   "slot": "racket",
+   "brand": "toropad",
+   "name": "Toropad Hibrida",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "technique": 1
+   },
+   "shape": "teardrop",
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "toropad_racket_3",
+   "slot": "racket",
+   "brand": "toropad",
+   "name": "Toropad Vertigo",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "technique": 1
+   },
+   "shape": "diamond",
+   "color": "#d82800"
+  },
+  {
+   "id": "toropad_racket_4",
+   "slot": "racket",
+   "brand": "toropad",
+   "name": "Toropad Explosa",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "technique": 2
+   },
+   "shape": "diamond",
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "toropad_bag_1",
+   "slot": "bag",
+   "brand": "toropad",
+   "name": "Toropad Basic Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "power": 1
+   },
+   "color": "#d82800"
+  },
+  {
+   "id": "toropad_bag_2",
+   "slot": "bag",
+   "brand": "toropad",
+   "name": "Toropad Pro Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "power": 1,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "toropad_bag_3",
+   "slot": "bag",
+   "brand": "toropad",
+   "name": "Toropad Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "power": 2,
+    "stamina": 1
+   },
+   "color": "#f8b800"
+  },
+  {
+   "id": "toropad_bag_4",
+   "slot": "bag",
+   "brand": "toropad",
+   "name": "Toropad Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "power": 2,
+    "stamina": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "noctra_top_1",
+   "slot": "top",
+   "brand": "noctra",
+   "name": "Noctra Basic Shirt",
+   "rarity": "common",
+   "minLevel": 1,
    "bonus": {
     "technique": 1
    },
-   "color": "#e8554e"
+   "color": "#e8e6f4"
   },
   {
-   "id": "cap_visor",
-   "slot": "head",
-   "name": "Court Visor Cap",
+   "id": "noctra_top_2",
+   "slot": "top",
+   "brand": "noctra",
+   "name": "Noctra Pro Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "technique": 1,
+    "stamina": 1
+   },
+   "color": "#6a3de0"
+  },
+  {
+   "id": "noctra_top_3",
+   "slot": "top",
+   "brand": "noctra",
+   "name": "Noctra Technical Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "technique": 2,
+    "stamina": 1
+   },
+   "color": "#241a52"
+  },
+  {
+   "id": "noctra_top_4",
+   "slot": "top",
+   "brand": "noctra",
+   "name": "Noctra Elite Shirt",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "technique": 2,
+    "stamina": 2
+   },
+   "color": "#35c4a8"
+  },
+  {
+   "id": "noctra_shorts_1",
+   "slot": "shorts",
+   "brand": "noctra",
+   "name": "Noctra Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "accuracy": 1
+   },
+   "color": "#6a3de0"
+  },
+  {
+   "id": "noctra_shorts_2",
+   "slot": "shorts",
+   "brand": "noctra",
+   "name": "Noctra Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "accuracy": 1,
+    "speed": 1
+   },
+   "color": "#241a52"
+  },
+  {
+   "id": "noctra_shorts_3",
+   "slot": "shorts",
+   "brand": "noctra",
+   "name": "Noctra Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "accuracy": 2,
+    "speed": 1
+   },
+   "color": "#35c4a8"
+  },
+  {
+   "id": "noctra_shorts_4",
+   "slot": "shorts",
+   "brand": "noctra",
+   "name": "Noctra Elite Shorts",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "accuracy": 2,
+    "speed": 2
+   },
+   "color": "#e8e6f4"
+  },
+  {
+   "id": "noctra_shoes_1",
+   "slot": "shoes",
+   "brand": "noctra",
+   "name": "Noctra Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "accuracy": 1
+   },
+   "color": "#241a52"
+  },
+  {
+   "id": "noctra_shoes_2",
+   "slot": "shoes",
+   "brand": "noctra",
+   "name": "Noctra Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "accuracy": 1,
+    "defense": 1
+   },
+   "color": "#35c4a8"
+  },
+  {
+   "id": "noctra_shoes_3",
+   "slot": "shoes",
+   "brand": "noctra",
+   "name": "Noctra Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "accuracy": 2,
+    "defense": 1
+   },
+   "color": "#e8e6f4"
+  },
+  {
+   "id": "noctra_shoes_4",
+   "slot": "shoes",
+   "brand": "noctra",
+   "name": "Noctra Elite Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "accuracy": 2,
+    "defense": 2
+   },
+   "color": "#6a3de0"
+  },
+  {
+   "id": "noctra_racket_1",
+   "slot": "racket",
+   "brand": "noctra",
+   "name": "Noctra Mira",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "accuracy": 1
+   },
+   "shape": "round",
+   "color": "#35c4a8"
+  },
+  {
+   "id": "noctra_racket_2",
+   "slot": "racket",
+   "brand": "noctra",
+   "name": "Noctra Duro",
    "rarity": "rare",
    "minLevel": 5,
    "bonus": {
     "accuracy": 1,
     "technique": 1
    },
-   "color": "#f6d743"
+   "shape": "teardrop",
+   "color": "#e8e6f4"
   },
   {
-   "id": "cap_pro",
-   "slot": "head",
-   "name": "Tour Cap",
+   "id": "noctra_racket_3",
+   "slot": "racket",
+   "brand": "noctra",
+   "name": "Noctra Genio",
    "rarity": "epic",
    "minLevel": 12,
    "bonus": {
     "accuracy": 2,
-    "spin": 1
+    "technique": 1
    },
-   "color": "#1d1d2b"
+   "shape": "teardrop",
+   "color": "#6a3de0"
   },
   {
-   "id": "top_club",
-   "slot": "top",
-   "name": "Club Shirt",
+   "id": "noctra_racket_4",
+   "slot": "racket",
+   "brand": "noctra",
+   "name": "Noctra Genio Ataque",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "accuracy": 2,
+    "technique": 2
+   },
+   "shape": "diamond",
+   "color": "#241a52"
+  },
+  {
+   "id": "noctra_bag_1",
+   "slot": "bag",
+   "brand": "noctra",
+   "name": "Noctra Basic Bag",
    "rarity": "common",
    "minLevel": 1,
-   "unlock": 1,
    "bonus": {
-    "stamina": 1
+    "technique": 1
    },
-   "color": "#f4f4f4"
+   "color": "#6a3de0"
   },
   {
-   "id": "top_tech",
-   "slot": "top",
-   "name": "Dry-Fit Shirt",
+   "id": "noctra_bag_2",
+   "slot": "bag",
+   "brand": "noctra",
+   "name": "Noctra Pro Bag",
    "rarity": "rare",
    "minLevel": 5,
    "bonus": {
-    "stamina": 2
+    "technique": 1,
+    "accuracy": 1
+   },
+   "color": "#241a52"
+  },
+  {
+   "id": "noctra_bag_3",
+   "slot": "bag",
+   "brand": "noctra",
+   "name": "Noctra Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "technique": 2,
+    "accuracy": 1
    },
    "color": "#35c4a8"
   },
   {
-   "id": "top_pro",
+   "id": "noctra_bag_4",
+   "slot": "bag",
+   "brand": "noctra",
+   "name": "Noctra Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "technique": 2,
+    "accuracy": 2
+   },
+   "color": "#e8e6f4"
+  },
+  {
+   "id": "adaro_top_1",
    "slot": "top",
-   "name": "Tour Shirt",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "stamina": 2,
-    "defense": 1
-   },
-   "color": "#3a6df0"
-  },
-  {
-   "id": "sh_club",
-   "slot": "shorts",
-   "name": "Club Shorts",
+   "brand": "adaro",
+   "name": "Adaro Basic Shirt",
    "rarity": "common",
    "minLevel": 1,
-   "unlock": 1,
    "bonus": {
-    "speed": 1
-   },
-   "color": "#2b2b5e"
-  },
-  {
-   "id": "sh_flex",
-   "slot": "shorts",
-   "name": "Flex Shorts",
-   "rarity": "rare",
-   "minLevel": 5,
-   "bonus": {
-    "speed": 2
-   },
-   "color": "#1a1a1a"
-  },
-  {
-   "id": "sh_pro",
-   "slot": "shorts",
-   "name": "Tour Shorts",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "speed": 2,
     "stamina": 1
    },
-   "color": "#d82800"
+   "color": "#f4f4f4",
+   "unlock": 1
   },
   {
-   "id": "sho_club",
-   "slot": "shoes",
-   "name": "Club Shoes",
-   "rarity": "common",
-   "minLevel": 1,
-   "unlock": 1,
-   "bonus": {
-    "speed": 1
-   },
-   "color": "#f4f4f4"
-  },
-  {
-   "id": "sho_power",
-   "slot": "shoes",
-   "name": "Power Sprint Shoes",
-   "rarity": "rare",
-   "minLevel": 5,
-   "bonus": {
-    "power": 2
-   },
-   "color": "#e8554e"
-  },
-  {
-   "id": "sho_grip",
-   "slot": "shoes",
-   "name": "Grip Master Shoes",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "speed": 2,
-    "defense": 1
-   },
-   "color": "#00a800"
-  },
-  {
-   "id": "rk_club",
-   "slot": "racket",
-   "name": "Club Racket",
-   "rarity": "common",
-   "minLevel": 1,
-   "unlock": 1,
-   "bonus": {
-    "power": 1
-   },
-   "color": "#f2a33a"
-  },
-  {
-   "id": "rk_spin",
-   "slot": "racket",
-   "name": "Spin Control Racket",
-   "rarity": "rare",
-   "minLevel": 5,
-   "bonus": {
-    "spin": 2
-   },
-   "color": "#8a2be2"
-  },
-  {
-   "id": "rk_pro",
-   "slot": "racket",
-   "name": "Carbon Pro Racket",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "power": 2,
-    "accuracy": 1
-   },
-   "color": "#15151c"
-  },
-  {
-   "id": "wb_club",
-   "slot": "wristband",
-   "name": "Club Wristband",
-   "rarity": "common",
-   "minLevel": 1,
-   "unlock": 1,
-   "bonus": {
-    "spin": 1
-   },
-   "color": "#f4f4f4"
-  },
-  {
-   "id": "wb_grip",
-   "slot": "wristband",
-   "name": "Grip Wristband",
-   "rarity": "rare",
-   "minLevel": 5,
-   "bonus": {
-    "technique": 2
-   },
-   "color": "#f6d743"
-  },
-  {
-   "id": "wb_pro",
-   "slot": "wristband",
-   "name": "Tour Wristband",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "spin": 2,
-    "technique": 1
-   },
-   "color": "#d82800"
-  },
-  {
-   "id": "bag_club",
-   "slot": "bag",
-   "name": "Club Bag",
-   "rarity": "common",
-   "minLevel": 1,
-   "unlock": 1,
-   "bonus": {
-    "stamina": 1
-   }
-  },
-  {
-   "id": "bag_tour",
-   "slot": "bag",
-   "name": "Tour Bag",
+   "id": "adaro_top_2",
+   "slot": "top",
+   "brand": "adaro",
+   "name": "Adaro Pro Shirt",
    "rarity": "rare",
    "minLevel": 5,
    "bonus": {
     "stamina": 1,
     "defense": 1
-   }
+   },
+   "color": "#3a4a6b"
   },
   {
-   "id": "bag_team",
-   "slot": "bag",
-   "name": "Team Bag",
+   "id": "adaro_top_3",
+   "slot": "top",
+   "brand": "adaro",
+   "name": "Adaro Technical Shirt",
    "rarity": "epic",
    "minLevel": 12,
    "bonus": {
     "stamina": 2,
     "defense": 1
-   }
-  },
-  {
-   "id": "ball_club",
-   "slot": "balls",
-   "name": "Training Balls",
-   "rarity": "common",
-   "minLevel": 1,
-   "unlock": 1,
-   "bonus": {
-    "spin": 1
-   }
-  },
-  {
-   "id": "ball_pro",
-   "slot": "balls",
-   "name": "Pro Balls",
-   "rarity": "rare",
-   "minLevel": 5,
-   "bonus": {
-    "power": 2
-   }
-  },
-  {
-   "id": "ball_tour",
-   "slot": "balls",
-   "name": "Tour Balls",
-   "rarity": "epic",
-   "minLevel": 12,
-   "bonus": {
-    "power": 1,
-    "spin": 1,
-    "accuracy": 1
-   }
-  },
-  {
-   "id": "cap_champ",
-   "slot": "head",
-   "name": "Champion Cap",
-   "rarity": "legendary",
-   "minLevel": 20,
-   "bonus": {
-    "accuracy": 2,
-    "technique": 1,
-    "spin": 1
    },
-   "color": "#f8b800"
+   "color": "#3cbcfc"
   },
   {
-   "id": "top_champ",
+   "id": "adaro_top_4",
    "slot": "top",
-   "name": "Champion Shirt",
+   "brand": "adaro",
+   "name": "Adaro Elite Shirt",
    "rarity": "legendary",
    "minLevel": 20,
    "bonus": {
     "stamina": 2,
     "defense": 2
    },
-   "color": "#f8b800"
+   "color": "#1d1d2b"
   },
   {
-   "id": "sh_champ",
+   "id": "adaro_shorts_1",
    "slot": "shorts",
-   "name": "Champion Shorts",
-   "rarity": "legendary",
-   "minLevel": 20,
+   "brand": "adaro",
+   "name": "Adaro Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
    "bonus": {
-    "speed": 3,
+    "speed": 1
+   },
+   "color": "#3a4a6b",
+   "unlock": 1
+  },
+  {
+   "id": "adaro_shorts_2",
+   "slot": "shorts",
+   "brand": "adaro",
+   "name": "Adaro Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
     "stamina": 1
    },
-   "color": "#f8b800"
+   "color": "#3cbcfc"
   },
   {
-   "id": "sho_champ",
-   "slot": "shoes",
-   "name": "Champion Shoes",
+   "id": "adaro_shorts_3",
+   "slot": "shorts",
+   "brand": "adaro",
+   "name": "Adaro Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "adaro_shorts_4",
+   "slot": "shorts",
+   "brand": "adaro",
+   "name": "Adaro Elite Shorts",
    "rarity": "legendary",
    "minLevel": 20,
    "bonus": {
     "speed": 2,
-    "power": 2
+    "stamina": 2
    },
-   "color": "#f8b800"
+   "color": "#f4f4f4"
   },
   {
-   "id": "rk_champ",
-   "slot": "racket",
-   "name": "Champion Racket",
+   "id": "adaro_shoes_1",
+   "slot": "shoes",
+   "brand": "adaro",
+   "name": "Adaro Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#3cbcfc",
+   "unlock": 1
+  },
+  {
+   "id": "adaro_shoes_2",
+   "slot": "shoes",
+   "brand": "adaro",
+   "name": "Adaro Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
+    "technique": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "adaro_shoes_3",
+   "slot": "shoes",
+   "brand": "adaro",
+   "name": "Adaro Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "technique": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "adaro_shoes_4",
+   "slot": "shoes",
+   "brand": "adaro",
+   "name": "Adaro Elite Shoes",
    "rarity": "legendary",
    "minLevel": 20,
    "bonus": {
-    "power": 2,
-    "spin": 2
-   },
-   "color": "#f8b800"
-  },
-  {
-   "id": "wb_champ",
-   "slot": "wristband",
-   "name": "Champion Wristband",
-   "rarity": "legendary",
-   "minLevel": 20,
-   "bonus": {
-    "spin": 2,
+    "speed": 2,
     "technique": 2
    },
-   "color": "#f8b800"
+   "color": "#3a4a6b"
   },
   {
-   "id": "bag_champ",
+   "id": "adaro_racket_1",
+   "slot": "racket",
+   "brand": "adaro",
+   "name": "Adaro Cruz",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "technique": 1
+   },
+   "shape": "round",
+   "color": "#1d1d2b",
+   "unlock": 1
+  },
+  {
+   "id": "adaro_racket_2",
+   "slot": "racket",
+   "brand": "adaro",
+   "name": "Adaro Metalis Ctrl",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "technique": 1,
+    "power": 1
+   },
+   "shape": "round",
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "adaro_racket_3",
+   "slot": "racket",
+   "brand": "adaro",
+   "name": "Adaro Metalis Carbon",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "technique": 2,
+    "power": 1
+   },
+   "shape": "diamond",
+   "color": "#3a4a6b"
+  },
+  {
+   "id": "adaro_racket_4",
+   "slot": "racket",
+   "brand": "adaro",
+   "name": "Adaro Metalis HD",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "technique": 2,
+    "power": 2
+   },
+   "shape": "diamond",
+   "color": "#3cbcfc"
+  },
+  {
+   "id": "adaro_bag_1",
    "slot": "bag",
-   "name": "Champion Bag",
+   "brand": "adaro",
+   "name": "Adaro Basic Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "color": "#3a4a6b",
+   "unlock": 1
+  },
+  {
+   "id": "adaro_bag_2",
+   "slot": "bag",
+   "brand": "adaro",
+   "name": "Adaro Pro Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "stamina": 1
+   },
+   "color": "#3cbcfc"
+  },
+  {
+   "id": "adaro_bag_3",
+   "slot": "bag",
+   "brand": "adaro",
+   "name": "Adaro Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "adaro_bag_4",
+   "slot": "bag",
+   "brand": "adaro",
+   "name": "Adaro Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
+    "stamina": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "hedron_top_1",
+   "slot": "top",
+   "brand": "hedron",
+   "name": "Hedron Basic Shirt",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "stamina": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "hedron_top_2",
+   "slot": "top",
+   "brand": "hedron",
+   "name": "Hedron Pro Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "stamina": 1,
+    "speed": 1
+   },
+   "color": "#f2a33a"
+  },
+  {
+   "id": "hedron_top_3",
+   "slot": "top",
+   "brand": "hedron",
+   "name": "Hedron Technical Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "stamina": 2,
+    "speed": 1
+   },
+   "color": "#0f7a6a"
+  },
+  {
+   "id": "hedron_top_4",
+   "slot": "top",
+   "brand": "hedron",
+   "name": "Hedron Elite Shirt",
    "rarity": "legendary",
    "minLevel": 20,
    "bonus": {
     "stamina": 2,
-    "defense": 1,
-    "speed": 1
-   }
+    "speed": 2
+   },
+   "color": "#1d1d2b"
   },
   {
-   "id": "ball_champ",
-   "slot": "balls",
-   "name": "Champion Balls",
+   "id": "hedron_shorts_1",
+   "slot": "shorts",
+   "brand": "hedron",
+   "name": "Hedron Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#f2a33a"
+  },
+  {
+   "id": "hedron_shorts_2",
+   "slot": "shorts",
+   "brand": "hedron",
+   "name": "Hedron Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
+    "stamina": 1
+   },
+   "color": "#0f7a6a"
+  },
+  {
+   "id": "hedron_shorts_3",
+   "slot": "shorts",
+   "brand": "hedron",
+   "name": "Hedron Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "hedron_shorts_4",
+   "slot": "shorts",
+   "brand": "hedron",
+   "name": "Hedron Elite Shorts",
    "rarity": "legendary",
    "minLevel": 20,
    "bonus": {
-    "power": 1,
-    "spin": 1,
+    "speed": 2,
+    "stamina": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "hedron_shoes_1",
+   "slot": "shoes",
+   "brand": "hedron",
+   "name": "Hedron Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "color": "#0f7a6a"
+  },
+  {
+   "id": "hedron_shoes_2",
+   "slot": "shoes",
+   "brand": "hedron",
+   "name": "Hedron Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
+    "stamina": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "hedron_shoes_3",
+   "slot": "shoes",
+   "brand": "hedron",
+   "name": "Hedron Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "stamina": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "hedron_shoes_4",
+   "slot": "shoes",
+   "brand": "hedron",
+   "name": "Hedron Elite Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "speed": 2,
+    "stamina": 2
+   },
+   "color": "#f2a33a"
+  },
+  {
+   "id": "hedron_racket_1",
+   "slot": "racket",
+   "brand": "hedron",
+   "name": "Hedron Evon",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "speed": 1
+   },
+   "shape": "teardrop",
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "hedron_racket_2",
+   "slot": "racket",
+   "brand": "hedron",
+   "name": "Hedron Gravis",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "speed": 1,
+    "technique": 1
+   },
+   "shape": "round",
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "hedron_racket_3",
+   "slot": "racket",
+   "brand": "hedron",
+   "name": "Hedron Veloz",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "speed": 2,
+    "technique": 1
+   },
+   "shape": "teardrop",
+   "color": "#f2a33a"
+  },
+  {
+   "id": "hedron_racket_4",
+   "slot": "racket",
+   "brand": "hedron",
+   "name": "Hedron Extremo",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "speed": 2,
+    "technique": 2
+   },
+   "shape": "diamond",
+   "color": "#0f7a6a"
+  },
+  {
+   "id": "hedron_bag_1",
+   "slot": "bag",
+   "brand": "hedron",
+   "name": "Hedron Basic Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "stamina": 1
+   },
+   "color": "#f2a33a"
+  },
+  {
+   "id": "hedron_bag_2",
+   "slot": "bag",
+   "brand": "hedron",
+   "name": "Hedron Pro Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "stamina": 1,
+    "speed": 1
+   },
+   "color": "#0f7a6a"
+  },
+  {
+   "id": "hedron_bag_3",
+   "slot": "bag",
+   "brand": "hedron",
+   "name": "Hedron Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "stamina": 2,
+    "speed": 1
+   },
+   "color": "#1d1d2b"
+  },
+  {
+   "id": "hedron_bag_4",
+   "slot": "bag",
+   "brand": "hedron",
+   "name": "Hedron Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "stamina": 2,
+    "speed": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "syrix_top_1",
+   "slot": "top",
+   "brand": "syrix",
+   "name": "Syrix Basic Shirt",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "syrix_top_2",
+   "slot": "top",
+   "brand": "syrix",
+   "name": "Syrix Pro Shirt",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "stamina": 1
+   },
+   "color": "#1fae6b"
+  },
+  {
+   "id": "syrix_top_3",
+   "slot": "top",
+   "brand": "syrix",
+   "name": "Syrix Technical Shirt",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "stamina": 1
+   },
+   "color": "#0d3b2a"
+  },
+  {
+   "id": "syrix_top_4",
+   "slot": "top",
+   "brand": "syrix",
+   "name": "Syrix Elite Shirt",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
+    "stamina": 2
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "syrix_shorts_1",
+   "slot": "shorts",
+   "brand": "syrix",
+   "name": "Syrix Basic Shorts",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "color": "#1fae6b"
+  },
+  {
+   "id": "syrix_shorts_2",
+   "slot": "shorts",
+   "brand": "syrix",
+   "name": "Syrix Pro Shorts",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "speed": 1
+   },
+   "color": "#0d3b2a"
+  },
+  {
+   "id": "syrix_shorts_3",
+   "slot": "shorts",
+   "brand": "syrix",
+   "name": "Syrix Technical Shorts",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "speed": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "syrix_shorts_4",
+   "slot": "shorts",
+   "brand": "syrix",
+   "name": "Syrix Elite Shorts",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
+    "speed": 2
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "syrix_shoes_1",
+   "slot": "shoes",
+   "brand": "syrix",
+   "name": "Syrix Basic Shoes",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "color": "#0d3b2a"
+  },
+  {
+   "id": "syrix_shoes_2",
+   "slot": "shoes",
+   "brand": "syrix",
+   "name": "Syrix Pro Shoes",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "speed": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "syrix_shoes_3",
+   "slot": "shoes",
+   "brand": "syrix",
+   "name": "Syrix Technical Shoes",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "speed": 1
+   },
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "syrix_shoes_4",
+   "slot": "shoes",
+   "brand": "syrix",
+   "name": "Syrix Elite Shoes",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
+    "speed": 2
+   },
+   "color": "#1fae6b"
+  },
+  {
+   "id": "syrix_racket_1",
+   "slot": "racket",
+   "brand": "syrix",
+   "name": "Syrix Elka Go",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "shape": "teardrop",
+   "color": "#f6d743"
+  },
+  {
+   "id": "syrix_racket_2",
+   "slot": "racket",
+   "brand": "syrix",
+   "name": "Syrix Diabla",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "accuracy": 1
+   },
+   "shape": "teardrop",
+   "color": "#f4f4f4"
+  },
+  {
+   "id": "syrix_racket_3",
+   "slot": "racket",
+   "brand": "syrix",
+   "name": "Syrix Elka Pro",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "accuracy": 1
+   },
+   "shape": "teardrop",
+   "color": "#1fae6b"
+  },
+  {
+   "id": "syrix_racket_4",
+   "slot": "racket",
+   "brand": "syrix",
+   "name": "Syrix Fenyx",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
     "accuracy": 2
-   }
+   },
+   "shape": "diamond",
+   "color": "#0d3b2a"
+  },
+  {
+   "id": "syrix_bag_1",
+   "slot": "bag",
+   "brand": "syrix",
+   "name": "Syrix Basic Bag",
+   "rarity": "common",
+   "minLevel": 1,
+   "bonus": {
+    "defense": 1
+   },
+   "color": "#1fae6b"
+  },
+  {
+   "id": "syrix_bag_2",
+   "slot": "bag",
+   "brand": "syrix",
+   "name": "Syrix Pro Bag",
+   "rarity": "rare",
+   "minLevel": 5,
+   "bonus": {
+    "defense": 1,
+    "stamina": 1
+   },
+   "color": "#0d3b2a"
+  },
+  {
+   "id": "syrix_bag_3",
+   "slot": "bag",
+   "brand": "syrix",
+   "name": "Syrix Technical Bag",
+   "rarity": "epic",
+   "minLevel": 12,
+   "bonus": {
+    "defense": 2,
+    "stamina": 1
+   },
+   "color": "#f6d743"
+  },
+  {
+   "id": "syrix_bag_4",
+   "slot": "bag",
+   "brand": "syrix",
+   "name": "Syrix Elite Bag",
+   "rarity": "legendary",
+   "minLevel": 20,
+   "bonus": {
+    "defense": 2,
+    "stamina": 2
+   },
+   "color": "#f4f4f4"
   }
  ]
 }

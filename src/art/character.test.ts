@@ -113,3 +113,14 @@ describe('cap and wristband (gear)', () => {
     }
   });
 });
+
+describe('racket shapes', () => {
+  const plainLook = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' } as const;
+  const shapes = ['round', 'teardrop', 'diamond'] as const;
+  it('every shape draws a different racket head, in every view', () => {
+    for (const facing of ['front', 'back', 'left', 'right'] as const) {
+      const outs = [undefined, ...shapes].map((racketShape) => JSON.stringify(buildCharacter({ ...plainLook, racketShape }, facing, 'ready')));
+      expect(new Set(outs).size, facing).toBe(4);
+    }
+  });
+});

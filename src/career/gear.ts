@@ -5,9 +5,11 @@
 import consumablesData from '../data/consumables.json';
 import packsData from '../data/packs.json';
 import gearData from '../data/gear.json';
+import brandsData from '../data/brands.json';
 import type { Appearance, StatKey } from '../game/types';
 
-export type Slot = 'head' | 'top' | 'shorts' | 'shoes' | 'racket' | 'wristband' | 'bag' | 'balls';
+export type Slot = 'top' | 'shorts' | 'shoes' | 'racket' | 'bag';
+export type RacketShape = 'diamond' | 'teardrop' | 'round';
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type Bonus = Partial<Record<StatKey, number>>;
 
@@ -19,8 +21,21 @@ export interface GearItem {
   minLevel: number;
   unlock?: number;
   bonus: Bonus;
-  /** Colour shown on the character (not for the bag and the balls). */
+  /** The maker (see brands.json). */
+  brand: string;
+  /** Colour shown on the character (the bag shows it only as an icon). */
   color?: string;
+  /** Rackets only: the shape of the head, drawn on the character. */
+  shape?: RacketShape;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  /** What the brand is good at, as a short label. */
+  tag: string;
+  /** Light, main, dark and accent colour. */
+  colors: string[];
 }
 
 export interface Consumable {
@@ -53,6 +68,10 @@ export interface Inventory {
 
 export const SLOTS = gearData.slots as Slot[];
 export const GEAR = gearData.items as GearItem[];
+export const BRANDS = brandsData as Brand[];
+export const brandById = (id: string): Brand | undefined => BRANDS.find((b) => b.id === id);
+/** The four models of a brand in a slot, from basic to elite. */
+export const itemsOfBrand = (slot: Slot, brand: string): GearItem[] => GEAR.filter((g) => g.slot === slot && g.brand === brand);
 export const CONSUMABLES = consumablesData.items as Consumable[];
 const packIds = packsData.packs.map((p) => p.id);
 /** At most this many boosts in the bag (so two for a tournament). */
@@ -65,14 +84,11 @@ export const consumableById = (id: string): Consumable | undefined => CONSUMABLE
 export const itemsOfSlot = (slot: Slot): GearItem[] => GEAR.filter((g) => g.slot === slot);
 
 export const SLOT_LABEL: Record<Slot, string> = {
-  head: 'CAP',
   top: 'SHIRT',
   shorts: 'SHORTS',
   shoes: 'SHOES',
   racket: 'RACKET',
-  wristband: 'WRISTBAND',
   bag: 'BAG',
-  balls: 'BALLS',
 };
 
 export function newInventory(): Inventory {
@@ -117,23 +133,39 @@ export function gearBonus(inv: Inventory): Record<StatKey, number> {
   return sum;
 }
 
-/** The look of the hero with the colours of the equipped items. */
+/** The look of the hero with the colours of the equipped items (and the shape of the racket). */
 export function applyLook(base: Appearance, inv: Inventory): Appearance {
   const a: Appearance = { ...base };
-  const col = (slot: Slot): string | undefined => (inv.equipped[slot] ? gearById(inv.equipped[slot]!)?.color : undefined);
-  const cap = col('head');
-  if (cap) a.cap = cap;
+  const item = (slot: Slot): GearItem | undefined => (inv.equipped[slot] ? gearById(inv.equipped[slot]!) : undefined);
+  const col = (slot: Slot): string | undefined => item(slot)?.color;
   const top = col('top');
   if (top) a.shirt = top;
   const shorts = col('shorts');
   if (shorts) a.bottom = shorts;
   const shoes = col('shoes');
   if (shoes) a.shoes = shoes;
-  const racket = col('racket');
-  if (racket) a.racket = racket;
-  const band = col('wristband');
-  if (band) a.wristband = band;
+  const racket = item('racket');
+  if (racket?.color) a.racket = racket.color;
+  if (racket?.shape) a.racketShape = racket.shape;
   return a;
+}
+
+/**
+ * Items of the first release (before brands) that are gone. A save that owned one of the better ones gets coins back
+ * (the duplicate price of its rarity); the free starting items are not paid back.
+ */
+const LEGACY: Record<string, Rarity> = {
+  cap_visor: 'rare', top_tech: 'rare', sh_flex: 'rare', sho_power: 'rare', rk_spin: 'rare', wb_grip: 'rare', bag_tour: 'rare', ball_pro: 'rare',
+  cap_pro: 'epic', top_pro: 'epic', sh_pro: 'epic', sho_grip: 'epic', rk_pro: 'epic', wb_pro: 'epic', bag_team: 'epic', ball_tour: 'epic',
+  cap_champ: 'legendary', top_champ: 'legendary', sh_champ: 'legendary', sho_champ: 'legendary', rk_champ: 'legendary', wb_champ: 'legendary', bag_champ: 'legendary', ball_champ: 'legendary',
+};
+
+/** Coins for the old (removed) items in a stored inventory. */
+export function legacyRefund(raw: unknown): number {
+  const owned = (raw as { owned?: unknown } | null)?.owned;
+  if (!Array.isArray(owned)) return 0;
+  const dup = packsData.dup as Record<Rarity, number>;
+  return [...new Set(owned)].reduce<number>((sum, id) => sum + (typeof id === 'string' && LEGACY[id] ? dup[LEGACY[id]] : 0), 0);
 }
 
 // ---------- new gear (the star in the GEAR screen) ----------

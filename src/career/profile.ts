@@ -4,7 +4,7 @@
 import levels from '../data/levels.json';
 import packsData from '../data/packs.json';
 import { newCareer, sanitizeCareer, type Career } from './season';
-import { applyLook, gearBonus, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
+import { applyLook, gearBonus, legacyRefund, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
 
@@ -114,7 +114,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     alloc[k] = Math.max(0, v);
     left -= alloc[k];
   }
-  return { xp, coins: n(o.coins), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  return { xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */

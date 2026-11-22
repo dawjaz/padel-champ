@@ -145,6 +145,34 @@ const EYE = 0x1a1a2e;
 const WHITE = 0xf4f4f4;
 const STRINGS = 0xe6ecf5;
 
+/**
+ * The head of the racket, made of discs along the racket axis: `t` is the offset towards the tip (negative = towards the
+ * handle), `kx`/`ky` scale the radii. Round = a circle, teardrop = round on top and narrowing to the handle, diamond =
+ * wide shoulders high up and a point towards the handle. Without a shape the old oval is drawn.
+ */
+const RACKET_PARTS: Record<string, Array<[number, number, number]>> = {
+  oval: [[0, 1, 1]],
+  round: [[0, 1.12, 0.92]],
+  teardrop: [[0.6, 1, 0.82], [-1.5, 0.72, 0.52]],
+  diamond: [[1.1, 1.14, 0.7], [-0.2, 0.9, 0.55], [-1.9, 0.55, 0.45]],
+};
+
+function racketHead(
+  disc: (cx: number, cy: number, rx: number, ry: number, color: number) => void,
+  shape: Appearance['racketShape'],
+  head: { x: number; y: number },
+  axis: { x: number; y: number },
+  rx: number,
+  ry: number,
+  srx: number,
+  sry: number,
+  frame: number,
+): void {
+  const parts = RACKET_PARTS[shape ?? 'oval'];
+  for (const [t, kx, ky] of parts) disc(head.x + axis.x * t, head.y + axis.y * t, Math.max(0.9, rx * kx), Math.max(0.9, ry * ky), frame);
+  for (const [t, kx, ky] of parts) disc(head.x + axis.x * t, head.y + axis.y * t, Math.max(0.5, srx * kx), Math.max(0.5, sry * ky), STRINGS);
+}
+
 export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = 'ready'): Op[] {
   if (facing === 'left' || facing === 'right') return buildProfile(a, facing, pose);
   const spec = POSES[pose];
@@ -281,8 +309,7 @@ export function buildCharacter(a: Appearance, facing: Facing, pose: PoseName = '
   disc(hand.x, hand.y, 1.9, 1.9, skin);
   const head = { x: hand.x + out * sin * 7.5, y: hand.y - cos * 7.5 };
   const flat = Math.abs(sin);
-  disc(head.x, head.y, 3 + 2.2 * flat, 5 - 2 * flat, racket);
-  disc(head.x, head.y, 1.2 + 1.3 * flat, 3 - 1.4 * flat, STRINGS);
+  racketHead(disc, a.racketShape, head, { x: out * sin, y: -cos }, 3 + 2.2 * flat, 5 - 2 * flat, 1.2 + 1.3 * flat, 3 - 1.4 * flat, racket);
 
   return ops;
 }
@@ -358,8 +385,7 @@ function buildProfile(a: Appearance, facing: 'left' | 'right', pose: PoseName): 
     disc(hand.x, hand.y, 1.9, 1.9, skin);
     const head = { x: hand.x + sin * 7.5, y: hand.y - cos * 7.5 };
     const flat = Math.abs(sin);
-    disc(head.x, head.y, 2.6 + 1.2 * (1 - flat), 5 - 1.5 * flat, racket);
-    disc(head.x, head.y, 1 + 0.6 * (1 - flat), 3 - 1.2 * flat, STRINGS);
+    racketHead(disc, a.racketShape, head, { x: sin, y: -cos }, 2.6 + 1.2 * (1 - flat), 5 - 1.5 * flat, 1 + 0.6 * (1 - flat), 3 - 1.2 * flat, racket);
   };
   if (mirror) arm();
 

@@ -21,6 +21,8 @@ export interface Appearance {
   headband?: string;
   /** Cap (head slot): colour of the crown; the brim is a darker shade. */
   cap?: string;
+  /** Shape of the racket head (default: oval). */
+  racketShape?: 'diamond' | 'teardrop' | 'round';
   /** Wristband on the racket hand. */
   wristband?: string;
 }

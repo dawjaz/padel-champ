@@ -1,0 +1,68 @@
+[
+ {
+  "id": "bavole",
+  "name": "Bavolé",
+  "tag": "Power and spin",
+  "colors": [
+   "#f4f4f4",
+   "#2f6df0",
+   "#17306b",
+   "#f6d743"
+  ]
+ },
+ {
+  "id": "toropad",
+  "name": "Toropad",
+  "tag": "Aggressive power",
+  "colors": [
+   "#f4f4f4",
+   "#d82800",
+   "#1d1d2b",
+   "#f8b800"
+  ]
+ },
+ {
+  "id": "noctra",
+  "name": "Noctra",
+  "tag": "Control",
+  "colors": [
+   "#e8e6f4",
+   "#6a3de0",
+   "#241a52",
+   "#35c4a8"
+  ]
+ },
+ {
+  "id": "adaro",
+  "name": "Adaro",
+  "tag": "All-round",
+  "colors": [
+   "#f4f4f4",
+   "#3a4a6b",
+   "#3cbcfc",
+   "#1d1d2b"
+  ]
+ },
+ {
+  "id": "hedron",
+  "name": "Hedron",
+  "tag": "Speed and stamina",
+  "colors": [
+   "#f4f4f4",
+   "#f2a33a",
+   "#0f7a6a",
+   "#1d1d2b"
+  ]
+ },
+ {
+  "id": "syrix",
+  "name": "Syrix",
+  "tag": "Defence",
+  "colors": [
+   "#f4f4f4",
+   "#1fae6b",
+   "#0d3b2a",
+   "#f6d743"
+  ]
+ }
+]

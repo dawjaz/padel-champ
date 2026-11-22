@@ -11,8 +11,8 @@
   { "id": "level_5", "name": "Rising Star", "desc": "Reach level 5.", "stat": "level", "n": 5, "coins": 60 },
   { "id": "level_15", "name": "Pro", "desc": "Reach level 15.", "stat": "level", "n": 15, "coins": 200 },
   { "id": "level_30", "name": "Maxed Out", "desc": "Reach level 30.", "stat": "level", "n": 30, "coins": 800 },
-  { "id": "gear_5", "name": "Collector", "desc": "Own 12 pieces of gear.", "stat": "gearOwned", "n": 12, "coins": 60 },
-  { "id": "gear_15", "name": "Equipment Room", "desc": "Own 24 pieces of gear.", "stat": "gearOwned", "n": 24, "coins": 250 },
+  { "id": "gear_5", "name": "Collector", "desc": "Own 15 pieces of gear.", "stat": "gearOwned", "n": 15, "coins": 60 },
+  { "id": "gear_15", "name": "Equipment Room", "desc": "Own 40 pieces of gear.", "stat": "gearOwned", "n": 40, "coins": 250 },
   { "id": "title_1", "name": "Champion", "desc": "Win a tournament.", "stat": "titles", "n": 1, "coins": 120 },
   { "id": "title_5", "name": "Serial Winner", "desc": "Win 5 tournaments.", "stat": "titles", "n": 5, "coins": 500 },
   { "id": "partner_2", "name": "Team Player", "desc": "Sign a new partner.", "stat": "partners", "n": 2, "coins": 80 }

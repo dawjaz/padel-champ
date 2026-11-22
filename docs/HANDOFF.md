@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-21 (v0.49)_
 
+## v0.53: brand gear (plan point 3, first part)
+- 6 invented brands, 5 slots (shirt, shorts, shoes, racket, bag), 4 models each = 120 items; cap, wristband and balls removed. Mapping to real makers and racket shapes: `docs/BRANDS.md`. Starter set: the five basic Adaro items.
+- Rackets have a head shape (diamond, teardrop, round) drawn on the character (`racketHead` in `art/character.ts`, `Appearance.racketShape`).
+- GEAR screen: five slot tabs, six brand tabs, four models per brand (racket silhouette icons). Old saves: old items dropped, better ones paid back in coins. Achievements Collector 15 and Equipment Room 40.
+- Open: brand sets, brand packs / shop filter, brand colours and logos on the outfit, collection screen (plan point 4). Not checked on a phone.
+
 ## Plan for next sessions (agreed 2026-11-21, owner chats in Polish)
 Order is a proposal; the owner can reorder.
 1. **Balance after the latest changes (do first).** The XP curve was slowed (`xpBase` 300) but stat caps (`levelsPerCap`), gear and division `minLevel` gates, shop prices and prizes were NOT rescaled: re-tune them together. Play-test RISKY (+15 pp per missing G), rally length after INTERCEPT was removed, and guts at +2 per point. Tune opponent difficulty per division (never tuned).
