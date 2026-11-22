@@ -6,10 +6,15 @@ import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height,
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
-/** Share of lobs that are good (deep into the court); the rest are weak (mid-court or close to the net). */
-export const LOB_DEEP_CHANCE = 0.7;
+/**
+ * Shares of the three kinds of lob: deep (into the court, it bounces), medium (the back third, played out of the air with a
+ * vibora or a bandeja) and weak (mid-court or close to the net, smash); the rest is weak.
+ */
+export const LOB_DEEP_CHANCE = 0.55;
+export const LOB_MEDIUM_CHANCE = 0.25;
 /** A lob played from a high or a mid ball is better prepared: it goes deep more often. */
-export const LOB_DEEP_CHANCE_HIGH_BALL = 0.85;
+export const LOB_DEEP_CHANCE_HIGH_BALL = 0.75;
+export const LOB_MEDIUM_CHANCE_HIGH_BALL = 0.15;
 const DEFAULT_REBOUND: Record<Height, number> = { low: 0.3, mid: 0.4, high: 0.3 };
 
 /**
@@ -154,12 +159,12 @@ export function nextFormation(
 ): [Formation, Formation] {
   const f: [Formation, Formation] = [current[0], current[1]];
   const def = other(hitterSide);
-  if (shot.out === 'high') f[def] = lob === 'weak' ? (current[def] === 'net' ? 'net' : 'mid') : 'back';
+  if (shot.out === 'high') f[def] = lob === 'weak' ? (current[def] === 'net' ? 'net' : 'mid') : lob === 'medium' ? 'mid' : 'back';
 
   const from = current[hitterSide];
   let to: Formation;
   if (shot.advance === 'net') to = 'net';
-  else if (isLob(shot)) to = lob === 'weak' ? (from === 'net' ? 'net' : 'mid') : 'net';
+  else if (isLob(shot)) to = lob === 'weak' || lob === 'medium' ? (from === 'net' ? 'net' : 'mid') : 'net';
   else if (from === 'net') to = 'net';
   else if (from === 'mid') to = f[def] === 'back' ? 'net' : 'mid';
   else to = 'mid';
@@ -252,17 +257,23 @@ function nextBall(
   let lob: LobQuality | undefined;
   let landDepth: number | undefined;
   if (isLob(shot)) {
-    lob = rng() < (incoming === 'low' ? LOB_DEEP_CHANCE : LOB_DEEP_CHANCE_HIGH_BALL) ? 'deep' : 'weak';
+    const roll = rng();
+    const deep = incoming === 'low' ? LOB_DEEP_CHANCE : LOB_DEEP_CHANCE_HIGH_BALL;
+    const medium = incoming === 'low' ? LOB_MEDIUM_CHANCE : LOB_MEDIUM_CHANCE_HIGH_BALL;
+    lob = roll < deep ? 'deep' : roll < deep + medium ? 'medium' : 'weak';
     if (lob === 'weak') {
       const [lo, hi] = shot.weakDepth ?? [2.5, 5.5];
       landDepth = lo + rng() * (hi - lo);
+    } else if (lob === 'medium') {
+      const [lo, hi] = shot.mediumDepth ?? [5.8, 7.4];
+      landDepth = lo + rng() * (hi - lo);
     }
   }
-  const chance = lob === 'weak' ? 0 : shot.glassChance ?? 0;
+  const chance = lob === 'weak' || lob === 'medium' ? 0 : shot.glassChance ?? 0;
   const glass = chance > 0 && rng() < chance;
   const arrival: Height = glass ? pickRebound(shot.rebound ?? DEFAULT_REBOUND, rng) : shot.out;
-  // A weak (short) lob is played out of the air (smash, bandeja); a good lob bounces first, so nothing from the air is played to it.
-  return { ball: { height: arrival, pressure, lob, glass, speed: shot.flight.speed, ...(lob === 'weak' ? { air: true } : {}) }, glass, arrival, lob, landDepth };
+  // A weak or medium lob is played out of the air (smash, vibora, bandeja); a deep lob bounces first, so nothing from the air is played to it.
+  return { ball: { height: arrival, pressure, lob, glass, speed: shot.flight.speed, ...(lob === 'weak' || lob === 'medium' ? { air: true } : {}) }, glass, arrival, lob, landDepth };
 }
 
 export function stepServe(

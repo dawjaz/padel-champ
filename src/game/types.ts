@@ -119,8 +119,11 @@ export type ErrorKind = 'net' | 'glass' | 'mesh' | 'side' | 'long' | 'bouncemesh
 // long: bounces beyond the line (out); bouncemesh: bounces in the court, then lands on the mesh (out). Serves use all of them.
 export type ErrorKinds = Partial<Record<ErrorKind, number>>;
 
-/** Quality of a lob: deep into the court, or weak (lands mid-court or close to the net). */
-export type LobQuality = 'deep' | 'weak';
+/**
+ * Quality of a lob: deep into the court (it bounces; bajada after the glass), medium (lands in the back third and is played out of the
+ * air: vibora or bandeja) or weak (lands mid-court or close to the net: smash).
+ */
+export type LobQuality = 'deep' | 'medium' | 'weak';
 
 export interface ShotDef {
   id: string;
@@ -169,6 +172,8 @@ export interface ShotDef {
   rebound?: Record<Height, number>;
   /** Lobs only: where a weak lob lands, in metres from the net (min, max). */
   weakDepth?: [number, number];
+  /** Where (m from the net) a medium lob lands; default [5.8, 7.4]. */
+  mediumDepth?: [number, number];
   /** Extra error chance when this shot is played off a low ball that has come off the glass (the lob is risky there). */
   /** Text of the menu button when the name does not fit (a line break is allowed). The cost is added. */
   menuLabel?: string;

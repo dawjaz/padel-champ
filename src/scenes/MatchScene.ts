@@ -744,20 +744,22 @@ export class MatchScene extends Phaser.Scene {
     this.menu = [];
   }
 
-  private showButtons(title: string, items: ButtonSpec[]): void {
+  private showButtons(title: string, items: ButtonSpec[], layout?: 'directions'): void {
     this.clearMenu();
     // No caption above the buttons (the owner does not want the "who: shot (ball ...)" line); `title` stays for the callers.
     void title;
     // Up to 6 buttons: 2 big columns; more: 3 compact columns.
     const compact = items.length > 6;
     const cols = compact ? 3 : 2;
-    const w = compact ? 112 : 160;
-    const h = compact ? 44 : 48;
+    // Direction menu: left / middle / right side by side as the ball goes on the screen, BACK alone below.
+    const dirs = layout === 'directions';
+    const w = dirs ? 108 : compact ? 112 : 160;
+    const h = dirs ? 56 : compact ? 44 : 48;
     const gapY = compact ? 52 : 58;
-    const y0 = compact ? 478 : 485;
+    const y0 = dirs ? 490 : compact ? 478 : 485;
     items.forEach((item, i) => {
-      const x = compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
-      const y = y0 + Math.floor(i / cols) * gapY;
+      const x = dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
+      const y = dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
       const gfx = this.add.graphics().setPosition(x, y);
       const stroke = TONE_STROKE[item.tone];
       const redraw = (hover: boolean): void => drawPanel(gfx, w, h, stroke, hover && !item.disabled);
@@ -766,7 +768,7 @@ export class MatchScene extends Phaser.Scene {
       const text = this.add
         .text(x, y, item.label, {
           fontFamily: FONT, resolution: HD_SCALE,
-          fontSize: compact ? '11px' : '14px',
+          fontSize: dirs ? '13px' : compact ? '11px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
         })
@@ -925,13 +927,14 @@ export class MatchScene extends Phaser.Scene {
       this.performHit(shot, shot.fixedDirection, undefined, options);
       return;
     }
-    const items: ButtonSpec[] = DIRECTION_ORDER.map((d) => ({
+    const order: Direction[] = HUMAN_IDX === 0 ? DIRECTION_ORDER : ['cross', 'middle', 'parallel'];
+    const items: ButtonSpec[] = order.map((d) => ({
       label: DIRECTIONS[d].name.toUpperCase(),
       tone: 'normal' as Tone,
       onPick: () => this.performHit(shot, d, undefined, options),
     }));
     items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showPracticeButtons() });
-    this.showButtons(`${shot.name}: which way?`, items);
+    this.showButtons(`${shot.name}: which way?`, items, 'directions');
   }
 
   /** The opponents play `shot` at you (the human). */
@@ -1281,7 +1284,7 @@ export class MatchScene extends Phaser.Scene {
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
     const kind = st.hits === 0 ? 'return' : 'rally';
-    const context = st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : st.ball.lob === 'deep' ? ', deep lob' : '';
+    const context = st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : st.ball.lob === 'medium' ? ', medium lob' : st.ball.lob === 'deep' ? ', deep lob' : '';
     const title = `${hitter.name}: ${kind === 'return' ? 'return' : 'your shot'} (ball ${st.ball.height.toUpperCase()}${context})`;
     const label = (sh: ShotDef): string => {
       const tired = this.guts[hitter.id] < sh.cost ? ' RISKY' : '';
@@ -1304,13 +1307,16 @@ export class MatchScene extends Phaser.Scene {
     const crossTarget = TEAMS[1][1 - st.hitterIdx].name;
     const targetName: Record<Direction, string> = { parallel: parallelTarget, cross: crossTarget, middle: 'both' };
 
-    const items: ButtonSpec[] = DIRECTION_ORDER.map((d) => ({
+    // Buttons in the order the ball goes on the screen: from the left-hand player parallel is on the left and cross on the right,
+    // from the right-hand player the other way round.
+    const order: Direction[] = st.hitterIdx === 0 ? ['parallel', 'middle', 'cross'] : ['cross', 'middle', 'parallel'];
+    const items: ButtonSpec[] = order.map((d) => ({
       label: `${DIRECTIONS[d].name.toUpperCase()}\n-> ${targetName[d]}`,
       tone: 'normal' as Tone,
       onPick: () => this.performHit(shot, d),
     }));
     items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
-    this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items);
+    this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items, 'directions');
   }
 
   private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number }): void {
@@ -1353,7 +1359,7 @@ export class MatchScene extends Phaser.Scene {
       errorKind: step.errorKind,
       reboundBack: step.reboundBack,
       netReturn: step.netReturn,
-      airHit: step.lob === 'weak',
+      airHit: step.lob === 'weak' || step.lob === 'medium',
       // Hard when the ball comes to the hitter's strike zone, slower off a low ball; a volley on a slow ball gets more pace.
       speedMul: (step.kind === 'serve' ? (step.second ? SECOND_SERVE_SPEED : 1) : paceFactor(step.shot, this.point.ball)) * powerSpeedMul(attacker.stats.power * (step.powerFactor ?? 1)),
       spinMul: spinMul(attacker.stats.spin),

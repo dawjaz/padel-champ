@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.64)_
+_Last updated: 2026-11-22 (v0.65)_
+
+## v0.65: direction buttons side by side; medium lob (more vibora and bandeja)
+- **Direction menu layout.** The three directions are in one row in the order the ball goes on the screen, BACK alone below (`showButtons(..., 'directions')`). From the left-hand player (idx 0, the hero) it is PARALLEL, MIDDLE, CROSS; from a right-hand hitter it would be CROSS, MIDDLE, PARALLEL (so left is always left). Same in free practice.
+- **Medium lob (new `LobQuality` 'medium').** The owner found vibora and bandeja too rare (0.4% of hits in the CPU simulation: they need a high ball out of the air, which only a weak lob gave, and the smash was offered then too). A lob is now deep 55% (bounces; bajada after the glass), medium 25% (lands 5.8 to 7.4 m from the net, played out of the air, the receiving pair goes to mid-court) or weak 20% (smash), from a high or mid ball deep 75%, medium 15%, weak 10% (`LOB_*` constants in `point.ts`, `mediumDepth` per shot optional). A medium lob offers vibora and bandeja, not the smash (the smash still needs a weak lob). Simulation: vibora 2.9% and bandeja 2.4% of hits (together 13 times more than before), rally 7.6 hits (was 7.2), smashes 2.7% (was 4.2%), bajada 7.6% (was 9.1%). Raise `LOB_MEDIUM_CHANCE` if they should be even more frequent. Not checked on a phone: the ball hit out of the air after a medium lob uses the existing weak-lob animation (`airHit`).
+- Practice mode: the WEAK LOB toggle still means a weak lob only.
 
 ## v0.64: balance pass: shots, serve receive, career pace
 Tools (all CPU-driven, rest positions, no gear; see the header of each file): `scripts/simShots.ts` (rally length, shot shares, winners and errors), `scripts/simReceive.ts` (receiver's results per serve for AFTER BOUNCE vs WAIT FOR THE GLASS), `scripts/simEconomy.ts [edge] [seasons] [runs]` (career pace: the player plays the best event he can enter every week, spreads points evenly, buys the best partner he can; env `XPS`, `CS` scale XP and coins as what-ifs), `scripts/simBalance.ts` (fatigue, divisions), shared loop in `scripts/simCore.ts`.

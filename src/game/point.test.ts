@@ -303,10 +303,10 @@ describe('lob rules', () => {
       }
       return deep / n;
     };
-    expect(share('high')).toBeGreaterThan(0.8);
-    expect(share('mid')).toBeGreaterThan(0.8);
-    expect(share('low')).toBeLessThan(0.78);
-    expect(share('low')).toBeGreaterThan(0.62);
+    expect(share('high')).toBeGreaterThan(0.68);
+    expect(share('mid')).toBeGreaterThan(0.68);
+    expect(share('low')).toBeLessThan(0.63);
+    expect(share('low')).toBeGreaterThan(0.48);
   });
 });
 
@@ -509,7 +509,7 @@ describe('the net player volleys', () => {
       const r = stepHit(TEAMS, rallyState({ formation: ['net', 'net'], hits: 3 }), lob, 'cross', seededRng(seed));
       if (r.state.status !== 'rally') continue;
       const ids = playableShots(shotsOfKind('rally'), r.state).map((x) => x.id);
-      const weak = r.state.ball.lob === 'weak';
+      const weak = r.state.ball.lob === 'weak' || r.state.ball.lob === 'medium';
       for (const id of AIR_ONLY) if (!weak) expect(ids, `${id} seed ${seed}`).not.toContain(id);
     }
   });
@@ -932,5 +932,32 @@ describe('the CPU receiver reads the speed of the serve', () => {
     };
     expect(share('hard_glass')).toBeGreaterThan(0.65);
     expect(share('t_serve')).toBeLessThan(0.4);
+  });
+});
+
+describe('the medium lob: the ball for the vibora and the bandeja', () => {
+  it('about a quarter of the lobs are medium: they land in the back third and are played out of the air', () => {
+    let medium = 0, n = 0;
+    for (let seed = 1; seed <= 1200; seed++) {
+      const st = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, zone: 'mid' } });
+      const r = stepHit(TEAMS, st, shot('rally_lob'), 'cross', seededRng(seed));
+      if (r.step.outcome !== 'continue') continue;
+      n++;
+      if (r.step.lob === 'medium') {
+        medium++;
+        expect(r.state.ball.air).toBe(true);
+        expect(r.state.ball.height).toBe('high');
+        expect(r.state.formation[1]).toBe('mid');
+        expect(r.step.landDepth!).toBeGreaterThan(5.7);
+        expect(r.step.landDepth!).toBeLessThan(7.5);
+        const ids = playableShots(shotsOfKind('rally'), r.state).map((x) => x.id);
+        expect(ids).toContain('bandeja');
+        expect(ids).toContain('vibora');
+        expect(ids).not.toContain('smash_x3');
+        expect(ids).not.toContain('smash_x4');
+      }
+    }
+    expect(medium / n).toBeGreaterThan(0.18);
+    expect(medium / n).toBeLessThan(0.32);
   });
 });
