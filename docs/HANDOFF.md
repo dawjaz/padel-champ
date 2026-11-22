@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.76)_
+_Last updated: 2026-11-22 (v0.77)_
+
+## v0.77: phase 5a, lighter arena
+- `src/art/hd/arenaHd.ts`: daylight stands (light sky, softer crowd bokeh and spotlights), light studio ground, lighter court blue, much weaker vignette, navy menu strip under the court. Court geometry unchanged.
+- Next (5b): graphic tutorial (plan point 9); optional per-city court colours (plan point 4).
 
 ## v0.76: phase 4b, toon characters in the match
 - `MatchScene` now draws the toon characters (`ensureToonPoseTexture`, `placeToonSprite` in `src/art/toonTexture.ts`); textures have no baked shadow (`buildToon(..., shadow=false)`), the scene draws it.

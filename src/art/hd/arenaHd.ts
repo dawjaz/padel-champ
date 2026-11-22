@@ -53,8 +53,8 @@ function makeRng(seed: number): () => number {
 function drawStands(g: Ctx, rnd: () => number): void {
   // Dusk arena: soft gradient and an out-of-focus crowd made of bokeh blobs (cheap: no filters).
   const sky = g.createLinearGradient(0, 0, 0, 112);
-  sky.addColorStop(0, '#0d1633');
-  sky.addColorStop(1, '#2a3f78');
+  sky.addColorStop(0, '#9cc4f2');
+  sky.addColorStop(1, '#d6e8fb');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, 112);
   const tones = ['#ff9f6e', '#ffd36e', '#6ec8ff', '#b58cff', '#ff6e9a', '#8affc1'];
@@ -64,7 +64,7 @@ function drawStands(g: Ctx, rnd: () => number): void {
       const r = 3.2 + row * 0.5 + rnd() * 1.2;
       const gl = g.createRadialGradient(x, y, 0, x, y, r);
       const col = tones[Math.floor(rnd() * tones.length)];
-      gl.addColorStop(0, col + 'cc');
+      gl.addColorStop(0, col + '99');
       gl.addColorStop(1, col + '00');
       g.fillStyle = gl;
       g.fillRect(x - r, y - r, r * 2, r * 2);
@@ -73,8 +73,8 @@ function drawStands(g: Ctx, rnd: () => number): void {
   // Big warm spotlights with soft cones
   for (const x of [34, W - 34]) {
     const cone = g.createRadialGradient(x, -4, 2, x, -4, 230);
-    cone.addColorStop(0, 'rgba(255,236,190,0.75)');
-    cone.addColorStop(0.3, 'rgba(255,226,170,0.22)');
+    cone.addColorStop(0, 'rgba(255,248,225,0.55)');
+    cone.addColorStop(0.3, 'rgba(255,244,214,0.16)');
     cone.addColorStop(1, 'rgba(255,226,170,0)');
     g.fillStyle = cone;
     g.fillRect(0, 0, W, 240);
@@ -85,8 +85,8 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   const P = project;
   // Ground: dark soft studio floor with a pool of light
   const ground = g.createLinearGradient(0, 96, 0, 400);
-  ground.addColorStop(0, '#1b2748');
-  ground.addColorStop(1, '#0b1226');
+  ground.addColorStop(0, '#c4d9f3');
+  ground.addColorStop(1, '#9fbde6');
   g.fillStyle = ground;
   g.fillRect(0, 96, W, 304);
 
@@ -107,8 +107,8 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   // Contact shadow under the slab
   const sh = P(0, 20, T);
   const under = g.createRadialGradient(sh.x, sh.y + 3, 10, sh.x, sh.y + 3, 230);
-  under.addColorStop(0, 'rgba(0,0,10,0.55)');
-  under.addColorStop(1, 'rgba(0,0,10,0)');
+  under.addColorStop(0, 'rgba(11,31,58,0.35)');
+  under.addColorStop(1, 'rgba(11,31,58,0)');
   g.fillStyle = under;
   g.fillRect(0, sh.y - 6, W, 60);
 
@@ -116,8 +116,8 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   const far = floor[0].y;
   const near = floor[3].y;
   const body = g.createLinearGradient(0, far, 0, near);
-  body.addColorStop(0, '#4f93f2');
-  body.addColorStop(1, '#2a62c4');
+  body.addColorStop(0, '#6aaaf8');
+  body.addColorStop(1, '#3a78dc');
   g.fillStyle = body;
   poly(g, floor);
   g.fill();
@@ -399,18 +399,18 @@ function drawNearWall(g: Ctx): void {
 function drawVignette(g: Ctx): void {
   const v = g.createRadialGradient(W / 2, 250, 130, W / 2, 250, 430);
   v.addColorStop(0, 'rgba(0,0,10,0)');
-  v.addColorStop(1, 'rgba(0,0,10,0.55)');
+  v.addColorStop(1, 'rgba(11,31,58,0.18)');
   g.fillStyle = v;
   g.fillRect(0, 0, W, 400);
 }
 
 function drawMenuBackdrop(g: Ctx): void {
   const m = g.createLinearGradient(0, 392, 0, H);
-  m.addColorStop(0, '#15163a');
-  m.addColorStop(1, '#090a1a');
+  m.addColorStop(0, '#0b2a5b');
+  m.addColorStop(1, '#0b2a5b');
   g.fillStyle = m;
   g.fillRect(0, 392, W, H - 392);
-  g.fillStyle = 'rgba(120,150,255,0.35)';
+  g.fillStyle = 'rgba(255,255,255,0.5)';
   g.fillRect(0, 392, W, 1.5);
   g.fillStyle = 'rgba(255,255,255,0.025)';
   for (let y = 400; y < H; y += 6) g.fillRect(0, y, W, 1);

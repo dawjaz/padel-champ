@@ -16,4 +16,4 @@
 2. DONE (v0.67): menu screens: Hero (with attribute bars), Gear (outfit layout with slot tiles), Partner (tiles), Shop and Packs, Calendar, Bracket, Result, Settings, Tutorial, Achievements. Add `build` (body width) to `Appearance` if wanted. Replace `applyScreen` backdrops by `applyLightScreen`.
 3. DONE (v0.71): match scene UI: scoreboard, buttons, chips, guts bars, receive/toss screens in the new theme (court stays the current arena at first, then a lighter one).
 4. DONE (v0.72-v0.76): toon poses (run, forehand, backhand, smash) and integration into the match; old pixel character code retired.
-5. Court and arena: lighter look to match the UI; tutorial in graphic form (plan point 9) in the new style.
+5. 5a DONE (v0.77): lighter arena. 5b: tutorial in graphic form (plan point 9) in the new style.
