@@ -230,7 +230,7 @@ export class MatchScene extends Phaser.Scene {
       gamesBoxes.fillRoundedRect(bx + 118, y - 9 + 5, 30, 18, 6);
     }
     this.sb = {
-      names: rowY.map((y, i) => sbText(bx + 24, y + 5, SIDE_NAME[i], 14, '#ffffff', 0)),
+      names: rowY.map((y, i) => this.fitName(sbText(bx + 24, y + 5, this.teamLabel(i === 0 ? 1 : 0), 14, '#ffffff', 0), 92)),
       games: rowY.map((y) => sbText(bx + 133, y + 5, '0', 15, NAVY_CSS, 0.5)),
       pts: rowY.map((y) => sbText(bx + 188, y + 5, '0', 15, '#ffb800', 1)),
       dot: this.add.graphics().setDepth(10000),
@@ -745,6 +745,18 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
+  /** "Bruno/Ines" for the opponents, "YOU/Lucy" for your pair (the hero is "YOU"). */
+  private teamLabel(side: SideIndex): string {
+    const [a, b] = TEAMS[side];
+    return `${side === HUMAN_SIDE ? 'YOU' : a.name}/${b.name}`;
+  }
+
+  /** Shrinks a text that is wider than `max` so that it keeps its place on the scoreboard. */
+  private fitName(t: Phaser.GameObjects.Text, max: number): Phaser.GameObjects.Text {
+    if (t.width > max) t.setScale(max / t.width);
+    return t;
+  }
+
   private refreshScore(): void {
     const sb = this.sb;
     const practice = this.practice !== null;
@@ -760,14 +772,15 @@ export class MatchScene extends Phaser.Scene {
     const s = this.matchScore;
     const [a, b] = pointLabels(s);
     const deuce = deuceLabel(s);
-    [0, 1].forEach((i) => {
-      sb.games[i].setText(String(s.games[i]));
-      sb.pts[i].setText(i === 0 ? a : b);
+    // Row 0 is the far team (opponents), row 1 your team: the same order as on the court.
+    [1, 0].forEach((side, row) => {
+      sb.games[row].setText(String(s.games[side]));
+      sb.pts[row].setText(side === 0 ? a : b);
     });
     sb.note.setText(deuce);
     // The server wears an orange dot.
     const bx = WIDTH / 2 - 100;
-    const dy = (this.server === 0 ? 17 : 38) + 5;
+    const dy = (this.server === 0 ? 38 : 17) + 5;
     sb.dot.fillStyle(0xff6a1a, 1).fillCircle(bx + 12, dy, 4.5);
     sb.dot.lineStyle(1.5, 0xffffff, 1).strokeCircle(bx + 12, dy, 4.5);
   }
@@ -1726,8 +1739,10 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
     if (res.gameWon) {
-      this.server = other(this.server);
+      // The team that has just served hands the next service game of ITS side to its other player; the other team goes on with its own turn
+      // (so in the first game of each team the first player serves: the hero in his pair).
       this.serverIdx[this.server] = 1 - this.serverIdx[this.server];
+      this.server = other(this.server);
       this.say(`${this.lastSaid}\nGAME TO ${SIDE_NAME[winner]}!`);
       this.time.delayedCall(GAME_PAUSE, () => this.beginPoint());
     } else {

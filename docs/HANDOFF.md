@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.72)_
+_Last updated: 2026-11-22 (v0.73)_
+
+## v0.73: serving order and scoreboard names
+- **Serving order fixed.** After a game the code flipped the serving player of the team that was about to serve, so the hero's second-game turn came before his first (Lucy served first in the hero's pair when the CPU won the toss). Now the team that has just served hands its next service game to its partner, and each team starts with its first player: the hero serves first in his pair.
+- **Scoreboard** shows the pair names instead of YOU / CPU: opponents on the top row (`Bruno/Ines`), your pair below (`YOU/Lucy`), the same order as on the court; the serve dot follows the server. Long names are shrunk to fit.
 
 ## v0.72: toon poses (phase 4a, not yet used in the match)
 - `buildToon(appearance, view, pose)` now takes a pose with the same names as the old pixel characters (`ready, runA, runB, fhPrep/fhHit/fhFollow, bhPrep/..., smashPrep/...`; `TOON_POSES`). A pose is a `PoseSpec` in `POSES` (`src/art/toon/character.ts`): racket hand + racket tilt, off hand (or `'grip'` = on the racket handle for the two-handed backhand), lean of the upper body about the waist, crouch (negative = jump) and the two ankles. Arms and legs are two-bone limbs solved from those targets; sock and shoe follow the ankle. Default pose = ready (unchanged look).
