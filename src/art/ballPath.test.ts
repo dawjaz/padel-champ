@@ -628,3 +628,28 @@ describe('buildFlight: contrapared', () => {
     expect(f.events[0].z).toBeLessThan(10);
   });
 });
+
+describe('serve faults stay in the court', () => {
+  it('the ball of a faulted serve never leaves the court: not in the flight and not while it rolls on', () => {
+    const problems: string[] = [];
+    const kinds = ['long', 'side', 'glass', 'mesh', 'bouncemesh', undefined] as const;
+    for (const s of SHOTS.filter((x) => x.kind === 'serve')) {
+      for (const side of [0, 1] as const) {
+        for (const hx of [-2.5, 2.5]) {
+          for (const lx of [-4, -2, -0.5, 0.5, 2, 4]) {
+            for (const kind of kinds) {
+              for (let seed = 1; seed <= 4; seed++) {
+                const from = { x: hx, z: side === 0 ? 18.5 : 1.5 };
+                const f = buildFlight({ from, startH: 0.9, hitterSide: side, shot: s, landX: lx, landDepth: 3 + seed, outcome: 'fault', errorKind: kind, seed });
+                const c = buildCoast(f, s.flight.spin);
+                const bad = [...f.path, ...c.path].find((p) => Math.abs(p.x) > 5.05 || p.z < -0.05 || p.z > 20.05);
+                if (bad) problems.push(`${s.id}/${kind}/${side}/${hx}/${lx}/${seed}: ${JSON.stringify(bad)}`);
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(problems.slice(0, 5)).toEqual([]);
+  });
+});

@@ -110,6 +110,8 @@ export class MatchScene extends Phaser.Scene {
   private lastSaid = '';
   /** Set for the shot in the air: the court mark at its bounce is stronger (Por Cuatro, a strong Por Tres). */
   private powerStyle: 'x4' | 'x3' | null = null;
+  /** Where everybody stands for the serve of this point (the second serve starts from the same spots). */
+  private serveSpots: Record<string, CourtPos> = {};
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
@@ -960,6 +962,7 @@ export class MatchScene extends Phaser.Scene {
       [TEAMS[recvSide][setup.receiverIdx].id]: setup.receiver,
       [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
     };
+    this.serveSpots = targets;
     for (const id of Object.keys(this.views)) {
       this.setFacing(id, this.defaultFacing(id));
       this.setPose(id, 'ready');
@@ -978,6 +981,23 @@ export class MatchScene extends Phaser.Scene {
         this.serveTurn();
       };
       place();
+    });
+  }
+
+  /**
+   * After a fault everybody goes back to the serving spots (the server behind the baseline, not where he ran to for the net while
+   * the first serve was in the air), then the second serve starts.
+   */
+  private backToServeSpots(): void {
+    for (const id of Object.keys(this.views)) {
+      this.setFacing(id, this.defaultFacing(id));
+      this.setPose(id, 'ready');
+    }
+    this.setActive(null);
+    this.movePlayers(this.serveSpots, 450, () => {
+      // The ball of the fault rolls while they walk back; it is taken into the server's hand for the second serve.
+      this.stopCoast();
+      this.serveTurn();
     });
   }
 
@@ -1504,7 +1524,7 @@ export class MatchScene extends Phaser.Scene {
         }
         this.say(`${headline}\nFAULT (${this.faultWhere(step)})! Second serve.`);
         this.announce('FAULT', '#ff9a6a', this.faultWhere(step));
-        this.time.delayedCall(FAULT_PAUSE, () => this.serveTurn());
+        this.time.delayedCall(FAULT_PAUSE, () => this.backToServeSpots());
         break;
       case 'double-fault':
         endPoint('DOUBLE FAULT!');

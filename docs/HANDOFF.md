@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.56)_
+_Last updated: 2026-11-22 (v0.57)_
+
+## v0.57: second serve from the baseline, faulted serves stay in the court
+- Bug (screenshot, 22.11): on the second serve the server stood at the net. While the first serve was in the air everybody walked to the formation after the serve (the server up to the net), and after a fault `serveTurn()` was called without sending them back. Fix: `startServe` remembers the serving spots (`serveSpots`), a fault now calls `backToServeSpots()` (all four walk back in 450 ms, the ball of the fault is stopped, then `serveTurn()`).
+- Bug (22.11): a serve that went out flew off into the crowd. Cause: the `bouncemesh` fault (bounces in the court, then hits the side mesh) ran on 0.5 * vz * t2 metres after the bounce (about 7 m) and left through the back glass (z beyond 0 / 20), and it hit the wall at 3.2-3.7 m, which is above the fence where the side wall is lower. Now the run stops 0.4 m before the back glass and the ball meets the wall on the mesh of that wall segment (`sideWallSegments()`), so the coast bounces it back into the court.
+- New test: no faulted serve (every serve shot, both sides, all fault kinds, many aims) leaves the court, neither in the flight nor in the rolling coast.
+- The other fault kinds (net, low back glass, low side glass first, long) were already inside the court (checked by that test). Open question for the owner: `bouncemesh` still hits the mesh above the glass (owner's earlier design); the owner said a faulted serve should bounce low off the glass: say if that variant should be dropped or lowered.
 
 ## v0.56: Powerful Smash (a Por Cuatro that stays in the court)
 - Owner report (22.11): a Por Cuatro whose ball bounced and then came back off the back glass into the opponents' court was still called Por Cuatro. A real Por Cuatro bounces flat in the front of the court and flies out over the back glass.

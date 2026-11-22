@@ -722,12 +722,18 @@ export function buildFlight(opts: FlightOpts): Flight {
       events.push({ kind: 'bounce', t: arc.T, x: land.x, z: land.z, h: 0 });
       const wallX = (land.x >= 0 ? 1 : -1) * 4.98;
       const t2 = 0.5 + 0.2 * r();
-      const targetH = 3.2 + 0.5 * r();
+      // The ball runs on towards the back, but it meets the side wall inside the court: it never goes through the back glass.
+      const room = Math.max(0, (arc.vz < 0 ? land.z : 20 - land.z) - 0.4);
+      const run = Math.sign(arc.vz) * Math.min(Math.abs(arc.vz) * 0.5 * t2, room);
+      // ... and it meets the wall where there is a mesh above the glass (the walls are lower towards the net): on that mesh, never above it.
+      const endZ = land.z + run;
+      const seg = sideWallSegments().find((q) => endZ >= q.z0 && endZ <= q.z1) ?? sideWallSegments()[0];
+      const targetH = seg.mesh > 0 ? seg.glass + seg.mesh * (0.25 + 0.5 * r()) : seg.glass * 0.9;
       const vy = (targetH + 0.5 * GRAVITY * t2 * t2) / t2;
       const n = Math.max(4, Math.ceil(t2 / DT));
       for (let i = 1; i <= n; i++) {
         const u = (t2 * i) / n;
-        path.push({ t: arc.T + u, x: land.x + ((wallX - land.x) * u) / t2, z: land.z + arc.vz * 0.5 * u, h: Math.max(0, vy * u - 0.5 * GRAVITY * u * u) });
+        path.push({ t: arc.T + u, x: land.x + ((wallX - land.x) * u) / t2, z: land.z + (run * u) / t2, h: Math.max(0, vy * u - 0.5 * GRAVITY * u * u) });
       }
       const end = path[path.length - 1];
       return { path, hit: { x: end.x, z: end.z }, hitH: end.h, events, duration: end.t };
