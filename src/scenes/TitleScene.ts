@@ -1,16 +1,15 @@
 import Phaser from 'phaser';
-import { ensureCharacterTexture } from '../art/characterTexture';
-import { applyScreen } from '../hd';
-import { BALL_KEY, ensureBallTextures } from '../art/hdTextures';
-import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
-import { BUILD_ID, COLORS, SHOW_FREE_PRACTICE, css, FONT, GAME_TITLE, GAME_VERSION, HD_SCALE, HEIGHT, WIDTH } from '../config';
+import type { IconKind } from '../art/icons';
+import { addToon } from '../art/toonTexture';
+import { levelOf, xpToReach } from '../career/profile';
+import { tournamentActive } from '../career/careerFlow';
+import { BUILD_ID, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH } from '../config';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave } from '../save';
-import { tournamentActive } from '../career/careerFlow';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, iconChip, makeThemeButton, TC, themeText } from '../theme';
 
-const HEROES = playersData.you as unknown as PlayerDef[];
+const HERO = (playersData.you as unknown as PlayerDef[])[0];
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -18,108 +17,115 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyScreen(this);
-    this.drawBackdrop();
+    applyLightScreen(this);
+    const save = getSave();
+    const profile = save.profile;
 
-    // Logo: PADEL / CHAMP / [26]
-    logoText(this, WIDTH / 2, 80, 'PADEL', 64, COLORS.yellow);
-    logoText(this, WIDTH / 2, 146, 'CHAMP', 64, COLORS.white);
-    const badge = this.add.rectangle(WIDTH / 2, 215, 90, 46, COLORS.red).setStrokeStyle(4, COLORS.white);
-    const badgeText = logoText(this, WIDTH / 2, 215, '26', 36, COLORS.white);
-    this.time.addEvent({
-      delay: 500,
-      loop: true,
-      callback: () => {
-        const on = !badge.visible;
-        badge.setVisible(on);
-        badgeText.setVisible(on);
-      },
-    });
+    // Title bar with the coins.
+    const bar = this.add.graphics().setDepth(5);
+    bar.fillGradientStyle(TC.navyLight, TC.navyLight, TC.navy, TC.navy, 1);
+    bar.fillRect(0, 0, WIDTH, 58);
+    bar.fillStyle(TC.navyDark, 1);
+    bar.fillRect(0, 55, WIDTH, 3);
+    themeText(this, 14, 32, 'PADEL CHAMP', { size: 28, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
+    for (const o of coinPill(this, WIDTH - 12, 29, profile.coins)) (o as Phaser.GameObjects.Graphics).setDepth?.(6);
 
-    this.add
-      .text(WIDTH / 2, 262, 'COMMAND PADEL', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', color: css(COLORS.sky) })
-      .setOrigin(0.5);
+    // The hero on a pale stage, with a name plate (level and XP) over the feet.
+    drawStage(this, WIDTH / 2, 190, 128);
+    const hero = addToon(this, WIDTH / 2, 308, 236, HERO.appearance, 'front');
+    this.tweens.add({ targets: hero, y: hero.y - 5, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.drawPlate(profile.xp);
 
-    // Bouncing ball
-    ensureBallTextures(this);
-    const ball = this.add.image(WIDTH / 2, 310, BALL_KEY).setDisplaySize(20, 20);
-    this.tweens.add({ targets: ball, y: 350, duration: 380, yoyo: true, repeat: -1, ease: 'Quad.easeIn' });
-
-    // The two heroes flank the ball, bouncing on the spot
-    HEROES.forEach((hero, i) => {
-      const key = ensureCharacterTexture(this, hero.appearance, 'front');
-      const sprite = this.add.image(i === 0 ? 62 : WIDTH - 62, 388, key).setOrigin(0.5, 1).setScale(2.3 / HD_CHARACTER_SCALE);
-      this.tweens.add({
-        targets: sprite,
-        y: 382,
-        duration: 420,
-        yoyo: true,
-        repeat: -1,
-        delay: i * 210,
-        ease: 'Sine.easeInOut',
-      });
-    });
-
-    const st = getSave().stats;
-    const statsLine = st.played === 0 ? 'NO MATCHES YET' : `PLAYED ${st.played}  WON ${st.won}  LOST ${st.lost}`;
-
-    // Menu
-    const mainMenu: Phaser.GameObjects.GameObject[] = [];
-    const practiceMenu: Phaser.GameObjects.GameObject[] = [];
-    const show = (list: Phaser.GameObjects.GameObject[], on: boolean): void => {
+    // Career is the main button, the four tiles below.
+    const locked = tournamentActive(profile);
+    const stats = save.stats;
+    const statsLine = stats.played === 0 ? 'NO MATCHES YET' : `PLAYED ${stats.played}  WON ${stats.won}  LOST ${stats.lost}`;
+    const tiles: Phaser.GameObjects.GameObject[] = [];
+    const practice: Phaser.GameObjects.GameObject[] = [];
+    const showList = (list: Phaser.GameObjects.GameObject[], on: boolean): void => {
       for (const o of list) (o as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(on);
     };
-    const add = (list: Phaser.GameObjects.GameObject[], b: { parts: Phaser.GameObjects.GameObject[] }): void => {
-      list.push(...b.parts);
-    };
-    // Free Practice stays in the game but is hidden from the menu (set SHOW_FREE_PRACTICE in config.ts to bring it back).
-    const entries: Array<[string, () => void]> = [
-      ['QUICK MATCH', () => this.scene.start(getSave().settings.tutorialSeen ? 'MatchScene' : 'TutorialScene', getSave().settings.tutorialSeen ? { practice: null, career: null } : { next: 'MatchScene', data: { practice: null, career: null } })],
-      ['CAREER', () => this.scene.start('CalendarScene')],
-      ['HERO', () => this.scene.start('CharacterScene')],
-      ['SHOP', () => this.scene.start('ShopScene')],
-      ['TROPHIES', () => this.scene.start('AchievementsScene')],
-    ];
-    if (SHOW_FREE_PRACTICE) entries.push(['FREE PRACTICE', () => { show(mainMenu, false); show(practiceMenu, true); }]);
-    entries.push(['SETTINGS', () => this.scene.start('SettingsScene')]);
-    const step = Math.max(34, Math.min(42, 164 / (entries.length - 1)));
-    // While a tournament is going on the hero and the shop are locked: upgrades happen between tournaments.
-    const locked = tournamentActive(getSave().profile);
-    let note: Phaser.GameObjects.Text | null = null;
-    entries.forEach(([label, fn], i) => {
-      const lock = locked && (label === 'HERO' || label === 'SHOP');
-      const b = makeButton(this, WIDTH / 2, 408 + i * step, 220, step - 8, label, lock ? () => {
-        note?.setText('FINISH THE TOURNAMENT FIRST').setColor(css(COLORS.yellow));
-        this.time.delayedCall(2200, () => note?.setText(statsLine).setColor(css(COLORS.gray)));
-      } : fn);
-      if (lock) {
-        b.text.setAlpha(0.4);
-        b.setAccent(COLORS.gray);
-      }
-      add(mainMenu, b);
-    });
-    add(practiceMenu, makeButton(this, WIDTH / 2, 436, 220, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack', career: null })));
-    add(practiceMenu, makeButton(this, WIDTH / 2, 496, 220, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend', career: null })));
-    add(practiceMenu, makeButton(this, WIDTH / 2, 556, 220, 52, 'BACK', () => { show(practiceMenu, false); show(mainMenu, true); }));
-    show(practiceMenu, false);
 
-    note = this.add
-      .text(WIDTH / 2, 612, statsLine, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
-      .setOrigin(0.5);
-    this.add
-      .text(WIDTH / 2, HEIGHT - 14, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) })
-      .setOrigin(0.5);
+    makeThemeButton(this, WIDTH / 2, 410, 328, 60, 'CAREER', () => this.scene.start('CalendarScene'), 'primary', 26);
+
+    const note = themeText(this, 16, 608, statsLine, { size: 12, color: TC.sub, origin: [0, 0.5] });
+    const flash = (msg: string): void => {
+      note.setText(msg).setColor('#d93f00');
+      this.time.delayedCall(2200, () => note.setText(statsLine).setColor('#44566f'));
+    };
+
+    const entries: Array<{ label: string; icon: IconKind; color: number; lock?: boolean; go: () => void }> = [
+      {
+        label: 'QUICK MATCH',
+        icon: 'speed',
+        color: TC.blue,
+        go: () =>
+          this.scene.start(
+            save.settings.tutorialSeen ? 'MatchScene' : 'TutorialScene',
+            save.settings.tutorialSeen ? { practice: null, career: null } : { next: 'MatchScene', data: { practice: null, career: null } },
+          ),
+      },
+      { label: 'HERO', icon: 'top', color: TC.orange, lock: true, go: () => this.scene.start('CharacterScene') },
+      { label: 'SHOP', icon: 'coin', color: TC.blue, lock: true, go: () => this.scene.start('ShopScene') },
+      { label: 'TROPHIES', icon: 'trophy', color: TC.orange, go: () => this.scene.start('AchievementsScene') },
+    ];
+    entries.forEach((e, i) => {
+      const x = 16 + (i % 2) * 174;
+      const y = 452 + Math.floor(i / 2) * 78;
+      const isLocked = locked && e.lock;
+      const g = this.add.graphics().setPosition(x, y);
+      drawCard(g, 154, 68);
+      const chip = this.add.graphics();
+      iconChip(chip, x + 10, y + 14, 40, e.color, e.icon);
+      const t = themeText(this, x + 60, y + 36, e.label, { size: 16, font: 'display', origin: [0, 0.5] });
+      t.setWordWrapWidth(88);
+      const z = this.add.zone(x + 77, y + 34, 154, 68).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => {
+        if (isLocked) flash('FINISH THE TOURNAMENT FIRST');
+        else e.go();
+      });
+      if (isLocked) for (const o of [g, chip, t]) o.setAlpha(0.5);
+      tiles.push(g, chip, t, z);
+    });
+
+    // Settings: a small button at the bottom right.
+    const set = makeThemeButton(this, WIDTH - 62, 616, 92, 26, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
+    tiles.push(...set.parts);
+
+    // Free Practice stays in the game but hidden (SHOW_FREE_PRACTICE in config.ts brings it back).
+    if (SHOW_FREE_PRACTICE) {
+      const fp = makeThemeButton(this, WIDTH / 2 - 60, 616, 100, 26, 'PRACTICE', () => { showList(tiles, false); showList(practice, true); }, 'secondary', 13);
+      tiles.push(...fp.parts);
+    }
+    practice.push(...makeThemeButton(this, WIDTH / 2, 470, 240, 52, 'ATTACKING', () => this.scene.start('MatchScene', { practice: 'attack', career: null }), 'blue').parts);
+    practice.push(...makeThemeButton(this, WIDTH / 2, 536, 240, 52, 'DEFENDING', () => this.scene.start('MatchScene', { practice: 'defend', career: null }), 'blue').parts);
+    practice.push(...makeThemeButton(this, WIDTH / 2, 602, 240, 40, 'BACK', () => { showList(practice, false); showList(tiles, true); }, 'secondary').parts);
+    showList(practice, false);
+
+    themeText(this, 16, HEIGHT - 6, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { size: 9, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
   }
 
-  private drawBackdrop(): void {
+  /** Name plate at the foot of the stage: name, level badge and the XP bar with numbers. */
+  private drawPlate(xp: number): void {
+    const level = levelOf(xp);
+    const into = Math.max(0, xp - xpToReach(level));
+    const next = xpToReach(level + 1) - xpToReach(level);
+    const c = this.add.container(WIDTH / 2, 318).setRotation(-0.02);
     const g = this.add.graphics();
-    // Court-coloured floor with lines, behind the menu
-    g.fillStyle(COLORS.court, 1);
-    g.fillRect(0, 390, WIDTH, HEIGHT - 390);
-    g.lineStyle(3, COLORS.courtLine, 0.5);
-    g.lineBetween(0, 390, WIDTH, 390);
-    g.lineBetween(WIDTH / 2, 390, WIDTH / 2, HEIGHT);
-    g.lineStyle(3, COLORS.courtLine, 0.25);
-    g.lineBetween(0, 560, WIDTH, 560);
+    drawCard(g, 328, 62, { radius: 16 });
+    g.setPosition(-164, -31);
+    const name = themeText(this, -150, -14, HERO.name.toUpperCase(), { size: 24, font: 'display', origin: [0, 0.5] });
+    const badge = this.add.graphics();
+    const bx = -150 + name.width + 10;
+    badge.fillStyle(TC.gold, 1);
+    badge.fillRoundedRect(bx, -26, 54, 22, 11);
+    badge.lineStyle(2, TC.navy, 1);
+    badge.strokeRoundedRect(bx, -26, 54, 22, 11);
+    const lv = themeText(this, bx + 27, -15, `LVL ${level}`, { size: 12, origin: [0.5, 0.5] });
+    const xpLabel = themeText(this, -150, 12, 'XP', { size: 12, color: TC.orange, origin: [0, 0.5] });
+    const xb = this.add.graphics();
+    drawBar(xb, -128, 5, 170, 14, next > 0 ? into / next : 1, TC.orange);
+    const num = themeText(this, 150, 12, `${into.toLocaleString('en-US')} / ${next.toLocaleString('en-US')}`, { size: 12, origin: [1, 0.5] });
+    c.add([g, name, badge, lv, xpLabel, xb, num]);
   }
 }

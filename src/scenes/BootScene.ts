@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ASSETS, assetUrl } from '../assets';
 import { applyHd } from '../hd';
 import { COLORS, css, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
+import { loadThemeFonts } from '../theme';
 
 /** Loads everything listed in assets.ts, then opens the title screen. */
 export class BootScene extends Phaser.Scene {
@@ -21,6 +22,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     applyHd(this);
-    this.scene.start('TitleScene');
+    // The theme fonts must be ready before the first scene creates text, otherwise it would be drawn in a fallback font.
+    void loadThemeFonts().then(() => this.scene.start('TitleScene'));
   }
 }

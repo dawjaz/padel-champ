@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.65)_
+_Last updated: 2026-11-22 (v0.66)_
+
+## v0.66: new "broadcast" look, step 1 (theme, toon characters, new title screen)
+The owner chose style **E** from the mock-ups (light sports-TV look: navy outlines with a hard offset shadow, rounded cards, orange/blue accents, Baloo 2 + Nunito, characters about 4.5 heads tall with flat cel shading, Mario-Tennis-ish cartoon, not "jelly"). Details and the migration plan: `docs/STYLE.md`. Mock-ups: row E of https://claude.ai/artifact/S7BKaxH2Wxz9Kv8nwzVFTM .
+- **`src/art/toon/`** (pure, no Phaser): `ops.ts` (path ops, `drawOps` via Path2D, `toSvg`, colour helpers), `character.ts` (`buildToon(appearance, 'front'|'back')`; so far only the ready pose; hair styles, skirt/shorts, headband, cap, wristband, racket shapes all supported; women drawn 10% narrower), tests in `toon.test.ts`. `src/art/toonTexture.ts` has `ensureToonTexture` and `addToon(scene, x, feetY, bodyHeight, appearance, view)` (the only Phaser part).
+- **`src/theme.ts`**: palette `TC`, fonts, `themeText`, `applyLightScreen`, `makeThemeButton` (primary/blue/secondary), `drawCard`, `drawBar`, `coinPill`, `screenHeader`, `drawStage`, `iconChip`. Fonts are npm packages (`@fontsource/baloo-2`, `@fontsource/nunito`, imported in `main.ts`), so the game stays offline-capable; `BootScene` waits for them (`loadThemeFonts`).
+- **`TitleScene`** redone like the mock-up (title bar with coins, hero on a stage with a name plate showing level and XP, CAREER button, four tiles, SETTINGS). Free Practice is still behind `SHOW_FREE_PRACTICE`.
+- **Not converted yet** (still the old dark look, so the game is temporarily mixed): Hero, Gear, Shop, Packs, Calendar, Bracket, Partner, Result, Settings, Tutorial, Achievements, and the whole Match scene. The old pixel-grid characters (`src/art/character.ts`, `hd/characterHd.ts`) are still used everywhere except the title screen.
+- Next steps are in `docs/STYLE.md` (phases 2 to 5).
 
 ## v0.65: direction buttons side by side; medium lob (more vibora and bandeja)
 - **Direction menu layout.** The three directions are in one row in the order the ball goes on the screen, BACK alone below (`showButtons(..., 'directions')`). From the left-hand player (idx 0, the hero) it is PARALLEL, MIDDLE, CROSS; from a right-hand hitter it would be CROSS, MIDDLE, PARALLEL (so left is always left). Same in free practice.
