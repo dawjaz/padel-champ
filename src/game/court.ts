@@ -53,8 +53,11 @@ export function aimX(direction: Direction, defenderIdx: number, rng: Rng, prefer
     Math.max(-4.6, Math.min(4.6, landingX(direction, defenderIdx) + ((i - (AIM_POINTS_X - 1) / 2) / ((AIM_POINTS_X - 1) / 2)) * AIM_HALF_WIDTH * aimSpreadMul(accuracy)));
   if (prefer !== undefined && rng() < aimSkill(accuracy)) {
     // a good hitter finds the gap: the aim point nearest to where the ball should go
-    k = 0;
-    for (let i = 1; i < AIM_POINTS_X; i++) if (Math.abs(point(i) - prefer) < Math.abs(point(k) - prefer)) k = i;
+    // the nearest aim points; equally near ones (a ball aimed exactly between two) are chosen at random, not always the first
+    const dist = Array.from({ length: AIM_POINTS_X }, (_, i) => Math.abs(point(i) - prefer));
+    const nearest = Math.min(...dist);
+    const ties = dist.flatMap((d, i) => (d <= nearest + 1e-9 ? [i] : []));
+    k = ties.length === 1 ? ties[0] : ties[Math.min(ties.length - 1, Math.floor(rng() * ties.length))];
   }
   return point(k);
 }

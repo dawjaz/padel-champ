@@ -429,7 +429,8 @@ export function stepHit(
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
   const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
-  const defIdx = landX === undefined ? targetIdx : landX < 0 ? 0 : 1;
+  // A ball exactly on the centre line goes to the player it was aimed at (random for a middle ball), not always to the right-hand one.
+  const defIdx = landX === undefined || Math.abs(landX) < 1e-6 ? targetIdx : landX < 0 ? 0 : 1;
   const defender = fatigued(teams[defSide][defIdx], state.guts[teams[defSide][defIdx].id]);
 
   const rolled = resolveHit({

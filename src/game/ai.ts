@@ -31,18 +31,19 @@ export function pickServe(teams: Teams, state: PointState, rng: Rng): ShotDef {
  * The best x for the ball inside the strip of a direction: the point furthest from both opponents (a gap in their set-up).
  * `centre` is where the direction usually lands; the strip is as wide as the aim points of that direction.
  */
-function gapX(centre: number, opp: CourtPos[]): number {
-  let best = centre;
-  let bestGap = -Infinity;
+function gapX(centre: number, opp: CourtPos[], rng: Rng): number {
+  const xs: number[] = [];
+  const gaps: number[] = [];
   for (let i = 0; i < 10; i++) {
     const x = Math.max(-4.6, Math.min(4.6, centre + ((i - 4.5) / 4.5) * 0.9));
-    const gap = Math.min(...opp.map((o) => Math.abs(o.x - x)));
-    if (gap > bestGap) {
-      bestGap = gap;
-      best = x;
-    }
+    xs.push(x);
+    gaps.push(Math.min(...opp.map((o) => Math.abs(o.x - x))));
   }
-  return best;
+  // Points that are about as good as the best one are equal: pick one of them at random. (A fixed order made every ball down the
+  // middle land on the same side, so one player of a pair did most of the work.)
+  const top = Math.max(...gaps);
+  const best = xs.filter((_, i) => gaps[i] >= top - 0.15);
+  return best[Math.min(best.length - 1, Math.floor(rng() * best.length))];
 }
 
 /**
@@ -94,7 +95,7 @@ export function pickHit(
     let x: number | undefined;
     if (opp && opp.length > 0) {
       // The middle is aimed between the players, so its centre is the middle of the court.
-      x = gapX(d === 'middle' ? 0 : landingX(d, targetIdx), opp);
+      x = gapX(d === 'middle' ? 0 : landingX(d, targetIdx), opp, rng);
       const gap = Math.min(...opp.map((o) => Math.abs(o.x - x!)));
       // the gap counts a lot: a ball that is 3 m from both opponents is hard to reach
       score = dir.attack * 30 - dir.risk * 100 - 0.4 * rating + 14 * Math.min(gap, 3.5) + rng() * 18;

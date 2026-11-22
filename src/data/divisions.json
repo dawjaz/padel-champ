@@ -7,7 +7,7 @@
    "minLevel": 1,
    "minRank": 0,
    "fee": 0,
-   "rating": 3.0,
+   "rating": 3.7,
    "title": {
     "coins": 150,
     "xp": 150,
@@ -22,7 +22,7 @@
    "minLevel": 3,
    "minRank": 0,
    "fee": 20,
-   "rating": 3.8,
+   "rating": 4.4,
    "title": {
     "coins": 300,
     "xp": 250,
@@ -37,7 +37,7 @@
    "minLevel": 6,
    "minRank": 0,
    "fee": 40,
-   "rating": 4.6,
+   "rating": 5.1,
    "title": {
     "coins": 500,
     "xp": 400,
@@ -52,7 +52,7 @@
    "minLevel": 9,
    "minRank": 0,
    "fee": 60,
-   "rating": 5.4,
+   "rating": 5.8,
    "title": {
     "coins": 800,
     "xp": 600,
@@ -67,7 +67,7 @@
    "minLevel": 12,
    "minRank": 0,
    "fee": 100,
-   "rating": 6.2,
+   "rating": 6.4,
    "title": {
     "coins": 1200,
     "xp": 900,

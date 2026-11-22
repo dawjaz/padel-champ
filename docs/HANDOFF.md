@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.60)_
+_Last updated: 2026-11-22 (v0.61)_
+
+## v0.61: balance: opponents share the work evenly; first divisions harder
+- **Uneven fatigue (reported in play): fixed.** Cause found with a CPU-vs-CPU simulation (`scripts/simBalance.ts fatigue`): the CPU plays ~85% of its balls down the middle, aimed at the centre line, and ties were resolved in a fixed order (`gapX` in `ai.ts`, nearest aim point in `court.ts`, and `landX < 0 ? 0 : 1` in `stepHit`), so those balls always went to the right-hand player. With identical stats the right-hand player hit 42 balls per match and the left-hand one 24. Now ties are random (`gapX`, `aimX`) and a ball exactly on the centre line goes to the player it was aimed at. Result with identical stats: 34 to 36 hits per player. Differences that remain come from stats (the AI aims at the weaker defender, low stamina tires faster) and are intended. Test: `point.test.ts` (shared work inside a pair).
+- **Career too easy at the start: division ratings raised.** The simulation (`scripts/simBalance.ts career`, hero with evenly spread points plus the partner a player usually has at that level, both played by the CPU AI) gave 77% match wins in Club Cup and 82-85% in Regional and Rise. New ratings: club 3.0 to 3.7, regional 3.8 to 4.4, rise 4.6 to 5.1, bronze 5.4 to 5.8, silver 6.2 to 6.4; later divisions unchanged. New win rates for the CPU-driven hero: club 53%, regional 64%, rise 62%, bronze 66%, silver 57%, gold 49%, platinum 36%. A human plays better than the CPU AI, so his real win rate is higher: **check in the game that Club Cup now takes effort without being unfair, and move the numbers in `divisions.json` if not.**
+- Start points of the hero are `startStat` 4 plus `startPoints` 2 (the plan wrongly said 6 free points). Partner Olek averages 3.4; buying Lena (200 coins) at level 3 is a big jump (the sim shows 85% before the change), consider a cheaper or weaker Lena.
+- Simulation tool: `npx vite-node scripts/simBalance.ts fatigue|career [matches] [rating offset]`. Limits: players stand at rest positions (no movement), the human is replaced by the CPU AI, gear and boosts are ignored.
 
 ## v0.60: coin toss before every match
 - New `src/game/toss.ts` (`flipCoin(rng)`, `tossWinner(call, result, caller)`, tested in `toss.test.ts`). `MatchScene.coinToss()` runs at the start of every quick and career match (not in practice): the player calls HEADS or TAILS, the coin flies up and spins (flat gold coin with an H/T face, shadow on the court), then the result is announced and the winner serves first (`this.server = winner`; before this the human always served first).

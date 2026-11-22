@@ -884,3 +884,41 @@ describe('Powerful Smash: a Por Cuatro that stays in the court', () => {
     }
   });
 });
+
+describe('the work is shared evenly inside a pair (the CPU used to feed the right-hand player)', () => {
+  const evenTeams = (): Teams => {
+    const flat = Object.fromEntries(Object.keys(TEAMS[0][0].stats).map((k) => [k, 5])) as PlayerDef['stats'];
+    const mk = (id: string): PlayerDef => ({ ...TEAMS[0][0], id, name: id, stats: flat, maxGuts: 10 });
+    return [[mk('a0'), mk('a1')], [mk('b0'), mk('b1')]];
+  };
+
+  it('a ball aimed exactly between two aim points goes to either side', () => {
+    const rng = seededRng(5);
+    const xs = new Set<number>();
+    for (let i = 0; i < 200; i++) xs.add(Math.round(aimX('middle', 0, rng, -0.1, 5) * 100));
+    expect([...xs].some((x) => x < 0)).toBe(true);
+    expect([...xs].some((x) => x >= 0)).toBe(true);
+  });
+
+  it('with equal players both hit about the same number of balls', () => {
+    const teams = evenTeams();
+    const rng = seededRng(21);
+    const guts = Object.fromEntries(teams.flat().map((p) => [p.id, p.maxGuts]));
+    const hits = { a0: 0, a1: 0, b0: 0, b1: 0 } as Record<string, number>;
+    for (let i = 0; i < 400; i++) {
+      let st = startPoint(guts, (i % 2) as 0 | 1, 0, i);
+      for (let k = 0; k < 3 && st.status === 'serve'; k++) st = stepServe(teams, st, pickServe(teams, st, rng), rng, pickReceive(teams, st, rng)).state;
+      while (st.status === 'rally') {
+        const opp = teams[st.holder === 0 ? 1 : 0].map((_, k) => ({ x: k === 0 ? -2.5 : 2.5, z: st.holder === 0 ? 8 : 12 }));
+        const { shot: sh, direction, prefer } = pickHit(teams, st, rng, opp);
+        hits[teams[st.holder][st.hitterIdx].id]++;
+        st = stepHit(teams, st, sh, direction, rng, prefer).state;
+      }
+    }
+    for (const [a, b] of [['a0', 'a1'], ['b0', 'b1']]) {
+      const share = hits[a] / (hits[a] + hits[b]);
+      expect(share).toBeGreaterThan(0.42);
+      expect(share).toBeLessThan(0.58);
+    }
+  });
+});
