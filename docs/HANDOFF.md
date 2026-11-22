@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.69)_
+_Last updated: 2026-11-22 (v0.70)_
+
+## v0.70: worn gear shows on the title screen and the Hero screen
+- Title and Hero drew the hero from the base appearance; now both use `applyLook(HERO.appearance, profile.inventory)` like Gear and the match. Verified in headless Chromium (equipped shirt and shorts change the title hero's colours).
 
 ## v0.69: minus buttons on the Hero screen
 - Every stat row has a `-` button next to `+` (`unspend` / `canUnspend` in `profile.ts`, test added). It takes one skill point back (never below the start value, 4) and frees the point; RESET POINTS still takes everything back.

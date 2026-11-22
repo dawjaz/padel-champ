@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
-import { gearBonus } from '../career/gear';
+import { applyLook, gearBonus } from '../career/gear';
 import { canSpend, canUnspend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, unspend, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import playersData from '../data/players.json';
@@ -73,7 +73,7 @@ export class CharacterScene extends Phaser.Scene {
     const top = this.add.graphics().setPosition(12, 66);
     drawCard(top, WIDTH - 24, 92);
     this.dyn.push(top);
-    this.dyn.push(addToon(this, 52, 150, 76, HERO.appearance, 'front'));
+    this.dyn.push(addToon(this, 52, 150, 76, applyLook(HERO.appearance, p.inventory), 'front'));
     const name = this.text(100, 90, HERO.name.toUpperCase(), 22, TC.navy, 0, true);
     const bx = 100 + name.width + 8;
     const badge = this.add.graphics();

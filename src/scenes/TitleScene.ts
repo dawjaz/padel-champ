@@ -6,6 +6,7 @@ import { tournamentActive } from '../career/careerFlow';
 import { BUILD_ID, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH } from '../config';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
+import { applyLook } from '../career/gear';
 import { getSave } from '../save';
 import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, iconChip, makeThemeButton, TC, themeText } from '../theme';
 
@@ -32,7 +33,7 @@ export class TitleScene extends Phaser.Scene {
 
     // The hero on a pale stage, with a name plate (level and XP) over the feet.
     drawStage(this, WIDTH / 2, 190, 128);
-    const hero = addToon(this, WIDTH / 2, 308, 236, HERO.appearance, 'front');
+    const hero = addToon(this, WIDTH / 2, 308, 236, applyLook(HERO.appearance, profile.inventory), 'front');
     this.tweens.add({ targets: hero, y: hero.y - 5, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.drawPlate(profile.xp);
 
