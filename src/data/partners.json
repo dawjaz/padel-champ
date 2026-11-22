@@ -30,12 +30,12 @@
    "id": "lena",
    "name": "Lena",
    "stats": {
-    "power": 5,
-    "spin": 5,
+    "power": 4,
+    "spin": 4,
     "technique": 5,
-    "accuracy": 5,
+    "accuracy": 4,
     "stamina": 5,
-    "speed": 5,
+    "speed": 4,
     "defense": 5
    },
    "price": 200,

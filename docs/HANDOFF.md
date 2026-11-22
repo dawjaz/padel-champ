@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.61)_
+_Last updated: 2026-11-22 (v0.62)_
+
+## v0.62: quick match is a sparring; Vibora only on high balls; weaker Lena
+- **Quick match changes nothing:** no XP, coins, played/won/lost stats, records or achievements (`MatchScene.endMatch` only calls `updateSave` for career matches). The result screen of a quick match shows `SPARRING / NO XP, COINS OR ACHIEVEMENTS` and no level bar. The title screen's PLAYED/WON/LOST line now counts career matches only.
+- **Vibora is offered only on a high ball** (was mid and high), like Bandeja (`heights: ['high']` in `shots.json`, still only out of the air from mid-court or the back). Tests and GDD updated. Balance not re-tuned for this: Vibora is used less, watch the length of rallies and the smash/bandeja share.
+- **Partner Lena (200 coins) weakened** from all 5s (avg 5.0) to avg 4.4 (technique, stamina, defense 5, the rest 4), so buying her at level 3 is no longer a big jump; the CPU-driven hero still wins about 64% in Regional with her. Tomek (450) is the next step at 5.1.
 
 ## v0.61: balance: opponents share the work evenly; first divisions harder
 - **Uneven fatigue (reported in play): fixed.** Cause found with a CPU-vs-CPU simulation (`scripts/simBalance.ts fatigue`): the CPU plays ~85% of its balls down the middle, aimed at the centre line, and ties were resolved in a fixed order (`gapX` in `ai.ts`, nearest aim point in `court.ts`, and `landX < 0 ? 0 : 1` in `stepHit`), so those balls always went to the right-hand player. With identical stats the right-hand player hit 42 balls per match and the left-hand one 24. Now ties are random (`gapX`, `aimX`) and a ball exactly on the centre line goes to the player it was aimed at. Result with identical stats: 34 to 36 hits per player. Differences that remain come from stats (the AI aims at the weaker defender, low stamina tires faster) and are intended. Test: `point.test.ts` (shared work inside a pair).

@@ -246,11 +246,8 @@
         "back"
       ],
       "glass": false,
-      "heights": [
-        "mid",
-        "high"
-      ],
-      "hint": "only out of the air, not after a bounce",
+      "heights": ["high"],
+      "hint": "only out of the air, from a high ball, from mid-court or the back",
       "air": true
     },
     "glassChance": 0.35,

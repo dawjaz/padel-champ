@@ -392,16 +392,14 @@ describe('shot availability', () => {
     }
   });
 
-  it('offers vibora on a mid or high ball and bandeja only on a high ball, never off the glass or on a low ball', () => {
-    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).toBeNull();
-    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'low', pressure: 0, air: true } }))).not.toBeNull();
+  it('offers vibora and bandeja only on a high ball, never off the glass, on a mid ball or on a low ball', () => {
     for (const id of ['vibora', 'bandeja']) {
       const s = shot(id);
       expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, air: true } }))).toBeNull();
       expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, air: true, glass: true } }))).not.toBeNull();
       expect(unavailableReason(s, rallyState({ ball: { height: 'low', pressure: 0, air: true } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).not.toBeNull();
     }
-    expect(unavailableReason(shot('bandeja'), rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).not.toBeNull();
   });
 
   it('offers the volley only before the back glass, and the bajada only after a mid or high rebound', () => {
@@ -723,7 +721,7 @@ describe('vibora and the net', () => {
       ...base,
       holder: 0,
       formation: [f, 'back'],
-      ball: { ...base.ball, height: 'mid', glass: false, air: true },
+      ball: { ...base.ball, height: 'high', glass: false, air: true },
     });
     expect(unavailableReason(vibora, st('net'))).not.toBeNull();
     expect(unavailableReason(vibora, st('mid'))).toBeNull();

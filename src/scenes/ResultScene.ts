@@ -50,13 +50,12 @@ export class ResultScene extends Phaser.Scene {
       .text(WIDTH / 2, 232, 'GAMES', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
       .setOrigin(0.5);
 
-    const s = getSave().stats;
     const fin = this.outcome.finished;
     const summary = fin
       ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}\n+${fin.prize.coins} COINS  +${fin.prize.xp} XP  +${fin.prize.rank} RANK${fin.prize.pack ? '  +PACK' : ''}`
       : this.outcome.career
         ? 'ROUND WON: THE TOURNAMENT GOES ON'
-        : `PLAYED ${s.played}\nWON ${s.won}   LOST ${s.lost}`;
+        : 'SPARRING\nNO XP, COINS OR ACHIEVEMENTS';
     this.add
       .text(WIDTH / 2, 296, summary, {
         fontFamily: FONT, resolution: HD_SCALE,
@@ -70,8 +69,8 @@ export class ResultScene extends Phaser.Scene {
     // While a tournament is going on nothing about the hero changes or is shown (XP, level, free packs): that comes with the
     // tournament summary, and the hero, gear and shop are locked until then.
     const locked = tournamentActive(prof);
-    // A match of the tournament itself shows none of it; a quick match played meanwhile still shows its reward.
-    const hideProgress = locked && this.outcome.career;
+    // A match of the tournament itself shows none of it, and a quick match (a sparring) has no progress to show.
+    const hideProgress = !this.outcome.career || locked;
     const lvl = levelOf(prof.xp);
     const rw = this.outcome.reward;
     if (!hideProgress) {

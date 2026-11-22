@@ -63,7 +63,7 @@ automatically from their stats.
 - **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** (High Speed or Low Speed) is possible. Low: only Lob (risky),
   Flat shot or Chiquita.
 - **Vibora** and **Bandeja**: only out of the air (never after a bounce), from mid-court or the back (not at the net), not off the glass.
-  Vibora on a mid or high ball, Bandeja on a high one. **Volley**: only out of the air, not off the glass; the attacking shot at the
+  Vibora and Bandeja only on a high ball (not on a mid or low one). **Volley**: only out of the air, not off the glass; the attacking shot at the
   net (hard, fast). **Flat shot**: only after the bounce, not at the net.
 - **Dejada** (drop shot): at the net or mid-court, low or mid ball (air or bounce), not off the glass, and the opponents are not at the
   net. Soft, dies just behind the net; the defender has to run (speed counts, a defender at the back is badly placed).
