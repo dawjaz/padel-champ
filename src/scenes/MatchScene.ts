@@ -8,7 +8,7 @@ import { ensureCharacterTexture } from '../art/characterTexture';
 import { chooseStance, standingSpot } from '../art/stance';
 import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
-import { impactSound, sfx } from '../audio';
+import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
 import { COLORS, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
@@ -18,7 +18,7 @@ import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
 import { recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
-import { playableShots, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { isPowerfulSmash, playableShots, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -439,9 +439,9 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /** A big, short-lived banner such as ACE! in the middle of the court, with the shot that won it underneath. */
-  private announce(text: string, color: string, sub?: string): void {
+  private announce(text: string, color: string, sub?: string, y = 205, size = 34): void {
     const t = this.add
-      .text(WIDTH / 2, 205, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '34px', fontStyle: 'bold', color })
+      .text(WIDTH / 2, y, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: `${size}px`, fontStyle: 'bold', color })
       .setOrigin(0.5)
       .setStroke('#000000', 6)
       .setShadow(0, 4, '#000000', 6, true, true)
@@ -451,7 +451,7 @@ export class MatchScene extends Phaser.Scene {
     this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, alpha: 0, delay: 1470, duration: 260, onComplete: () => t.destroy() });
     if (!sub) return;
-    const chip = this.add.container(WIDTH / 2, 245).setDepth(9995).setAlpha(0).setScale(0.4);
+    const chip = this.add.container(WIDTH / 2, y + 40).setDepth(9995).setAlpha(0).setScale(0.4);
     const label = this.add
       .text(0, 0, sub, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '17px', fontStyle: 'bold', color: '#0d1030' })
       .setOrigin(0.5);
@@ -463,6 +463,39 @@ export class MatchScene extends Phaser.Scene {
     chip.add([bg, label]);
     this.tweens.add({ targets: chip, alpha: 1, scale: 1, delay: 120, duration: 220, ease: 'Back.easeOut' });
     this.tweens.add({ targets: chip, alpha: 0, delay: 1530, duration: 260, onComplete: () => chip.destroy() });
+  }
+
+  /**
+   * Powerful Smash: when a Por Cuatro comes off the back glass instead of flying out over it. An orange flash, a punch of the camera,
+   * a burst of streaks around a flaming banner above the court, and a heavy boom.
+   */
+  private powerSmashFx(): void {
+    powerSmashSound();
+    this.cameras.main.flash(150, 255, 150, 60);
+    this.cameras.main.shake(220, 0.006);
+    const y = 150;
+    const rays = this.add.graphics().setDepth(9993);
+    const draw = (k: number): void => {
+      rays.clear();
+      const n = 16;
+      for (let i = 0; i < n; i++) {
+        const ang = (i / n) * Math.PI * 2;
+        const r0 = 38 + 120 * k;
+        const r1 = r0 + 30 + 40 * (1 - k);
+        rays.lineStyle(i % 2 === 0 ? 4 : 2, i % 2 === 0 ? 0xffe066 : 0xff7a3d, 1 - k);
+        rays.lineBetween(WIDTH / 2 + Math.cos(ang) * r0, y + Math.sin(ang) * r0 * 0.55, WIDTH / 2 + Math.cos(ang) * r1, y + Math.sin(ang) * r1 * 0.55);
+      }
+    };
+    draw(0);
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 520,
+      ease: 'Quad.easeOut',
+      onUpdate: (tw: Phaser.Tweens.Tween) => draw(tw.getValue() ?? 0),
+      onComplete: () => rays.destroy(),
+    });
+    this.announce('POWERFUL SMASH!', '#ff7a3d', undefined, y, 30);
   }
 
   /** A flash of light and a shock ring where the ball is when a point is won. */
@@ -1253,7 +1286,8 @@ export class MatchScene extends Phaser.Scene {
     }
 
     const way = step.kind === 'serve' ? '' : ` ${DIRECTIONS[step.direction].name.toLowerCase()}`;
-    const headline = `${attacker.name}: ${step.shot.name}${way}!${step.tired ? ' (risky)' : ''}`;
+    const smashName = shotLabel(step);
+    const headline = `${attacker.name}: ${smashName}${way}!${step.tired ? ' (risky)' : ''}`;
     this.say(headline);
     if (from === 0) {
       impactSound(
@@ -1261,6 +1295,7 @@ export class MatchScene extends Phaser.Scene {
         step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
       );
       this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
+      if (isPowerfulSmash(step)) this.powerSmashFx();
     }
     // Por Cuatro (and a strong Por Tres) leave a mark where the ball hits the court.
     this.powerStyle = step.shot.id === 'smash_x4' ? 'x4' : step.shot.id === 'smash_x3' && (step.outcome === 'winner' || step.reboundBack === true) ? 'x3' : null;
@@ -1444,8 +1479,8 @@ export class MatchScene extends Phaser.Scene {
       };
       const b = banner[step.outcome];
       const how: Partial<Record<string, string>> = {
-        ace: step.shot.name,
-        winner: step.shot.name,
+        ace: shotLabel(step),
+        winner: shotLabel(step),
         error:
           step.shot.wall === 'fence'
             ? `${step.shot.name} into the fence`

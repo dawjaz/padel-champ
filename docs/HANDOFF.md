@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.55)_
+_Last updated: 2026-11-22 (v0.56)_
+
+## v0.56: Powerful Smash (a Por Cuatro that stays in the court)
+- Owner report (22.11): a Por Cuatro whose ball bounced and then came back off the back glass into the opponents' court was still called Por Cuatro. A real Por Cuatro bounces flat in the front of the court and flies out over the back glass.
+- Rule (`isPowerfulSmash` / `shotLabel` in `src/game/point.ts`): `smash_x4` with `reboundBack` (the deeper winner, or a hard ball that comes off the glass) or `netReturn` (a mishit that the defender plays back from the net) is shown as **Powerful Smash**; every other `smash_x4` result (nail over the glass, early-take error, error) stays Por Cuatro. The shot itself, its numbers and its flight are unchanged.
+- `MatchScene`: the headline and the winner banner chip use `shotLabel(step)`. At the hit a `POWERFUL SMASH!` banner (orange, above the court), a ring of rays, an orange camera flash and a shake are played (`powerSmashFx`), with `powerSmashSound()` in `src/audio.ts` (rising sweep, deep boom, crack, ring of the glass). The old impact flash at the bounce stays.
+- Tests: label rules (both Powerful Smash cases, Por Cuatro otherwise, no other shot renamed). Not checked on a phone: the look and the length of the banner and the sound.
 
 ## v0.55: new shots (dejada, contrapared, block), stronger volley, shot rules tightened
 - Owner decisions (22.11): **Bandeja** now needs `formations: [mid, back]` (not at the net) on top of `air`; **Flat shot** (`bounce_shot`) gets `air: false` (only after a bounce). Vibora already had mid/back + air.

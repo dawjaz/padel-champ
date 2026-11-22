@@ -4,7 +4,7 @@ import { pickStarReceiver, pickHit, pickReceive, pickServe } from './ai';
 import { netVolley } from './point';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
-import { nextFormation, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
+import { isPowerfulSmash, nextFormation, POWERFUL_SMASH, shotLabel, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
 import { aimDepth, aimX } from './court';
 import { fixedRng, seededRng } from './rng';
 import type { Formation, PlayerDef, ShotDef } from './types';
@@ -850,5 +850,37 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
     expect(shot('volley').power).toBeGreaterThan(shot('bloqueo').power);
     expect(shot('volley').flight.speed).toBeGreaterThanOrEqual(26);
     expect(shot('volley').flight.speed).toBeGreaterThan(shot('bloqueo').flight.speed);
+  });
+});
+
+describe('Powerful Smash: a Por Cuatro that stays in the court', () => {
+  const weak = { height: 'high' as const, pressure: 0, zone: 'mid' as const, lob: 'weak' as const, glass: false, air: true };
+  const hits = (id: string, n = 600) => {
+    const out: ReturnType<typeof stepHit>[] = [];
+    for (let seed = 1; seed <= n; seed++) {
+      out.push(stepHit(TEAMS, rallyState({ formation: ['net', 'back'], hitterIdx: seed % 2, ball: weak }), shot(id), 'cross', seededRng(seed), undefined, { ignoreRequires: true }));
+    }
+    return out;
+  };
+  it('is named Powerful Smash when the ball comes off the back glass (winner or played back from the net)', () => {
+    const all = hits('smash_x4');
+    const back = all.filter((r) => r.step.reboundBack);
+    const net = all.filter((r) => r.step.netReturn);
+    expect(back.length).toBeGreaterThan(0);
+    expect(net.length).toBeGreaterThan(0);
+    for (const r of [...back, ...net]) {
+      expect(isPowerfulSmash(r.step)).toBe(true);
+      expect(shotLabel(r.step)).toBe(POWERFUL_SMASH);
+    }
+  });
+  it('stays a Por Cuatro when it flies out over the glass, or is an error', () => {
+    const rest = hits('smash_x4').filter((r) => !r.step.reboundBack && !r.step.netReturn);
+    expect(rest.some((r) => r.step.outcome === 'winner')).toBe(true);
+    for (const r of rest) expect(shotLabel(r.step)).toBe('Por Cuatro');
+  });
+  it('never renames another shot', () => {
+    for (const id of ['smash_x3', 'volley', 'bandeja', 'vibora']) {
+      for (const r of hits(id, 120)) expect(shotLabel(r.step)).toBe(shot(id).name);
+    }
   });
 });

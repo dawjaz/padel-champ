@@ -94,6 +94,23 @@ export interface StepResult {
 
 const other = (s: SideIndex): SideIndex => (s === 0 ? 1 : 0);
 
+/** The name shown for a Por Cuatro that does not fly out over the back glass. */
+export const POWERFUL_SMASH = 'Powerful Smash';
+
+/**
+ * A real Por Cuatro bounces flat in the front of the court and flies out over the back glass. When the ball instead comes off the
+ * back glass and back into the opponents' court (the deeper winner, or a mishit that the defender plays back from the net), the
+ * shot is not a Por Cuatro any more: it is a Powerful Smash.
+ */
+export function isPowerfulSmash(step: Pick<Step, 'shot' | 'reboundBack' | 'netReturn'>): boolean {
+  return step.shot.id === 'smash_x4' && (step.reboundBack === true || step.netReturn === true);
+}
+
+/** The shot's name as the player is told it (a Por Cuatro that stays in the court is a Powerful Smash). */
+export function shotLabel(step: Pick<Step, 'shot' | 'reboundBack' | 'netReturn'>): string {
+  return isPowerfulSmash(step) ? POWERFUL_SMASH : step.shot.name;
+}
+
 export function startPoint(
   guts: Record<string, number>,
   servingSide: SideIndex,

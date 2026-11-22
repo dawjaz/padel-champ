@@ -223,3 +223,27 @@ export function impactSound(kind: ImpactKind, power: number): void {
     // Audio is optional: never let a sound error break the game.
   }
 }
+
+/**
+ * Powerful Smash: a rising whoosh that ends in a deep boom with a crack on top and a short ring of the glass, so that it sounds
+ * heavier than any ordinary smash. Quiet when the sound setting is off.
+ */
+export function powerSmashSound(): void {
+  if (!getSave().settings.sound) return;
+  try {
+    const c = getContext();
+    if (!c) return;
+    if (c.state === 'suspended') void c.resume();
+    // The wind-up: a sweep that climbs and a hiss that gets brighter.
+    tone(c, 0, 0.16, 0.16, 180, 900, 'sawtooth');
+    burst(c, 0, 0.16, 0.18, 'bandpass', 1800, 0.8);
+    // The blow: a deep boom, a crack and a rattle of the glass.
+    tone(c, 0.15, 0.34, 0.55, 110, 38);
+    tone(c, 0.15, 0.12, 0.3, 320, 90, 'triangle');
+    burst(c, 0.15, 0.05, 0.5, 'highpass', 3200, 0.7);
+    burst(c, 0.16, 0.22, 0.22, 'lowpass', 900);
+    for (const [f, d, v] of [[660, 0.34, 0.1], [990, 0.28, 0.07], [1480, 0.22, 0.05]] as const) tone(c, 0.17, d, v, f, f * 0.97);
+  } catch {
+    // Audio is optional: never let a sound error break the game.
+  }
+}
