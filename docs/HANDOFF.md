@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.77)_
+_Last updated: 2026-11-22 (v0.78)_
+
+## v0.78: calmer surroundings
+- Owner: the light court is good, but the light surroundings distract. Stands, ground and vignette in `arenaHd.ts` are now mid-dark navy again (court stays light blue), spotlights and crowd softer.
+- Open questions from the owner: toon animation looks stiff (see plan doc), figure size vs. court (is it too small?), and whether to build the graphic tutorial before the final character look.
 
 ## v0.77: phase 5a, lighter arena
 - `src/art/hd/arenaHd.ts`: daylight stands (light sky, softer crowd bokeh and spotlights), light studio ground, lighter court blue, much weaker vignette, navy menu strip under the court. Court geometry unchanged.

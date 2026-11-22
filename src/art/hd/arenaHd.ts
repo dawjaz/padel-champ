@@ -53,8 +53,8 @@ function makeRng(seed: number): () => number {
 function drawStands(g: Ctx, rnd: () => number): void {
   // Dusk arena: soft gradient and an out-of-focus crowd made of bokeh blobs (cheap: no filters).
   const sky = g.createLinearGradient(0, 0, 0, 112);
-  sky.addColorStop(0, '#9cc4f2');
-  sky.addColorStop(1, '#d6e8fb');
+  sky.addColorStop(0, '#1c2f5c');
+  sky.addColorStop(1, '#3b5a94');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, 112);
   const tones = ['#ff9f6e', '#ffd36e', '#6ec8ff', '#b58cff', '#ff6e9a', '#8affc1'];
@@ -64,7 +64,7 @@ function drawStands(g: Ctx, rnd: () => number): void {
       const r = 3.2 + row * 0.5 + rnd() * 1.2;
       const gl = g.createRadialGradient(x, y, 0, x, y, r);
       const col = tones[Math.floor(rnd() * tones.length)];
-      gl.addColorStop(0, col + '99');
+      gl.addColorStop(0, col + '77');
       gl.addColorStop(1, col + '00');
       g.fillStyle = gl;
       g.fillRect(x - r, y - r, r * 2, r * 2);
@@ -73,8 +73,8 @@ function drawStands(g: Ctx, rnd: () => number): void {
   // Big warm spotlights with soft cones
   for (const x of [34, W - 34]) {
     const cone = g.createRadialGradient(x, -4, 2, x, -4, 230);
-    cone.addColorStop(0, 'rgba(255,248,225,0.55)');
-    cone.addColorStop(0.3, 'rgba(255,244,214,0.16)');
+    cone.addColorStop(0, 'rgba(255,244,214,0.3)');
+    cone.addColorStop(0.3, 'rgba(255,240,205,0.1)');
     cone.addColorStop(1, 'rgba(255,226,170,0)');
     g.fillStyle = cone;
     g.fillRect(0, 0, W, 240);
@@ -85,8 +85,8 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   const P = project;
   // Ground: dark soft studio floor with a pool of light
   const ground = g.createLinearGradient(0, 96, 0, 400);
-  ground.addColorStop(0, '#c4d9f3');
-  ground.addColorStop(1, '#9fbde6');
+  ground.addColorStop(0, '#2c4676');
+  ground.addColorStop(1, '#1b2f58');
   g.fillStyle = ground;
   g.fillRect(0, 96, W, 304);
 
@@ -399,7 +399,7 @@ function drawNearWall(g: Ctx): void {
 function drawVignette(g: Ctx): void {
   const v = g.createRadialGradient(W / 2, 250, 130, W / 2, 250, 430);
   v.addColorStop(0, 'rgba(0,0,10,0)');
-  v.addColorStop(1, 'rgba(11,31,58,0.18)');
+  v.addColorStop(1, 'rgba(5,14,36,0.4)');
   g.fillStyle = v;
   g.fillRect(0, 0, W, 400);
 }
