@@ -250,7 +250,8 @@
         "mid",
         "high"
       ],
-      "hint": "ball not off the glass"
+      "hint": "only out of the air, not after a bounce",
+      "air": true
     },
     "glassChance": 0.35,
     "blockAtNet": true,
@@ -290,7 +291,8 @@
       "heights": [
         "high"
       ],
-      "hint": "ball not off the glass"
+      "hint": "only out of the air, not after a bounce",
+      "air": true
     },
     "glassChance": 0.3,
     "rebound": {
@@ -459,7 +461,8 @@
       "zones": [
         "mid"
       ],
-      "hint": "high ball, from the air, falling mid-court"
+      "hint": "high ball out of the air (not after a bounce), falling mid-court",
+      "air": true
     },
     "glassChance": 0
   },
@@ -493,7 +496,8 @@
       ],
       "weakLob": true,
       "glass": false,
-      "hint": "weak lob, at the net"
+      "hint": "weak lob, out of the air at the net",
+      "air": true
     },
     "desc": "Por tres: hit hard into the back glass; with spin it kicks high to the side glass or the mesh. Skilled hitters send it out over the fence.",
     "flight": {
@@ -547,7 +551,8 @@
       ],
       "weakLob": true,
       "glass": false,
-      "hint": "weak lob, at the net"
+      "hint": "weak lob, out of the air at the net",
+      "air": true
     },
     "desc": "Por cuatro, the nail: hit very high and very hard into the front of the court, it bounces flat and flies out over the 4 m glass, or (flatter and deeper) off the back glass and back over their heads. Mishit: they get to the net and play it back.",
     "flight": {

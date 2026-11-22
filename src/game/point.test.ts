@@ -21,7 +21,7 @@ function freshGuts(): Record<string, number> {
 /** A point already in the rally, with the given hitter. */
 function rallyState(over: Partial<PointState> = {}): PointState {
   return { ...startPoint(freshGuts(), 0, 0, 0), status: 'rally', holder: 0, hitterIdx: 0, hits: 0,
-    ball: { height: 'high', pressure: 0, zone: 'mid' }, ...over };
+    ball: { height: 'high', pressure: 0, air: true, zone: 'mid' }, ...over };
 }
 
 describe('startPoint', () => {
@@ -187,10 +187,10 @@ describe('nextFormation', () => {
 describe('rulo', () => {
   it('is played only from the air, on a ball that falls in the middle of the court', () => {
     const r = shot('rulo');
-    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'mid' } }))).toBeNull();
-    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'net' } }))).not.toBeNull();
-    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'back' } }))).not.toBeNull();
-    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, zone: 'mid', glass: true } }))).not.toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, air: true, zone: 'mid' } }))).toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, air: true, zone: 'net' } }))).not.toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, air: true, zone: 'back' } }))).not.toBeNull();
+    expect(unavailableReason(r, rallyState({ ball: { height: 'high', pressure: 0, air: true, zone: 'mid', glass: true } }))).not.toBeNull();
   });
 
   it('sets the zone of the next ball from where the shot lands', () => {
@@ -204,7 +204,7 @@ describe('blocks at the net', () => {
   const net: [Formation, Formation] = ['back', 'net'];
   it('has a defender at the net block a flat shot or a vibora out of the air', () => {
     for (const id of ['vibora', 'bounce_shot', 'bandeja']) {
-      const st = rallyState({ formation: net, ball: { height: id === 'bounce_shot' ? 'low' : 'high', pressure: 0 } });
+      const st = rallyState({ formation: net, ball: { height: id === 'bounce_shot' ? 'low' : 'high', pressure: 0, air: true } });
       let seen = 0;
       for (let seed = 1; seed <= 60; seed++) {
         const r = stepHit(TEAMS, st, shot(id), 'cross', seededRng(seed));
@@ -295,7 +295,7 @@ describe('lob rules', () => {
       let deep = 0;
       let n = 0;
       for (let seed = 1; seed <= 1500; seed++) {
-        const st = rallyState({ formation: ['back', 'back'], ball: { height, pressure: 0, zone: 'mid' } });
+        const st = rallyState({ formation: ['back', 'back'], ball: { height, pressure: 0, air: true, zone: 'mid' } });
         const r = stepHit(TEAMS, st, shot('rally_lob'), 'cross', seededRng(seed));
         if (r.step.outcome !== 'continue') continue;
         n++;
@@ -380,7 +380,7 @@ describe('whole points (CPU vs CPU, seeded)', () => {
 });
 
 describe('shot availability', () => {
-  const weak = (height: 'high' | 'mid' | 'low' = 'high') => ({ height, pressure: 0, lob: 'weak' as const });
+  const weak = (height: 'high' | 'mid' | 'low' = 'high') => ({ height, pressure: 0, air: true, lob: 'weak' as const });
 
   it('offers a smash only at the net or mid-court after a weak lob', () => {
     for (const id of ['smash_x3', 'smash_x4']) {
@@ -393,15 +393,15 @@ describe('shot availability', () => {
   });
 
   it('offers vibora on a mid or high ball and bandeja only on a high ball, never off the glass or on a low ball', () => {
-    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).toBeNull();
-    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'low', pressure: 0 } }))).not.toBeNull();
+    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).toBeNull();
+    expect(unavailableReason(shot('vibora'), rallyState({ ball: { height: 'low', pressure: 0, air: true } }))).not.toBeNull();
     for (const id of ['vibora', 'bandeja']) {
       const s = shot(id);
-      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0 } }))).toBeNull();
-      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, glass: true } }))).not.toBeNull();
-      expect(unavailableReason(s, rallyState({ ball: { height: 'low', pressure: 0 } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, air: true } }))).toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'high', pressure: 0, air: true, glass: true } }))).not.toBeNull();
+      expect(unavailableReason(s, rallyState({ ball: { height: 'low', pressure: 0, air: true } }))).not.toBeNull();
     }
-    expect(unavailableReason(shot('bandeja'), rallyState({ ball: { height: 'mid', pressure: 0 } }))).not.toBeNull();
+    expect(unavailableReason(shot('bandeja'), rallyState({ ball: { height: 'mid', pressure: 0, air: true } }))).not.toBeNull();
   });
 
   it('offers the volley only before the back glass, and the bajada only after a mid or high rebound', () => {
@@ -486,14 +486,30 @@ describe('the net player volleys', () => {
     const back = rallyState({ formation: ['back', 'back'], ball: { height: 'low', pressure: 0, zone: 'mid' } });
     expect(playableShots(shotsOfKind('rally'), back).map((s) => s.id)).toContain('bounce_shot');
   });
-  it('after a deep lob: bandeja and vibora only when the ball has not come off the glass; never a volley', () => {
+  const AIR_ONLY = ['volley', 'bandeja', 'vibora', 'rulo', 'smash_x3', 'smash_x4'];
+  it('after a bounce (a deep lob, with or without the glass) none of the shots from the air is offered', () => {
     for (const glass of [false, true]) {
       const st = rallyState({ formation: ['back', 'back'], ball: { height: 'high', pressure: 0, zone: 'back', lob: 'deep', glass } });
       const ids = playableShots(shotsOfKind('rally'), st).map((s) => s.id);
-      expect(ids).not.toContain('volley');
-      expect(ids.includes('bandeja'), 'bandeja').toBe(!glass);
-      expect(ids.includes('bajada_fast'), 'bajada').toBe(glass);
+      for (const id of AIR_ONLY) expect(ids, id).not.toContain(id);
       expect(ids).toContain('rally_lob');
+      expect(ids.includes('bajada_fast'), 'bajada').toBe(glass);
+    }
+  });
+  it('a weak lob is played out of the air: bandeja and smash are offered', () => {
+    const st = rallyState({ formation: ['net', 'net'], ball: { height: 'high', pressure: 0, zone: 'mid', lob: 'weak', glass: false, air: true } });
+    const ids = playableShots(shotsOfKind('rally'), st).map((s) => s.id);
+    expect(ids).toContain('bandeja');
+    expect(ids).toContain('smash_x3');
+  });
+  it('whatever the lob does, a ball that has bounced never offers a shot from the air (many random lobs)', () => {
+    const lob = shotsOfKind('rally').find((x) => x.id === 'rally_lob')!;
+    for (let seed = 1; seed < 400; seed++) {
+      const r = stepHit(TEAMS, rallyState({ formation: ['net', 'net'], hits: 3 }), lob, 'cross', seededRng(seed));
+      if (r.state.status !== 'rally') continue;
+      const ids = playableShots(shotsOfKind('rally'), r.state).map((x) => x.id);
+      const weak = r.state.ball.lob === 'weak';
+      for (const id of AIR_ONLY) if (!weak) expect(ids, `${id} seed ${seed}`).not.toContain(id);
     }
   });
   it('the ball remembers how fast it was sent', () => {
@@ -509,7 +525,7 @@ describe('the net player volleys', () => {
 });
 
 describe('CPU hitters look for the gaps', () => {
-  const state = (over: Partial<PointState> = {}): PointState => rallyState({ holder: 1, hitterIdx: 0, formation: ['back', 'back'], ball: { height: 'mid', pressure: 0, zone: 'mid' }, ...over });
+  const state = (over: Partial<PointState> = {}): PointState => rallyState({ holder: 1, hitterIdx: 0, formation: ['back', 'back'], ball: { height: 'mid', pressure: 0, air: true, zone: 'mid' }, ...over });
 
   it('a ball aimed at the gap is further from both opponents than the average aimed ball', () => {
     const rng = seededRng(5);
@@ -543,7 +559,7 @@ describe('CPU hitters look for the gaps', () => {
     const rng = seededRng(21);
     const count = (opp: Array<{ x: number; z: number }>, test: (id: string) => boolean): number => {
       let n = 0;
-      for (let i = 0; i < 600; i++) if (test(pickHit(TEAMS, state({ ball: { height: 'low', pressure: 0, zone: 'mid' } }), rng, opp).shot.id)) n++;
+      for (let i = 0; i < 600; i++) if (test(pickHit(TEAMS, state({ ball: { height: 'low', pressure: 0, air: true, zone: 'mid' } }), rng, opp).shot.id)) n++;
       return n;
     };
     const atNet = [{ x: -2.5, z: 8 }, { x: 2.5, z: 8 }];
@@ -591,7 +607,7 @@ describe('rebound back over the net', () => {
 
 describe('Free Practice options', () => {
   it('ignoreRequires plays a shot that is normally unavailable, force decides how the hit ends', () => {
-    const st = rallyState({ ball: { height: 'low', pressure: 0, zone: 'mid' } });
+    const st = rallyState({ ball: { height: 'low', pressure: 0, air: true, zone: 'mid' } });
     expect(() => stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(1))).toThrow();
     for (const force of ['winner', 'error', 'continue'] as const) {
       const r = stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(2), undefined, { ignoreRequires: true, force });
@@ -606,7 +622,7 @@ describe('Free Practice options', () => {
 describe('Por Tres and Por Cuatro', () => {
   it('are not offered on a low ball', () => {
     for (const id of ['smash_x3', 'smash_x4']) {
-      const weak = (height: 'low' | 'mid' | 'high') => rallyState({ formation: ['net', 'back'], ball: { height, pressure: 0, lob: 'weak' } });
+      const weak = (height: 'low' | 'mid' | 'high') => rallyState({ formation: ['net', 'back'], ball: { height, pressure: 0, air: true, lob: 'weak' } });
       expect(unavailableReason(shot(id), weak('high')), id).toBeNull();
       expect(unavailableReason(shot(id), weak('mid')), id).toBeNull();
       expect(unavailableReason(shot(id), weak('low')), id).not.toBeNull();
@@ -616,7 +632,7 @@ describe('Por Tres and Por Cuatro', () => {
   it('Por Cuatro winners are either the nail (front of the court) or the deep rebound back over the net', () => {
     let nail = 0;
     let rebound = 0;
-    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, air: true, lob: 'weak' } });
     for (let seed = 1; seed < 300; seed++) {
       const r = stepHit(TEAMS, st, shot('smash_x4'), 'cross', seededRng(seed), undefined, { force: 'winner' }).step;
       if (r.reboundBack) {
@@ -632,7 +648,7 @@ describe('Por Tres and Por Cuatro', () => {
   });
 
   it('a Por Cuatro that is not hit well comes back and the defender plays it at the net', () => {
-    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, air: true, lob: 'weak' } });
     let seen = 0;
     for (let seed = 1; seed < 400; seed++) {
       const r = stepHit(TEAMS, st, shot('smash_x4'), 'cross', seededRng(seed), undefined, { force: 'continue' });
@@ -659,7 +675,7 @@ describe('errors into the walls and the early Por Cuatro', () => {
   });
 
   it('a Por Cuatro that is taken early (before the glass) is sometimes fumbled: the hitter wins the point', () => {
-    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, lob: 'weak' } });
+    const st = rallyState({ formation: ['net', 'back'], ball: { height: 'high', pressure: 0, air: true, lob: 'weak' } });
     let fumbled = 0;
     let early = 0;
     let net = 0;
@@ -689,7 +705,7 @@ describe('serve fault kinds', () => {
   });
   it('the rulo is offered on a high ball only', () => {
     const r = shot('rulo');
-    const st = (height: 'low' | 'mid' | 'high') => rallyState({ ball: { height, pressure: 0, zone: 'mid' } });
+    const st = (height: 'low' | 'mid' | 'high') => rallyState({ ball: { height, pressure: 0, air: true, zone: 'mid' } });
     expect(unavailableReason(r, st('high'))).toBeNull();
     expect(unavailableReason(r, st('mid'))).not.toBeNull();
     expect(unavailableReason(r, st('low'))).not.toBeNull();
@@ -704,7 +720,7 @@ describe('vibora and the net', () => {
       ...base,
       holder: 0,
       formation: [f, 'back'],
-      ball: { ...base.ball, height: 'mid', glass: false },
+      ball: { ...base.ball, height: 'mid', glass: false, air: true },
     });
     expect(unavailableReason(vibora, st('net'))).not.toBeNull();
     expect(unavailableReason(vibora, st('mid'))).toBeNull();

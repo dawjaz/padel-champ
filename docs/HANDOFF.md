@@ -2,6 +2,10 @@
 
 _Last updated: 2026-11-21 (v0.49)_
 
+## v0.54: shots from the air never after a bounce
+- Owner decision (22.11, replaces the v0.43 rule): vibora, bandeja, volley, rulo and both smashes need `requires.air` (the ball has not bounced). `BallState.air` is set for balls a net or mid-court defender takes out of the air (block, net return) and for weak lobs (short, taken out of the air). A deep lob (bounced, with or without the glass) offers only bajadas (glass), flat shot, lob, chiquita.
+- Tests in `point.test.ts`: availability after a deep lob, after a weak lob, and 400 random lobs (nothing from the air after a bounce). `noLob` was removed. The test helper `rallyState` now defaults to an air ball.
+
 ## v0.53: brand gear (plan point 3, first part)
 - 6 invented brands, 5 slots (shirt, shorts, shoes, racket, bag), 4 models each = 120 items; cap, wristband and balls removed. Mapping to real makers and racket shapes: `docs/BRANDS.md`. Starter set: the five basic Adaro items.
 - Rackets have a head shape (diamond, teardrop, round) drawn on the character (`racketHead` in `art/character.ts`, `Appearance.racketShape`).

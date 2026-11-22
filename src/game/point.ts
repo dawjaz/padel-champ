@@ -163,7 +163,6 @@ export function unavailableReason(shot: ShotDef, state: PointState): string | nu
   if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
   if (r.glass !== undefined && (state.ball.glass === true) !== r.glass) return r.hint;
   if (r.air === true && state.ball.air !== true) return r.hint;
-  if (r.noLob === true && state.ball.lob === 'deep') return r.hint;
   if (r.weakLob && state.ball.lob !== 'weak') return r.hint;
   if (r.zones && (state.ball.zone === undefined || !r.zones.includes(state.ball.zone))) return r.hint;
   return null;
@@ -238,7 +237,8 @@ function nextBall(
   const chance = lob === 'weak' ? 0 : shot.glassChance ?? 0;
   const glass = chance > 0 && rng() < chance;
   const arrival: Height = glass ? pickRebound(shot.rebound ?? DEFAULT_REBOUND, rng) : shot.out;
-  return { ball: { height: arrival, pressure, lob, glass, speed: shot.flight.speed }, glass, arrival, lob, landDepth };
+  // A weak (short) lob is played out of the air (smash, bandeja); a good lob bounces first, so nothing from the air is played to it.
+  return { ball: { height: arrival, pressure, lob, glass, speed: shot.flight.speed, ...(lob === 'weak' ? { air: true } : {}) }, glass, arrival, lob, landDepth };
 }
 
 export function stepServe(

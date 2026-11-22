@@ -96,8 +96,6 @@ export interface ShotRequires {
   glass?: boolean;
   /** true: the ball must be played out of the air, before it has bounced (a volley, a bandeja, a vibora). */
   air?: boolean;
-  /** true: not playable off a lob that has come down deep (the ball hangs over the player). */
-  noLob?: boolean;
   /** The incoming ball must fall in one of these zones (see `BallState.zone`). */
   zones?: Zone[];
   /** The incoming ball must be a weak lob (one that lands in the middle of the court or near the net). */
