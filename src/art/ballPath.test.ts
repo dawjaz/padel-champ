@@ -695,3 +695,17 @@ describe('buildCoast: a lost ball dies calmly', () => {
     expect(bad).toEqual([]);
   });
 });
+
+describe('buildCoast: a ball that leaves over the fence drops just behind it', () => {
+  it('never flies far into the stands, for any rally shot and error', () => {
+    for (const s of SHOTS.filter((q) => q.kind === 'rally')) {
+      for (const k of ['net', 'glass', 'mesh', 'side', 'long', 'bouncemesh'] as const) {
+        for (let seed = 1; seed <= 12; seed++) {
+          const f = buildFlight({ from: { x: -2, z: 17 }, startH: 1.2, hitterSide: 0, shot: s, landX: 2, outcome: 'error', errorKind: k, seed, receive: 'bounce' });
+          const c = buildCoast(f, 0.5);
+          for (const p of c.path) expect(Math.max(p.z - 20, Math.abs(p.x) - 5, -p.z)).toBeLessThan(7);
+        }
+      }
+    }
+  });
+});

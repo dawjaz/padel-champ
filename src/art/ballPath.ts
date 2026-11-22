@@ -976,6 +976,9 @@ export function buildFlight(opts: FlightOpts): Flight {
 /** Rolling resistance of the court floor (m/s^2) and of the ground outside it. */
 const ROLL_DECEL = 1.6;
 const OUTSIDE_ROLL_DECEL = 2.8;
+/** A ball that leaves over the fence is checked by the fence and the air outside, so it drops just behind it (not into the stands). */
+const OVER_FENCE_KEEP = 0.45;
+const OUTSIDE_AIR_DRAG = 2.2;
 /** Below this vertical speed after a bounce the ball stops bouncing and rolls. */
 const ROLL_VY = 1.2;
 const COAST_MAX_TIME = 6;
@@ -1035,8 +1038,9 @@ export function buildCoast(flight: Flight, spin: number): Coast {
     t += DT;
     const pz = z;
     if (!rolling) {
-      vx *= 1 - AIR_DRAG * DT;
-      vz *= 1 - AIR_DRAG * DT;
+      const drag = (inside ? AIR_DRAG : OUTSIDE_AIR_DRAG) * DT;
+      vx *= 1 - drag;
+      vz *= 1 - drag;
       vy -= GRAVITY * DT;
       h += vy * DT;
     } else {
@@ -1058,8 +1062,11 @@ export function buildCoast(flight: Flight, spin: number): Coast {
       }
       if (Math.abs(x) >= 5) {
         const mat = sideWallMaterial(z, h);
-        if (mat === 'out') inside = false;
-        else {
+        if (mat === 'out') {
+          inside = false;
+          vx *= OVER_FENCE_KEEP;
+          vz *= OVER_FENCE_KEEP;
+        } else {
           const glass = mat === 'glass';
           x = Math.sign(x) * 5;
           vx = -vx * (glass ? GLASS_E : MESH_E);
@@ -1071,8 +1078,11 @@ export function buildCoast(flight: Flight, spin: number): Coast {
       }
       if (inside && (z <= 0 || z >= 20)) {
         const mat = backWallMaterial(h);
-        if (mat === 'out') inside = false;
-        else {
+        if (mat === 'out') {
+          inside = false;
+          vx *= OVER_FENCE_KEEP;
+          vz *= OVER_FENCE_KEEP;
+        } else {
           const glass = mat === 'glass';
           z = z <= 0 ? 0 : 20;
           vz = -vz * (glass ? GLASS_E : MESH_E);

@@ -217,9 +217,9 @@ export class MatchScene extends Phaser.Scene {
 
     // Control sheet under the court: the status line and the buttons sit on it.
     const sheet = this.add.graphics().setDepth(8000);
-    sheet.fillStyle(TC.bg, 1);
+    sheet.fillStyle(TC.navy, 1);
     sheet.fillRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
-    sheet.lineStyle(3, TC.navy, 1);
+    sheet.lineStyle(3, TC.navyDark, 1);
     sheet.strokeRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
 
     // Scoreboard, TV style: navy bar, a row per side, games in a white box, points in gold, an orange dot by the server.
@@ -248,7 +248,7 @@ export class MatchScene extends Phaser.Scene {
         fontFamily: BODY, resolution: HD_SCALE,
         fontSize: '12px',
         fontStyle: '700',
-        color: NAVY_CSS,
+        color: '#ffffff',
         align: 'center',
         wordWrap: { width: 330 },
       })
@@ -454,19 +454,27 @@ export class MatchScene extends Phaser.Scene {
   /** Places the ball. `trail` = false puts it down without a trail (a new serve). */
   private setBall(x: number, z: number, h: number, trail = true): void {
     const p = project(x, z, h);
+    const prev = this.ballFloor;
     this.ballFloor = { x, z };
     const d = Math.max(6, p.scale * 0.3);
     const now = this.time.now;
     if (trail) {
       const dt = Math.min(0.05, Math.max(0, (now - this.ballTurnedAt) / 1000));
       if (dt > 0) {
-        this.ballR = rotate(this.ballR, this.ballOmega, dt);
+        // A ball on the ground turns only as fast as it rolls: it stops spinning when it stops moving.
+        const rollSpeed = Math.hypot(x - prev.x, z - prev.z) / dt;
+        const k = h < 0.06 ? Math.min(1, rollSpeed / 2.5) : 1;
+        this.ballR = rotate(this.ballR, [this.ballOmega[0] * k, this.ballOmega[1] * k, this.ballOmega[2] * k], dt);
         this.redrawBall(this.ballR);
       }
     }
     this.ballTurnedAt = now;
     this.ball.setPosition(p.x, p.y).setDisplaySize(d, d);
     this.ballGlow.setPosition(p.x, p.y).setDisplaySize(d * 3.4, d * 3.4);
+    // A ball lying on (or just above) the floor is sorted with the players, so a player standing in front covers it.
+    const low = h < 0.4;
+    this.ball.setDepth(low ? p.y + 0.5 : 5000);
+    this.ballGlow.setDepth(low ? p.y + 0.4 : 4999);
     if (trail) {
       this.trail.push({ x: p.x, y: p.y, d });
       if (this.trail.length > 14) this.trail.shift();

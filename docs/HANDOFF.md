@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.79)_
+_Last updated: 2026-11-22 (v0.80)_
+
+## v0.80: three fixes from the owner
+- **Ball into the stands:** a ball that left the court over the fence (e.g. `side` error of a bajada) kept flying up to 29 m. Now `buildCoast` keeps 45% of its speed when it clears the fence (`OVER_FENCE_KEEP`) and the air outside is draggier (`OUTSIDE_AIR_DRAG`): it drops within about 4 m. Regression test in `ballPath.test.ts`.
+- **Ball glitch after a point:** the ball kept spinning at its launch spin while lying still, and it was always drawn above the players, so it looked stuck on a leg. Now spin on the ground scales with the roll speed, and a ball lower than 0.4 m is depth-sorted with the players.
+- **White sheet under the court** is navy now (status text white), matching the arena.
 
 ## v0.79: smoother character animation
 - `mixPose(a, b, t)` blends two `PoseSpec`s; `buildToon` now accepts a `PoseSpec` as well as a pose name. `runFrame(n)` is an 8-frame run cycle (legs swing and lift, body bobs and leans, arms swing against the legs); `RUN_FRAMES = 8`.
