@@ -1,12 +1,75 @@
 import type { Appearance } from '../../game/types';
-import { ellipsePath, luma, rotateAbout, scaleAbout, shadeHex, translate, type Op, type PathOp, rectPath } from './ops';
+import { ellipsePath, luma, rotateAbout, scaleAbout, shadeHex, translate, type Mat, type Op, type PathOp, rectPath } from './ops';
 
 /**
  * Toon character (about 4.5 heads tall, flat cel shading, dark outline), drawn in "character units": the
- * figure is 200 wide and about 340 tall, centre x = 100, feet at y = 334. Only the ready pose exists so far;
- * the pose parameter will carry arm and racket angles for the swing poses later.
+ * figure is 200 wide and about 340 tall, centre x = 100, feet at y = 334. Poses move the racket hand, the
+ * off hand, the feet, the lean of the upper body and the crouch (see `POSES`); arms and legs are two-bone
+ * limbs solved from those targets.
  */
 export type ToonView = 'front' | 'back';
+
+/** Same names as the old pixel characters, so the match can swap them one for one. */
+export type ToonPose =
+  | 'ready' | 'runA' | 'runB'
+  | 'fhPrep' | 'fhHit' | 'fhFollow'
+  | 'bhPrep' | 'bhHit' | 'bhFollow'
+  | 'smashPrep' | 'smashHit' | 'smashFollow';
+
+export const TOON_POSES: ToonPose[] = ['ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow'];
+
+type Pt = [number, number];
+
+/**
+ * Targets of a pose. Hands are in the upper body's own frame (the frame is leaned and lowered with the body); ankles are in
+ * figure coordinates (sole of the ground = ankle y 304). The racket hand is the viewer's right one.
+ */
+interface PoseSpec {
+  /** Racket hand and the racket's tilt (degrees clockwise from pointing straight up). */
+  hand: Pt;
+  racket: number;
+  /** Elbow of the racket arm when it must not be solved (the ready pose keeps its original look). */
+  elbow?: Pt;
+  /** Off hand: a point, or 'grip' = on the racket handle (two-handed backhand). */
+  off: Pt | 'grip';
+  offElbow?: Pt;
+  /** Lean of the upper body in degrees (clockwise) about the waist, and how far it sinks (negative = rises in a jump). */
+  lean: number;
+  crouch: number;
+  /** Ankles of the viewer's left and right leg. */
+  left: Pt;
+  right: Pt;
+}
+
+const GROUND = 304;
+export const POSES: Record<ToonPose, PoseSpec> = {
+  ready: { hand: [150, 190], racket: 16, elbow: [155, 148], off: [51, 202], offElbow: [47, 154], lean: 0, crouch: 0, left: [75, GROUND], right: [125, GROUND] },
+  runA: { hand: [154, 178], racket: 28, off: [44, 166], lean: 4, crouch: 8, left: [84, 282], right: [128, GROUND] },
+  runB: { hand: [154, 178], racket: 28, off: [44, 166], lean: -4, crouch: 8, left: [72, GROUND], right: [116, 282] },
+  fhPrep: { hand: [182, 132], racket: 60, off: [70, 142], lean: 8, crouch: 10, left: [62, GROUND], right: [138, GROUND] },
+  fhHit: { hand: [176, 166], racket: 98, off: [58, 140], lean: -3, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
+  fhFollow: { hand: [78, 84], racket: -52, off: [40, 150], lean: -12, crouch: 8, left: [66, GROUND], right: [124, GROUND] },
+  bhPrep: { hand: [58, 150], racket: -62, off: 'grip', lean: -8, crouch: 10, left: [62, GROUND], right: [138, GROUND] },
+  bhHit: { hand: [26, 166], racket: -98, off: 'grip', lean: 6, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
+  bhFollow: { hand: [118, 76], racket: 40, off: [34, 132], lean: 12, crouch: 8, left: [76, GROUND], right: [134, GROUND] },
+  smashPrep: { hand: [152, 58], racket: 140, off: [70, 22], lean: 4, crouch: 8, left: [66, GROUND], right: [134, GROUND] },
+  smashHit: { hand: [134, 34], racket: 6, off: [64, 112], lean: -2, crouch: -26, left: [74, 276], right: [132, 290] },
+  smashFollow: { hand: [92, 134], racket: -64, off: [48, 118], lean: -8, crouch: 10, left: [70, GROUND], right: [128, GROUND] },
+};
+
+/** Two-bone solver: the middle joint of a limb from `a` to `b`, bending towards `down` (true) or up. */
+function bend(a: Pt, b: Pt, l1: number, l2: number, pick: (p1: Pt, p2: Pt) => Pt): Pt {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const d = Math.min(Math.hypot(dx, dy), l1 + l2 - 0.5);
+  const ux = dx / (Math.hypot(dx, dy) || 1);
+  const uy = dy / (Math.hypot(dx, dy) || 1);
+  const along = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+  const h = Math.sqrt(Math.max(0, l1 * l1 - along * along));
+  const bx = a[0] + ux * along;
+  const by = a[1] + uy * along;
+  return pick([bx - uy * h, by + ux * h], [bx + uy * h, by - ux * h]);
+}
 
 export const OUTLINE = '#14213D';
 /** x of the figure's centre line, y of the soles: scenes use these to place the picture. */
@@ -96,70 +159,117 @@ const HEAD_SCALE = scaleAbout(1.13, 100, 94);
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
 
-export function buildToon(a: Appearance, view: ToonView = 'front'): Op[] {
-  return buildToonLook(lookOf(a), view);
+export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'ready'): Op[] {
+  return buildToonLook(lookOf(a), view, pose);
 }
 
-export function buildToonLook(L: ToonLook, view: ToonView = 'front'): Op[] {
+/** The point of a racket (drawn with its handle end at the local origin, pointing up) that sits in the hand, as a matrix. */
+function racketMatrix(hand: Pt, deg: number): { m: Mat; at: (x: number, y: number) => Pt } {
+  const r = rotateAbout(deg, 0, 0);
+  // Local (0, -12) is where the hand holds the handle.
+  const e = hand[0] - (r[2] * -12);
+  const f = hand[1] - (r[3] * -12);
+  const m: Mat = [r[0], r[1], r[2], r[3], e, f];
+  return { m, at: (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] };
+}
+
+export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'ready'): Op[] {
   const back = view === 'back';
   const sk = L.skin;
   const skd = shadeHex(sk, 0.8);
   const hd = shadeHex(L.hair, 0.62);
   const hh = shadeHex(L.hair, 1.7, 0.9);
   const sx = (x: number): number => R(100 + (x - 100) * L.build);
+  const P = POSES[pose];
   const o: Op[] = [];
-  o.push(p(ellipsePath(100, 334, 58, 8), { fill: 'rgba(11,31,58,.22)' }));
+  const lift = Math.max(0, -P.crouch);
+  o.push(p(ellipsePath(100, 334, 58 - lift * 0.4, 8 - lift * 0.1), { fill: `rgba(11,31,58,${0.22 - lift * 0.003})` }));
+
+  // legs: hips sink with the crouch, ankles are the targets
+  const hips: [Pt, Pt] = [[sx(87), 198 + P.crouch], [sx(113), 198 + P.crouch]];
+  const ankles: [Pt, Pt] = [P.left, P.right];
+  const outward = (side: -1 | 1) => (p1: Pt, p2: Pt): Pt => ((p1[0] - p2[0]) * side > 0 ? p1 : p2);
+  ([-1, 1] as const).forEach((side, i) => {
+    const hip = hips[i];
+    const an = ankles[i];
+    const knee = bend(hip, an, 53, 54, outward(side));
+    o.push(...limbs([[`M${hip[0]} ${hip[1]} L ${R(knee[0])} ${R(knee[1])}`, 27], [`M${R(knee[0])} ${R(knee[1])} L ${an[0]} ${an[1]}`, 19]], sk));
+    // sock and shoe follow the ankle
+    const x = an[0];
+    const dy = an[1] - GROUND;
+    o.push(p(`M${x - 8} ${an[1] - 8} L ${x + 8} ${an[1] - 8} L ${x + 8} ${an[1] + 8} L ${x - 8} ${an[1] + 8} Z`, { fill: '#ffffff', stroke: OUTLINE, sw: 2.4 }));
+    o.push(p(`M${x - 8} ${an[1] - 4} H${x + 8}`, { stroke: L.shirt, sw: 2.4 }));
+    const sxx = x + side * 5;
+    const dr = side;
+    const tip = sxx + dr * 20;
+    o.push({
+      k: 'g',
+      m: translate(0, dy),
+      ops: [
+        shape(`M${sxx - 14 * dr} 310 L ${sxx + 9 * dr} 310 C ${tip} 312, ${tip + dr * 4} 322, ${tip + dr * 3} 330 L ${sxx - 15 * dr} 330 C ${sxx - 17 * dr} 320, ${sxx - 16 * dr} 314, ${sxx - 14 * dr} 310 Z`, L.shoes),
+        p(`M${sxx - 16 * dr} 326 L ${tip + dr * 3} 326 L ${tip + dr * 3} 332 L ${sxx - 16 * dr} 332 Z`, { fill: '#e8ecf4', stroke: OUTLINE, sw: 2.4 }),
+        p(`M${sxx - 6 * dr} 314 q ${dr * 8} 2 ${dr * 14} 9`, { stroke: shadeHex(L.shoes, 0.7), sw: 2.6, cap: 'round' }),
+        p(ellipsePath(sxx + dr * 2, 313, 5, 2), { fill: '#ffffff', a: 0.6 }),
+      ],
+    });
+  });
+
+  // upper body: leaned about the waist and lowered by the crouch
+  const rot = rotateAbout(P.lean, 100, 190);
+  const bodyM: Mat = [rot[0], rot[1], rot[2], rot[3], rot[4], rot[5] + P.crouch];
+  const u: Op[] = [];
+  const armTo = (shoulder: Pt, hand: Pt, elbow: Pt | undefined, sleeve: string, outwardSign: -1 | 1): Op[] => {
+    const e = elbow ?? bend(shoulder, hand, 42, 42, (p1, p2) => (p1[1] + outwardSign * p1[0] * 0.3 > p2[1] + outwardSign * p2[0] * 0.3 ? p1 : p2));
+    const ex = R(e[0]);
+    const ey = R(e[1]);
+    return [
+      ...limbs([[`M${shoulder[0]} ${shoulder[1]} L ${ex} ${ey}`, 27]], sleeve, 0.3),
+      ...limbs([[`M${ex} ${ey} L ${R(hand[0])} ${R(hand[1])}`, 19]], sk),
+    ];
+  };
+  const handOps = (h: Pt): Op[] => [
+    p(ellipsePath(h[0], h[1] + 2, 11, 11), { fill: sk, stroke: OUTLINE, sw: 2.4 }),
+    p(`M${h[0] - 7} ${h[1] - 1} q7 -4 14 0 M${h[0] - 7} ${h[1] + 4} q7 -3 14 0`, { stroke: skd, sw: 2, cap: 'round' }),
+  ];
 
   // hair behind the head (front view)
   if (!back) {
-    if (L.style === 'long') o.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M64 44 C 58 90, 60 120, 70 134 L 90 118 L 110 118 L 130 134 C 140 120, 142 90, 136 44 Z', L.hair)] });
-    if (L.style === 'afro') o.push({ k: 'g', m: HEAD_SCALE, ops: [shape(AFRO, L.hair)] });
-    if (L.style === 'ponytail') o.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M126 36 C 156 36 168 70 160 112 C 154 124 146 120 148 108 C 150 84 140 62 124 56 Z', L.hair)] });
-  }
-
-  // legs
-  o.push(...limbs([[`M${sx(87)} 198 L 81 250`, 27], ['M81 250 L 75 304', 19]], sk));
-  o.push(...limbs([[`M${sx(113)} 198 L 119 250`, 27], ['M119 250 L 125 304', 19]], sk));
-  for (const x of [74, 126]) {
-    o.push(p(`M${x - 8} 296 L ${x + 8} 296 L ${x + 8} 312 L ${x - 8} 312 Z`, { fill: '#ffffff', stroke: OUTLINE, sw: 2.4 }));
-    o.push(p(`M${x - 8} 300 H${x + 8}`, { stroke: L.shirt, sw: 2.4 }));
-  }
-  // shoes
-  for (const [x, dr] of [[70, -1], [130, 1]] as const) {
-    const tip = x + dr * 20;
-    o.push(shape(`M${x - 14 * dr} 310 L ${x + 9 * dr} 310 C ${tip} 312, ${tip + dr * 4} 322, ${tip + dr * 3} 330 L ${x - 15 * dr} 330 C ${x - 17 * dr} 320, ${x - 16 * dr} 314, ${x - 14 * dr} 310 Z`, L.shoes));
-    o.push(p(`M${x - 16 * dr} 326 L ${tip + dr * 3} 326 L ${tip + dr * 3} 332 L ${x - 16 * dr} 332 Z`, { fill: '#e8ecf4', stroke: OUTLINE, sw: 2.4 }));
-    o.push(p(`M${x - 6 * dr} 314 q ${dr * 8} 2 ${dr * 14} 9`, { stroke: shadeHex(L.shoes, 0.7), sw: 2.6, cap: 'round' }));
-    o.push(p(ellipsePath(x + dr * 2, 313, 5, 2), { fill: '#ffffff', a: 0.6 }));
+    if (L.style === 'long') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M64 44 C 58 90, 60 120, 70 134 L 90 118 L 110 118 L 130 134 C 140 120, 142 90, 136 44 Z', L.hair)] });
+    if (L.style === 'afro') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape(AFRO, L.hair)] });
+    if (L.style === 'ponytail') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M126 36 C 156 36 168 70 160 112 C 154 124 146 120 148 108 C 150 84 140 62 124 56 Z', L.hair)] });
   }
 
   // shorts or skirt
   if (L.skirt) {
-    o.push(shape(`M${sx(68)} 176 L ${sx(132)} 176 L ${sx(146)} 226 C ${sx(120)} 236, ${sx(80)} 236, ${sx(54)} 226 Z`, L.bottom));
-    o.push(p(`M${sx(86)} 180 L ${sx(80)} 232 M${sx(100)} 180 L ${sx(100)} 234 M${sx(114)} 180 L ${sx(120)} 232`, { stroke: shadeHex(L.bottom, 0.78), sw: 2.2 }));
-    o.push(p(`M${sx(54)} 226 C ${sx(80)} 236, ${sx(120)} 236, ${sx(146)} 226`, { stroke: L.bottomTrim, sw: 3.4 }));
+    u.push(shape(`M${sx(68)} 176 L ${sx(132)} 176 L ${sx(146)} 226 C ${sx(120)} 236, ${sx(80)} 236, ${sx(54)} 226 Z`, L.bottom));
+    u.push(p(`M${sx(86)} 180 L ${sx(80)} 232 M${sx(100)} 180 L ${sx(100)} 234 M${sx(114)} 180 L ${sx(120)} 232`, { stroke: shadeHex(L.bottom, 0.78), sw: 2.2 }));
+    u.push(p(`M${sx(54)} 226 C ${sx(80)} 236, ${sx(120)} 236, ${sx(146)} 226`, { stroke: L.bottomTrim, sw: 3.4 }));
   } else {
-    o.push(shape(`M${sx(68)} 176 L ${sx(132)} 176 L ${sx(140)} 232 L ${sx(104)} 236 L 100 212 L ${sx(96)} 236 L ${sx(60)} 232 Z`, L.bottom));
-    o.push(p(`M${sx(121)} 180 L ${sx(131)} 230`, { stroke: L.bottomTrim, sw: 3.4 }));
-    o.push(p(`M${sx(112)} 180 L ${sx(121)} 230 L ${sx(138)} 230 L ${sx(131)} 180 Z`, { fill: shadeHex(L.bottom, 0.7), a: 0.35 }));
+    u.push(shape(`M${sx(68)} 176 L ${sx(132)} 176 L ${sx(140)} 232 L ${sx(104)} 236 L 100 212 L ${sx(96)} 236 L ${sx(60)} 232 Z`, L.bottom));
+    u.push(p(`M${sx(121)} 180 L ${sx(131)} 230`, { stroke: L.bottomTrim, sw: 3.4 }));
+    u.push(p(`M${sx(112)} 180 L ${sx(121)} 230 L ${sx(138)} 230 L ${sx(131)} 180 Z`, { fill: shadeHex(L.bottom, 0.7), a: 0.35 }));
   }
 
   // torso
-  o.push(shape(`M${sx(63)} 108 C ${sx(78)} 100, ${sx(122)} 100, ${sx(137)} 108 L ${sx(133)} 180 C ${sx(118)} 186, ${sx(82)} 186, ${sx(67)} 180 Z`, L.shirt));
-  o.push(p(`M${sx(114)} 104 C ${sx(126)} 104, ${sx(132)} 106, ${sx(137)} 108 L ${sx(133)} 180 C ${sx(128)} 182, ${sx(122)} 184, ${sx(116)} 185 Z`, { fill: shadeHex(L.shirt, 0.62), a: 0.5 }));
-  o.push(p(`M${sx(66)} 128 C ${sx(90)} 134, ${sx(110)} 134, ${sx(134)} 128 L ${sx(133)} 140 C ${sx(110)} 146, ${sx(90)} 146, ${sx(67)} 140 Z`, { fill: L.trim, a: 0.95 }));
-  o.push(p(`M${sx(63)} 108 C ${sx(78)} 100, ${sx(122)} 100, ${sx(137)} 108`, { stroke: L.trim, sw: 3 }));
+  u.push(shape(`M${sx(63)} 108 C ${sx(78)} 100, ${sx(122)} 100, ${sx(137)} 108 L ${sx(133)} 180 C ${sx(118)} 186, ${sx(82)} 186, ${sx(67)} 180 Z`, L.shirt));
+  u.push(p(`M${sx(114)} 104 C ${sx(126)} 104, ${sx(132)} 106, ${sx(137)} 108 L ${sx(133)} 180 C ${sx(128)} 182, ${sx(122)} 184, ${sx(116)} 185 Z`, { fill: shadeHex(L.shirt, 0.62), a: 0.5 }));
+  u.push(p(`M${sx(66)} 128 C ${sx(90)} 134, ${sx(110)} 134, ${sx(134)} 128 L ${sx(133)} 140 C ${sx(110)} 146, ${sx(90)} 146, ${sx(67)} 140 Z`, { fill: L.trim, a: 0.95 }));
+  u.push(p(`M${sx(63)} 108 C ${sx(78)} 100, ${sx(122)} 100, ${sx(137)} 108`, { stroke: L.trim, sw: 3 }));
 
   // neck
-  o.push(shape('M89 86 L 89 108 C 95 114, 105 114, 111 108 L 111 86 Z', sk));
-  o.push(p('M89 100 C 96 108, 104 108, 111 100 L 111 86 L 103 86 C 103 96, 96 100, 89 100Z', { fill: skd, a: 0.55 }));
-  o.push(p(back ? 'M89 106 C 95 112, 105 112, 111 106' : 'M89 106 L 100 120 L 111 106', { stroke: OUTLINE, sw: 2.4 }));
+  u.push(shape('M89 86 L 89 108 C 95 114, 105 114, 111 108 L 111 86 Z', sk));
+  u.push(p('M89 100 C 96 108, 104 108, 111 100 L 111 86 L 103 86 C 103 96, 96 100, 89 100Z', { fill: skd, a: 0.55 }));
+  u.push(p(back ? 'M89 106 C 95 112, 105 112, 111 106' : 'M89 106 L 100 120 L 111 106', { stroke: OUTLINE, sw: 2.4 }));
 
-  // arm on the viewer's left
-  o.push(...limbs([[`M${sx(63)} 114 L ${sx(47)} 152`, 27]], L.shirt, 0.3));
-  o.push(...limbs([[`M${sx(47)} 154 C ${sx(41)} 172, ${sx(43)} 186, ${sx(51)} 196`, 19]], sk));
-  o.push(p(ellipsePath(sx(51), 202, 10.5, 11.5), { fill: sk, stroke: OUTLINE, sw: 2.4 }));
-  o.push(p(`M${sx(45)} 204 q6 5 12 0`, { stroke: skd, sw: 2, cap: 'round' }));
+
+  // off arm (viewer's left), behind the head unless it is on the racket handle
+  const hx = sx(P.hand[0]);
+  const rk = racketMatrix([hx, P.hand[1]], P.racket);
+  const offHand: Pt = P.off === 'grip' ? rk.at(0, -34) : [sx(P.off[0]), P.off[1]];
+  if (P.off !== 'grip') {
+    u.push(...armTo([sx(63), 114], offHand, P.offElbow ? [sx(P.offElbow[0]), P.offElbow[1]] : undefined, L.shirt, -1));
+    u.push(...handOps(offHand));
+  }
 
   // head
   const head: Op[] = [];
@@ -211,19 +321,20 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front'): Op[] {
     head.push(shape('M66 44 C 62 14, 138 14, 134 44 C 120 36, 80 36, 66 44 Z', L.cap));
     head.push(shape('M70 42 C 90 46, 124 46, 142 52 C 140 42, 120 38, 100 38 Z', shadeHex(L.cap, 0.7)));
   }
-  o.push({ k: 'g', m: HEAD_SCALE, ops: head });
+  u.push({ k: 'g', m: HEAD_SCALE, ops: head });
   if (back && L.style === 'long') {
-    o.push(shape('M62 70 C 56 100, 60 126, 74 136 L 96 124 L 104 124 L 126 136 C 140 126, 144 100, 138 70 C 130 84, 70 84, 62 70 Z', L.hair));
+    u.push(shape('M62 70 C 56 100, 60 126, 74 136 L 96 124 L 104 124 L 126 136 C 140 126, 144 100, 138 70 C 130 84, 70 84, 62 70 Z', L.hair));
   }
 
   // racket arm (viewer's right) and racket
-  o.push(...limbs([[`M${sx(137)} 114 L ${sx(155)} 148`, 27]], L.shirt, 0.3));
-  const hx = sx(150);
-  const hy = 190;
-  o.push(...limbs([[`M${sx(155)} 150 C ${sx(162)} 164, ${sx(158)} 180, ${hx} ${hy}`, 19]], sk));
-  o.push({ k: 'g', m: [...rotateAbout(16, 0, 0).slice(0, 4), hx, hy + 6] as [number, number, number, number, number, number], ops: racketOps(L.racket, L.racketShape) });
-  o.push(p(ellipsePath(hx, hy + 2, 11, 11), { fill: sk, stroke: OUTLINE, sw: 2.4 }));
-  o.push(p(`M${hx - 7} ${hy - 1} q7 -4 14 0 M${hx - 7} ${hy + 4} q7 -3 14 0`, { stroke: skd, sw: 2, cap: 'round' }));
-  if (L.wristband) o.push(p(`M${R(hx - 9)} ${hy - 12} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
+  u.push(...armTo([sx(137), 114], [hx, P.hand[1]], P.elbow ? [sx(P.elbow[0]), P.elbow[1]] : undefined, L.shirt, 1));
+  u.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
+  u.push(...handOps([hx, P.hand[1]]));
+  if (L.wristband) u.push(p(`M${R(hx - 9)} ${R(P.hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
+  if (P.off === 'grip') {
+    u.push(...armTo([sx(63), 114], offHand, undefined, L.shirt, -1));
+    u.push(...handOps(offHand));
+  }
+  o.push({ k: 'g', m: bodyM, ops: u });
   return o;
 }

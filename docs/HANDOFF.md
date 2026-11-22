@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.71)_
+_Last updated: 2026-11-22 (v0.72)_
+
+## v0.72: toon poses (phase 4a, not yet used in the match)
+- `buildToon(appearance, view, pose)` now takes a pose with the same names as the old pixel characters (`ready, runA, runB, fhPrep/fhHit/fhFollow, bhPrep/..., smashPrep/...`; `TOON_POSES`). A pose is a `PoseSpec` in `POSES` (`src/art/toon/character.ts`): racket hand + racket tilt, off hand (or `'grip'` = on the racket handle for the two-handed backhand), lean of the upper body about the waist, crouch (negative = jump) and the two ankles. Arms and legs are two-bone limbs solved from those targets; sock and shoe follow the ankle. Default pose = ready (unchanged look).
+- `VIEW` (the picture frame) is bigger now (x -80..280, y -130..346) so a racket held high or swung wide fits; `addToon` and `addToonHead` use it, nothing changes on screen.
+- Only front and back views exist. The racket is always on the viewer's right (so a far-team player in front view holds it in his left hand: a known quirk, same as the title screen).
+- `npx vite-node scripts/poseSheet.ts you:0 back` writes `/tmp/poses.html` (all poses of one character) for a visual check.
+- Tests: all poses in both views and all hair styles, every pose differs from ready, hand and feet stay in the frame.
+- Still to do in phase 4: left/right (side) views for running sideways, per-pose texture size (use a smaller TEXTURE_UNIT for the match: 4 players x ~10 poses x 2 views), swapping the toon characters into `MatchScene` (names, guts bars, shadows, scale and camera for the bigger figures), then removing `character.ts` and `hd/characterHd.ts`.
 
 ## v0.71: new look, step 3 (match interface)
 - **MatchScene HUD** now uses the broadcast theme (`src/theme.ts`): TV scoreboard (navy bar, a row per side with games in a white box and points in gold, orange dot by the server, DEUCE note; in Free Practice it shows the mode instead), a light control sheet under the court (y 392 and down) holding the status line and the buttons, themed MENU button (tap twice to leave), button cards coloured by tone (white normal, green good fit, orange poor, red RISKY, grey off), navy-outlined guts bars and name labels, Baloo/Nunito for the announcements (WINNER!, FAULT, POWERFUL SMASH banner), coin toss texts, big HIGH/MID/LOW BALL text and the receive screen (km/h, SPEED and SPIN pills, countdown bar).

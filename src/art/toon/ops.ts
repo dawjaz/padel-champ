@@ -24,8 +24,8 @@ export interface GroupOp {
 }
 export type Op = PathOp | GroupOp;
 
-/** The picture covers x -20..220, y -34..346 in character units. */
-export const VIEW = { x: -20, y: -34, w: 240, h: 380 } as const;
+/** The picture covers x -80..280, y -130..346 in character units (room for a racket held high or swung wide). */
+export const VIEW = { x: -80, y: -130, w: 360, h: 476 } as const;
 
 export const translate = (tx: number, ty: number): Mat => [1, 0, 0, 1, tx, ty];
 export const rotateAbout = (deg: number, cx: number, cy: number): Mat => {

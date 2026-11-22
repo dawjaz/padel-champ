@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appearance, HairStyle } from '../../game/types';
-import { buildToon, lookOf } from './character';
+import { buildToon, lookOf, POSES, TOON_POSES } from './character';
 import { luma, shadeHex, toSvg, type Op } from './ops';
 
 const BASE: Appearance = {
@@ -62,5 +62,38 @@ describe('toon character', () => {
     expect(shadeHex('#808080', 1)).toBe('#808080');
     expect(luma(shadeHex('#336699', 0.5))).toBeLessThan(luma('#336699'));
     expect(luma('#ffffff')).toBeGreaterThan(0.99);
+  });
+});
+
+describe('toon poses', () => {
+  it('builds every pose in both views as well-formed SVG without NaN', () => {
+    for (const style of STYLES) {
+      for (const view of ['front', 'back'] as const) {
+        for (const pose of TOON_POSES) {
+          const svg = toSvg(buildToon({ ...BASE, hairStyle: style }, view, pose));
+          expect(svg).not.toContain('NaN');
+          expect(svg).not.toContain('undefined');
+          expect((svg.match(/<g/g) ?? []).length).toBe((svg.match(/<\/g>/g) ?? []).length);
+        }
+      }
+    }
+  });
+
+  it('every pose differs from the ready pose, and the default pose is ready', () => {
+    const ready = toSvg(buildToon(BASE, 'back'));
+    expect(toSvg(buildToon(BASE, 'back', 'ready'))).toBe(ready);
+    for (const pose of TOON_POSES.filter((p) => p !== 'ready')) expect(toSvg(buildToon(BASE, 'back', pose))).not.toBe(ready);
+  });
+
+  it('keeps the racket hand and the feet inside the picture, and the soles on or above the ground', () => {
+    for (const pose of TOON_POSES) {
+      const P = POSES[pose];
+      expect(P.hand[0]).toBeGreaterThan(-40);
+      expect(P.hand[0]).toBeLessThan(240);
+      // The racket (104 long) held up from the hand must stay below the top of the picture (y -130).
+      expect(P.hand[1] - 104 + P.crouch).toBeGreaterThan(-130);
+      expect(P.left[1]).toBeLessThanOrEqual(304);
+      expect(P.right[1]).toBeLessThanOrEqual(304);
+    }
   });
 });
