@@ -2,11 +2,9 @@ import Phaser from 'phaser';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
 import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
-import { SPRITE_H } from '../art/character';
-import { poseOf, type Facing, type PoseName, type Stance } from '../art/character';
-import { ensureCharacterTexture } from '../art/characterTexture';
+import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
+import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
 import { chooseStance, standingSpot } from '../art/stance';
-import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
@@ -104,6 +102,8 @@ interface ButtonSpec {
 }
 
 const other = (s: SideIndex): SideIndex => (s === 0 ? 1 : 0);
+/** Which toon view to draw: facing the camera or away; a player running sideways keeps the view of his team. */
+const toonViewOf = (facing: Facing, side: SideIndex): 'front' | 'back' => (facing === 'front' || facing === 'back' ? facing : side === 0 ? 'back' : 'front');
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export class MatchScene extends Phaser.Scene {
@@ -378,15 +378,16 @@ export class MatchScene extends Phaser.Scene {
     ([0, 1] as SideIndex[]).forEach((side) => {
       TEAMS[side].forEach((player, idx) => {
         this.pos[player.id] = restPos(side, idx, 'back');
-        const key = ensureCharacterTexture(this, player.appearance, side === 0 ? 'back' : 'front');
-        const sprite = this.add.image(0, 0, key).setOrigin(0.5, 1);
+        const facing: Facing = side === 0 ? 'back' : 'front';
+        const sprite = this.add.image(0, 0, ensureToonPoseTexture(this, player.appearance, toonViewOf(facing, side), 'ready'));
         const label = this.add
           .text(0, 0, '', { fontFamily: BODY, resolution: HD_SCALE, fontSize: '10px', fontStyle: '800', color: '#ffffff', align: 'center' })
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke(NAVY_CSS, 4)
           .setDepth(9000);
         const bar = this.add.graphics().setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing: side === 0 ? 'back' : 'front', busyUntil: 0 };
+        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0 };
+        this.showSprite(player.id);
         this.placeView(player.id);
       });
     });
@@ -397,9 +398,9 @@ export class MatchScene extends Phaser.Scene {
     const v = this.views[id];
     const pos = this.pos[id];
     const p = project(pos.x, pos.z);
-    const scale = (p.scale * VISUAL_HEIGHT_M) / (SPRITE_H * HD_CHARACTER_SCALE);
-    const spriteHeight = SPRITE_H * HD_CHARACTER_SCALE * scale;
-    v.sprite.setPosition(p.x, p.y - v.lift).setScale(scale).setDepth(p.y);
+    const spriteHeight = p.scale * VISUAL_HEIGHT_M;
+    placeToonSprite(v.sprite, p.x, p.y - v.lift, spriteHeight);
+    v.sprite.setDepth(p.y);
     // Hero: name below the feet, bar under the name. Opponents: bar right over the head, name above it.
     const top = p.y - spriteHeight - 2 - v.lift;
     v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : top - GUTS_BAR_H - 3);
@@ -618,12 +619,23 @@ export class MatchScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Puts the right picture on the sprite for the player's pose and facing. The toon has a front and a back view only (no profile):
+   * a runner keeps his team's view. The racket is on the picture's right, so the front view is mirrored: everybody is right-handed.
+   */
+  private showSprite(id: string): void {
+    const v = this.views[id];
+    const view = toonViewOf(v.facing, v.side);
+    v.sprite.setTexture(ensureToonPoseTexture(this, v.player.appearance, view, v.pose));
+    v.sprite.setFlipX(view === 'front');
+  }
+
   /** Shows the player in a pose (a picture drawn once per look, facing and pose). */
   private setPose(id: string, pose: PoseName): void {
     const v = this.views[id];
     if (v.pose === pose) return;
     v.pose = pose;
-    v.sprite.setTexture(ensureCharacterTexture(this, v.player.appearance, v.facing, pose));
+    this.showSprite(id);
   }
 
   private defaultFacing(id: string): Facing {
@@ -634,7 +646,7 @@ export class MatchScene extends Phaser.Scene {
     const v = this.views[id];
     if (v.facing === facing) return;
     v.facing = facing;
-    v.sprite.setTexture(ensureCharacterTexture(this, v.player.appearance, facing, v.pose));
+    this.showSprite(id);
   }
 
   /** A runner looks where he runs: sideways in profile, otherwise towards or away from the camera. */

@@ -162,8 +162,8 @@ const HEAD_SCALE = scaleAbout(1.13, 100, 94);
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
 
-export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'idle'): Op[] {
-  return buildToonLook(lookOf(a), view, pose);
+export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'idle', shadow = true): Op[] {
+  return buildToonLook(lookOf(a), view, pose, shadow);
 }
 
 /** The point of a racket (drawn with its handle end at the local origin, pointing up) that sits in the hand, as a matrix. */
@@ -176,7 +176,7 @@ function racketMatrix(hand: Pt, deg: number): { m: Mat; at: (x: number, y: numbe
   return { m, at: (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] };
 }
 
-export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'idle'): Op[] {
+export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'idle', shadow = true): Op[] {
   const back = view === 'back';
   const sk = L.skin;
   const skd = shadeHex(sk, 0.8);
@@ -186,7 +186,7 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
   const P = POSES[pose];
   const o: Op[] = [];
   const lift = Math.max(0, -P.crouch);
-  o.push(p(ellipsePath(100, 334, 58 - lift * 0.4, 8 - lift * 0.1), { fill: `rgba(11,31,58,${0.22 - lift * 0.003})` }));
+  if (shadow) o.push(p(ellipsePath(100, 334, 58 - lift * 0.4, 8 - lift * 0.1), { fill: `rgba(11,31,58,${0.22 - lift * 0.003})` }));
 
   // legs: hips sink with the crouch, ankles are the targets
   const hips: [Pt, Pt] = [[sx(87), 198 + P.crouch], [sx(113), 198 + P.crouch]];

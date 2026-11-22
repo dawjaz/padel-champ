@@ -1,4 +1,4 @@
-import type { Stance } from './character';
+import type { Stance } from './pose';
 import type { CourtPos, SideIndex } from '../game/types';
 
 /** A ball played at or above this height (m) is taken overhead (smash, bandeja). */

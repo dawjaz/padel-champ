@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.75)_
+_Last updated: 2026-11-22 (v0.76)_
+
+## v0.76: phase 4b, toon characters in the match
+- `MatchScene` now draws the toon characters (`ensureToonPoseTexture`, `placeToonSprite` in `src/art/toonTexture.ts`); textures have no baked shadow (`buildToon(..., shadow=false)`), the scene draws it.
+- New `src/art/pose.ts` holds `Facing`, `PoseName`, `Stance`, `poseOf` (was in the old pixel code).
+- Retired the old pixel character code: `art/character.ts`, `characterTexture.ts`, `hd/characterHd.ts`, `character.test.ts`.
+- No profile views: runners keep their team's front/back view. Front view is mirrored in the match so everybody is right-handed.
+- Next: phase 5 (lighter court/arena, graphic tutorial); possibly real side views.
 
 ## v0.75: toon poses redone from photos of pro players
 - The owner sent reference photos (forehand, backhand, smash). Lessons used: wide base and deep knee bend in every stroke, the racket held in front of the body (both hands in the ready stance), the free arm out or up for balance, smash side-on with the free arm pointing up at the ball and the racket behind the head.
