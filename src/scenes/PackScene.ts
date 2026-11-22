@@ -1,13 +1,12 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio';
 import { drawIcon } from '../art/icons';
-import { COLORS, css, FONT, HD_SCALE, HEIGHT, WIDTH } from '../config';
+import { HEIGHT, WIDTH } from '../config';
 import { SLOT_LABEL } from '../career/gear';
 import type { Drop } from '../career/packs';
-import { applyScreen } from '../hd';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, makeThemeButton, TC, themeText } from '../theme';
 
-const RARITY_COLOR: Record<string, number> = { common: COLORS.gray, rare: COLORS.sky, epic: 0xc060ff, legendary: COLORS.yellow };
+const RARITY_COLOR: Record<string, number> = { common: 0x8d9bb0, rare: TC.blue, epic: 0x9b3df0, legendary: 0xf2a900 };
 const SHORT: Record<string, string> = { power: 'POW', spin: 'SPIN', technique: 'TECH', accuracy: 'ACC', stamina: 'STA', speed: 'SPD', defense: 'DEF' };
 
 interface PackData {
@@ -28,16 +27,16 @@ export class PackScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyScreen(this);
-    logoText(this, WIDTH / 2, 40, this.opened.packName.toUpperCase(), 24, COLORS.yellow);
+    applyLightScreen(this);
+    themeText(this, WIDTH / 2, 44, this.opened.packName.toUpperCase(), { size: 28, color: TC.navy, font: 'display' });
     const cardH = 84;
     const top = 90;
     const step = cardH + 10;
     const text = (x: number, y: number, s: string, size: number, c: number, bold = false, ox = 0): Phaser.GameObjects.Text =>
-      this.add.text(x, y, s, { fontFamily: FONT, resolution: HD_SCALE, fontSize: `${size}px`, fontStyle: bold ? 'bold' : 'normal', color: css(c) }).setOrigin(ox, 0.5);
+      themeText(this, x, y, s, { size, color: c, origin: [ox, 0.5], font: bold ? 'display' : 'body' });
 
-    const hint = text(WIDTH / 2, HEIGHT - 90, 'TAP TO REVEAL', 14, COLORS.white, true, 0.5);
-    const done = makeButton(this, WIDTH / 2, HEIGHT - 48, 200, 46, 'DONE', () => this.scene.start('ShopScene'));
+    const hint = text(WIDTH / 2, HEIGHT - 90, 'TAP TO REVEAL', 14, TC.navy, true, 0.5);
+    const done = makeThemeButton(this, WIDTH / 2, HEIGHT - 48, 200, 46, 'DONE', () => this.scene.start('ShopScene'), 'primary', 20);
     const doneParts = done.parts as Array<Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }>;
     doneParts.forEach((o) => o.setVisible(false));
     done.bg.disableInteractive();
@@ -48,15 +47,15 @@ export class PackScene extends Phaser.Scene {
       const g = this.add.graphics().setPosition(WIDTH / 2, cy);
       const frame = (color: number, width: number): void => {
         g.clear();
-        g.fillStyle(COLORS.panel, 1);
-        g.fillRoundedRect(-165, -cardH / 2, 330, cardH, 10);
-        g.fillStyle(0xffffff, 0.08);
-        g.fillRoundedRect(-161, -cardH / 2 + 3, 322, cardH * 0.35, 8);
+        g.fillStyle(TC.navy, 1);
+        g.fillRoundedRect(-165, -cardH / 2 + 4, 330, cardH, 16);
+        g.fillStyle(TC.white, 1);
+        g.fillRoundedRect(-165, -cardH / 2, 330, cardH, 16);
         g.lineStyle(width, color, 1);
-        g.strokeRoundedRect(-165, -cardH / 2, 330, cardH, 10);
+        g.strokeRoundedRect(-165, -cardH / 2, 330, cardH, 16);
       };
-      frame(COLORS.gray, 2);
-      const q = text(WIDTH / 2, cy, '?', 36, COLORS.gray, true, 0.5);
+      frame(TC.navy, 3);
+      const q = text(WIDTH / 2, cy, '?', 40, TC.blue, true, 0.5);
       // A face-down card waits with a slow pulse.
       const pulse = this.tweens.add({ targets: [g, q], scaleX: 1.02, scaleY: 1.04, duration: 700 + i * 90, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       const burst = (color: number, strong: boolean): void => {
@@ -81,10 +80,10 @@ export class PackScene extends Phaser.Scene {
             const color = RARITY_COLOR[d.item.rarity];
             frame(color, 4);
             t(30, cy - 26, d.item.rarity.toUpperCase(), 11, color, true);
-            t(30, cy - 6, d.item.name.toUpperCase(), 16, COLORS.white, true);
+            t(30, cy - 6, d.item.name.toUpperCase(), 17, TC.navy, true);
             const bonus = Object.entries(d.item.bonus).map(([k, v]) => `+${v} ${SHORT[k]}`).join('  ');
-            t(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, COLORS.yellow, true);
-            t(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? COLORS.gray : COLORS.sky, true);
+            t(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, TC.orange, true);
+            t(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? TC.sub : TC.blue, true);
             const ic = this.add.graphics();
             drawIcon(ic, d.item.slot, 310, cy, 40, color);
             added.push(ic);

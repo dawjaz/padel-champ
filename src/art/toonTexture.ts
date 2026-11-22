@@ -32,3 +32,19 @@ export function addToon(
   img.setDisplaySize(VIEW.w * k, VIEW.h * k);
   return img;
 }
+
+/**
+ * Adds the head and shoulders of a toon character as a portrait: `width` logical pixels wide, top edge at `top`,
+ * centred on `cx`. The picture is cropped from the same texture as the full figure.
+ */
+export function addToonHead(scene: Phaser.Scene, cx: number, top: number, width: number, appearance: Appearance, view: ToonView = 'front', heightFrac = 1): Phaser.GameObjects.Image {
+  const u0 = 28; // region in character units: x 28..172, y -8..122
+  const v0 = -32;
+  const wu = 144;
+  const hu = 150;
+  const k = width / (wu * TEXTURE_UNIT);
+  const img = scene.add.image(cx - width / 2 - (u0 - VIEW.x) * TEXTURE_UNIT * k, top - (v0 - VIEW.y) * TEXTURE_UNIT * k, ensureToonTexture(scene, appearance, view));
+  img.setOrigin(0, 0).setScale(k);
+  img.setCrop((u0 - VIEW.x) * TEXTURE_UNIT, (v0 - VIEW.y) * TEXTURE_UNIT, wu * TEXTURE_UNIT, hu * heightFrac * TEXTURE_UNIT);
+  return img;
+}

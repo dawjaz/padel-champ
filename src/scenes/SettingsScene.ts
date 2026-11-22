@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
-import { applyScreen } from '../hd';
-import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
+import { WIDTH } from '../config';
 import { getSave, resetSave, updateSave } from '../save';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 export class SettingsScene extends Phaser.Scene {
   constructor() {
@@ -10,40 +9,31 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyScreen(this);
-    logoText(this, WIDTH / 2, 80, 'SETTINGS', 36, COLORS.yellow);
+    applyLightScreen(this);
+    screenHeader(this, 'Settings', { onBack: () => this.scene.start('TitleScene') });
 
-    const soundLabel = () => `SOUND: ${getSave().settings.sound ? 'ON' : 'OFF'}`;
-    const sound = makeButton(this, WIDTH / 2, 200, 240, 52, soundLabel(), () => {
+    const soundLabel = (): string => `SOUND: ${getSave().settings.sound ? 'ON' : 'OFF'}`;
+    const sound = makeThemeButton(this, WIDTH / 2, 130, 260, 54, soundLabel(), () => {
       updateSave((d) => ({ ...d, settings: { ...d.settings, sound: !d.settings.sound } }));
       sound.text.setText(soundLabel());
-    });
+    }, 'blue', 20);
 
-    makeButton(this, WIDTH / 2, 260, 240, 52, 'HOW TO PLAY', () => this.scene.start('TutorialScene', { next: 'SettingsScene' }));
+    makeThemeButton(this, WIDTH / 2, 200, 260, 54, 'HOW TO PLAY', () => this.scene.start('TutorialScene', { next: 'SettingsScene' }), 'blue', 20);
 
     let armed = false;
-    const reset = makeButton(this, WIDTH / 2, 340, 240, 52, 'RESET SAVE', () => {
+    const reset = makeThemeButton(this, WIDTH / 2, 300, 260, 54, 'RESET SAVE', () => {
       if (!armed) {
         armed = true;
         reset.text.setText('SURE? TAP AGAIN');
-        reset.setAccent(COLORS.red);
+        reset.text.setColor('#c62828');
         return;
       }
       resetSave();
       armed = false;
       reset.text.setText('SAVE RESET');
-      reset.setAccent(COLORS.white);
-    });
+      reset.text.setColor('#0b2a5b');
+    }, 'secondary', 20);
 
-    this.add
-      .text(WIDTH / 2, 410, 'Reset clears your match\nstats and settings.', {
-        fontFamily: FONT, resolution: HD_SCALE,
-        fontSize: '12px',
-        color: css(COLORS.gray),
-        align: 'center',
-      })
-      .setOrigin(0.5);
-
-    makeButton(this, WIDTH / 2, 540, 240, 52, 'BACK', () => this.scene.start('TitleScene'));
+    themeText(this, WIDTH / 2, 358, 'Reset clears your progress,\nmatch stats and settings.', { size: 12, color: TC.sub, align: 'center' });
   }
 }

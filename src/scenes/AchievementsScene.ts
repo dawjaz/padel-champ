@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
-import { applyScreen } from '../hd';
-import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
+import { WIDTH } from '../config';
 import { ACHIEVEMENTS, progressOf } from '../career/achievements';
 import { getSave } from '../save';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const PER_PAGE = 6;
 
@@ -16,35 +15,48 @@ export class AchievementsScene extends Phaser.Scene {
 
   create(): void {
     this.page = 0;
-    this.cameras.main.fadeIn(220, 8, 8, 24);
-    this.render();
+    this.render(true);
   }
 
-  private render(): void {
+  private render(first = false): void {
     this.children.removeAll(true);
-    applyScreen(this, false);
+    applyLightScreen(this, first);
     const save = getSave();
     const prog = progressOf(save.stats, save.records, save.profile);
-    logoText(this, WIDTH / 2, 50, 'TROPHIES', 30, COLORS.yellow);
-    this.add
-      .text(WIDTH / 2, 86, `${save.achievements.length} / ${ACHIEVEMENTS.length} UNLOCKED`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.sky) })
-      .setOrigin(0.5);
+    screenHeader(this, 'Trophies', { onBack: () => this.scene.start('TitleScene'), coins: save.profile.coins });
+    themeText(this, WIDTH / 2, 78, `${save.achievements.length} / ${ACHIEVEMENTS.length} UNLOCKED`, { size: 12, color: TC.sub, font: 'display' });
     const pages = Math.ceil(ACHIEVEMENTS.length / PER_PAGE);
     ACHIEVEMENTS.slice(this.page * PER_PAGE, (this.page + 1) * PER_PAGE).forEach((a, i) => {
-      const y = 128 + i * 62;
+      const y = 96 + i * 66;
       const done = save.achievements.includes(a.id);
-      this.add.rectangle(WIDTH / 2, y, 330, 54, done ? 0x1d4d2b : 0x000000, done ? 0.9 : 0.45).setStrokeStyle(2, done ? COLORS.yellow : COLORS.gray);
-      this.add.text(24, y - 18, a.name.toUpperCase(), { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', fontStyle: 'bold', color: css(done ? COLORS.yellow : COLORS.white) });
-      this.add.text(24, y + 1, a.desc, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) });
+      const g = this.add.graphics().setPosition(12, y);
+      drawCard(g, WIDTH - 24, 60, { radius: 14, stroke: done ? TC.orange : TC.navy, fill: done ? 0xfff3d6 : TC.white });
+      // Medal
+      const m = this.add.graphics();
+      m.fillStyle(done ? TC.gold : TC.track, 1);
+      m.fillCircle(40, y + 30, 16);
+      m.lineStyle(2.5, TC.navy, 1);
+      m.strokeCircle(40, y + 30, 16);
+      if (done) {
+        m.lineStyle(3.5, TC.navy, 1);
+        m.beginPath();
+        m.moveTo(33, y + 30);
+        m.lineTo(38, y + 36);
+        m.lineTo(48, y + 24);
+        m.strokePath();
+      }
+      themeText(this, 66, y + 17, a.name.toUpperCase(), { size: 14, color: TC.navy, font: 'display', origin: [0, 0.5] });
+      themeText(this, 66, y + 36, a.desc, { size: 10, color: TC.sub, origin: [0, 0.5] });
       const have = Math.min(prog[a.stat], a.n);
-      this.add
-        .text(WIDTH - 24, y - 18, done ? 'DONE' : `${have}/${a.n}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(done ? COLORS.yellow : COLORS.sky) })
-        .setOrigin(1, 0);
-      this.add.text(WIDTH - 24, y + 1, `+${a.coins} COINS`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: css(COLORS.gray) }).setOrigin(1, 0);
+      if (!done) {
+        const b = this.add.graphics();
+        drawBar(b, 66, y + 46, 150, 7, have / a.n, TC.blue);
+      }
+      themeText(this, WIDTH - 24, y + 17, done ? 'DONE' : `${have}/${a.n}`, { size: 12, color: done ? TC.green : TC.blue, font: 'display', origin: [1, 0.5] });
+      themeText(this, WIDTH - 24, y + 38, `+${a.coins} COINS`, { size: 10, color: TC.orange, origin: [1, 0.5] });
     });
-    makeButton(this, 60, 560, 84, 44, '<', () => { this.page = (this.page + pages - 1) % pages; this.render(); });
-    this.add.text(WIDTH / 2 - 30, 560, `${this.page + 1}/${pages}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.white) }).setOrigin(0.5);
-    makeButton(this, 140, 560, 84, 44, '>', () => { this.page = (this.page + 1) % pages; this.render(); });
-    makeButton(this, 276, 560, 130, 44, 'BACK', () => this.scene.start('TitleScene'));
+    makeThemeButton(this, 40, 610, 44, 40, '<', () => { this.page = (this.page + pages - 1) % pages; this.render(); }, 'secondary', 18);
+    themeText(this, 90, 610, `${this.page + 1}/${pages}`, { size: 13, color: TC.navy, font: 'display' });
+    makeThemeButton(this, 140, 610, 44, 40, '>', () => { this.page = (this.page + 1) % pages; this.render(); }, 'secondary', 18);
   }
 }

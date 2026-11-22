@@ -1,11 +1,10 @@
 import Phaser from 'phaser';
-import { applyScreen } from '../hd';
-import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
+import { WIDTH } from '../config';
 import { getSave } from '../save';
 import { tournamentActive } from '../career/careerFlow';
 import type { SideIndex } from '../game/types';
 import { levelOf, levelProgress, type Reward } from '../career/profile';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, drawBar, drawCard, makeThemeButton, TC, themeText } from '../theme';
 
 export interface ResultData {
   winner: SideIndex;
@@ -34,21 +33,20 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(): void {
-    applyScreen(this);
+    applyLightScreen(this);
     const won = this.outcome.winner === 0;
-    logoText(this, WIDTH / 2, 110, won ? 'YOU WIN!' : 'YOU LOSE', 48, won ? COLORS.yellow : COLORS.red);
+    const text = (y: number, s: string, size: number, color: number, display = true, align: 'center' | 'left' = 'center'): Phaser.GameObjects.Text =>
+      themeText(this, WIDTH / 2, y, s, { size, color, font: display ? 'display' : 'body', align });
 
-    this.add
-      .text(WIDTH / 2, 190, `${this.outcome.games[0]} - ${this.outcome.games[1]}`, {
-        fontFamily: FONT, resolution: HD_SCALE,
-        fontSize: '40px',
-        fontStyle: 'bold',
-        color: css(COLORS.white),
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(WIDTH / 2, 232, 'GAMES', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) })
-      .setOrigin(0.5);
+    // Big result banner
+    const ban = this.add.graphics().setPosition(30, 52);
+    drawCard(ban, WIDTH - 60, 84, { radius: 22, fill: won ? TC.gold : TC.white, shadow: 5 });
+    text(94, won ? 'YOU WIN!' : 'YOU LOSE', 46, won ? TC.navy : 0xc62828);
+    // Score
+    const sc = this.add.graphics().setPosition(WIDTH / 2 - 80, 156);
+    drawCard(sc, 160, 78, { radius: 18 });
+    text(188, `${this.outcome.games[0]} - ${this.outcome.games[1]}`, 40, TC.navy);
+    text(220, 'GAMES', 11, TC.sub, false);
 
     const fin = this.outcome.finished;
     const summary = fin
@@ -57,16 +55,7 @@ export class ResultScene extends Phaser.Scene {
         ? 'ROUND WON: THE TOURNAMENT GOES ON'
         : '';
     // A quick match is a sparring: no summary line at all.
-    if (summary !== '') {
-      this.add
-        .text(WIDTH / 2, 296, summary, {
-          fontFamily: FONT, resolution: HD_SCALE,
-          fontSize: '16px',
-          color: css(COLORS.sky),
-          align: 'center',
-        })
-        .setOrigin(0.5);
-    }
+    if (summary !== '') text(290, summary, 15, TC.navy, true).setLineSpacing(2);
 
     const prof = getSave().profile;
     // While a tournament is going on nothing about the hero changes or is shown (XP, level, free packs): that comes with the
@@ -77,47 +66,35 @@ export class ResultScene extends Phaser.Scene {
     const lvl = levelOf(prof.xp);
     const rw = this.outcome.reward;
     if (!hideProgress) {
-      if (rw) {
-        this.add
-          .text(WIDTH / 2, 352, `${fin ? 'MATCHES  ' : ''}+${rw.xp} XP    +${rw.coins} COINS`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '16px', fontStyle: 'bold', color: css(COLORS.yellow) })
-          .setOrigin(0.5);
-      }
-      this.add
-        .text(WIDTH / 2, 378, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '14px', fontStyle: 'bold', color: css(this.outcome.levelUp ? COLORS.yellow : COLORS.white) })
-        .setOrigin(0.5);
-      if (this.outcome.packs) {
-        this.add
-          .text(WIDTH / 2, 416, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.sky) })
-          .setOrigin(0.5);
-      }
-      this.add.rectangle(WIDTH / 2, 398, 200, 8, 0x000000, 0.5).setStrokeStyle(1, COLORS.white);
-      const barW = Math.round(198 * levelProgress(prof.xp));
-      if (barW > 0) this.add.rectangle(WIDTH / 2 - 99, 398, barW, 6, COLORS.sky).setOrigin(0, 0.5);
+      if (rw) text(344, `${fin ? 'MATCHES  ' : ''}+${rw.xp} XP    +${rw.coins} COINS`, 15, TC.orange);
+      text(368, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, 14, this.outcome.levelUp ? TC.orange : TC.navy);
+      const bar = this.add.graphics();
+      drawBar(bar, WIDTH / 2 - 100, 384, 200, 12, levelProgress(prof.xp), TC.orange);
+      if (this.outcome.packs) text(412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {
-      this.add
-        .text(WIDTH / 2, 590, `ACHIEVEMENT!\n${trophies.slice(0, 2).join('\n')}${trophies.length > 2 ? `\n+${trophies.length - 2} MORE` : ''}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '11px', fontStyle: 'bold', color: css(COLORS.yellow), align: 'center' })
-        .setOrigin(0.5, 0);
+      const t = text(594, `ACHIEVEMENT!\n${trophies.slice(0, 2).join('\n')}${trophies.length > 2 ? `\n+${trophies.length - 2} MORE` : ''}`, 11, TC.orange);
+      t.setOrigin(0.5, 0);
     }
 
-    const small = (b: { text: Phaser.GameObjects.Text }): void => void b.text.setFontSize(15);
+    const small = (x: number, y: number, w: number, h: number, label: string, to: string): void => void makeThemeButton(this, x, y, w, h, label, () => this.scene.start(to), 'blue', 15);
     if (this.outcome.career) {
-      makeButton(this, WIDTH / 2, 448, 240, 48, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'));
+      makeThemeButton(this, WIDTH / 2, 448, 250, 50, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'), 'primary', 22);
     } else {
-      makeButton(this, WIDTH / 2, 448, 240, 48, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }));
+      makeThemeButton(this, WIDTH / 2, 448, 250, 50, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }), 'primary', 22);
     }
     if (locked) {
       // A tournament is still going on: no hero, gear or shop.
-      makeButton(this, WIDTH / 2, 510, 240, 48, 'MAIN MENU', () => this.scene.start('TitleScene'));
+      makeThemeButton(this, WIDTH / 2, 510, 250, 48, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 18);
     } else if (fin) {
       // The tournament is over: now the hero can be upgraded and the shop is open.
-      small(makeButton(this, WIDTH / 2 - 62, 502, 116, 44, 'HERO', () => this.scene.start('CharacterScene')));
-      small(makeButton(this, WIDTH / 2 + 62, 502, 116, 44, 'GO TO SHOP', () => this.scene.start('ShopScene')));
-      makeButton(this, WIDTH / 2, 554, 240, 44, 'MAIN MENU', () => this.scene.start('TitleScene'));
+      small(WIDTH / 2 - 64, 508, 120, 44, 'HERO', 'CharacterScene');
+      small(WIDTH / 2 + 64, 508, 120, 44, 'GO TO SHOP', 'ShopScene');
+      makeThemeButton(this, WIDTH / 2, 558, 250, 40, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 16);
     } else {
-      small(makeButton(this, WIDTH / 2 - 62, 510, 116, 48, 'HERO', () => this.scene.start('CharacterScene')));
-      small(makeButton(this, WIDTH / 2 + 62, 510, 116, 48, 'MAIN MENU', () => this.scene.start('TitleScene')));
+      small(WIDTH / 2 - 64, 510, 120, 48, 'HERO', 'CharacterScene');
+      makeThemeButton(this, WIDTH / 2 + 64, 510, 120, 48, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 15);
     }
   }
 }

@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.66)_
+_Last updated: 2026-11-22 (v0.67)_
+
+## v0.67: new look, step 2 (all menu screens) + Spanish/English names
+- **Names**: players, partners and opponents renamed to Spanish/English names (display names only; ids and stats unchanged, so saves keep working).
+- **Phase 2 done**: Hero (stat rows with bars, gear bonus in orange, level-cap shading), Gear (slot tiles beside the hero in the toon look, brand tabs and model cards in a sheet below), Partners (tiles with head portraits, rating, four bars, action button in a footer), Shop, Packs, Calendar, Bracket, Result, Settings, Tutorial and Trophies all use `src/theme.ts`. Game logic untouched. Only the Match scene (and the old pixel characters in it) still has the old look.
+- New helper `addToonHead(scene, cx, top, width, appearance, view, heightFrac)` in `toonTexture.ts` (portrait crop of the toon texture).
+- Dev server only: `window.__game` is exposed in `main.ts` so screenshot scripts can start any scene (`g.scene.start(name, data)`).
+- Screens were checked in headless Chromium at 360x640 (no page errors). Hero, Gear and Partners were adjusted after the first look; the other screens got only one pass, so expect small spacing tweaks after a look on the phone.
+- Next: **priority 0 bug** (ball after a serve fault bounces off the glass and hits the net fast), then phase 3 (match UI).
 
 ## v0.66: new "broadcast" look, step 1 (theme, toon characters, new title screen)
 The owner chose style **E** from the mock-ups (light sports-TV look: navy outlines with a hard offset shadow, rounded cards, orange/blue accents, Baloo 2 + Nunito, characters about 4.5 heads tall with flat cel shading, Mario-Tennis-ish cartoon, not "jelly"). Details and the migration plan: `docs/STYLE.md`. Mock-ups: row E of https://claude.ai/artifact/S7BKaxH2Wxz9Kv8nwzVFTM .

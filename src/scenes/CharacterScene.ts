@@ -1,18 +1,16 @@
 import Phaser from 'phaser';
-import { ensureCharacterTexture } from '../art/characterTexture';
-import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
+import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
-import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
+import { WIDTH } from '../config';
 import { gearBonus } from '../career/gear';
 import { canSpend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { PlayerDef, StatKey } from '../game/types';
-import { applyScreen } from '../hd';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const HERO = (playersData.you as unknown as PlayerDef[])[0];
 
@@ -27,7 +25,7 @@ const LABEL: Record<StatKey, string> = {
 };
 const HINT: Record<StatKey, string> = {
   power: 'ball speed, hard shots',
-  spin: 'curve and bounce, vibora',
+  spin: 'curve, bounce, vibora',
   technique: 'fewer errors',
   accuracy: 'finds the gap',
   stamina: 'guts and recovery',
@@ -48,23 +46,18 @@ export class CharacterScene extends Phaser.Scene {
       this.scene.start('TitleScene');
       return;
     }
-    applyScreen(this);
-    logoText(this, WIDTH / 2, 34, 'HERO', 34, COLORS.yellow);
-    const key = ensureCharacterTexture(this, HERO.appearance, 'front');
-    this.add.image(58, 150, key).setOrigin(0.5, 1).setScale(1.9 / HD_CHARACTER_SCALE);
-    makeButton(this, 62, 596, 104, 44, 'RESET', () => {
+    applyLightScreen(this);
+    screenHeader(this, 'Hero', { onBack: () => this.scene.start('TitleScene'), coins: getSave().profile.coins });
+    makeThemeButton(this, 96, 614, 164, 40, 'RESET POINTS', () => {
       updateSave((d) => ({ ...d, profile: respec(d.profile) }));
-      this.redraw();
-    });
-    makeButton(this, WIDTH / 2, 596, 104, 44, 'GEAR', () => this.scene.start('GearScene'));
-    makeButton(this, WIDTH - 62, 596, 104, 44, 'BACK', () => this.scene.start('TitleScene'));
+      this.scene.restart();
+    }, 'secondary', 15);
+    makeThemeButton(this, WIDTH - 96, 614, 164, 40, 'GEAR', () => this.scene.start('GearScene'), 'blue', 17);
     this.redraw();
   }
 
-  private text(x: number, y: number, str: string, size: number, color: number, bold = false, originX = 0.5): Phaser.GameObjects.Text {
-    const t = this.add
-      .text(x, y, str, { fontFamily: FONT, resolution: HD_SCALE, fontSize: `${size}px`, fontStyle: bold ? 'bold' : 'normal', color: css(color) })
-      .setOrigin(originX, 0.5);
+  private text(x: number, y: number, str: string, size: number, color: number, originX = 0.5, display = false): Phaser.GameObjects.Text {
+    const t = themeText(this, x, y, str, { size, color, origin: [originX, 0.5], font: display ? 'display' : 'body' });
     this.dyn.push(t);
     return t;
   }
@@ -76,51 +69,81 @@ export class CharacterScene extends Phaser.Scene {
     const level = levelOf(p.xp);
     const free = freePoints(p);
 
-    this.text(110, 96, `${HERO.name.toUpperCase()}  LEVEL ${level}`, 18, COLORS.white, true, 0);
-    const bar = this.add.rectangle(110, 122, 200, 10, 0x000000, 0.5).setOrigin(0, 0.5).setStrokeStyle(1, COLORS.white);
-    this.dyn.push(bar);
-    const w = Math.round(198 * levelProgress(p.xp));
-    if (w > 0) this.dyn.push(this.add.rectangle(111, 122, w, 8, COLORS.sky).setOrigin(0, 0.5));
-    const next = level >= levels.maxLevel ? 'MAX LEVEL' : `XP ${p.xp} / ${xpToReach(level + 1)}`;
-    this.text(110, 142, next, 11, COLORS.gray, false, 0);
-    this.text(310, 142, `COINS ${p.coins}`, 12, COLORS.yellow, true, 1);
+    // Top card: the hero, name, level badge, XP bar with numbers.
+    const top = this.add.graphics().setPosition(12, 66);
+    drawCard(top, WIDTH - 24, 92);
+    this.dyn.push(top);
+    this.dyn.push(addToon(this, 52, 150, 76, HERO.appearance, 'front'));
+    const name = this.text(100, 90, HERO.name.toUpperCase(), 22, TC.navy, 0, true);
+    const bx = 100 + name.width + 8;
+    const badge = this.add.graphics();
+    badge.fillStyle(TC.gold, 1);
+    badge.fillRoundedRect(bx, 79, 56, 22, 11);
+    badge.lineStyle(2, TC.navy, 1);
+    badge.strokeRoundedRect(bx, 79, 56, 22, 11);
+    this.dyn.push(badge);
+    this.text(bx + 28, 90, `LVL ${level}`, 12, TC.navy);
+    this.text(100, 123, 'XP', 12, TC.orange, 0);
+    const xb = this.add.graphics();
+    drawBar(xb, 120, 116, 130, 14, levelProgress(p.xp), TC.orange);
+    this.dyn.push(xb);
+    this.text(332, 123, level >= levels.maxLevel ? 'MAX' : `${p.xp.toLocaleString('en-US')} / ${xpToReach(level + 1).toLocaleString('en-US')}`, 11, TC.navy, 1);
 
-    this.text(WIDTH / 2, 186, free > 0 ? `${free} SKILL POINT${free === 1 ? '' : 'S'} TO SPEND` : 'NO FREE SKILL POINTS', 14, free > 0 ? COLORS.yellow : COLORS.gray, true);
+    // Skill points ribbon.
+    const ribbon = this.add.graphics();
+    ribbon.fillStyle(free > 0 ? TC.orange : TC.track, 1);
+    ribbon.fillRoundedRect(12, 168, WIDTH - 24, 24, 12);
+    ribbon.lineStyle(2, TC.navy, 1);
+    ribbon.strokeRoundedRect(12, 168, WIDTH - 24, 24, 12);
+    this.dyn.push(ribbon);
+    this.text(WIDTH / 2, 180, free > 0 ? `${free} SKILL POINT${free === 1 ? '' : 'S'} TO SPEND` : 'NO FREE SKILL POINTS', 13, free > 0 ? TC.white : TC.sub);
 
     const cap = statCap(level);
     const gear = gearBonus(p.inventory);
+    const max = levels.statMax;
     STAT_KEYS.forEach((k, i) => {
-      const y = 232 + i * 48;
+      const y = 192 + i * 54;
       const v = statValue(p, k);
+      const row = this.add.graphics().setPosition(12, y);
+      drawCard(row, WIDTH - 24, 50, { radius: 14 });
+      this.dyn.push(row);
       const ic = this.add.graphics();
-      drawIcon(ic, k, 30, y, 24, COLORS.sky);
+      ic.fillStyle(TC.blue, 1);
+      ic.fillRoundedRect(20, y + 8, 36, 36, 10);
+      ic.lineStyle(2, TC.navy, 1);
+      ic.strokeRoundedRect(20, y + 8, 36, 36, 10);
+      drawIcon(ic, k, 38, y + 26, 22, TC.white);
       this.dyn.push(ic);
-      this.text(48, y - 8, LABEL[k], 14, COLORS.white, true, 0);
-      this.text(48, y + 9, HINT[k], 10, COLORS.gray, false, 0);
+      this.text(64, y + 17, LABEL[k], 14, TC.navy, 0, true);
+      this.text(64, y + 36, HINT[k], 10, TC.sub, 0);
+      // Bar: value in blue, gear bonus in orange, the part above the level cap shaded.
+      const bx0 = 172;
+      const bw = 92;
       const g = this.add.graphics();
-      this.dyn.push(g);
-      for (let s = 0; s < levels.statMax; s++) {
-        const x = 138 + s * 14;
-        const filled = s < v;
-        g.fillStyle(filled ? COLORS.sky : 0x000000, filled ? 1 : 0.45);
-        g.fillRect(x, y - 9, 11, 18);
-        if (s >= cap) {
-          g.fillStyle(COLORS.red, 0.35);
-          g.fillRect(x, y - 9, 11, 18);
-        }
+      drawBar(g, bx0, y + 20, bw, 14, v / max, TC.blue);
+      const bonus = Math.min(gear[k], max - v);
+      if (bonus > 0) {
+        g.fillStyle(TC.orange, 1);
+        g.fillRoundedRect(bx0 + 1 + (bw - 2) * (v / max), y + 21, (bw - 2) * (bonus / max), 12, 3);
       }
-      this.text(280, y, String(v), 14, COLORS.white, true, 0.5);
-      if (gear[k] > 0) this.text(296, y, `+${gear[k]}`, 12, COLORS.yellow, true, 0);
+      if (cap < max) {
+        g.fillStyle(TC.navy, 0.16);
+        g.fillRect(bx0 + 1 + (bw - 2) * (cap / max), y + 21, (bw - 2) * (1 - cap / max), 12);
+        g.lineStyle(2, TC.navy, 0.8);
+        g.lineBetween(bx0 + 1 + (bw - 2) * (cap / max), y + 18, bx0 + 1 + (bw - 2) * (cap / max), y + 36);
+      }
+      this.dyn.push(g);
+      this.text(270, y + 26, String(v), 16, TC.navy, 0, true);
+      if (gear[k] > 0) this.text(286, y + 26, `+${gear[k]}`, 12, TC.orange, 0);
       const ok = canSpend(p, k);
-      const b = makeButton(this, 330, y, 36, 36, '+', () => {
+      const b = makeThemeButton(this, 326, y + 25, 36, 36, '+', () => {
         updateSave((d) => ({ ...d, profile: spend(d.profile, k) }));
         this.redraw();
-      });
-      b.setAccent(ok ? COLORS.yellow : COLORS.gray);
+      }, ok ? 'primary' : 'secondary', 24);
       b.text.setAlpha(ok ? 1 : 0.35);
       if (!ok) b.bg.disableInteractive();
       this.dyn.push(...b.parts);
     });
-    this.text(WIDTH / 2, 566, `RED SEGMENTS UNLOCK WITH LEVEL (CAP NOW ${cap})`, 10, COLORS.gray);
+    this.text(WIDTH / 2, 580, `SHADED PART OF THE BAR UNLOCKS WITH LEVEL (CAP NOW ${cap})`, 10, TC.sub);
   }
 }

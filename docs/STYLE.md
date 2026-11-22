@@ -13,7 +13,7 @@
 
 ## Migration phases
 1. DONE (v0.66): theme, fonts, toon characters (ready pose, front and back), title screen.
-2. Menu screens: Hero (with attribute bars), Gear (outfit layout with slot tiles), Partner (tiles), Shop and Packs, Calendar, Bracket, Result, Settings, Tutorial, Achievements. Add `build` (body width) to `Appearance` if wanted. Replace `applyScreen` backdrops by `applyLightScreen`.
+2. DONE (v0.67): menu screens: Hero (with attribute bars), Gear (outfit layout with slot tiles), Partner (tiles), Shop and Packs, Calendar, Bracket, Result, Settings, Tutorial, Achievements. Add `build` (body width) to `Appearance` if wanted. Replace `applyScreen` backdrops by `applyLightScreen`.
 3. Match scene UI: scoreboard, buttons, chips, guts bars, receive/toss screens in the new theme (court stays the current arena at first, then a lighter one).
 4. Match characters: new poses for toon characters (run, forehand, backhand, smash: prepare, hit, follow-through) and sizes on the court (they are bigger than the old sprites); then retire `character.ts` / `hd/characterHd.ts`.
 5. Court and arena: lighter look to match the UI; tutorial in graphic form (plan point 9) in the new style.

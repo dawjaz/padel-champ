@@ -3,7 +3,7 @@
  "partners": [
   {
    "id": "olek",
-   "name": "Olek",
+   "name": "Oliver",
    "stats": {
     "power": 4,
     "spin": 3,
@@ -29,7 +29,7 @@
   },
   {
    "id": "lena",
-   "name": "Lena",
+   "name": "Elena",
    "stats": {
     "power": 4,
     "spin": 4,
@@ -55,7 +55,7 @@
   },
   {
    "id": "tomek",
-   "name": "Tomek",
+   "name": "Tom",
    "stats": {
     "power": 7,
     "spin": 4,
@@ -134,7 +134,7 @@
   },
   {
    "id": "kasia",
-   "name": "Kasia",
+   "name": "Claire",
    "stats": {
     "power": 5,
     "spin": 6,
@@ -186,7 +186,7 @@
   },
   {
    "id": "ivan",
-   "name": "Ivan",
+   "name": "Ian",
    "stats": {
     "power": 10,
     "spin": 8,

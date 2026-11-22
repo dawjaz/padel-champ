@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
-import { applyScreen } from '../hd';
-import { COLORS, css, FONT, WIDTH, HD_SCALE } from '../config';
+import { WIDTH } from '../config';
 import { updateSave } from '../save';
-import { logoText, makeButton } from '../ui';
+import { applyLightScreen, drawCard, makeThemeButton, TC, themeText } from '../theme';
 
 const PAGES: Array<{ title: string; lines: string[] }> = [
   { title: 'THE POINT', lines: ['Padel is played in pairs, with', 'walls. Every ball you hit has to', 'cross the net and bounce in the', 'court before it touches anything.', '', 'You choose each shot from a menu:', 'pick the TYPE, then the SHOT,', 'then the DIRECTION.'] },
@@ -26,7 +25,6 @@ export class TutorialScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.fadeIn(220, 8, 8, 24);
     this.render();
   }
 
@@ -37,20 +35,26 @@ export class TutorialScene extends Phaser.Scene {
 
   private render(): void {
     this.children.removeAll(true);
-    applyScreen(this, false);
+    applyLightScreen(this, false);
     const p = PAGES[this.page];
-    logoText(this, WIDTH / 2, 70, 'HOW TO PLAY', 30, COLORS.yellow);
-    logoText(this, WIDTH / 2, 130, p.title, 22, COLORS.white);
-    this.add.rectangle(WIDTH / 2, 300, 330, 230, 0x000000, 0.5).setStrokeStyle(2, COLORS.sky);
-    this.add
-      .text(WIDTH / 2, 300, p.lines.join('\n'), { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', color: css(COLORS.white), align: 'center', lineSpacing: 4 })
-      .setOrigin(0.5);
-    this.add.text(WIDTH / 2, 440, `${this.page + 1} / ${PAGES.length}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', color: css(COLORS.gray) }).setOrigin(0.5);
+    themeText(this, WIDTH / 2, 56, 'HOW TO PLAY', { size: 30, color: TC.navy, font: 'display' });
+    themeText(this, WIDTH / 2, 112, p.title, { size: 20, color: TC.orange, font: 'display' });
+    const card = this.add.graphics().setPosition(15, 144);
+    drawCard(card, 330, 262, { radius: 18 });
+    themeText(this, WIDTH / 2, 275, p.lines.join('\n'), { size: 14, color: TC.navy, align: 'center', weight: '700' }).setLineSpacing(5);
+    // Page dots
+    PAGES.forEach((_, i) => {
+      const d = this.add.graphics();
+      d.fillStyle(i === this.page ? TC.orange : TC.sky, 1);
+      d.fillCircle(WIDTH / 2 + (i - (PAGES.length - 1) / 2) * 18, 434, 5);
+      d.lineStyle(1.5, TC.navy, 1);
+      d.strokeCircle(WIDTH / 2 + (i - (PAGES.length - 1) / 2) * 18, 434, 5);
+    });
     const last = this.page === PAGES.length - 1;
-    makeButton(this, WIDTH / 2, 490, 240, 48, last ? 'LET\'S PLAY' : 'NEXT', () => {
+    makeThemeButton(this, WIDTH / 2, 494, 260, 54, last ? "LET'S PLAY" : 'NEXT', () => {
       if (last) this.finish();
       else { this.page++; this.render(); }
-    });
-    makeButton(this, WIDTH / 2, 550, 240, 40, 'SKIP', () => this.finish());
+    }, 'primary', 22);
+    makeThemeButton(this, WIDTH / 2, 556, 160, 40, 'SKIP', () => this.finish(), 'secondary', 15);
   }
 }

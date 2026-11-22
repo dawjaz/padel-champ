@@ -21,7 +21,7 @@ import { SettingsScene } from './scenes/SettingsScene';
 import { TitleScene } from './scenes/TitleScene';
 
 // Portrait layout (360x640 logical), drawn on a canvas HD_SCALE times bigger and scaled to fit any screen.
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: WIDTH * HD_SCALE,
@@ -37,3 +37,6 @@ new Phaser.Game({
   // The first scene in the list starts automatically.
   scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, TutorialScene],
 });
+
+// Dev server only: lets screenshot scripts jump to a scene.
+if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;
