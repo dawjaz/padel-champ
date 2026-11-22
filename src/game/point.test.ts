@@ -204,7 +204,7 @@ describe('blocks at the net', () => {
   const net: [Formation, Formation] = ['back', 'net'];
   it('has a defender at the net block a flat shot or a vibora out of the air', () => {
     for (const id of ['vibora', 'bounce_shot', 'bandeja']) {
-      const st = rallyState({ formation: net, ball: { height: id === 'bounce_shot' ? 'low' : 'high', pressure: 0, air: true } });
+      const st = rallyState({ formation: net, ball: { height: id === 'bounce_shot' ? 'low' : 'high', pressure: 0, ...(id === 'bounce_shot' ? {} : { air: true }) } });
       let seen = 0;
       for (let seed = 1; seed <= 60; seed++) {
         const r = stepHit(TEAMS, st, shot(id), 'cross', seededRng(seed));
@@ -496,11 +496,14 @@ describe('the net player volleys', () => {
       expect(ids.includes('bajada_fast'), 'bajada').toBe(glass);
     }
   });
-  it('a weak lob is played out of the air: bandeja and smash are offered', () => {
-    const st = rallyState({ formation: ['net', 'net'], ball: { height: 'high', pressure: 0, zone: 'mid', lob: 'weak', glass: false, air: true } });
-    const ids = playableShots(shotsOfKind('rally'), st).map((s) => s.id);
-    expect(ids).toContain('bandeja');
-    expect(ids).toContain('smash_x3');
+  it('a weak lob is played out of the air: the smashes at the net, bandeja and vibora in mid-court', () => {
+    const ball = { height: 'high' as const, pressure: 0, zone: 'mid' as const, lob: 'weak' as const, glass: false, air: true };
+    const atNet = playableShots(shotsOfKind('rally'), rallyState({ formation: ['net', 'net'], ball })).map((s) => s.id);
+    expect(atNet).toContain('smash_x3');
+    expect(atNet).not.toContain('bandeja');
+    const mid = playableShots(shotsOfKind('rally'), rallyState({ formation: ['mid', 'mid'], ball })).map((s) => s.id);
+    expect(mid).toContain('bandeja');
+    expect(mid).toContain('vibora');
   });
   it('whatever the lob does, a ball that has bounced never offers a shot from the air (many random lobs)', () => {
     const lob = shotsOfKind('rally').find((x) => x.id === 'rally_lob')!;
@@ -513,7 +516,7 @@ describe('the net player volleys', () => {
     }
   });
   it('the ball remembers how fast it was sent', () => {
-    const st = rallyState({ formation: ['back', 'back'] });
+    const st = rallyState({ formation: ['back', 'back'], ball: { height: 'mid', pressure: 0, zone: 'mid' } });
     for (let seed = 1; seed < 40; seed++) {
       const r = stepHit(TEAMS, st, shot('bounce_shot'), 'cross', seededRng(seed));
       if (r.step.outcome === 'continue') {
@@ -593,7 +596,7 @@ describe('rebound back over the net', () => {
   });
   it('the flat shot never flies back over the net, even when it beats the defence by a lot', () => {
     for (let seed = 1; seed < 3000; seed++) {
-      const r = stepHit(TEAMS, rallyState(), shot('bounce_shot'), 'cross', seededRng(seed));
+      const r = stepHit(TEAMS, rallyState({ ball: { height: 'mid', pressure: 0, zone: 'mid' } }), shot('bounce_shot'), 'cross', seededRng(seed));
       expect(r.step.reboundBack).toBeUndefined();
     }
   });
@@ -749,5 +752,103 @@ describe('serve: the receiver is too late', () => {
     }
     expect(aces).toBeGreaterThan(0);
     expect(faults).toBeGreaterThan(0);
+  });
+});
+
+describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared, block', () => {
+  const ids = (st: PointState): string[] => playableShots(shotsOfKind('rally'), st).map((x) => x.id);
+  const air = { height: 'high' as const, pressure: 0, zone: 'mid' as const, air: true };
+
+  it('bandeja and vibora: from the middle or the back of the court, only out of the air', () => {
+    for (const f of ['mid', 'back'] as Formation[]) {
+      const st = rallyState({ formation: [f, 'back'], ball: air });
+      expect(ids(st), f).toContain('bandeja');
+      expect(ids(st), f).toContain('vibora');
+      // after the bounce: neither
+      const bounced = rallyState({ formation: [f, 'back'], ball: { height: 'high', pressure: 0, zone: 'back', lob: 'deep' } });
+      expect(ids(bounced), f).not.toContain('bandeja');
+      expect(ids(bounced), f).not.toContain('vibora');
+    }
+    const net = rallyState({ formation: ['net', 'back'], ball: air });
+    expect(ids(net)).not.toContain('bandeja');
+    expect(ids(net)).not.toContain('vibora');
+  });
+
+  it('flat shot: only after the bounce', () => {
+    const ball = { height: 'low' as const, pressure: 0, zone: 'mid' as const };
+    expect(ids(rallyState({ formation: ['back', 'back'], ball }))).toContain('bounce_shot');
+    expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, air: true } }))).not.toContain('bounce_shot');
+  });
+
+  it('dejada: at the net or mid-court, low or mid ball, not off the glass, opponents not at the net', () => {
+    const ball = { height: 'mid' as const, pressure: 0, zone: 'mid' as const, air: true };
+    for (const f of ['net', 'mid'] as Formation[]) {
+      for (const opp of ['back', 'mid'] as Formation[]) expect(ids(rallyState({ formation: [f, opp], ball })), `${f} vs ${opp}`).toContain('dejada');
+    }
+    expect(ids(rallyState({ formation: ['back', 'back'], ball }))).not.toContain('dejada');
+    expect(ids(rallyState({ formation: ['net', 'net'], ball }))).not.toContain('dejada');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball: { ...ball, height: 'high' } }))).not.toContain('dejada');
+    expect(ids(rallyState({ formation: ['mid', 'back'], ball: { ...ball, glass: true } }))).not.toContain('dejada');
+    // also after the bounce
+    expect(ids(rallyState({ formation: ['mid', 'back'], ball: { height: 'low', pressure: 0, zone: 'net' } }))).toContain('dejada');
+  });
+
+  it('dejada beats a defender at the back more often than one at the net', () => {
+    const wins = (def: Formation): number => {
+      let n = 0;
+      for (let seed = 1; seed <= 400; seed++) {
+        const st = rallyState({ formation: ['net', def], ball: { height: 'mid', pressure: 0, zone: 'mid', air: true } });
+        const r = stepHit(TEAMS, st, shot('dejada'), 'cross', seededRng(seed), undefined, { ignoreRequires: true });
+        if (r.step.outcome === 'winner') n++;
+      }
+      return n;
+    };
+    expect(wins('back')).toBeGreaterThan(wins('net'));
+  });
+
+  it('contrapared: not at the net, after the bounce, low or mid, with a ball that comes down by a side wall', () => {
+    const ball = { height: 'mid' as const, pressure: 0, zone: 'mid' as const, nearWall: true };
+    expect(ids(rallyState({ formation: ['back', 'back'], ball }))).toContain('contrapared');
+    expect(ids(rallyState({ formation: ['mid', 'back'], ball }))).toContain('contrapared');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball }))).not.toContain('contrapared');
+    expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, nearWall: undefined } }))).not.toContain('contrapared');
+    expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, air: true } }))).not.toContain('contrapared');
+    expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, glass: true } }))).not.toContain('contrapared');
+    expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, height: 'high' } }))).not.toContain('contrapared');
+  });
+
+  it('contrapared is always played cross', () => {
+    expect(shot('contrapared').fixedDirection).toBe('cross');
+    expect(shot('contrapared').ownWall).toBe(true);
+  });
+
+  it('a ball sent down the line (parallel) comes down by the wall; a cross ball does not', () => {
+    const st = rallyState({ holder: 1, hitterIdx: 0, formation: ['back', 'back'], ball: { height: 'mid', pressure: 0, zone: 'mid' } });
+    let near = 0, far = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const p = stepHit(TEAMS, st, shot('bounce_shot'), 'parallel', seededRng(seed), undefined, { ignoreRequires: true });
+      const c = stepHit(TEAMS, st, shot('bounce_shot'), 'cross', seededRng(seed), undefined, { ignoreRequires: true });
+      if (p.step.outcome === 'continue' && p.state.ball.nearWall) near++;
+      if (c.step.outcome === 'continue' && c.state.ball.nearWall) far++;
+    }
+    expect(near).toBeGreaterThan(far);
+    expect(near).toBeGreaterThan(20);
+  });
+
+  it('block: at the net, out of the air, low or mid, only against a hard ball', () => {
+    const ball = { height: 'mid' as const, pressure: 0, zone: 'net' as const, air: true, speed: 27 };
+    expect(ids(rallyState({ formation: ['net', 'back'], ball }))).toContain('bloqueo');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball: { ...ball, speed: 15 } }))).not.toContain('bloqueo');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball: { ...ball, speed: undefined } }))).not.toContain('bloqueo');
+    expect(ids(rallyState({ formation: ['mid', 'back'], ball }))).not.toContain('bloqueo');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball: { ...ball, air: undefined } }))).not.toContain('bloqueo');
+    expect(ids(rallyState({ formation: ['net', 'back'], ball: { ...ball, height: 'high' } }))).not.toContain('bloqueo');
+  });
+
+  it('a block is not weakened by the pressure of a hard ball, a volley is; the volley is the stronger attack', () => {
+    expect(shot('bloqueo').ignorePressure).toBe(true);
+    expect(shot('volley').power).toBeGreaterThan(shot('bloqueo').power);
+    expect(shot('volley').flight.speed).toBeGreaterThanOrEqual(26);
+    expect(shot('volley').flight.speed).toBeGreaterThan(shot('bloqueo').flight.speed);
   });
 });

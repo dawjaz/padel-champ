@@ -62,8 +62,15 @@ automatically from their stats.
   flies over the back glass, otherwise it comes back off the glass or the mesh.
 - **Ball off the back glass** rebounds low, medium or high. Medium/high: **Bajada** (High Speed or Low Speed) is possible. Low: only Lob (risky),
   Flat shot or Chiquita.
-- **Vibora** and **Bandeja**: a high ball (or lob) falling to mid or back court, not after the glass. **Volley**: only if the ball
-  has not come off the back glass.
+- **Vibora** and **Bandeja**: only out of the air (never after a bounce), from mid-court or the back (not at the net), not off the glass.
+  Vibora on a mid or high ball, Bandeja on a high one. **Volley**: only out of the air, not off the glass; the attacking shot at the
+  net (hard, fast). **Flat shot**: only after the bounce, not at the net.
+- **Dejada** (drop shot): at the net or mid-court, low or mid ball (air or bounce), not off the glass, and the opponents are not at the
+  net. Soft, dies just behind the net; the defender has to run (speed counts, a defender at the back is badly placed).
+- **Contrapared**: not at the net, after the bounce, low or mid ball that comes down by a side wall (|x| >= 3 m), not off the glass.
+  Always cross: hit into your own side wall with spin, off the glass and over the net.
+- **Block** (Bloqueo): at the net, out of the air, low or mid ball that was hit hard (>= 21 m/s). Soft and short, free, very safe; the
+  pressure of the hard ball does not weaken it. The volley is the attack, the block the defence.
 - **Rulo**: topspin ball that bounces right beside the side fence and then hits the mesh. Clean: it comes off the mesh
   unpredictably, or climbs the fence and leaves over the top (winner). Mishit: straight into the mesh, an error.
 

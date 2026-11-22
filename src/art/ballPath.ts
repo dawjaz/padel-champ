@@ -631,11 +631,57 @@ function scriptedSideExit(o: FlightOpts): Flight | null {
   return { path, hit: { x: spot.x, z: spot.z }, hitH: 0, events, duration: end.t };
 }
 
+/** Where on the side wall (metres past the hitter towards the net) and how high the contrapared is hit into the wall. */
+export const CONTRAPARED_WALL_AHEAD = 3.2;
+export const CONTRAPARED_WALL_H = 1.1;
+
+/**
+ * Contrapared: the ball is first hit into the side wall next to the hitter (a short, flat leg), comes off the glass and then flies
+ * like an ordinary shot from that spot (over the net, to the landing point, errors included). The two legs are joined into one
+ * flight: a `glass` event marks the wall contact.
+ */
+function buildContrapared(o: FlightOpts): Flight {
+  const away = o.hitterSide === 0 ? -1 : 1;
+  const h0 = o.startH ?? HIT_HEIGHT_M;
+  const wallX = (o.from.x >= 0 ? 1 : -1) * 4.98;
+  // Hit from the back it goes into the wall about 3 m ahead; from further up the court the wall point is closer, still behind the net.
+  const ahead = clamp(Math.abs(o.from.z - NET_Z) - 2.5, 1.5, CONTRAPARED_WALL_AHEAD);
+  const wallZ = clamp(o.from.z + away * ahead, 0.5, 19.5);
+  const dist = Math.hypot(wallX - o.from.x, wallZ - o.from.z);
+  const T = Math.max(0.2, dist / Math.max(6, o.shot.flight.speed));
+  const g = GRAVITY;
+  const vy = (CONTRAPARED_WALL_H - h0) / T + 0.5 * g * T;
+  const steps = Math.max(2, Math.ceil(T / DT));
+  const path: Sample[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = (T * i) / steps;
+    path.push({
+      t,
+      x: o.from.x + ((wallX - o.from.x) * t) / T,
+      z: o.from.z + ((wallZ - o.from.z) * t) / T,
+      h: Math.max(0, h0 + vy * t - 0.5 * g * t * t),
+    });
+  }
+  const rest = buildFlight({
+    ...o,
+    shot: { ...o.shot, ownWall: false },
+    from: { x: wallX - Math.sign(wallX) * 0.05, z: wallZ },
+    startH: CONTRAPARED_WALL_H,
+  });
+  for (const p of rest.path.slice(1)) path.push({ ...p, t: p.t + T });
+  const events: FlightEvent[] = [
+    { kind: 'glass', t: T, x: wallX, z: wallZ, h: CONTRAPARED_WALL_H },
+    ...rest.events.map((e) => ({ ...e, t: e.t + T })),
+  ];
+  return { path, hit: rest.hit, hitH: rest.hitH, events, duration: rest.duration + T };
+}
+
 export function buildFlight(opts: FlightOpts): Flight {
   const o: FlightOpts =
     opts.spinMul === undefined || opts.spinMul === 1
       ? opts
       : { ...opts, spinMul: 1, shot: { ...opts.shot, flight: { ...opts.shot.flight, spin: opts.shot.flight.spin * opts.spinMul, side: opts.shot.flight.side * opts.spinMul } } };
+  if (o.shot.ownWall === true) return buildContrapared(o);
   if ((o.outcome === 'winner' || o.outcome === 'ace') && o.shot.exitVia === 'side' && o.landDepth === undefined) {
     const f = scriptedSideExit(o);
     if (f) return f;

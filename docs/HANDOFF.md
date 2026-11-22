@@ -1,6 +1,19 @@
 # Handoff
 
-_Last updated: 2026-11-21 (v0.49)_
+_Last updated: 2026-11-22 (v0.55)_
+
+## v0.55: new shots (dejada, contrapared, block), stronger volley, shot rules tightened
+- Owner decisions (22.11): **Bandeja** now needs `formations: [mid, back]` (not at the net) on top of `air`; **Flat shot** (`bounce_shot`) gets `air: false` (only after a bounce). Vibora already had mid/back + air.
+- New `ShotRequires` fields: `air: false`, `oppFormations`, `minBallSpeed`, `nearWall`. `BallState.nearWall` is set in `stepHit` when the ball is aimed at |x| >= `NEAR_WALL_X` (3 m). New `ShotDef` flags: `drop`, `ignorePressure`, `ownWall`.
+- **Dejada** (`dejada`, technique, cost 1, lands 1.2 m behind the net, `winnerMargin` 8): hitter at the net or mid, ball low/mid, not off the glass, opponents' formation back or mid. `drop` makes the defender's rating speed-heavy (`defense 3, speed 7`) and position-dependent (`DROP_POSITION`: back 0.75, mid 0.95, net 1.2). **Deviation from the chat:** the owner asked for "at least one opponent at the back", but `formation` is per team and a team is `back` only before it has hit (start of the point), so `back` alone made the shot almost never available. Offered against `back` or `mid` (not both at the net).
+- **Contrapared** (`contrapared`, spin, cost 1, always cross, `ownWall`): hitter in `mid` or `back` (not at the net), ball bounced (`air: false`), low/mid, not off the glass, `nearWall`. Same deviation: the owner said "at the back of the court by a side", but a hitter in `back` with a low/mid bounced ball almost never happens (back only after a lob = high ball), so mid-court is allowed. In a CPU sim it is offered on about 0.7% of rally hits (every near-wall ball), the CPU picks it rarely.
+- Flight: `buildContrapared` in `ballPath.ts`: a short leg into the hitter's own side wall (3.2 m ahead, closer when hit from further up), a `glass` event, then the normal flight from that spot (errors included).
+- **Block** (`bloqueo`, defense, cost 0, `ignorePressure`, lands 2.8 m from the net): hitter at the net, ball in the air, low/mid, ball speed >= 21 m/s (`minBallSpeed`). The volley stays available against a hard ball.
+- **Volley is stronger** (owner): power 1.05 -> 1.15, risk 0.07 -> 0.08, speed 21 -> 26 m/s. CPU-vs-CPU sim (8000 points): avg hits 7.7 -> 7.0, server wins 52.5%, volley winners about x2.7 (312 -> ~850 per 6000 points). Power 1.25 was too much (avg hits 6.7, 1247 volley winners). Tune together with the balance task (plan point 1).
+- Practice SETUP got a second page: AFTER BOUNCE, HARD BALL, BY THE WALL (needed to test the flat shot, block, contrapared).
+- Menu size: at most 7 rally shots are offered at once (3 compact columns hold 9); typically 4-5.
+- Tests: availability of every changed shot, near-wall balls after a parallel shot, dejada vs back/net defenders, contrapared flight (both sides). 282 tests pass.
+- Not checked on a phone: the three new buttons, the contrapared animation (the hitter plays the usual stroke), the 3D branch (`strokeFor` in the 3D demo has no entries for the new shots: rebase `style/3d` and map dejada/bloqueo to volley/chiquita strokes, contrapared to the forehand).
 
 ## v0.54: shots from the air never after a bounce
 - Owner decision (22.11, replaces the v0.43 rule): vibora, bandeja, volley, rulo and both smashes need `requires.air` (the ball has not bounced). `BallState.air` is set for balls a net or mid-court defender takes out of the air (block, net return) and for weak lobs (short, taken out of the air). A deep lob (bounced, with or without the glass) offers only bajadas (glass), flat shot, lob, chiquita.

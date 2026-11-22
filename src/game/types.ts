@@ -94,8 +94,14 @@ export interface ShotRequires {
   heights?: Height[];
   /** true: the ball must have come off the back glass; false: it must be played before it reaches the glass. */
   glass?: boolean;
-  /** true: the ball must be played out of the air, before it has bounced (a volley, a bandeja, a vibora). */
+  /** true: the ball must be played out of the air, before it has bounced (a volley, a bandeja, a vibora). false: only after the bounce (flat shot, contrapared). */
   air?: boolean;
+  /** The opponents' team must be in one of these formations (the drop shot needs them deep). */
+  oppFormations?: Formation[];
+  /** The incoming ball must have been hit at least this fast (m/s): a block only answers a hard ball. */
+  minBallSpeed?: number;
+  /** true: the ball must come down right by a side wall (the contrapared). */
+  nearWall?: boolean;
   /** The incoming ball must fall in one of these zones (see `BallState.zone`). */
   zones?: Zone[];
   /** The incoming ball must be a weak lob (one that lands in the middle of the court or near the net). */
@@ -180,6 +186,12 @@ export interface ShotDef {
   lowGlassRisk?: number;
   /** Serves only: scales the pressure put on the receiver. */
   pressureMult?: number;
+  /** Drop shot: the defender has to run for it, so speed counts for more than defence and a defender at the back is badly placed. */
+  drop?: boolean;
+  /** Block: the hitter is not weakened by the pressure of the ball that comes in (he only absorbs it). */
+  ignorePressure?: boolean;
+  /** Contrapared: the ball is first hit into the side wall next to the hitter, comes off it and crosses the net. */
+  ownWall?: boolean;
   desc: string;
 }
 
@@ -208,6 +220,8 @@ export interface BallState {
   air?: boolean;
   /** How fast the shot that sent this ball was hit (m/s, its launch speed). */
   speed?: number;
+  /** The ball comes down right by a side wall (|x| of 3 m or more), so it can be played into that wall (contrapared). */
+  nearWall?: boolean;
 }
 
 /** Where a CPU (or partner) hitter would like the ball to go: the aim points closest to these are preferred (x across, depth past the net). */

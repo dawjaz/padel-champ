@@ -48,10 +48,16 @@ const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.m
 /** How well placed a defender is to run down a ball that comes off the back glass. */
 export const REBOUND_POSITION: Record<Formation, number> = { back: 1.25, mid: 1.0, net: 0.75 };
 
-export function defenseRating(defender: PlayerDef, direction: DirectionDef, chase?: Formation): number {
+/**
+ * A drop shot lands just behind the net: whoever stands at the back has a long run (x0.75), one in mid-court a shorter one, one at the
+ * net hardly any. Speed counts for most.
+ */
+export const DROP_POSITION: Record<Formation, number> = { back: 0.75, mid: 0.95, net: 1.2 };
+
+export function defenseRating(defender: PlayerDef, direction: DirectionDef, chase?: Formation, drop?: Formation): number {
   // After a bajada the ball rebounds off the back glass: a fast player who stands well can still get to it.
-  const weights = chase ? { defense: 4, speed: 8 } : { defense: 7, speed: 3 };
-  const place = chase ? REBOUND_POSITION[chase] : 1;
+  const weights = drop ? { defense: 3, speed: 7 } : chase ? { defense: 4, speed: 8 } : { defense: 7, speed: 3 };
+  const place = drop ? DROP_POSITION[drop] : chase ? REBOUND_POSITION[chase] : 1;
   const base = (defender.stats.defense * weights.defense + defender.stats.speed * weights.speed) * DEFENSE_SCALE * place;
   return direction.id === 'middle' ? base * direction.hesitation : base;
 }
@@ -119,11 +125,11 @@ export function resolveHit(i: HitInput): HitResult {
   }
 
   let attackScore =
-    i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (1 - i.incoming.pressure) +
+    i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (i.shot.ignorePressure === true ? 1 : 1 - i.incoming.pressure) +
     i.rng() * RANDOM_SPREAD;
   const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
-    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined) * airBonus + i.rng() * RANDOM_SPREAD;
+    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus + i.rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;

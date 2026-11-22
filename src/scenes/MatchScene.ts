@@ -151,8 +151,13 @@ export class MatchScene extends Phaser.Scene {
 
   /** Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you. */
   private practice: 'attack' | 'defend' | null = null;
-  private pr: { ball: Height; glass: boolean; weakLob: boolean; me: Formation; opp: Formation; result: 'auto' | HitOptions['force']; page: number } = {
+  private pr: {
+    ball: Height; glass: boolean; weakLob: boolean; me: Formation; opp: Formation; result: 'auto' | HitOptions['force']; page: number;
+    /** The ball has bounced (not played out of the air), comes in fast, comes down by a side wall, SETUP page. */
+    bounced: boolean; hard: boolean; atWall: boolean; setupPage: number;
+  } = {
     ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0,
+    bounced: false, hard: false, atWall: false, setupPage: 0,
   };
 
   constructor() {
@@ -163,7 +168,7 @@ export class MatchScene extends Phaser.Scene {
   init(data?: { practice?: 'attack' | 'defend' | null; career?: CareerMatch | null }): void {
     this.practice = data?.practice ?? null;
     this.career = data?.career ?? null;
-    this.pr = { ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0 };
+    this.pr = { ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0, bounced: false, hard: false, atWall: false, setupPage: 0 };
   }
 
   create(): void {
@@ -695,7 +700,10 @@ export class MatchScene extends Phaser.Scene {
       holder,
       hitterIdx,
       hits: 1,
-      ball: { height: this.pr.ball, pressure: 0, glass: this.pr.glass, air: !this.pr.glass, zone: 'mid', speed: 18, lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined },
+      ball: {
+        height: this.pr.ball, pressure: 0, glass: this.pr.glass, air: !this.pr.glass && !this.pr.bounced, zone: 'mid', speed: this.pr.hard ? 26 : 18,
+        lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined, ...(this.pr.atWall ? { nearWall: true } : {}),
+      },
       formation: [this.pr.me, this.pr.opp],
     };
   }
@@ -769,6 +777,19 @@ export class MatchScene extends Phaser.Scene {
     const results: Array<'auto' | HitOptions['force']> = ['auto', 'continue', 'winner', 'error', 'rebound'];
     const again = (): void => this.showPracticeSetup();
     const items: ButtonSpec[] = [];
+    const yn = (b: boolean): string => (b ? 'YES' : 'NO');
+    if (this.practice === 'attack' && this.pr.setupPage === 1) {
+      items.push(
+        { label: `AFTER BOUNCE\n${yn(this.pr.bounced)}`, tone: 'normal', onPick: () => { this.pr.bounced = !this.pr.bounced; again(); } },
+        { label: `HARD BALL\n${yn(this.pr.hard)}`, tone: 'normal', onPick: () => { this.pr.hard = !this.pr.hard; again(); } },
+        { label: `BY THE WALL\n${yn(this.pr.atWall)}`, tone: 'normal', onPick: () => { this.pr.atWall = !this.pr.atWall; again(); } },
+        { label: 'BACK', tone: 'good', onPick: () => { this.pr.setupPage = 0; again(); } },
+        { label: 'DONE', tone: 'good', onPick: () => this.practiceMenu() },
+      );
+      this.say('SETUP 2/2: the ball has bounced (flat shot, contrapared), is hard (block), comes down by the side wall (contrapared).');
+      this.showButtons('setup', items);
+      return;
+    }
     if (this.practice === 'attack') {
       items.push(
         { label: `BALL\n${this.pr.ball.toUpperCase()}`, tone: 'normal', onPick: () => { this.pr.ball = next<Height>(['low', 'mid', 'high'], this.pr.ball); again(); } },
@@ -780,8 +801,9 @@ export class MatchScene extends Phaser.Scene {
     items.push(
       { label: `YOU\n${this.pr.me.toUpperCase()}`, tone: 'normal', onPick: () => { this.pr.me = next(forms, this.pr.me); again(); } },
       { label: `OPPONENTS\n${this.pr.opp.toUpperCase()}`, tone: 'normal', onPick: () => { this.pr.opp = next(forms, this.pr.opp); again(); } },
-      { label: 'DONE', tone: 'good', onPick: () => this.practiceMenu() },
     );
+    if (this.practice === 'attack') items.push({ label: 'MORE', tone: 'good', onPick: () => { this.pr.setupPage = 1; again(); } });
+    items.push({ label: 'DONE', tone: 'good', onPick: () => this.practiceMenu() });
     this.say('SETUP: ball, position of you and the opponents, and how your shot ends (RESULT: winner, error, REBOUND = back over the net...).');
     this.showButtons('setup', items);
   }

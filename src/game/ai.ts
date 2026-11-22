@@ -72,7 +72,7 @@ export function pickHit(
     const affordable = state.guts[hitter.id] >= s.cost ? 1 : 0.15;
     let tactic = 1;
     if (atNet) tactic = isLob(s) ? 2.5 : s.id.includes('chiquita') ? 0.5 : 1;
-    else if (atBack) tactic = s.id.includes('chiquita') ? 2.2 : isLob(s) ? 0.5 : 1;
+    else if (atBack) tactic = s.id.includes('chiquita') || s.id === 'dejada' ? 2.2 : isLob(s) ? 0.5 : 1;
     return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);
   });
   const shot = weightedPick(options, weights, rng);

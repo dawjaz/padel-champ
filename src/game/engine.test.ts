@@ -213,7 +213,7 @@ describe('shot data', () => {
   it('has the shots the owner asked for', () => {
     expect(shotsOfKind('serve').map((s) => s.id).sort()).toEqual(['at_opponent', 'hard_glass', 'spin_glass', 't_serve']);
     expect(shotsOfKind('return').map((s) => s.id).sort()).toEqual(['chiquita', 'flat', 'lob']);
-    expect(shotsOfKind('rally').map((s) => s.id).sort()).toEqual(['bajada_fast', 'bajada_slow', 'bandeja', 'bounce_shot', 'rally_chiquita', 'rally_lob', 'rulo', 'smash_x3', 'smash_x4', 'vibora', 'volley']);
+    expect(shotsOfKind('rally').map((s) => s.id).sort()).toEqual(['bajada_fast', 'bajada_slow', 'bandeja', 'bloqueo', 'bounce_shot', 'contrapared', 'dejada', 'rally_chiquita', 'rally_lob', 'rulo', 'smash_x3', 'smash_x4', 'vibora', 'volley']);
   });
 
   it('has unique ids, a free shot per kind and fit values for every height', () => {
@@ -229,7 +229,7 @@ describe('shot data', () => {
   it('plays the rulo always cross, into the fence', () => {
     expect(shot('rulo').fixedDirection).toBe('cross');
     expect(shot('rulo').wall).toBe('fence');
-    expect(SHOTS.filter((s) => s.fixedDirection).map((s) => s.id)).toEqual(['rulo']);
+    expect(SHOTS.filter((s) => s.fixedDirection).map((s) => s.id)).toEqual(['contrapared', 'rulo']);
   });
 
   it('gives every serve a landing spot', () => {

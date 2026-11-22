@@ -78,8 +78,9 @@ describe('buildFlight: general', () => {
   it('bounces first in the opponent court, at the intended spot', () => {
     for (const s of SHOTS) {
       const f = fly(s.id);
-      const first = f.events[0];
-      expect(first.kind, s.id).toBe('bounce');
+      // The contrapared touches its own side wall first (a `glass` event); every other shot bounces first.
+      const first = f.events.find((e) => e.kind === 'bounce')!;
+      if (s.id !== 'contrapared') expect(f.events[0].kind, s.id).toBe('bounce');
       expect(first.z, s.id).toBeCloseTo(10 - s.landDepth, 3);
       expect(first.h, s.id).toBe(0);
     }
@@ -598,5 +599,32 @@ describe('serve faults that are out', () => {
     expect(Math.abs(end.x)).toBeGreaterThan(4.9);
     expect(end.h).toBeLessThan(1);
     expect(f.events.some((e) => e.kind === 'bounce')).toBe(false);
+  });
+});
+
+describe('buildFlight: contrapared', () => {
+  it('goes into the side wall next to the hitter, then crosses the net and bounces in the other court', () => {
+    for (const hx of [-3.9, 3.9]) {
+      const s = shot('contrapared');
+      const f = buildFlight({ from: { x: hx, z: 18.5 }, startH: 1, hitterSide: 0, shot: s, landX: -hx / 2, outcome: 'continue' });
+      const wall = f.events[0];
+      expect(wall.kind).toBe('glass');
+      expect(wall.x).toBeCloseTo(Math.sign(hx) * 4.98, 2);
+      expect(wall.z).toBeLessThan(18.5); // towards the net, ahead of the hitter
+      expect(wall.z).toBeGreaterThan(10);
+      expect(f.path[0]).toMatchObject({ x: hx, z: 18.5 });
+      const bounce = f.events.find((e) => e.kind === 'bounce')!;
+      expect(bounce.t).toBeGreaterThan(wall.t);
+      expect(bounce.z).toBeLessThan(10); // the opponents' court
+      // it crosses the net line (z = 10) above the net
+      const over = f.path.find((p, i) => i > 0 && f.path[i - 1].z >= 10 && p.z < 10)!;
+      expect(over.h).toBeGreaterThan(0.9);
+    }
+  });
+  it('is mirrored for the far team', () => {
+    const f = buildFlight({ from: { x: 3.9, z: 1.5 }, startH: 1, hitterSide: 1, shot: shot('contrapared'), landX: -1, outcome: 'continue' });
+    expect(f.events[0].kind).toBe('glass');
+    expect(f.events[0].z).toBeGreaterThan(1.5);
+    expect(f.events[0].z).toBeLessThan(10);
   });
 });

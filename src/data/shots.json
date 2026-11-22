@@ -287,11 +287,15 @@
       "side": 0.5
     },
     "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
       "glass": false,
       "heights": [
         "high"
       ],
-      "hint": "only out of the air, not after a bounce",
+      "hint": "only out of the air, from mid-court or the back",
       "air": true
     },
     "glassChance": 0.3,
@@ -354,9 +358,9 @@
     "name": "Volley",
     "kind": "rally",
     "stat": "technique",
-    "power": 1.05,
+    "power": 1.15,
     "cost": 1,
-    "risk": 0.07,
+    "risk": 0.08,
     "out": "low",
     "fit": {
       "high": 0.75,
@@ -366,14 +370,14 @@
     "advance": "net",
     "landDepth": 4.8,
     "wall": "none",
-    "desc": "Hit it out of the air, down into the court. Best on mid-height balls.",
+    "desc": "Attack out of the air, hard and down into the court. Best on mid-height balls. From the net it is much faster.",
     "flight": {
-      "speed": 21,
+      "speed": 26,
       "apex": 0,
       "spin": -0.3,
       "wallKick": 1.0,
       "side": 0.3,
-      "netBoost": 0.3,
+      "netBoost": 0.35,
       "deaden": 0.5
     },
     "requires": {
@@ -382,6 +386,54 @@
       "air": true
     },
     "glassChance": 0.15,
+    "errorKinds": {
+      "net": 0.85,
+      "glass": 0.05,
+      "mesh": 0.1
+    }
+  },
+  {
+    "id": "bloqueo",
+    "name": "Block",
+    "kind": "rally",
+    "stat": "defense",
+    "power": 0.6,
+    "cost": 0,
+    "risk": 0.03,
+    "out": "low",
+    "fit": {
+      "high": 0.8,
+      "mid": 1.0,
+      "low": 1.0
+    },
+    "advance": "net",
+    "landDepth": 2.8,
+    "wall": "none",
+    "glassChance": 0.0,
+    "ignorePressure": true,
+    "depthSpread": 0.7,
+    "requires": {
+      "formations": [
+        "net"
+      ],
+      "heights": [
+        "low",
+        "mid"
+      ],
+      "glass": false,
+      "air": true,
+      "minBallSpeed": 21,
+      "hint": "block: only a hard ball at the net, out of the air"
+    },
+    "desc": "Soft, short block of a hard ball at the net. Safe and free. The volley is the attack.",
+    "flight": {
+      "speed": 8,
+      "apex": 0,
+      "spin": -0.5,
+      "deaden": 0.6,
+      "wallKick": 1.0,
+      "side": 0.1
+    },
     "errorKinds": {
       "net": 0.85,
       "glass": 0.05,
@@ -405,7 +457,7 @@
     "advance": "stay",
     "landDepth": 5,
     "wall": "none",
-    "desc": "Let it bounce, then drive it. Good on low balls. Not at the net (volley instead).",
+    "desc": "Let it bounce, then drive it. Good on low balls. Only after the bounce, not at the net.",
     "flight": {
       "speed": 22,
       "apex": 0,
@@ -421,7 +473,56 @@
         "mid",
         "back"
       ],
-      "hint": "at the net: volley"
+      "air": false,
+      "hint": "only after the bounce (at the net or out of the air: volley)"
+    }
+  },
+  {
+    "id": "contrapared",
+    "name": "Contrapared",
+    "kind": "rally",
+    "stat": "spin",
+    "power": 0.95,
+    "cost": 1,
+    "risk": 0.14,
+    "out": "mid",
+    "fit": {
+      "high": 0.7,
+      "mid": 1.05,
+      "low": 1.0
+    },
+    "advance": "stay",
+    "landDepth": 5.5,
+    "wall": "none",
+    "glassChance": 0.3,
+    "fixedDirection": "cross",
+    "ownWall": true,
+    "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
+      "heights": [
+        "low",
+        "mid"
+      ],
+      "glass": false,
+      "air": false,
+      "nearWall": true,
+      "hint": "contrapared: not at the net, after the bounce, a ball by the side wall"
+    },
+    "desc": "Into your own side wall, with spin: it comes off and crosses to the other side. Not at the net, only to a ball by the side wall.",
+    "flight": {
+      "speed": 17,
+      "apex": 0,
+      "spin": 0.5,
+      "wallKick": 1.0,
+      "side": 0.6
+    },
+    "errorKinds": {
+      "net": 0.7,
+      "glass": 0.3,
+      "mesh": 0.0
     }
   },
   {
@@ -700,6 +801,59 @@
       "side": 0.3
     },
     "depthSpread": 0.5,
+    "errorKinds": {
+      "net": 0.85,
+      "glass": 0.05,
+      "mesh": 0.1
+    }
+  },
+  {
+    "id": "dejada",
+    "name": "Dejada",
+    "kind": "rally",
+    "stat": "technique",
+    "power": 1.0,
+    "cost": 1,
+    "risk": 0.1,
+    "out": "low",
+    "fit": {
+      "high": 0.5,
+      "mid": 0.95,
+      "low": 1.1
+    },
+    "advance": "net",
+    "landDepth": 1.2,
+    "wall": "none",
+    "glassChance": 0.0,
+    "drop": true,
+    "depthSpread": 0.4,
+    "winnerMargin": 8,
+    "requires": {
+      "formations": [
+        "net",
+        "mid"
+      ],
+      "heights": [
+        "low",
+        "mid"
+      ],
+      "glass": false,
+      "oppFormations": [
+        "back",
+        "mid"
+      ],
+      "hint": "drop shot: opponents not at the net, low or mid ball"
+    },
+    "desc": "Drop shot: dies just behind the net. Only when the opponents are not at the net.",
+    "flight": {
+      "speed": 5.5,
+      "apex": 0,
+      "spin": -0.7,
+      "deaden": 0.5,
+      "bounceMul": 0.5,
+      "wallKick": 1.0,
+      "side": 0.2
+    },
     "errorKinds": {
       "net": 0.85,
       "glass": 0.05,

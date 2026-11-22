@@ -150,6 +150,9 @@ export function nextFormation(
   return f;
 }
 
+/** A ball that comes down this far from the centre line (m) or further is right by a side wall. */
+export const NEAR_WALL_X = 3;
+
 /** The zone a ball comes down in, from how far past the net it lands (metres). */
 export function zoneOf(depth: number): Zone {
   return depth < 3.5 ? 'net' : depth < 7 ? 'mid' : 'back';
@@ -163,6 +166,10 @@ export function unavailableReason(shot: ShotDef, state: PointState): string | nu
   if (r.heights && !r.heights.includes(state.ball.height)) return r.hint;
   if (r.glass !== undefined && (state.ball.glass === true) !== r.glass) return r.hint;
   if (r.air === true && state.ball.air !== true) return r.hint;
+  if (r.air === false && state.ball.air === true) return r.hint;
+  if (r.oppFormations && !r.oppFormations.includes(state.formation[other(state.holder)])) return r.hint;
+  if (r.minBallSpeed !== undefined && (state.ball.speed ?? 0) < r.minBallSpeed) return r.hint;
+  if (r.nearWall === true && state.ball.nearWall !== true) return r.hint;
   if (r.weakLob && state.ball.lob !== 'weak') return r.hint;
   if (r.zones && (state.ball.zone === undefined || !r.zones.includes(state.ball.zone))) return r.hint;
   return null;
@@ -489,7 +496,12 @@ export function stepHit(
       next.glass = false;
       next.arrival = 'mid';
     }
-    next.ball = { ...next.ball, zone: netReturn ? 'net' : netBlock ? 'net' : airDist !== undefined ? 'mid' : zoneOf(aimed.landDepth ?? shot.landDepth) };
+    next.ball = {
+      ...next.ball,
+      zone: netReturn ? 'net' : netBlock ? 'net' : airDist !== undefined ? 'mid' : zoneOf(aimed.landDepth ?? shot.landDepth),
+      // A ball that comes down right by a side wall can be played into that wall (contrapared).
+      ...(aimed.landX !== undefined && Math.abs(aimed.landX) >= NEAR_WALL_X ? { nearWall: true } : {}),
+    };
     return {
       state: {
         ...state,
