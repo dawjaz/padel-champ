@@ -1135,7 +1135,20 @@ export class MatchScene extends Phaser.Scene {
           .setDepth(9995);
         const barBg = this.add.rectangle(WIDTH / 2, 248, 180, 8, 0x000000, 0.6).setStrokeStyle(1, 0xffffff).setDepth(9995);
         const bar = this.add.rectangle(WIDTH / 2 - 89, 248, 178, 6, 0x5db4ff).setOrigin(0, 0.5).setDepth(9996);
-        this.menu.push(title, barBg, bar);
+        // Two quick-read chips: how fast and how much spin (green = easy, yellow = medium, red = hard).
+        const spinAmount = Math.hypot(shot.flight.spin, shot.flight.side ?? 0) * spinMul(server.stats.spin);
+        const speedLvl = kmh >= 95 ? 2 : kmh >= 78 ? 1 : 0;
+        const spinLvl = spinAmount >= 1.2 ? 2 : spinAmount >= 0.6 ? 1 : 0;
+        const chipColors = ['#7dff9a', '#ffe066', '#ff7a6a'];
+        const chip = (x: number, text: string, lvl: number): Phaser.GameObjects.Text =>
+          this.add
+            .text(x, 226, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '15px', fontStyle: 'bold', color: chipColors[lvl] })
+            .setOrigin(0.5)
+            .setStroke('#000000', 4)
+            .setDepth(9995);
+        const speedChip = chip(WIDTH / 2 - 62, `SPEED: ${['SLOW', 'MEDIUM', 'FAST'][speedLvl]}`, speedLvl);
+        const spinChip = chip(WIDTH / 2 + 62, `SPIN: ${['LOW', 'MEDIUM', 'HIGH'][spinLvl]}`, spinLvl);
+        this.menu.push(title, speedChip, spinChip, barBg, bar);
         // Where the ball will land and where it will hit the glass.
         const marks: Array<{ x: number; z: number; h: number; color: number }> = [{ x: bounce.x, z: bounce.z, h: 0, color: 0xffe066 }];
         if (glassHit) marks.push({ x: glassHit.x, z: glassHit.z, h: glassHit.h, color: 0x9fd8ff });

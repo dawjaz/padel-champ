@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.58)_
+_Last updated: 2026-11-22 (v0.59)_
+
+## v0.59: receive decision: SPEED and SPIN chips
+- Under the km/h number two colour-coded chips: `SPEED: SLOW/MEDIUM/FAST` (km/h < 78 / < 95 / above) and `SPIN: LOW/MEDIUM/HIGH` (`hypot(spin, side) x spinMul(server)` < 0.6 / < 1.2 / above). Green = easy, yellow = medium, red = hard. The owner rejected a third GLASS chip (too much to read in a few seconds) and the per-button risk word for now.
+- Thresholds are first guesses: check on a phone that all four serves land in different classes (hard glass: fast/low-medium, spin glass: medium/high, at opponent: medium-fast/low, T-serve: slow/medium).
 
 ## v0.58: receiving a serve off the glass: clearer buttons, no hint line
 - The two receive buttons are now `AFTER BOUNCE` (fast, clean) and `WAIT FOR THE GLASS` (more time) (were ON THE BOUNCE / OFF THE GLASS). The line under the km/h (`HARD GLASS  WIDE, OFF THE LEFT GLASS`) is removed.
