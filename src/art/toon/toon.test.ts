@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appearance, HairStyle } from '../../game/types';
-import { buildToon, lookOf, POSES, TOON_POSES } from './character';
+import { buildToon, lookOf, mixPose, POSES, RUN_FRAMES, runFrame, TOON_POSES } from './character';
 import { luma, shadeHex, toSvg, type Op } from './ops';
 
 const BASE: Appearance = {
@@ -95,5 +95,23 @@ describe('toon poses', () => {
       expect(P.left[1]).toBeLessThanOrEqual(304);
       expect(P.right[1]).toBeLessThanOrEqual(304);
     }
+  });
+});
+
+describe('pose blending and run cycle', () => {
+  const a = BASE;
+  it('every run frame and in-between draws in every view', () => {
+    for (const view of ['front', 'back'] as const) {
+      for (let f = 0; f < RUN_FRAMES; f++) expect(buildToon(a, view, runFrame(f)).length).toBeGreaterThan(10);
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) expect(buildToon(a, view, mixPose(POSES.ready, POSES.fhHit, t)).length).toBeGreaterThan(10);
+    }
+  });
+  it('mixing at the ends gives the end poses', () => {
+    expect(mixPose(POSES.ready, POSES.runA, 1).crouch).toBe(POSES.runA.crouch);
+    expect(mixPose(POSES.ready, POSES.runA, 0).left).toEqual(POSES.ready.left);
+  });
+  it('the run cycle moves the feet and loops', () => {
+    expect(runFrame(0).left).not.toEqual(runFrame(2).left);
+    expect(runFrame(RUN_FRAMES)).toEqual(runFrame(0));
   });
 });

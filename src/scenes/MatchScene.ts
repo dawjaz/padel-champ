@@ -4,6 +4,7 @@ import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
+import { mixPose, POSES, runFrame, RUN_FRAMES, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
@@ -91,6 +92,10 @@ interface PlayerView {
   facing: Facing;
   /** The player is playing a stroke (swing animation) until this time (ms), so running must not overwrite it. */
   busyUntil: number;
+  /** An in-between or run-cycle pose that replaces `pose` while set (key names the picture in the texture cache). */
+  custom: { key: string; spec: PoseSpec } | null;
+  /** Counts blends; a newer pose cancels an older blend. */
+  blend: number;
 }
 
 interface ButtonSpec {
@@ -386,7 +391,7 @@ export class MatchScene extends Phaser.Scene {
           .setStroke(NAVY_CSS, 4)
           .setDepth(9000);
         const bar = this.add.graphics().setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0 };
+        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0 };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -626,16 +631,55 @@ export class MatchScene extends Phaser.Scene {
   private showSprite(id: string): void {
     const v = this.views[id];
     const view = toonViewOf(v.facing, v.side);
-    v.sprite.setTexture(ensureToonPoseTexture(this, v.player.appearance, view, v.pose));
+    v.sprite.setTexture(ensureToonPoseTexture(this, v.player.appearance, view, v.custom ?? v.pose));
     v.sprite.setFlipX(view === 'front');
   }
 
   /** Shows the player in a pose (a picture drawn once per look, facing and pose). */
   private setPose(id: string, pose: PoseName): void {
     const v = this.views[id];
-    if (v.pose === pose) return;
+    v.blend++;
+    if (v.pose === pose && !v.custom) return;
     v.pose = pose;
+    v.custom = null;
     this.showSprite(id);
+  }
+
+  /** The spec the player's sprite shows now. */
+  private currentSpec(id: string): PoseSpec {
+    const v = this.views[id];
+    return v.custom?.spec ?? POSES[v.pose];
+  }
+
+  /** Shows one frame of the run cycle. */
+  private setRunFrame(id: string, frame: number): void {
+    const v = this.views[id];
+    const f = ((frame % RUN_FRAMES) + RUN_FRAMES) % RUN_FRAMES;
+    if (v.custom?.key === `run${f}`) return;
+    v.custom = { key: `run${f}`, spec: runFrame(f) };
+    this.showSprite(id);
+  }
+
+  /** Glides from the current pose to `pose` in `ms`, through a few in-between pictures; a newer pose cancels it. */
+  private blendTo(id: string, pose: PoseName, ms: number): void {
+    const v = this.views[id];
+    const token = ++v.blend;
+    const from = this.currentSpec(id);
+    const fromKey = v.custom?.key ?? v.pose;
+    const steps = 3;
+    for (let i = 1; i <= steps; i++) {
+      this.time.delayedCall((ms * i) / (steps + 1), () => {
+        if (v.blend !== token) return;
+        v.custom = { key: `b:${fromKey}>${pose}:${i}`, spec: mixPose(from, POSES[pose], i / (steps + 1)) };
+        this.showSprite(id);
+      });
+    }
+    this.time.delayedCall(ms, () => {
+      if (v.blend !== token) return;
+      v.pose = pose;
+      v.custom = null;
+      this.showSprite(id);
+    });
   }
 
   private defaultFacing(id: string): Facing {
@@ -664,9 +708,14 @@ export class MatchScene extends Phaser.Scene {
     const prep = this.stance[id];
     const stance: Stance = overhead ? 'smash' : prep === undefined || prep === 'smash' ? 'fh' : prep;
     v.busyUntil = this.time.now + 420;
-    this.setPose(id, poseOf(stance, 'Hit'));
+    this.blendTo(id, poseOf(stance, 'Hit'), 70);
     if (stance === 'smash') this.hop(id, 13);
-    this.time.delayedCall(130, () => this.setPose(id, poseOf(stance, 'Follow')));
+    this.time.delayedCall(80, () => {
+      if (v.busyUntil > this.time.now + 300) this.blendTo(id, poseOf(stance, 'Follow'), 110);
+    });
+    this.time.delayedCall(220, () => {
+      if (v.busyUntil > this.time.now) this.blendTo(id, 'ready', 200);
+    });
     this.time.delayedCall(420, () => {
       if (this.views[id].busyUntil <= this.time.now) {
         this.setFacing(id, this.defaultFacing(id));
@@ -708,13 +757,13 @@ export class MatchScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const t = tween.getValue() ?? 0;
-        const frame = Math.floor(this.time.now / 115) % 2 === 0;
+        const stepFrame = Math.floor(this.time.now / 62);
         for (const id of ids) {
           this.pos[id] = { x: lerp(starts[id].x, targets[id].x, t), z: lerp(starts[id].z, targets[id].z, t) };
           const v = this.views[id];
           if (running.has(id) && t < 0.97 && this.time.now >= v.busyUntil) {
-            this.setPose(id, frame ? 'runA' : 'runB');
-            v.lift = frame ? 2 : 0;
+            this.setRunFrame(id, stepFrame);
+            v.lift = 0;
           }
           this.placeView(id);
         }
@@ -727,7 +776,8 @@ export class MatchScene extends Phaser.Scene {
           if (this.time.now >= v.busyUntil) {
             if (running.has(id) || endPose[id] || endFacing[id]) {
               this.setFacing(id, endFacing[id] ?? this.defaultFacing(id));
-              this.setPose(id, endPose[id] ?? 'ready');
+              if (v.custom && !endPose[id]) this.blendTo(id, 'ready', 140);
+              else this.setPose(id, endPose[id] ?? 'ready');
             }
             v.lift = 0;
           }

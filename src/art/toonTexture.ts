@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import type { Appearance } from '../game/types';
-import { buildToon, FIG, type ToonPose, type ToonView } from './toon/character';
+import { buildToon, FIG, type PoseSpec, type ToonPose, type ToonView } from './toon/character';
 import { renderOpsCanvas, VIEW } from './toon/ops';
 
 /** Pixels per character unit of the stored texture (the figure is ~340 units tall, so ~510 px). */
@@ -53,10 +53,11 @@ export function addToonHead(scene: Phaser.Scene, cx: number, top: number, width:
 const MATCH_UNIT = 0.55;
 
 /** Texture of one pose of a player in the match (no shadow: the scene draws it under the feet). */
-export function ensureToonPoseTexture(scene: Phaser.Scene, appearance: Appearance, view: ToonView, pose: ToonPose): string {
-  const key = `toonm:${view}:${pose}:${JSON.stringify(appearance)}`;
+export function ensureToonPoseTexture(scene: Phaser.Scene, appearance: Appearance, view: ToonView, pose: ToonPose | { key: string; spec: PoseSpec }): string {
+  const name = typeof pose === 'string' ? pose : pose.key;
+  const key = `toonm:${view}:${name}:${JSON.stringify(appearance)}`;
   if (scene.textures.exists(key)) return key;
-  scene.textures.addCanvas(key, renderOpsCanvas(buildToon(appearance, view, pose, false), MATCH_UNIT));
+  scene.textures.addCanvas(key, renderOpsCanvas(buildToon(appearance, view, typeof pose === 'string' ? pose : pose.spec, false), MATCH_UNIT));
   return key;
 }
 

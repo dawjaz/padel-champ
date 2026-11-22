@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.78)_
+_Last updated: 2026-11-22 (v0.79)_
+
+## v0.79: smoother character animation
+- `mixPose(a, b, t)` blends two `PoseSpec`s; `buildToon` now accepts a `PoseSpec` as well as a pose name. `runFrame(n)` is an 8-frame run cycle (legs swing and lift, body bobs and leans, arms swing against the legs); `RUN_FRAMES = 8`.
+- `MatchScene`: running steps the cycle every 62 ms (`setRunFrame`); strokes glide prep -> hit -> follow -> ready through 3 in-betweens (`blendTo`); end of a run blends to ready. In-between pictures are cached textures (key from the blend), made on first use.
+- `scripts/poseSheet.ts` also prints the run frames. Not done yet: side views, squash/stretch, texture pre-warming (watch for hitches on a phone).
 
 ## v0.78: calmer surroundings
 - Owner: the light court is good, but the light surroundings distract. Stands, ground and vignette in `arenaHd.ts` are now mid-dark navy again (court stays light blue), spotlights and crowd softer.

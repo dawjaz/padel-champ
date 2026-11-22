@@ -25,7 +25,7 @@ type Pt = [number, number];
  * Targets of a pose. Hands are in the upper body's own frame (the frame is leaned and lowered with the body); ankles are in
  * figure coordinates (sole of the ground = ankle y 304). The racket hand is the viewer's right one.
  */
-interface PoseSpec {
+export interface PoseSpec {
   /** Racket hand and the racket's tilt (degrees clockwise from pointing straight up). */
   hand: Pt;
   racket: number;
@@ -162,7 +162,7 @@ const HEAD_SCALE = scaleAbout(1.13, 100, 94);
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
 
-export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'idle', shadow = true): Op[] {
+export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose | PoseSpec = 'idle', shadow = true): Op[] {
   return buildToonLook(lookOf(a), view, pose, shadow);
 }
 
@@ -176,14 +176,14 @@ function racketMatrix(hand: Pt, deg: number): { m: Mat; at: (x: number, y: numbe
   return { m, at: (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] };
 }
 
-export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'idle', shadow = true): Op[] {
+export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose | PoseSpec = 'idle', shadow = true): Op[] {
   const back = view === 'back';
   const sk = L.skin;
   const skd = shadeHex(sk, 0.8);
   const hd = shadeHex(L.hair, 0.62);
   const hh = shadeHex(L.hair, 1.7, 0.9);
   const sx = (x: number): number => R(100 + (x - 100) * L.build);
-  const P = POSES[pose];
+  const P = typeof pose === 'string' ? POSES[pose] : pose;
   const o: Op[] = [];
   const lift = Math.max(0, -P.crouch);
   if (shadow) o.push(p(ellipsePath(100, 334, 58 - lift * 0.4, 8 - lift * 0.1), { fill: `rgba(11,31,58,${0.22 - lift * 0.003})` }));
@@ -340,4 +340,46 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
   }
   o.push({ k: 'g', m: bodyM, ops: u });
   return o;
+}
+
+const lerpN = (a: number, b: number, t: number): number => a + (b - a) * t;
+const lerpP = (a: Pt, b: Pt, t: number): Pt => [lerpN(a[0], b[0], t), lerpN(a[1], b[1], t)];
+
+/** A pose between two others (t 0..1). The off hand jumps from or to a racket grip halfway; elbows are solved when either pose has none. */
+export function mixPose(a: PoseSpec, b: PoseSpec, t: number): PoseSpec {
+  const off: PoseSpec['off'] = a.off === 'grip' || b.off === 'grip' ? (t < 0.5 ? a.off : b.off) : lerpP(a.off, b.off, t);
+  return {
+    hand: lerpP(a.hand, b.hand, t),
+    racket: lerpN(a.racket, b.racket, t),
+    elbow: a.elbow && b.elbow ? lerpP(a.elbow, b.elbow, t) : undefined,
+    off,
+    offElbow: a.offElbow && b.offElbow ? lerpP(a.offElbow, b.offElbow, t) : undefined,
+    lean: lerpN(a.lean, b.lean, t),
+    crouch: lerpN(a.crouch, b.crouch, t),
+    left: lerpP(a.left, b.left, t),
+    right: lerpP(a.right, b.right, t),
+  };
+}
+
+/** Frames of the run cycle (two steps per cycle). */
+export const RUN_FRAMES = 8;
+
+/** One frame of the run cycle: legs swing and lift, the body bobs and leans, arms swing against the legs, the racket stays up. */
+export function runFrame(frame: number): PoseSpec {
+  const ph = ((frame % RUN_FRAMES) + RUN_FRAMES) % RUN_FRAMES / RUN_FRAMES;
+  const a = ph * Math.PI * 2;
+  const leg = (offset: number, cx: number): Pt => {
+    const q = a + offset;
+    return [R(cx + 15 * Math.cos(q)), R(GROUND - 30 * Math.max(0, Math.sin(q)))];
+  };
+  const sw = Math.cos(a);
+  return {
+    hand: [R(128 + 5 * sw), R(150 - 4 * Math.abs(sw))],
+    racket: 14 + 5 * sw,
+    off: [R(48 - 6 * sw), R(150 + 6 * sw)],
+    lean: 5 + 2 * Math.cos(2 * a),
+    crouch: R(14 + 7 * Math.cos(2 * a + Math.PI)),
+    left: leg(0, 72),
+    right: leg(Math.PI, 128),
+  };
 }
