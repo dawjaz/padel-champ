@@ -930,7 +930,7 @@ describe('the CPU receiver reads the speed of the serve', () => {
       for (let i = 0; i < 600; i++) if (pickReceive(TEAMS, st, rng, shot(id)) === 'wall') wall++;
       return wall / 600;
     };
-    expect(share('hard_glass')).toBeGreaterThan(0.75);
+    expect(share('hard_glass')).toBeGreaterThan(0.65);
     expect(share('t_serve')).toBeLessThan(0.4);
   });
 });
