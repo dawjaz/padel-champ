@@ -10,10 +10,10 @@ import { HD_CHARACTER_SCALE } from '../art/hd/characterHd';
 import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
-import { COLORS, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
+import { HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
-import { drawPanel, makeButton } from '../ui';
+import { DISPLAY, BODY, drawCard, makeThemeButton, TC } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
@@ -64,7 +64,9 @@ const VISUAL_HEIGHT_M = 1.75;
 
 type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
 
-const TONE_STROKE: Record<Tone, number> = { normal: 0xffffff, good: 0x6dff8b, poor: 0xffa94d, tired: 0xff6666, off: 0x555566 };
+const TONE_STROKE: Record<Tone, number> = { normal: 0x0b2a5b, good: 0x0e8f5c, poor: 0xd97a00, tired: 0xc62828, off: 0x9aa7bb };
+const TONE_FILL: Record<Tone, number> = { normal: 0xffffff, good: 0xdff7ea, poor: 0xfff0d9, tired: 0xfde1e1, off: 0xeef1f6 };
+const NAVY_CSS = '#0b2a5b';
 /** Guts bar over/under a player: green when full, lime, orange, red below 30% of the bar. */
 const GUTS_BAR_W = 38;
 const GUTS_BAR_H = 7;
@@ -75,7 +77,7 @@ export function gutsBarColor(ratio: number): number {
   return 0x4cd964;
 }
 
-const TONE_TEXT: Record<Tone, string> = { normal: '#ffffff', good: '#b5ffc5', poor: '#ffd29a', tired: '#ff9999', off: '#777788' };
+const TONE_TEXT: Record<Tone, string> = { normal: '#0b2a5b', good: '#0a6b45', poor: '#9a5200', tired: '#a31f1f', off: '#8d9bb0' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
@@ -149,7 +151,8 @@ export class MatchScene extends Phaser.Scene {
   private trailGfx!: Phaser.GameObjects.Graphics;
   /** Recent screen positions of the ball, for its fading trail. */
   private trail: Array<{ x: number; y: number; d: number }> = [];
-  private scoreText!: Phaser.GameObjects.Text;
+  /** TV scoreboard: team names, games, points per row, the serve dot and the deuce note. */
+  private sb!: { names: Phaser.GameObjects.Text[]; games: Phaser.GameObjects.Text[]; pts: Phaser.GameObjects.Text[]; dot: Phaser.GameObjects.Graphics; note: Phaser.GameObjects.Text; title: Phaser.GameObjects.Text; boxes: Phaser.GameObjects.Graphics };
   private logText!: Phaser.GameObjects.Text;
 
   /** Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you. */
@@ -207,57 +210,78 @@ export class MatchScene extends Phaser.Scene {
     this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
     this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000);
 
-    // Scoreboard panel, TV style
-    const bug = this.add.graphics().setPosition(WIDTH / 2, 27).setDepth(9990).setAlpha(0.9);
-    drawPanel(bug, 196, 44, 0x6f8bff, false, 0x0d1030);
-    this.scoreText = this.add
-      .text(WIDTH / 2, 9, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
-      .setOrigin(0.5, 0)
-      .setDepth(10000);
+    // Control sheet under the court: the status line and the buttons sit on it.
+    const sheet = this.add.graphics().setDepth(8000);
+    sheet.fillStyle(TC.bg, 1);
+    sheet.fillRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
+    sheet.lineStyle(3, TC.navy, 1);
+    sheet.strokeRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
+
+    // Scoreboard, TV style: navy bar, a row per side, games in a white box, points in gold, an orange dot by the server.
+    const bx = WIDTH / 2 - 100;
+    const board = this.add.graphics().setPosition(bx, 5).setDepth(9990);
+    drawCard(board, 200, 46, { fill: TC.navy, stroke: TC.navyDark, radius: 12, shadow: 3 });
+    const rowY = [17, 38];
+    const sbText = (x: number, y: number, str: string, size: number, color: string, ox: number): Phaser.GameObjects.Text =>
+      this.add.text(x, y, str, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color }).setOrigin(ox, 0.5).setDepth(10000);
+    const gamesBoxes = this.add.graphics().setDepth(9995);
+    for (const y of rowY) {
+      gamesBoxes.fillStyle(TC.white, 1);
+      gamesBoxes.fillRoundedRect(bx + 118, y - 9 + 5, 30, 18, 6);
+    }
+    this.sb = {
+      names: rowY.map((y, i) => sbText(bx + 24, y + 5, SIDE_NAME[i], 14, '#ffffff', 0)),
+      games: rowY.map((y) => sbText(bx + 133, y + 5, '0', 15, NAVY_CSS, 0.5)),
+      pts: rowY.map((y) => sbText(bx + 188, y + 5, '0', 15, '#ffb800', 1)),
+      dot: this.add.graphics().setDepth(10000),
+      boxes: gamesBoxes,
+      note: this.add.text(WIDTH / 2, 59, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ffffff' }).setOrigin(0.5).setStroke(NAVY_CSS, 4).setDepth(10000),
+      title: sbText(WIDTH / 2, 28, '', 13, '#ffffff', 0.5).setVisible(false).setAlign('center'),
+    };
     this.logText = this.add
-      .text(WIDTH / 2, 391, '', {
-        fontFamily: FONT, resolution: HD_SCALE,
-        fontSize: '11px',
-        color: '#ffffff',
+      .text(WIDTH / 2, 399, '', {
+        fontFamily: BODY, resolution: HD_SCALE,
+        fontSize: '12px',
+        fontStyle: '700',
+        color: NAVY_CSS,
         align: 'center',
-        wordWrap: { width: 340 },
+        wordWrap: { width: 330 },
       })
       .setOrigin(0.5, 0)
       .setDepth(10000);
 
     this.heightText = this.add
-      .text(WIDTH / 2, 358, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '30px', fontStyle: 'bold', color: '#ffffff' })
+      .text(WIDTH / 2, 358, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '32px', color: '#ffffff' })
       .setOrigin(0.5)
-      .setStroke('#000000', 6)
+      .setStroke(NAVY_CSS, 7)
       .setShadow(0, 3, '#000000', 4, true, true)
       .setDepth(9001)
       .setAlpha(0.92)
       .setVisible(false);
     this.heightSub = this.add
-      .text(WIDTH / 2, 378, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' })
+      .text(WIDTH / 2, 378, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '13px', color: '#ffffff' })
       .setOrigin(0.5)
-      .setStroke('#000000', 4)
+      .setStroke(NAVY_CSS, 5)
       .setDepth(9001)
       .setVisible(false);
 
     // Way out to the main menu (quick match and practice; a career match has to be played on): tap twice to leave.
     if (!this.career) {
       let armed = false;
-      const exit = makeButton(this, 40, 27, 64, 32, 'MENU', () => {
+      const exit = makeThemeButton(this, 38, 27, 62, 30, 'MENU', () => {
         if (!armed) {
           armed = true;
           exit.text.setText('SURE?');
-          exit.setAccent(COLORS.red);
+          exit.text.setColor('#c62828');
           this.time.delayedCall(2500, () => {
             armed = false;
             exit.text.setText('MENU');
-            exit.setAccent(COLORS.white);
+            exit.text.setColor(NAVY_CSS);
           });
           return;
         }
         this.scene.start('TitleScene');
-      });
-      exit.text.setFontSize(11);
+      }, 'secondary', 12);
       for (const part of exit.parts) (part as Phaser.GameObjects.GameObject & { setDepth: (d: number) => unknown }).setDepth(10002);
     }
 
@@ -277,14 +301,14 @@ export class MatchScene extends Phaser.Scene {
       { label: 'TAILS', tone: 'normal', onPick: () => this.flipCoinAnimation('tails') },
     ]);
     const hint = this.add
-      .text(WIDTH / 2, 205, 'TOSS A COIN', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '30px', fontStyle: 'bold', color: '#ffe066' })
+      .text(WIDTH / 2, 205, 'TOSS A COIN', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '34px', color: '#ffe066' })
       .setOrigin(0.5)
-      .setStroke('#000000', 6)
+      .setStroke(NAVY_CSS, 8)
       .setDepth(9995);
     const sub = this.add
-      .text(WIDTH / 2, 240, 'the winner serves first', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '13px', fontStyle: 'bold', color: '#ffffff' })
+      .text(WIDTH / 2, 240, 'the winner serves first', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '14px', color: '#ffffff' })
       .setOrigin(0.5)
-      .setStroke('#000000', 4)
+      .setStroke(NAVY_CSS, 5)
       .setDepth(9995);
     this.menu.push(hint, sub);
   }
@@ -298,7 +322,7 @@ export class MatchScene extends Phaser.Scene {
     const rim = this.add.ellipse(0, 0, 54, 54, 0xb8860b).setStrokeStyle(3, 0x5a3d00);
     const face = this.add.ellipse(0, 0, 44, 44, 0xffd447).setStrokeStyle(2, 0xfff2a8);
     const mark = this.add
-      .text(0, 0, 'H', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '26px', fontStyle: 'bold', color: '#7a5200' })
+      .text(0, 0, 'H', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '28px', color: '#7a5200' })
       .setOrigin(0.5);
     coin.add([rim, face, mark]);
     const shadow = this.add.ellipse(WIDTH / 2, baseY + 36, 40, 10, 0x000000, 0.35).setDepth(9994);
@@ -357,9 +381,9 @@ export class MatchScene extends Phaser.Scene {
         const key = ensureCharacterTexture(this, player.appearance, side === 0 ? 'back' : 'front');
         const sprite = this.add.image(0, 0, key).setOrigin(0.5, 1);
         const label = this.add
-          .text(0, 0, '', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '10px', color: '#ffffff', align: 'center' })
+          .text(0, 0, '', { fontFamily: BODY, resolution: HD_SCALE, fontSize: '10px', fontStyle: '800', color: '#ffffff', align: 'center' })
           .setOrigin(0.5, side === 0 ? 0 : 1)
-          .setStroke('#000000', 3)
+          .setStroke(NAVY_CSS, 4)
           .setDepth(9000);
         const bar = this.add.graphics().setDepth(9000);
         this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing: side === 0 ? 'back' : 'front', busyUntil: 0 };
@@ -388,13 +412,13 @@ export class MatchScene extends Phaser.Scene {
     const ratio = Math.max(0, Math.min(1, (this.guts[v.player.id] ?? v.player.maxGuts) / v.player.maxGuts));
     const x = cx - GUTS_BAR_W / 2;
     g.clear();
-    g.fillStyle(0x10131c, 0.85).fillRoundedRect(x - 1, y - 1, GUTS_BAR_W + 2, GUTS_BAR_H + 2, (GUTS_BAR_H + 2) / 2);
+    g.fillStyle(TC.navy, 0.92).fillRoundedRect(x - 1.5, y - 1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
     if (ratio > 0) {
       const w = Math.max(GUTS_BAR_H, Math.round(GUTS_BAR_W * ratio));
       g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(x, y, w, GUTS_BAR_H, GUTS_BAR_H / 2);
-      g.fillStyle(0xffffff, 0.3).fillRoundedRect(x + 2, y + 1, Math.max(2, w - 4), 2, 1);
+      g.fillStyle(0xffffff, 0.35).fillRoundedRect(x + 2, y + 1, Math.max(2, w - 4), 2, 1);
     }
-    g.lineStyle(1, 0xffffff, 0.7).strokeRoundedRect(x - 1, y - 1, GUTS_BAR_W + 2, GUTS_BAR_H + 2, (GUTS_BAR_H + 2) / 2);
+    g.lineStyle(1.2, 0xffffff, 0.9).strokeRoundedRect(x - 1.5, y - 1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
   }
 
   /** Shadows under players and ball, and the ring under the player who has to act. */
@@ -515,10 +539,10 @@ export class MatchScene extends Phaser.Scene {
   /** A big, short-lived banner such as ACE! in the middle of the court, with the shot that won it underneath. */
   private announce(text: string, color: string, sub?: string, y = 205, size = 34): void {
     const t = this.add
-      .text(WIDTH / 2, y, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: `${size}px`, fontStyle: 'bold', color })
+      .text(WIDTH / 2, y, text, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color })
       .setOrigin(0.5)
-      .setStroke('#000000', 6)
-      .setShadow(0, 4, '#000000', 6, true, true)
+      .setStroke(NAVY_CSS, 8)
+      .setShadow(0, 4, NAVY_CSS, 0, true, true)
       .setDepth(9995)
       .setAlpha(0)
       .setScale(0.6);
@@ -527,13 +551,13 @@ export class MatchScene extends Phaser.Scene {
     if (!sub) return;
     const chip = this.add.container(WIDTH / 2, y + 40).setDepth(9995).setAlpha(0).setScale(0.4);
     const label = this.add
-      .text(0, 0, sub, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '17px', fontStyle: 'bold', color: '#0d1030' })
+      .text(0, 0, sub, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '17px', color: NAVY_CSS })
       .setOrigin(0.5);
     const bg = this.add.graphics();
-    bg.fillStyle(0xffe066, 1);
-    bg.fillRoundedRect(-label.width / 2 - 12, -label.height / 2 - 4, label.width + 24, label.height + 8, 10);
-    bg.lineStyle(2, 0x0d1030, 1);
-    bg.strokeRoundedRect(-label.width / 2 - 12, -label.height / 2 - 4, label.width + 24, label.height + 8, 10);
+    bg.fillStyle(0xffb800, 1);
+    bg.fillRoundedRect(-label.width / 2 - 12, -label.height / 2 - 4, label.width + 24, label.height + 8, 12);
+    bg.lineStyle(3, 0x0b2a5b, 1);
+    bg.strokeRoundedRect(-label.width / 2 - 12, -label.height / 2 - 4, label.width + 24, label.height + 8, 12);
     chip.add([bg, label]);
     this.tweens.add({ targets: chip, alpha: 1, scale: 1, delay: 120, duration: 220, ease: 'Back.easeOut' });
     this.tweens.add({ targets: chip, alpha: 0, delay: 1530, duration: 260, onComplete: () => chip.destroy() });
@@ -722,14 +746,30 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private refreshScore(): void {
-    if (this.practice) {
-      this.scoreText.setText(`FREE PRACTICE\n${this.practice === 'attack' ? 'ATTACKING' : 'DEFENDING'}`);
+    const sb = this.sb;
+    const practice = this.practice !== null;
+    for (const t of [...sb.names, ...sb.games, ...sb.pts]) t.setVisible(!practice);
+    sb.title.setVisible(practice);
+    sb.boxes.setVisible(!practice);
+    sb.dot.clear();
+    if (practice) {
+      sb.title.setText(`FREE PRACTICE\n${this.practice === 'attack' ? 'ATTACKING' : 'DEFENDING'}`);
+      sb.note.setText('');
       return;
     }
     const s = this.matchScore;
     const [a, b] = pointLabels(s);
     const deuce = deuceLabel(s);
-    this.scoreText.setText(`YOU ${s.games[0]} - ${s.games[1]} CPU\n${a} - ${b}${deuce ? `  ${deuce}` : ''}`);
+    [0, 1].forEach((i) => {
+      sb.games[i].setText(String(s.games[i]));
+      sb.pts[i].setText(i === 0 ? a : b);
+    });
+    sb.note.setText(deuce);
+    // The server wears an orange dot.
+    const bx = WIDTH / 2 - 100;
+    const dy = (this.server === 0 ? 17 : 38) + 5;
+    sb.dot.fillStyle(0xff6a1a, 1).fillCircle(bx + 12, dy, 4.5);
+    sb.dot.lineStyle(1.5, 0xffffff, 1).strokeCircle(bx + 12, dy, 4.5);
   }
 
   private say(msg: string): void {
@@ -760,25 +800,30 @@ export class MatchScene extends Phaser.Scene {
     items.forEach((item, i) => {
       const x = dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
       const y = dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
-      const gfx = this.add.graphics().setPosition(x, y);
-      const stroke = TONE_STROKE[item.tone];
-      const redraw = (hover: boolean): void => drawPanel(gfx, w, h, stroke, hover && !item.disabled);
+      const gfx = this.add.graphics().setPosition(x - w / 2, y - h / 2).setDepth(9100);
+      const redraw = (hover: boolean, pressed = false): void => {
+        gfx.clear();
+        drawCard(gfx, w, h, { fill: TONE_FILL[item.tone], stroke: TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
+      };
       redraw(false);
-      const bg = this.add.zone(x, y, w, h);
+      const bg = this.add.zone(x, y, w, h).setDepth(9101);
       const text = this.add
         .text(x, y, item.label, {
-          fontFamily: FONT, resolution: HD_SCALE,
-          fontSize: dirs ? '13px' : compact ? '11px' : '14px',
+          fontFamily: DISPLAY, resolution: HD_SCALE,
+          fontSize: dirs ? '15px' : compact ? '12px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setLineSpacing(-3)
+        .setDepth(9102);
       if (!item.disabled) {
         bg.setInteractive({ useHandCursor: true });
         bg.on('pointerover', () => redraw(true));
         bg.on('pointerout', () => redraw(false));
         bg.on('pointerdown', () => {
           if (this.busy) return;
+          redraw(false, true);
           this.busy = true;
           sfx('select');
           this.clearMenu();
@@ -1204,23 +1249,24 @@ export class MatchScene extends Phaser.Scene {
           { label: 'WAIT FOR THE GLASS\nmore time', tone: 'normal', onPick: () => choose('wall') },
         ]);
         const title = this.add
-          .text(WIDTH / 2, 196, `${kmh} km/h`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '32px', fontStyle: 'bold', color: kmh >= 95 ? '#ff9a6a' : '#ffe066' })
+          .text(WIDTH / 2, 190, `${kmh} km/h`, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '36px', color: kmh >= 95 ? '#ffb36a' : '#ffe066' })
           .setOrigin(0.5)
-          .setStroke('#000000', 6)
+          .setStroke(NAVY_CSS, 8)
           .setDepth(9995);
-        const barBg = this.add.rectangle(WIDTH / 2, 248, 180, 8, 0x000000, 0.6).setStrokeStyle(1, 0xffffff).setDepth(9995);
-        const bar = this.add.rectangle(WIDTH / 2 - 89, 248, 178, 6, 0x5db4ff).setOrigin(0, 0.5).setDepth(9996);
+        const barBg = this.add.rectangle(WIDTH / 2, 252, 184, 10, 0x0b2a5b, 0.9).setStrokeStyle(2, 0xffffff).setDepth(9995);
+        const bar = this.add.rectangle(WIDTH / 2 - 90, 252, 180, 6, 0xffb800).setOrigin(0, 0.5).setDepth(9996);
         // Two quick-read chips: how fast and how much spin (green = easy, yellow = medium, red = hard).
         const spinAmount = Math.hypot(shot.flight.spin, shot.flight.side ?? 0) * spinMul(server.stats.spin);
         const speedLvl = kmh >= 95 ? 2 : kmh >= 78 ? 1 : 0;
         const spinLvl = spinAmount >= 1.2 ? 2 : spinAmount >= 0.6 ? 1 : 0;
-        const chipColors = ['#7dff9a', '#ffe066', '#ff7a6a'];
-        const chip = (x: number, text: string, lvl: number): Phaser.GameObjects.Text =>
-          this.add
-            .text(x, 226, text, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '15px', fontStyle: 'bold', color: chipColors[lvl] })
-            .setOrigin(0.5)
-            .setStroke('#000000', 4)
-            .setDepth(9995);
+        const chipColors = ['#0e8f5c', '#b47a00', '#c62828'];
+        const chip = (x: number, text: string, lvl: number): Phaser.GameObjects.Container => {
+          const label = this.add.text(0, 0, text, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '13px', color: chipColors[lvl] }).setOrigin(0.5);
+          const pill = this.add.graphics();
+          pill.fillStyle(0xffffff, 1).fillRoundedRect(-label.width / 2 - 10, -12, label.width + 20, 24, 12);
+          pill.lineStyle(2.5, 0x0b2a5b, 1).strokeRoundedRect(-label.width / 2 - 10, -12, label.width + 20, 24, 12);
+          return this.add.container(x, 224, [pill, label]).setDepth(9995);
+        };
         const speedChip = chip(WIDTH / 2 - 62, `SPEED: ${['SLOW', 'MEDIUM', 'FAST'][speedLvl]}`, speedLvl);
         const spinChip = chip(WIDTH / 2 + 62, `SPIN: ${['LOW', 'MEDIUM', 'HIGH'][spinLvl]}`, spinLvl);
         this.menu.push(title, speedChip, spinChip, barBg, bar);

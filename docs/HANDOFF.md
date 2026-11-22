@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.70)_
+_Last updated: 2026-11-22 (v0.71)_
+
+## v0.71: new look, step 3 (match interface)
+- **MatchScene HUD** now uses the broadcast theme (`src/theme.ts`): TV scoreboard (navy bar, a row per side with games in a white box and points in gold, orange dot by the server, DEUCE note; in Free Practice it shows the mode instead), a light control sheet under the court (y 392 and down) holding the status line and the buttons, themed MENU button (tap twice to leave), button cards coloured by tone (white normal, green good fit, orange poor, red RISKY, grey off), navy-outlined guts bars and name labels, Baloo/Nunito for the announcements (WINNER!, FAULT, POWERFUL SMASH banner), coin toss texts, big HIGH/MID/LOW BALL text and the receive screen (km/h, SPEED and SPIN pills, countdown bar).
+- Logic untouched (state, shots, serve receive). Court, arena and the old pixel characters are unchanged until phases 4 and 5.
+- Depths: sheet 8000, buttons 9100-9102, announcements 9995, scoreboard 9990-10000.
+- Checked in headless Chromium: toss, serve menu, rally menus, receive decision, announcements, Free Practice. Not checked on a phone; the direction menu and the second page of the practice setup use the same `showButtons` code.
+- Next: phase 4 (toon characters in the match: run, forehand, backhand, smash poses and sizes on the court).
 
 ## v0.70: worn gear shows on the title screen and the Hero screen
 - Title and Hero drew the hero from the base appearance; now both use `applyLook(HERO.appearance, profile.inventory)` like Gear and the match. Verified in headless Chromium (equipped shirt and shorts change the title hero's colours).
