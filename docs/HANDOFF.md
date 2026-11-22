@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.62)_
+_Last updated: 2026-11-22 (v0.63)_
+
+## v0.63: result screen of a quick match shows no sparring text
+- The `SPARRING / NO XP, COINS OR ACHIEVEMENTS` line added in v0.62 is removed (the owner finds it redundant): the quick-match result shows only YOU WIN / YOU LOSE and the games. Behaviour unchanged (still no XP, coins, stats or achievements).
 
 ## v0.62: quick match is a sparring; Vibora only on high balls; weaker Lena
 - **Quick match changes nothing:** no XP, coins, played/won/lost stats, records or achievements (`MatchScene.endMatch` only calls `updateSave` for career matches). The result screen of a quick match shows `SPARRING / NO XP, COINS OR ACHIEVEMENTS` and no level bar. The title screen's PLAYED/WON/LOST line now counts career matches only.

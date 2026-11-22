@@ -55,15 +55,18 @@ export class ResultScene extends Phaser.Scene {
       ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}\n+${fin.prize.coins} COINS  +${fin.prize.xp} XP  +${fin.prize.rank} RANK${fin.prize.pack ? '  +PACK' : ''}`
       : this.outcome.career
         ? 'ROUND WON: THE TOURNAMENT GOES ON'
-        : 'SPARRING\nNO XP, COINS OR ACHIEVEMENTS';
-    this.add
-      .text(WIDTH / 2, 296, summary, {
-        fontFamily: FONT, resolution: HD_SCALE,
-        fontSize: '16px',
-        color: css(COLORS.sky),
-        align: 'center',
-      })
-      .setOrigin(0.5);
+        : '';
+    // A quick match is a sparring: no summary line at all.
+    if (summary !== '') {
+      this.add
+        .text(WIDTH / 2, 296, summary, {
+          fontFamily: FONT, resolution: HD_SCALE,
+          fontSize: '16px',
+          color: css(COLORS.sky),
+          align: 'center',
+        })
+        .setOrigin(0.5);
+    }
 
     const prof = getSave().profile;
     // While a tournament is going on nothing about the hero changes or is shown (XP, level, free packs): that comes with the
