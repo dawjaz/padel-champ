@@ -2,6 +2,11 @@
 
 _Last updated: 2026-11-22 (v0.80)_
 
+## Next session (agreed 2026-11-22)
+1. World and gamification (plan point 4): start by discussing which item first (daily login reward and daily tasks, collection screen with set bonus, per-city court colours; globe and minigames need decisions).
+2. Then characters and animation (plan point 3b): owner reports that the hero and the partner (seen from behind) look like they hold the racket behind their back; they should hold it in front of the body. Probably the back view draws racket and hands behind the torso: draw them in front of it (check with `scripts/poseSheet.ts you:0 back`). Also side views for running, squash/stretch, texture pre-warming, figure size vs court (question only).
+3. Graphic tutorial only after the characters are settled (track drawings can come earlier).
+
 ## v0.80: three fixes from the owner
 - **Ball into the stands:** a ball that left the court over the fence (e.g. `side` error of a bajada) kept flying up to 29 m. Now `buildCoast` keeps 45% of its speed when it clears the fence (`OVER_FENCE_KEEP`) and the air outside is draggier (`OUTSIDE_AIR_DRAG`): it drops within about 4 m. Regression test in `ballPath.test.ts`.
 - **Ball glitch after a point:** the ball kept spinning at its launch spin while lying still, and it was always drawn above the players, so it looked stuck on a leg. Now spin on the ground scales with the roll speed, and a ball lower than 0.4 m is depth-sorted with the players.
