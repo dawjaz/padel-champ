@@ -85,12 +85,15 @@ export function advanceWeek(career: Career): Career {
 
 export interface PartnerDef extends PlayerDef {
   price: number;
+  /** The hero's level from which this partner can be bought (the stronger partners come with the divisions they are made for). */
+  minLevel: number;
 }
 
 export const PARTNERS: PartnerDef[] = partnersData.partners.map((p) => ({
   ...(p as unknown as PlayerDef),
   maxGuts: gutsFor(p.stats.stamina),
   price: p.price,
+  minLevel: p.minLevel,
 }));
 export const partnerById = (id: string): PartnerDef | undefined => PARTNERS.find((p) => p.id === id);
 

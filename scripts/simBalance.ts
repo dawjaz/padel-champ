@@ -1,76 +1,18 @@
-// CPU vs CPU match simulation for balance work. Run: npx vite-node scripts/simBalance.ts [fatigue|career]
+// CPU vs CPU match simulation for balance work. Run: npx vite-node scripts/simBalance.ts [fatigue|career] [matches] [rating offset]
 // Both sides are played by the CPU AI (pickServe / pickReceive / pickHit), with players at their rest positions.
 import playersData from '../src/data/players.json';
 import divisions from '../src/data/divisions.json';
 import partners from '../src/data/partners.json';
-import { pickHit, pickReceive, pickServe, pickStarReceiver } from '../src/game/ai';
-import { gutsFor, gutsRecovery, STAT_KEYS } from '../src/game/attributes';
-import { restPos, serveSetup } from '../src/game/court';
-import { recoverGuts } from '../src/game/engine';
-import { stepHit, stepServe, startPoint, type PointState, type Teams } from '../src/game/point';
+import { gutsFor, STAT_KEYS } from '../src/game/attributes';
+import type { Teams } from '../src/game/point';
 import { seededRng } from '../src/game/rng';
-import { awardPoint, isStarPoint, newScore } from '../src/game/scoring';
 import { makePair } from '../src/career/tournament';
 import { statCap, pointsEarned, heroFrom, newProfile, emptyAlloc } from '../src/career/profile';
-import type { PlayerDef, Rng, SideIndex, StatKey } from '../src/game/types';
+import type { PlayerDef, SideIndex, StatKey } from '../src/game/types';
+import { playMatch, type Tally } from './simCore';
 
 const YOU = playersData.you as unknown as PlayerDef[];
 const CPU = playersData.cpu as unknown as PlayerDef[];
-
-interface Tally { hits: number; spent: number; tiredHits: number; points: number }
-const other = (s: SideIndex): SideIndex => (s === 0 ? 1 : 0);
-
-function playMatch(teams: Teams, rng: Rng, tally: Record<string, Tally>, firstServer: SideIndex = 0) {
-  const guts: Record<string, number> = {};
-  for (const p of teams.flat()) guts[p.id] = p.maxGuts;
-  let score = newScore(2);
-  let server: SideIndex = firstServer;
-  const serverIdx = [0, 0];
-  let points = [0, 0];
-  let pointCount = 0;
-  let longest = 0;
-  while (score.winner === null) {
-    const played = process.env.GLOBAL_PARITY ? pointCount : score.points[0] + score.points[1]; // scene: points of the current game only
-    let choice: number | undefined;
-    if (isStarPoint(score)) choice = pickStarReceiver(teams[other(server)], rng);
-    let st: PointState = startPoint(guts, server, serverIdx[server], played, choice);
-    // serve (and second serve)
-    for (;;) {
-      const shot = pickServe(teams, st, rng);
-      const receive = pickReceive(teams, st, rng);
-      const before = st.guts[teams[server][st.serverIdx].id];
-      const r = stepServe(teams, st, shot, rng, receive);
-      const sv = teams[server][st.serverIdx].id;
-      tally[sv].spent += before - r.state.guts[sv];
-      st = r.state;
-      if (st.status !== 'serve') break;
-    }
-    while (st.status === 'rally') {
-      const opp = teams[other(st.holder)].map((p, i) => ({ ...restPos(other(st.holder), i, st.formation[other(st.holder)]) }));
-      const { shot, direction, prefer } = pickHit(teams, st, rng, opp);
-      const hitter = teams[st.holder][st.hitterIdx];
-      const before = st.guts[hitter.id];
-      const t = tally[hitter.id];
-      t.hits++;
-      if (before < hitter.maxGuts / 2) t.tiredHits++;
-      const r = stepHit(teams, st, shot, direction, rng, prefer);
-      t.spent += before - r.state.guts[hitter.id];
-      st = r.state;
-    }
-    longest = Math.max(longest, st.hits);
-    const w = st.winner as SideIndex;
-    points[w]++; pointCount++;
-    for (const p of teams.flat()) tally[p.id].points++;
-    for (const p of teams.flat()) guts[p.id] = recoverGuts(st.guts[p.id], gutsRecovery(p.stats.stamina), p.maxGuts);
-    const res = awardPoint(score, w);
-    score = res.score;
-    if (res.gameWon) {
-      server = other(server);
-      serverIdx[server] = 1 - serverIdx[server];
-    }
-  }
-  return { winner: score.winner as SideIndex, points, longest };
-}
 
 const mk = (id: string, stats: Record<StatKey, number>): PlayerDef => ({ ...YOU[0], id, name: id, stats, maxGuts: gutsFor(stats.stamina) });
 const flat = (v: number): Record<StatKey, number> => Object.fromEntries(STAT_KEYS.map((k) => [k, v])) as Record<StatKey, number>;

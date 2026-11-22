@@ -4,6 +4,9 @@ import { defenseRating, faultChance } from './engine';
 import { isLob, playableShots, type PointState, type Teams } from './point';
 import type { AimPreference, CourtPos, Direction, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
+/** Shots that are only available now and then; the CPU favours them when it can play them. */
+const NICHE_SHOTS = ['vibora', 'bandeja', 'contrapared'];
+const NICHE_WEIGHT = 3;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
 function weightedPick<T>(items: T[], weights: number[], rng: Rng): T {
@@ -74,6 +77,8 @@ export function pickHit(
     let tactic = 1;
     if (atNet) tactic = isLob(s) ? 2.5 : s.id.includes('chiquita') ? 0.5 : 1;
     else if (atBack) tactic = s.id.includes('chiquita') || s.id === 'dejada' ? 2.2 : isLob(s) ? 0.5 : 1;
+    // The niche shots (vibora, bandeja, contrapared) almost never came up in CPU play (0.1% of hits): a pair that can play them should.
+    if (NICHE_SHOTS.includes(s.id)) tactic *= NICHE_WEIGHT;
     return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);
   });
   const shot = weightedPick(options, weights, rng);
@@ -118,12 +123,21 @@ export function pickHit(
  * CPU choice for a serve that kicks off the side glass: quick, technical players take it off the bounce,
  * solid defenders wait for the glass.
  */
-export function pickReceive(teams: Teams, state: PointState, rng: Rng): ReceiveMode {
+export function pickReceive(teams: Teams, state: PointState, rng: Rng, shot?: ShotDef): ReceiveMode {
   const receiver = teams[state.servingSide === 0 ? 1 : 0][state.receiverIdx];
-  const bounce = receiver.stats.technique + receiver.stats.speed;
-  const wall = receiver.stats.defense * 1.5 + 2;
+  let bounce = receiver.stats.technique + receiver.stats.speed;
+  let wall = receiver.stats.defense * 1.5 + 2;
+  // Like the player (who sees the speed of the serve): a fast serve is waited for, a slow one is taken straight off the bounce.
+  // (In the simulation a fast serve off the bounce is an ace far more often, and a slow one hurts less when taken early.)
+  if (shot) {
+    if (shot.flight.speed >= FAST_SERVE_SPEED) wall *= 3;
+    else if (shot.flight.speed <= SLOW_SERVE_SPEED) bounce *= 3;
+  }
   return weightedPick<ReceiveMode>(['bounce', 'wall'], [bounce, wall], rng);
 }
+/** Serve speeds (m/s) from which the CPU waits for the glass / up to which it takes the ball off the bounce. */
+export const FAST_SERVE_SPEED = 26;
+export const SLOW_SERVE_SPEED = 20;
 
 /**
  * Star Point: the CPU pair decides which of them receives (and so which side the serve comes to).

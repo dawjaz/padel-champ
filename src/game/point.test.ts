@@ -920,3 +920,17 @@ describe('the work is shared evenly inside a pair (the CPU used to feed the righ
     }
   });
 });
+
+describe('the CPU receiver reads the speed of the serve', () => {
+  it('waits for the glass on a fast serve and takes a slow one off the bounce', () => {
+    const rng = seededRng(3);
+    const st = startPoint(freshGuts(), 0, 0, 0);
+    const share = (id: string): number => {
+      let wall = 0;
+      for (let i = 0; i < 600; i++) if (pickReceive(TEAMS, st, rng, shot(id)) === 'wall') wall++;
+      return wall / 600;
+    };
+    expect(share('hard_glass')).toBeGreaterThan(0.75);
+    expect(share('t_serve')).toBeLessThan(0.4);
+  });
+});

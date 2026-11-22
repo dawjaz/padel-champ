@@ -158,7 +158,7 @@ describe('partners', () => {
     expect(Math.min(...PARTNERS.map((_, i) => rating(i)))).toBe(rating(0));
   });
   it('the hero starts with the default, buys others with coins and can switch between owned ones', () => {
-    const p = { ...newProfile(), coins: 1000 };
+    const p = { ...newProfile(), coins: 1000, xp: xpToReach(3) };
     expect(p.career.partnerId).toBe(PARTNERS[0].id);
     expect(buyPartner({ ...p, coins: 10 }, 'lena')).toBeNull();
     const bought = buyPartner(p, 'lena')!;
@@ -167,6 +167,13 @@ describe('partners', () => {
     expect(buyPartner(bought, 'lena')).toBeNull();
     expect(choosePartner(bought, 'olek').career.partnerId).toBe('olek');
     expect(choosePartner(bought, 'diego')).toBe(bought);
+  });
+  it('a stronger partner needs the level of the divisions he is made for, however many coins there are', () => {
+    const rich = { ...newProfile(), coins: 100000 };
+    expect(buyPartner(rich, 'lena')).toBeNull();
+    expect(buyPartner({ ...rich, xp: xpToReach(3) }, 'lena')).not.toBeNull();
+    expect(buyPartner({ ...rich, xp: xpToReach(26) }, 'ana')).toBeNull();
+    expect(buyPartner({ ...rich, xp: xpToReach(27) }, 'ana')).not.toBeNull();
   });
 });
 

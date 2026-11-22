@@ -84,7 +84,7 @@ export function skipWeek(p: Profile): Profile {
 
 export function buyPartner(p: Profile, id: string): Profile | null {
   const def = partnerById(id);
-  if (!def || p.career.partners.includes(id) || p.coins < def.price) return null;
+  if (!def || p.career.partners.includes(id) || p.coins < def.price || levelOf(p.xp) < def.minLevel) return null;
   return { ...p, coins: p.coins - def.price, career: { ...p.career, partners: [...p.career.partners, id], partnerId: id } };
 }
 

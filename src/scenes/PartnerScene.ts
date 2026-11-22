@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, css, FONT, HD_SCALE, WIDTH } from '../config';
 import { buyPartner, choosePartner, tournamentActive } from '../career/careerFlow';
 import { PARTNERS } from '../career/season';
+import { levelOf } from '../career/profile';
 import { STAT_KEYS } from '../game/attributes';
 import { applyScreen } from '../hd';
 import { getSave, updateSave } from '../save';
@@ -57,8 +58,9 @@ export class PartnerScene extends Phaser.Scene {
       text(28, y - 8, `RATING ${avg.toFixed(1)}`, 11, COLORS.sky, true);
       text(28, y + 12, STAT_KEYS.slice(0, 4).map((k) => `${SHORT[k]} ${def.stats[k]}`).join('  '), 10, COLORS.gray);
       text(28, y + 28, STAT_KEYS.slice(4).map((k) => `${SHORT[k]} ${def.stats[k]}`).join('  '), 10, COLORS.gray);
-      const label = chosen ? 'PLAYING' : owned ? 'SELECT' : `${def.price}`;
-      const can = owned || p.coins >= def.price;
+      const lvlOk = levelOf(p.xp) >= def.minLevel;
+      const label = chosen ? 'PLAYING' : owned ? 'SELECT' : lvlOk ? `${def.price}` : `LEVEL ${def.minLevel}`;
+      const can = owned || (lvlOk && p.coins >= def.price);
       const b = makeButton(this, 282, y, 100, 44, label, () => {
         if (!can || chosen) return;
         updateSave((d) => ({ ...d, profile: (owned ? choosePartner(d.profile, def.id) : buyPartner(d.profile, def.id)) ?? d.profile }));

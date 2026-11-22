@@ -114,7 +114,7 @@
    "fee": 300,
    "rating": 8.4,
    "title": {
-    "coins": 3800,
+    "coins": 2900,
     "xp": 2500,
     "rank": 1000
    },
@@ -129,7 +129,7 @@
    "fee": 400,
    "rating": 9.0,
    "title": {
-    "coins": 5500,
+    "coins": 3200,
     "xp": 3300,
     "rank": 1500
    },
@@ -144,7 +144,7 @@
    "fee": 600,
    "rating": 9.6,
    "title": {
-    "coins": 9000,
+    "coins": 4500,
     "xp": 4300,
     "rank": 2000
    },
@@ -159,7 +159,7 @@
    "fee": 0,
    "rating": 10.0,
    "title": {
-    "coins": 6000,
+    "coins": 3500,
     "xp": 3000,
     "rank": 1000
    },

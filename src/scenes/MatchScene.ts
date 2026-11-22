@@ -1118,7 +1118,7 @@ export class MatchScene extends Phaser.Scene {
     const recvSide = other(st.servingSide);
     const receiver = TEAMS[recvSide][st.receiverIdx];
     if (!this.isHuman(recvSide, st.receiverIdx)) {
-      this.performServe(shot, pickReceive(TEAMS, st, Math.random));
+      this.performServe(shot, pickReceive(TEAMS, st, Math.random, shot));
       return;
     }
     this.setActive(receiver.id);

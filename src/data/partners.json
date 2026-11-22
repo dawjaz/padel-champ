@@ -24,7 +24,8 @@
     "bottomStyle": "shorts",
     "shoes": "#f4f4f4",
     "racket": "#15151c"
-   }
+   },
+   "minLevel": 1
   },
   {
    "id": "lena",
@@ -49,7 +50,8 @@
     "bottomStyle": "skirt",
     "shoes": "#f4f4f4",
     "racket": "#15151c"
-   }
+   },
+   "minLevel": 3
   },
   {
    "id": "tomek",
@@ -74,7 +76,8 @@
     "bottomStyle": "shorts",
     "shoes": "#15151c",
     "racket": "#3cbcfc"
-   }
+   },
+   "minLevel": 6
   },
   {
    "id": "marco",
@@ -99,7 +102,8 @@
     "bottomStyle": "shorts",
     "shoes": "#f4f4f4",
     "racket": "#f2a33a"
-   }
+   },
+   "minLevel": 9
   },
   {
    "id": "mia",
@@ -125,7 +129,8 @@
     "shoes": "#f2a33a",
     "racket": "#e8554e",
     "headband": "#e8554e"
-   }
+   },
+   "minLevel": 12
   },
   {
    "id": "kasia",
@@ -150,7 +155,8 @@
     "bottomStyle": "skirt",
     "shoes": "#2fb5a0",
     "racket": "#15151c"
-   }
+   },
+   "minLevel": 15
   },
   {
    "id": "sofia",
@@ -175,7 +181,8 @@
     "bottomStyle": "skirt",
     "shoes": "#e8554e",
     "racket": "#f6d743"
-   }
+   },
+   "minLevel": 18
   },
   {
    "id": "ivan",
@@ -201,7 +208,8 @@
     "shoes": "#f2a33a",
     "racket": "#e8554e",
     "headband": "#f4f4f4"
-   }
+   },
+   "minLevel": 21
   },
   {
    "id": "diego",
@@ -227,7 +235,8 @@
     "shoes": "#15151c",
     "racket": "#3cbcfc",
     "headband": "#f8b800"
-   }
+   },
+   "minLevel": 24
   },
   {
    "id": "ana",
@@ -253,7 +262,8 @@
     "shoes": "#f6d743",
     "racket": "#d82800",
     "headband": "#15151c"
-   }
+   },
+   "minLevel": 27
   }
  ]
 }
