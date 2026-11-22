@@ -1066,7 +1066,7 @@ export class MatchScene extends Phaser.Scene {
     const seed = Math.floor(Math.random() * 1e9);
     const probe = stepServe(TEAMS, st, shot, seededRng(seed), 'bounce');
     const startH = this.ballH;
-    const { flight, landX } = this.buildStepFlight(probe.step, seed, startH);
+    const { flight } = this.buildStepFlight(probe.step, seed, startH);
     const bounce = flight.events.find((e) => e.kind === 'bounce');
     // A fault is a fault whatever the receiver does: no decision, the serve just plays.
     if (probe.step.outcome === 'fault') {
@@ -1075,8 +1075,8 @@ export class MatchScene extends Phaser.Scene {
     }
     if (!bounce || flight.duration <= 0) {
       this.showButtons(`${receiver.name}: take it...`, [
-        { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
-        { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
+        { label: 'AFTER BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
+        { label: 'WAIT FOR THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
       ]);
       return;
     }
@@ -1085,7 +1085,6 @@ export class MatchScene extends Phaser.Scene {
     const p0 = pb * 0.78;
     const p1 = pb * 0.93;
     const kmh = Math.round(shot.flight.speed * (probe.step.second ? SECOND_SERVE_SPEED : 1) * powerSpeedMul(server.stats.power) * 3.6);
-    const where = Math.abs(landX) < 1.2 ? 'to the T' : Math.abs(landX) < 3.4 ? 'at your body' : `wide, off the ${landX < 0 ? 'left' : 'right'} glass`;
 
     this.say(`${server.name}: ${shot.name}!`);
     impactSound(racketKind(shot.id, true, shot.flight.speed), Math.max(0.15, Math.min(1, shot.flight.speed / 30)));
@@ -1126,22 +1125,17 @@ export class MatchScene extends Phaser.Scene {
           this.performServe(shot, receive, { seed, from: progress, startH });
         };
         this.showButtons(`${receiver.name}: take it...`, [
-          { label: 'ON THE BOUNCE\nfast, clean', tone: 'normal', onPick: () => choose('bounce') },
-          { label: 'OFF THE GLASS\nmore time', tone: 'normal', onPick: () => choose('wall') },
+          { label: 'AFTER BOUNCE\nfast, clean', tone: 'normal', onPick: () => choose('bounce') },
+          { label: 'WAIT FOR THE GLASS\nmore time', tone: 'normal', onPick: () => choose('wall') },
         ]);
         const title = this.add
           .text(WIDTH / 2, 196, `${kmh} km/h`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '32px', fontStyle: 'bold', color: kmh >= 95 ? '#ff9a6a' : '#ffe066' })
           .setOrigin(0.5)
           .setStroke('#000000', 6)
           .setDepth(9995);
-        const sub = this.add
-          .text(WIDTH / 2, 226, `${shot.name.toUpperCase()}  ${where.toUpperCase()}`, { fontFamily: FONT, resolution: HD_SCALE, fontSize: '12px', fontStyle: 'bold', color: '#ffffff' })
-          .setOrigin(0.5)
-          .setStroke('#000000', 4)
-          .setDepth(9995);
         const barBg = this.add.rectangle(WIDTH / 2, 248, 180, 8, 0x000000, 0.6).setStrokeStyle(1, 0xffffff).setDepth(9995);
         const bar = this.add.rectangle(WIDTH / 2 - 89, 248, 178, 6, 0x5db4ff).setOrigin(0, 0.5).setDepth(9996);
-        this.menu.push(title, sub, barBg, bar);
+        this.menu.push(title, barBg, bar);
         // Where the ball will land and where it will hit the glass.
         const marks: Array<{ x: number; z: number; h: number; color: number }> = [{ x: bounce.x, z: bounce.z, h: 0, color: 0xffe066 }];
         if (glassHit) marks.push({ x: glassHit.x, z: glassHit.z, h: glassHit.h, color: 0x9fd8ff });

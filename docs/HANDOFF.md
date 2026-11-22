@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.57)_
+_Last updated: 2026-11-22 (v0.58)_
+
+## v0.58: receiving a serve off the glass: clearer buttons, no hint line
+- The two receive buttons are now `AFTER BOUNCE` (fast, clean) and `WAIT FOR THE GLASS` (more time) (were ON THE BOUNCE / OFF THE GLASS). The line under the km/h (`HARD GLASS  WIDE, OFF THE LEFT GLASS`) is removed.
+- Owner clarification: the `bouncemesh` serve fault is meant as is: the serve bounces in the service box, but is too short and then hits the side fence (the mesh), not the glass. Kept (v0.57 only stopped it leaving the court).
+- Open: what to show instead of the removed line so the receiver can judge the risk (speed, spin, how close to the glass, how much time). Proposal discussed in the chat (risk chips and a risk word per button); nothing built yet. Numbers behind the choice: `BOUNCE_DEFENSE` 0.9 / `WALL_DEFENSE` 1.1 in the receiver's defence, `BOUNCE_PRESSURE_RELIEF` 0.5 (a serve taken after the bounce puts half the pressure on the return), decision time `receiveDecisionMs` (6.2 s x 40..100% by guts).
 
 ## v0.57: second serve from the baseline, faulted serves stay in the court
 - Bug (screenshot, 22.11): on the second serve the server stood at the net. While the first serve was in the air everybody walked to the formation after the serve (the server up to the net), and after a fault `serveTurn()` was called without sending them back. Fix: `startServe` remembers the serving spots (`serveSpots`), a fault now calls `backToServeSpots()` (all four walk back in 450 ms, the ball of the fault is stopped, then `serveTurn()`).
