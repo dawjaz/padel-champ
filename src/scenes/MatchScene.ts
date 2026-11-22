@@ -221,18 +221,18 @@ export class MatchScene extends Phaser.Scene {
     const bx = WIDTH / 2 - 100;
     const board = this.add.graphics().setPosition(bx, 5).setDepth(9990);
     drawCard(board, 200, 46, { fill: TC.navy, stroke: TC.navyDark, radius: 12, shadow: 3 });
-    const rowY = [17, 38];
+    const rowY = [18, 38];
     const sbText = (x: number, y: number, str: string, size: number, color: string, ox: number): Phaser.GameObjects.Text =>
       this.add.text(x, y, str, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color }).setOrigin(ox, 0.5).setDepth(10000);
     const gamesBoxes = this.add.graphics().setDepth(9995);
     for (const y of rowY) {
       gamesBoxes.fillStyle(TC.white, 1);
-      gamesBoxes.fillRoundedRect(bx + 118, y - 9 + 5, 30, 18, 6);
+      gamesBoxes.fillRoundedRect(bx + 118, y - 9, 30, 18, 6);
     }
     this.sb = {
-      names: rowY.map((y, i) => this.fitName(sbText(bx + 24, y + 5, this.teamLabel(i === 0 ? 1 : 0), 14, '#ffffff', 0), 92)),
-      games: rowY.map((y) => sbText(bx + 133, y + 5, '0', 15, NAVY_CSS, 0.5)),
-      pts: rowY.map((y) => sbText(bx + 188, y + 5, '0', 15, '#ffb800', 1)),
+      names: rowY.map((y, i) => this.fitName(sbText(bx + 24, y, this.teamLabel(i === 0 ? 1 : 0), 14, '#ffffff', 0), 92)),
+      games: rowY.map((y) => sbText(bx + 133, y, '0', 15, NAVY_CSS, 0.5)),
+      pts: rowY.map((y) => sbText(bx + 188, y, '0', 15, '#ffb800', 1)),
       dot: this.add.graphics().setDepth(10000),
       boxes: gamesBoxes,
       note: this.add.text(WIDTH / 2, 59, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ffffff' }).setOrigin(0.5).setStroke(NAVY_CSS, 4).setDepth(10000),
@@ -403,7 +403,7 @@ export class MatchScene extends Phaser.Scene {
     // Hero: name below the feet, bar under the name. Opponents: bar right over the head, name above it.
     const top = p.y - spriteHeight - 2 - v.lift;
     v.label.setPosition(p.x, v.side === 0 ? p.y + 6 : top - GUTS_BAR_H - 3);
-    this.drawGutsBar(v, p.x, v.side === 0 ? p.y + 6 + 13 : top - GUTS_BAR_H);
+    this.drawGutsBar(v, p.x, v.side === 0 ? p.y + 6 + 18 : top - GUTS_BAR_H);
   }
 
   /** A rounded bar: the fill shrinks with the guts and changes colour from green to red. */
@@ -780,7 +780,7 @@ export class MatchScene extends Phaser.Scene {
     sb.note.setText(deuce);
     // The server wears an orange dot.
     const bx = WIDTH / 2 - 100;
-    const dy = (this.server === 0 ? 38 : 17) + 5;
+    const dy = this.server === 0 ? 38 : 18;
     sb.dot.fillStyle(0xff6a1a, 1).fillCircle(bx + 12, dy, 4.5);
     sb.dot.lineStyle(1.5, 0xffffff, 1).strokeCircle(bx + 12, dy, 4.5);
   }

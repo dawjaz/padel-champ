@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.73)_
+_Last updated: 2026-11-22 (v0.74)_
+
+## v0.74: scoreboard centring, guts bar under the hero's name
+- Scoreboard rows (names, games boxes, points, serve dot) were 5 px too low in the navy bar; now centred (rows at y 18 and 38 of a bar that spans 5 to 51).
+- The hero side's guts bar sat on its name label; it is now 18 px below the label's top (was 13).
 
 ## v0.73: serving order and scoreboard names
 - **Serving order fixed.** After a game the code flipped the serving player of the team that was about to serve, so the hero's second-game turn came before his first (Lucy served first in the hero's pair when the CPU won the toss). Now the team that has just served hands its next service game to its partner, and each team starts with its first player: the hero serves first in his pair.
