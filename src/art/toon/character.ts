@@ -11,12 +11,13 @@ export type ToonView = 'front' | 'back';
 
 /** Same names as the old pixel characters, so the match can swap them one for one. */
 export type ToonPose =
-  | 'ready' | 'runA' | 'runB'
+  | 'idle' | 'ready' | 'runA' | 'runB'
   | 'fhPrep' | 'fhHit' | 'fhFollow'
   | 'bhPrep' | 'bhHit' | 'bhFollow'
   | 'smashPrep' | 'smashHit' | 'smashFollow';
 
-export const TOON_POSES: ToonPose[] = ['ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow'];
+/** `idle` = the relaxed menu pose (arms down); `ready` = the athletic waiting stance of a match: wide, knees bent, racket in front. */
+export const TOON_POSES: ToonPose[] = ['idle', 'ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow'];
 
 type Pt = [number, number];
 
@@ -43,18 +44,20 @@ interface PoseSpec {
 
 const GROUND = 304;
 export const POSES: Record<ToonPose, PoseSpec> = {
-  ready: { hand: [150, 190], racket: 16, elbow: [155, 148], off: [51, 202], offElbow: [47, 154], lean: 0, crouch: 0, left: [75, GROUND], right: [125, GROUND] },
-  runA: { hand: [154, 178], racket: 28, off: [44, 166], lean: 4, crouch: 8, left: [84, 282], right: [128, GROUND] },
-  runB: { hand: [154, 178], racket: 28, off: [44, 166], lean: -4, crouch: 8, left: [72, GROUND], right: [116, 282] },
-  fhPrep: { hand: [182, 132], racket: 60, off: [70, 142], lean: 8, crouch: 10, left: [62, GROUND], right: [138, GROUND] },
-  fhHit: { hand: [176, 166], racket: 98, off: [58, 140], lean: -3, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
-  fhFollow: { hand: [78, 84], racket: -52, off: [40, 150], lean: -12, crouch: 8, left: [66, GROUND], right: [124, GROUND] },
-  bhPrep: { hand: [58, 150], racket: -62, off: 'grip', lean: -8, crouch: 10, left: [62, GROUND], right: [138, GROUND] },
-  bhHit: { hand: [26, 166], racket: -98, off: 'grip', lean: 6, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
-  bhFollow: { hand: [118, 76], racket: 40, off: [34, 132], lean: 12, crouch: 8, left: [76, GROUND], right: [134, GROUND] },
-  smashPrep: { hand: [152, 58], racket: 140, off: [70, 22], lean: 4, crouch: 8, left: [66, GROUND], right: [134, GROUND] },
-  smashHit: { hand: [134, 34], racket: 6, off: [64, 112], lean: -2, crouch: -26, left: [74, 276], right: [132, 290] },
-  smashFollow: { hand: [92, 134], racket: -64, off: [48, 118], lean: -8, crouch: 10, left: [70, GROUND], right: [128, GROUND] },
+  idle: { hand: [150, 190], racket: 16, elbow: [155, 148], off: [51, 202], offElbow: [47, 154], lean: 0, crouch: 0, left: [75, GROUND], right: [125, GROUND] },
+  // Poses follow photos of pro players: wide base, deep knee bend, the racket in front of the body, the free arm out for balance.
+  ready: { hand: [124, 150], racket: 10, off: 'grip', lean: 0, crouch: 22, left: [58, GROUND], right: [142, GROUND] },
+  runA: { hand: [128, 152], racket: 14, off: [48, 150], lean: 4, crouch: 16, left: [82, 280], right: [134, GROUND] },
+  runB: { hand: [128, 152], racket: 14, off: [48, 150], lean: -4, crouch: 16, left: [66, GROUND], right: [118, 280] },
+  fhPrep: { hand: [172, 128], racket: 38, off: [28, 128], lean: 6, crouch: 24, left: [54, GROUND], right: [146, GROUND] },
+  fhHit: { hand: [188, 158], racket: 96, off: [14, 126], lean: -2, crouch: 28, left: [50, GROUND], right: [150, GROUND] },
+  fhFollow: { hand: [90, 92], racket: -36, off: [24, 142], lean: -8, crouch: 20, left: [60, GROUND], right: [140, GROUND] },
+  bhPrep: { hand: [72, 152], racket: -46, off: 'grip', lean: -6, crouch: 24, left: [54, GROUND], right: [146, GROUND] },
+  bhHit: { hand: [34, 160], racket: -84, off: 'grip', lean: 4, crouch: 28, left: [50, GROUND], right: [150, GROUND] },
+  bhFollow: { hand: [60, 86], racket: -18, off: [168, 128], lean: -8, crouch: 18, left: [60, GROUND], right: [140, GROUND] },
+  smashPrep: { hand: [158, 40], racket: -12, elbow: [180, 98], off: [38, 40], lean: 4, crouch: 22, left: [52, GROUND], right: [148, GROUND] },
+  smashHit: { hand: [142, 32], racket: 4, off: [84, 128], lean: -2, crouch: -28, left: [72, 282], right: [134, 294] },
+  smashFollow: { hand: [82, 132], racket: -70, off: [40, 120], lean: -8, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
 };
 
 /** Two-bone solver: the middle joint of a limb from `a` to `b`, bending towards `down` (true) or up. */
@@ -159,7 +162,7 @@ const HEAD_SCALE = scaleAbout(1.13, 100, 94);
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
 
-export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'ready'): Op[] {
+export function buildToon(a: Appearance, view: ToonView = 'front', pose: ToonPose = 'idle'): Op[] {
   return buildToonLook(lookOf(a), view, pose);
 }
 
@@ -173,7 +176,7 @@ function racketMatrix(hand: Pt, deg: number): { m: Mat; at: (x: number, y: numbe
   return { m, at: (x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] };
 }
 
-export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'ready'): Op[] {
+export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose = 'idle'): Op[] {
   const back = view === 'back';
   const sk = L.skin;
   const skd = shadeHex(sk, 0.8);

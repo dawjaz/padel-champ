@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.74)_
+_Last updated: 2026-11-22 (v0.75)_
+
+## v0.75: toon poses redone from photos of pro players
+- The owner sent reference photos (forehand, backhand, smash). Lessons used: wide base and deep knee bend in every stroke, the racket held in front of the body (both hands in the ready stance), the free arm out or up for balance, smash side-on with the free arm pointing up at the ball and the racket behind the head.
+- New pose `idle` = the old relaxed arms-down pose (default of `buildToon`, so the title, Hero, Gear and Partners screens are unchanged); `ready` is now the athletic match stance. All other poses retuned in `POSES` (`src/art/toon/character.ts`).
+- Check with `npx vite-node scripts/poseSheet.ts you:0 front,back` then open `/tmp/poses.html`.
 
 ## v0.74: scoreboard centring, guts bar under the hero's name
 - Scoreboard rows (names, games boxes, points, serve dot) were 5 px too low in the navy bar; now centred (rows at y 18 and 38 of a bar that spans 5 to 51).

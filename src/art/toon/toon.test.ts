@@ -79,10 +79,10 @@ describe('toon poses', () => {
     }
   });
 
-  it('every pose differs from the ready pose, and the default pose is ready', () => {
-    const ready = toSvg(buildToon(BASE, 'back'));
-    expect(toSvg(buildToon(BASE, 'back', 'ready'))).toBe(ready);
-    for (const pose of TOON_POSES.filter((p) => p !== 'ready')) expect(toSvg(buildToon(BASE, 'back', pose))).not.toBe(ready);
+  it('every pose differs from the idle pose, and the default pose is idle', () => {
+    const idle = toSvg(buildToon(BASE, 'back'));
+    expect(toSvg(buildToon(BASE, 'back', 'idle'))).toBe(idle);
+    for (const pose of TOON_POSES.filter((p) => p !== 'idle')) expect(toSvg(buildToon(BASE, 'back', pose))).not.toBe(idle);
   });
 
   it('keeps the racket hand and the feet inside the picture, and the soles on or above the ground', () => {
