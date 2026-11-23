@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.84)_
+_Last updated: 2026-11-23 (v0.85)_
+
+## v0.85: more natural arms and legs (characters and animation, step 2)
+- Owner report (after v0.84): arm layout still unnatural, the backhand looked as if the right arm was pulled behind the back, legs bowed out and looked comical; they should run on straighter legs and go a little lower at the hit.
+- Reference (tennis, not padel): ready stance = feet a bit wider than the shoulders, knees only slightly bent, racket in front with both hands; running = upright legs; groundstrokes = bend the knees a little more at the hit; two-handed backhand = both hands on the racket, shoulders and hips turn toward the ball and both hands stay on the racket in the follow-through.
+- Legs (`POSES`, `runFrame` in `src/art/toon/character.ts`): ankles are about 70 units apart instead of 90 to 100 (no more diamond-shaped knees); crouch: ready 10 (was 22), run 5 (was 16, cycle 2..8), strokes 14 to 20 (was 24 to 28) so the hit is the lowest point of the stroke; leg lift in the run cycle 18 (was 30), swing 13 (was 15).
+- Back view layering: an arm that reaches in front of the body (hand lower than the shoulders and not out at the side: ready, run, backhand, across-the-chest arms) is drawn BEHIND the torso and head, so only the part that sticks out at the side shows (`inFrontR`, `inFrontO`). The racket held upright in front is also moved 22 units to the side (`BACK_VIEW_SIDE_SHIFT`).
+- Backhand: hand moved out to the left of the body (bhPrep x 54, bhHit x 32); bhFollow keeps both hands on the racket (the free off arm that crossed the chest is gone).
+- Check: `npx vite-node scripts/poseSheet.ts you:0 back,front`, then a Chrome screenshot of `/tmp/poses.html`. Not checked in the match on a device. Open: the front view (opponents) was not retuned for arms, only legs; run-cycle arms still cross the chest slightly.
 
 ## v0.84: racket in front of the body, seen from behind (characters and animation, step 1)
 - Owner report: the hero and the partner (back view) looked like they held the racket behind their back. Cause: in the back view the hands and racket were drawn on top of the torso, i.e. on the back, although the racket is in front of the body.

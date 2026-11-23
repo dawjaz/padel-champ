@@ -46,18 +46,18 @@ const GROUND = 304;
 export const POSES: Record<ToonPose, PoseSpec> = {
   idle: { hand: [150, 190], racket: 16, elbow: [155, 148], off: [51, 202], offElbow: [47, 154], lean: 0, crouch: 0, left: [75, GROUND], right: [125, GROUND] },
   // Poses follow photos of pro players: wide base, deep knee bend, the racket in front of the body, the free arm out for balance.
-  ready: { hand: [124, 150], racket: 10, off: 'grip', lean: 0, crouch: 22, left: [58, GROUND], right: [142, GROUND] },
-  runA: { hand: [128, 152], racket: 14, off: [48, 150], lean: 4, crouch: 16, left: [82, 280], right: [134, GROUND] },
-  runB: { hand: [128, 152], racket: 14, off: [48, 150], lean: -4, crouch: 16, left: [66, GROUND], right: [118, 280] },
-  fhPrep: { hand: [172, 128], racket: 38, off: [28, 128], lean: 6, crouch: 24, left: [54, GROUND], right: [146, GROUND] },
-  fhHit: { hand: [188, 158], racket: 96, off: [14, 126], lean: -2, crouch: 28, left: [50, GROUND], right: [150, GROUND] },
-  fhFollow: { hand: [90, 92], racket: -36, off: [24, 142], lean: -8, crouch: 20, left: [60, GROUND], right: [140, GROUND] },
-  bhPrep: { hand: [72, 152], racket: -46, off: 'grip', lean: -6, crouch: 24, left: [54, GROUND], right: [146, GROUND] },
-  bhHit: { hand: [34, 160], racket: -84, off: 'grip', lean: 4, crouch: 28, left: [50, GROUND], right: [150, GROUND] },
-  bhFollow: { hand: [60, 86], racket: -18, off: [168, 128], lean: -8, crouch: 18, left: [60, GROUND], right: [140, GROUND] },
-  smashPrep: { hand: [158, 40], racket: -12, elbow: [180, 98], off: [38, 40], lean: 4, crouch: 22, left: [52, GROUND], right: [148, GROUND] },
+  ready: { hand: [124, 150], racket: 10, off: 'grip', lean: 0, crouch: 10, left: [66, GROUND], right: [134, GROUND] },
+  runA: { hand: [128, 152], racket: 14, off: [48, 150], lean: 4, crouch: 5, left: [84, 288], right: [126, GROUND] },
+  runB: { hand: [128, 152], racket: 14, off: [48, 150], lean: -4, crouch: 5, left: [74, GROUND], right: [116, 288] },
+  fhPrep: { hand: [172, 128], racket: 38, off: [28, 128], lean: 6, crouch: 14, left: [64, GROUND], right: [136, GROUND] },
+  fhHit: { hand: [188, 158], racket: 96, off: [14, 126], lean: -2, crouch: 20, left: [60, GROUND], right: [140, GROUND] },
+  fhFollow: { hand: [90, 92], racket: -36, off: [24, 142], lean: -8, crouch: 12, left: [64, GROUND], right: [136, GROUND] },
+  bhPrep: { hand: [54, 150], racket: -50, off: 'grip', lean: -6, crouch: 14, left: [64, GROUND], right: [136, GROUND] },
+  bhHit: { hand: [32, 160], racket: -84, off: 'grip', lean: 4, crouch: 20, left: [60, GROUND], right: [140, GROUND] },
+  bhFollow: { hand: [60, 86], racket: -18, off: 'grip', lean: -8, crouch: 12, left: [64, GROUND], right: [136, GROUND] },
+  smashPrep: { hand: [158, 40], racket: -12, elbow: [180, 98], off: [38, 40], lean: 4, crouch: 12, left: [62, GROUND], right: [138, GROUND] },
   smashHit: { hand: [142, 32], racket: 4, off: [84, 128], lean: -2, crouch: -28, left: [72, 282], right: [134, 294] },
-  smashFollow: { hand: [82, 132], racket: -70, off: [40, 120], lean: -8, crouch: 14, left: [58, GROUND], right: [142, GROUND] },
+  smashFollow: { hand: [82, 132], racket: -70, off: [40, 120], lean: -8, crouch: 10, left: [64, GROUND], right: [136, GROUND] },
 };
 
 /** Two-bone solver: the middle joint of a limb from `a` to `b`, bending towards `down` (true) or up. */
@@ -268,16 +268,19 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
 
 
   // off arm (viewer's left), behind the head unless it is on the racket handle
-  // Seen from behind, a racket held in front of the body (ready stance, running) must sit BEHIND the torso and head, with the
-  // hand and the racket peeking out at the side; drawn on top of the back it looked as if it was held behind the back.
-  const frontHeld = back && P.hand[0] < 140 && P.hand[1] > 100 && P.hand[1] < 175 && P.racket > -20 && P.racket < 30;
-  const hx = sx(P.hand[0]) + (frontHeld ? BACK_VIEW_SIDE_SHIFT : 0);
+  // Seen from behind, whatever is held IN FRONT of the body is behind the torso and head: an arm reaching across the chest or a
+  // racket held in front is hidden where the body covers it and shows only where it sticks out at the side. Drawn on top of the
+  // back it looked as if the arm was pulled behind the back.
+  const inFrontR = back && P.hand[1] > 95 && P.hand[0] < 135;
+  const inFrontO = back && P.off !== 'grip' && P.off[1] > 95 && P.off[0] > 72;
+  const hx = sx(P.hand[0]) + (inFrontR && P.racket > -30 && P.racket < 30 ? BACK_VIEW_SIDE_SHIFT : 0);
   const rk = racketMatrix([hx, P.hand[1]], P.racket);
   const frontOps: Op[] = [];
   const offHand: Pt = P.off === 'grip' ? rk.at(0, -34) : [sx(P.off[0]), P.off[1]];
   if (P.off !== 'grip') {
-    u.push(...armTo([sx(63), 114], offHand, P.offElbow ? [sx(P.offElbow[0]), P.offElbow[1]] : undefined, L.shirt, -1));
-    u.push(...handOps(offHand));
+    const offPart: Op[] = inFrontO ? frontOps : u;
+    offPart.push(...armTo([sx(63), 114], offHand, P.offElbow ? [sx(P.offElbow[0]), P.offElbow[1]] : undefined, L.shirt, -1));
+    offPart.push(...handOps(offHand));
   }
 
   // head
@@ -336,7 +339,7 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
   }
 
   // racket arm (viewer's right) and racket
-  const racketPart: Op[] = frontHeld ? frontOps : u;
+  const racketPart: Op[] = inFrontR ? frontOps : u;
   racketPart.push(...armTo([sx(137), 114], [hx, P.hand[1]], P.elbow ? [sx(P.elbow[0]), P.elbow[1]] : undefined, L.shirt, 1));
   racketPart.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
   racketPart.push(...handOps([hx, P.hand[1]]));
@@ -345,7 +348,7 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
     racketPart.push(...armTo([sx(63), 114], offHand, undefined, L.shirt, -1));
     racketPart.push(...handOps(offHand));
   }
-  if (frontHeld) u.unshift(...frontOps);
+  if (frontOps.length > 0) u.unshift(...frontOps);
   o.push({ k: 'g', m: bodyM, ops: u });
   return o;
 }
@@ -378,7 +381,7 @@ export function runFrame(frame: number): PoseSpec {
   const a = ph * Math.PI * 2;
   const leg = (offset: number, cx: number): Pt => {
     const q = a + offset;
-    return [R(cx + 15 * Math.cos(q)), R(GROUND - 30 * Math.max(0, Math.sin(q)))];
+    return [R(cx + 13 * Math.cos(q)), R(GROUND - 18 * Math.max(0, Math.sin(q)))];
   };
   const sw = Math.cos(a);
   return {
@@ -386,8 +389,8 @@ export function runFrame(frame: number): PoseSpec {
     racket: 14 + 5 * sw,
     off: [R(48 - 6 * sw), R(150 + 6 * sw)],
     lean: 5 + 2 * Math.cos(2 * a),
-    crouch: R(14 + 7 * Math.cos(2 * a + Math.PI)),
-    left: leg(0, 72),
-    right: leg(Math.PI, 128),
+    crouch: R(5 + 3 * Math.cos(2 * a + Math.PI)),
+    left: leg(0, 76),
+    right: leg(Math.PI, 124),
   };
 }
