@@ -14,9 +14,9 @@ describe('achievements', () => {
     let r = emptyRecords();
     r = recordMatch(r, { won: true, longestRally: 12, gamesLost: 0 });
     r = recordMatch(r, { won: true, longestRally: 8, gamesLost: 1 });
-    expect(r).toEqual({ streak: 2, bestStreak: 2, longestRally: 12, shutouts: 1 });
+    expect(r).toEqual({ ...emptyRecords(), streak: 2, bestStreak: 2, longestRally: 12, shutouts: 1 });
     r = recordMatch(r, { won: false, longestRally: 20, gamesLost: 2 });
-    expect(r).toEqual({ streak: 0, bestStreak: 2, longestRally: 20, shutouts: 1 });
+    expect(r).toEqual({ ...emptyRecords(), streak: 0, bestStreak: 2, longestRally: 20, shutouts: 1 });
   });
   it('a fresh hero has nothing; a first win earns First Win and Level 1 goals only', () => {
     const p = newProfile();
@@ -35,6 +35,6 @@ describe('achievements', () => {
   it('sanitizing drops unknown ids, duplicates and nonsense numbers', () => {
     expect(sanitizeUnlocked(['first_win', 'first_win', 'cheat', 5])).toEqual(['first_win']);
     expect(sanitizeUnlocked('x')).toEqual([]);
-    expect(sanitizeRecords({ streak: 3, bestStreak: 1, longestRally: 9999, shutouts: -4 })).toEqual({ streak: 3, bestStreak: 3, longestRally: 500, shutouts: 0 });
+    expect(sanitizeRecords({ streak: 3, bestStreak: 1, longestRally: 9999, shutouts: -4 })).toEqual({ ...emptyRecords(), streak: 3, bestStreak: 3, longestRally: 500 });
   });
 });

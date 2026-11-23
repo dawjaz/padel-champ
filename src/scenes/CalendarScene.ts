@@ -77,7 +77,8 @@ export class CalendarScene extends Phaser.Scene {
     this.label(26, 84, `SEASON ${c.season}   WEEK ${c.week}/${WEEKS}`, 16, TC.navy, 0, true);
     this.label(26, 107, `RANKING ${c.rankPoints}   TITLES ${c.titles}`, 12, TC.sub, 0);
     this.label(WIDTH - 26, 84, `LEVEL ${level}`, 13, TC.orange, 1, true);
-    this.button(WIDTH - 58, 104, 70, 22, 'MAP', 11, 'blue', () => this.scene.start('MapScene'));
+    this.button(WIDTH - 52, 104, 56, 22, 'MAP', 11, 'blue', () => this.scene.start('MapScene'));
+    this.button(WIDTH - 114, 104, 62, 22, 'RANKS', 11, 'blue', () => this.scene.start('RankingScene'));
 
     let y = 140;
     if (c.active) {

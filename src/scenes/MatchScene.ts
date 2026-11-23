@@ -32,6 +32,7 @@ import { heroFrom, levelOf, matchReward } from '../career/profile';
 import { claim, newlyEarned, progressOf, recordMatch } from '../career/achievements';
 import { addFacts, dayKey } from '../career/daily';
 import { addWeeklyFacts, weekKey } from '../career/weekly';
+import { positionOf } from '../career/ranking';
 import { getSave, recordResult, updateSave } from '../save';
 
 const BASE_YOU = playersData.you as unknown as PlayerDef[];
@@ -1863,7 +1864,15 @@ export class MatchScene extends Phaser.Scene {
       const profile = rep.profile;
       out.finished = rep.finished;
       // Records and achievements (they count after the tournament result too).
-      const records = recordMatch(r.records, { won: winner === 0, longestRally: this.longestRally, gamesLost: this.matchScore.games[1] });
+      const records = recordMatch(r.records, {
+        won: winner === 0,
+        longestRally: this.longestRally,
+        gamesLost: this.matchScore.games[1],
+        aces: this.dailyWins.ace,
+        smashes: this.dailyWins.smash,
+        rankPoints: profile.career.rankPoints,
+        position: out.finished ? positionOf(profile.career) : undefined,
+      });
       const earned = newlyEarned(progressOf(r.stats, records, profile), r.achievements);
       const claimed = claim(profile, r.achievements, earned);
       out.trophies = earned.map((a) => `${a.name} +${a.coins}`);

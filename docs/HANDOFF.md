@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.89)_
+_Last updated: 2026-11-23 (v0.90)_
+
+## v0.90: local rankings and records (world and gamification), ready for online later
+- **RankingScene** (button RANKS on the Career screen, next to MAP): tabs WORLD, RECORDS, ONLINE.
+  - **WORLD** (`src/career/ranking.ts`): a field of 60 CPU pairs (surname pairs from `opponents.json`, deterministic) whose points follow the season: `SEASON_POINTS` 2200 for the best pair, weaker pairs less (strength 1 down to 0.06), a luck factor 0.85 to 1.15 per pair and season, half carried to the next season (`rankCarry`), earned linearly over the 24 weeks. The hero is inserted by his ranking points; on a tie he is after the CPU pairs (a new hero starts last, #61). The list shows the top 8, or the top 6, a gap and the hero with the pair above and below (`visibleRows`). Retune `SEASON_POINTS` after play (compare the hero's points at the end of season 1 and 2 with the CPU leaders).
+  - **RECORDS** (`src/career/recordsView.ts`): 13 rows (matches, win rate, streaks, shutouts, longest rally, most aces and smash winners in a match, titles, ranking points now/best, world position now/best, level). Every row has an `id`; an online board can use the same ids.
+  - **ONLINE**: a locked tab with a COMING SOON card. `RankingSource` in `ranking.ts` is the seam: `WORLD_SOURCE` (computed here, `available: true`) and `ONLINE_SOURCE` (`available: false`, `load` rejects). A server version only has to return `RankRow[]` (`pos`, `name`, `points`, `you`) and set `available`; the scene will then need to await `load` (today the world tab reads `worldRanking` directly).
+- **Records** (`achievements.ts`) got `bestRank`, `bestPosition`, `maxAces`, `maxSmashes`; `recordMatch` takes them from `MatchScene` (aces and smash winners of the match, ranking points, and the world position when a tournament has just ended).
+- Tests: `ranking.test.ts`, `recordsView.test.ts`, records tests updated.
+- Not done yet: the data for a server (accounts, anti-cheat, name entry), per-division boards, monthly resets. Needs a decision before the online step: what is uploaded (only records and ranking points, no raw save), and how a player gets a name.
 
 ## v0.89: entry fee with a coin icon on the Career screen
 - `CalendarScene`: the event buttons show the name on the first line and a centred row on the second: pairs, ENTRY FEE, a gold coin with the amount, and the status (TAP TO ENTER or why you cannot enter). `feeRow` in the scene, `drawCoin` in `theme.ts`.
