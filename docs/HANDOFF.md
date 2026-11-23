@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.83)_
+_Last updated: 2026-11-23 (v0.84)_
+
+## v0.84: racket in front of the body, seen from behind (characters and animation, step 1)
+- Owner report: the hero and the partner (back view) looked like they held the racket behind their back. Cause: in the back view the hands and racket were drawn on top of the torso, i.e. on the back, although the racket is in front of the body.
+- Fix in `buildToonLook` (`src/art/toon/character.ts`): when the racket is held in front (`frontHeld`: back view, hand in front of the torso, racket upright: ready stance, run, run frames) the racket arm, racket, hands and the off arm are drawn BEFORE the torso and head (hidden where the body covers them), and the hand is moved 22 units to the side (`BACK_VIEW_SIDE_SHIFT`) so the racket shows beside the body. Swing poses and the front view are unchanged.
+- Check: `npx vite-node scripts/poseSheet.ts you:0 back`, then open `/tmp/poses.html`. Not checked on a device: whether the racket is easy enough to see in the ready stance (it is partly behind the head and torso, as in a real view from behind); raise `BACK_VIEW_SIDE_SHIFT` if it hides too much.
+- Next: side views for running sideways, squash/stretch, new clips (split step, braking), pre-warming; figure size vs court (question only).
 
 ## v0.83: court colours by tournament city (world and gamification, step 3)
 - `src/art/hd/courtThemes.ts`: 6 muted court themes (blue = default, teal, green, clay, plum, steel): court surface, slab faces and crowd tones. `src/data/cities.json` maps each of the 24 calendar cities to a theme (balance-like data, change it there); `themeIdOfCity` falls back to blue for sparring, practice and unknown cities. Test: every calendar city is mapped, at least 5 themes in use.

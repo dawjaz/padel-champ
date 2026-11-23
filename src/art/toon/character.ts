@@ -158,6 +158,8 @@ function racketOps(c: string, shape_: ToonLook['racketShape']): Op[] {
   ];
 }
 
+/** How far (figure units) a racket held in front of the body is moved to the side in the back view, so that it shows beside the body. */
+const BACK_VIEW_SIDE_SHIFT = 22;
 const HEAD_SCALE = scaleAbout(1.13, 100, 94);
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
@@ -266,8 +268,12 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
 
 
   // off arm (viewer's left), behind the head unless it is on the racket handle
-  const hx = sx(P.hand[0]);
+  // Seen from behind, a racket held in front of the body (ready stance, running) must sit BEHIND the torso and head, with the
+  // hand and the racket peeking out at the side; drawn on top of the back it looked as if it was held behind the back.
+  const frontHeld = back && P.hand[0] < 140 && P.hand[1] > 100 && P.hand[1] < 175 && P.racket > -20 && P.racket < 30;
+  const hx = sx(P.hand[0]) + (frontHeld ? BACK_VIEW_SIDE_SHIFT : 0);
   const rk = racketMatrix([hx, P.hand[1]], P.racket);
+  const frontOps: Op[] = [];
   const offHand: Pt = P.off === 'grip' ? rk.at(0, -34) : [sx(P.off[0]), P.off[1]];
   if (P.off !== 'grip') {
     u.push(...armTo([sx(63), 114], offHand, P.offElbow ? [sx(P.offElbow[0]), P.offElbow[1]] : undefined, L.shirt, -1));
@@ -330,14 +336,16 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
   }
 
   // racket arm (viewer's right) and racket
-  u.push(...armTo([sx(137), 114], [hx, P.hand[1]], P.elbow ? [sx(P.elbow[0]), P.elbow[1]] : undefined, L.shirt, 1));
-  u.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
-  u.push(...handOps([hx, P.hand[1]]));
-  if (L.wristband) u.push(p(`M${R(hx - 9)} ${R(P.hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
+  const racketPart: Op[] = frontHeld ? frontOps : u;
+  racketPart.push(...armTo([sx(137), 114], [hx, P.hand[1]], P.elbow ? [sx(P.elbow[0]), P.elbow[1]] : undefined, L.shirt, 1));
+  racketPart.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
+  racketPart.push(...handOps([hx, P.hand[1]]));
+  if (L.wristband) racketPart.push(p(`M${R(hx - 9)} ${R(P.hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
   if (P.off === 'grip') {
-    u.push(...armTo([sx(63), 114], offHand, undefined, L.shirt, -1));
-    u.push(...handOps(offHand));
+    racketPart.push(...armTo([sx(63), 114], offHand, undefined, L.shirt, -1));
+    racketPart.push(...handOps(offHand));
   }
+  if (frontHeld) u.unshift(...frontOps);
   o.push({ k: 'g', m: bodyM, ops: u });
   return o;
 }
