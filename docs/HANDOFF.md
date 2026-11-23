@@ -1,6 +1,9 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.88)_
+_Last updated: 2026-11-23 (v0.89)_
+
+## v0.89: entry fee with a coin icon on the Career screen
+- `CalendarScene`: the event buttons show the name on the first line and a centred row on the second: pairs, ENTRY FEE, a gold coin with the amount, and the status (TAP TO ENTER or why you cannot enter). `feeRow` in the scene, `drawCoin` in `theme.ts`.
 
 ## v0.88: owner fixes after v0.87 (navy court, talking rivals, coin-toss ball, better map)
 - **Court colour:** the brick/orange theme `clay` is now `navy` (a dark navy court, `courtThemes.ts`; `cities.json` updated). Rome, Doha, Riyadh, Paris and Sevilla use it.

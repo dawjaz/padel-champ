@@ -5,7 +5,7 @@ import { levelOf } from '../career/profile';
 import { eventName, eventsOfWeek, partnerById, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
 import { getSave, updateSave } from '../save';
-import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { applyLightScreen, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 /** The career hub: the week of the season, the events you can enter, partner, ranking. */
 export class CalendarScene extends Phaser.Scene {
@@ -26,10 +26,38 @@ export class CalendarScene extends Phaser.Scene {
     return t;
   }
 
-  private button(x: number, y: number, w: number, h: number, text: string, size: number, kind: 'primary' | 'secondary' | 'blue', onClick: () => void, dim = false): void {
+  private button(x: number, y: number, w: number, h: number, text: string, size: number, kind: 'primary' | 'secondary' | 'blue', onClick: () => void, dim = false): Phaser.GameObjects.Text {
     const b = makeThemeButton(this, x, y, w, h, text, onClick, kind, size);
     if (dim) b.text.setAlpha(0.5);
     this.dyn.push(...b.parts);
+    return b.text;
+  }
+
+  /** The second line of an event button: pairs, the entry fee with a coin icon, and the status, centred in one row. */
+  private feeRow(cy: number, pairs: number, fee: number, status: string, color: number, alpha: number): void {
+    const mk = (str: string, bold = false): Phaser.GameObjects.Text => {
+      const t = themeText(this, 0, cy, str, { size: 11, color, origin: [0, 0.5], font: bold ? 'display' : 'body' }).setAlpha(alpha);
+      this.dyn.push(t);
+      return t;
+    };
+    const a = mk(`${pairs} PAIRS`);
+    const b = mk('ENTRY FEE');
+    const n = mk(`${fee}`, true);
+    const c = mk(status);
+    const coin = 8;
+    const total = a.width + 14 + b.width + 6 + coin * 2 + 3 + n.width + 14 + c.width;
+    let x = WIDTH / 2 - total / 2;
+    a.x = x;
+    x += a.width + 14;
+    b.x = x;
+    x += b.width + 6;
+    const g = this.add.graphics().setAlpha(alpha);
+    drawCoin(g, x + coin, cy, coin);
+    this.dyn.push(g);
+    x += coin * 2 + 3;
+    n.x = x;
+    x += n.width + 14;
+    c.x = x;
   }
 
   private redraw(): void {
@@ -63,14 +91,15 @@ export class CalendarScene extends Phaser.Scene {
       for (const e of eventsOfWeek(c.week)) {
         const problem = entryCheck(p, e);
         const div = divisionById(e.division)!;
-        const text = `${eventName(e).toUpperCase()}\n${div.draw} PAIRS  FEE ${div.fee}  ${problem ? problem.toUpperCase() : 'TAP TO ENTER'}`;
-        this.button(WIDTH / 2, y + 28, 336, 56, text, 12, problem ? 'secondary' : 'primary', () => {
+        const name = this.button(WIDTH / 2, y + 28, 336, 56, eventName(e).toUpperCase(), 12, problem ? 'secondary' : 'primary', () => {
           if (problem) return;
           const next = enterEvent(getSave().profile, e.id, Math.floor(Math.random() * 1e9));
           if (!next) return;
           updateSave((d) => ({ ...d, profile: next }));
           this.scene.start('BracketScene');
         }, !!problem);
+        name.y = y + 20;
+        this.feeRow(y + 40, div.draw, div.fee, problem ? problem.toUpperCase() : 'TAP TO ENTER', problem ? TC.navy : TC.white, problem ? 0.5 : 1);
         y += 64;
       }
       this.button(WIDTH / 2, y + 20, 336, 36, 'SKIP THIS WEEK', 13, 'secondary', () => {
