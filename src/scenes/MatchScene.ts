@@ -114,7 +114,8 @@ interface ButtonSpec {
 
 const other = (s: SideIndex): SideIndex => (s === 0 ? 1 : 0);
 /** Which toon view to draw: facing the camera or away; a player running sideways keeps the view of his team. */
-const toonViewOf = (facing: Facing, side: SideIndex): 'front' | 'back' => (facing === 'front' || facing === 'back' ? facing : side === 0 ? 'back' : 'front');
+/** A runner or a player turned sideways is shown in profile; everybody else from behind (the near team) or from the front. */
+const toonViewOf = (facing: Facing, side: SideIndex): 'front' | 'back' | 'side' => (facing === 'left' || facing === 'right' ? 'side' : facing === 'front' || facing === 'back' ? facing : side === 0 ? 'back' : 'front');
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 export class MatchScene extends Phaser.Scene {
@@ -712,14 +713,14 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /**
-   * Puts the right picture on the sprite for the player's pose and facing. The toon has a front and a back view only (no profile):
-   * a runner keeps his team's view. The racket is on the picture's right, so the front view is mirrored: everybody is right-handed.
+   * Puts the right picture on the sprite for the player's pose and facing: front, back, or profile for a player running or turned sideways.
    */
   private showSprite(id: string): void {
     const v = this.views[id];
     const view = toonViewOf(v.facing, v.side);
     v.sprite.setTexture(ensureToonPoseTexture(this, v.player.appearance, view, v.custom ?? v.pose));
-    v.sprite.setFlipX(view === 'front');
+    // The front view is mirrored (the racket is on the picture's right and everybody is right-handed); the profile faces right and is mirrored for a runner going left.
+    v.sprite.setFlipX(view === 'front' || (view === 'side' && v.facing === 'left'));
   }
 
   /** Shows the player in a pose (a picture drawn once per look, facing and pose). */

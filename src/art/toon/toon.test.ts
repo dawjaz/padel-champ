@@ -21,9 +21,16 @@ function count(ops: Op[]): number {
 }
 
 describe('toon character', () => {
-  it('builds every hair style in both views, as well-formed SVG', () => {
+  it('draws a profile that differs from the front and back views and mirrors nothing by itself', () => {
+    const side = toSvg(buildToon(BASE, 'side'));
+    expect(side).not.toBe(toSvg(buildToon(BASE, 'front')));
+    expect(side).not.toBe(toSvg(buildToon(BASE, 'back')));
+    expect(toSvg(buildToon(BASE, 'side'))).toBe(side);
+  });
+
+  it('builds every hair style in all views, as well-formed SVG', () => {
     for (const style of STYLES) {
-      for (const view of ['front', 'back'] as const) {
+      for (const view of ['front', 'back', 'side'] as const) {
         const svg = toSvg(buildToon({ ...BASE, hairStyle: style }, view));
         expect(svg.startsWith('<svg')).toBe(true);
         expect(svg.endsWith('</svg>')).toBe(true);
@@ -68,7 +75,7 @@ describe('toon character', () => {
 describe('toon poses', () => {
   it('builds every pose in both views as well-formed SVG without NaN', () => {
     for (const style of STYLES) {
-      for (const view of ['front', 'back'] as const) {
+      for (const view of ['front', 'back', 'side'] as const) {
         for (const pose of TOON_POSES) {
           const svg = toSvg(buildToon({ ...BASE, hairStyle: style }, view, pose));
           expect(svg).not.toContain('NaN');
@@ -101,7 +108,7 @@ describe('toon poses', () => {
 describe('pose blending and run cycle', () => {
   const a = BASE;
   it('every run frame and in-between draws in every view', () => {
-    for (const view of ['front', 'back'] as const) {
+    for (const view of ['front', 'back', 'side'] as const) {
       for (let f = 0; f < RUN_FRAMES; f++) expect(buildToon(a, view, runFrame(f)).length).toBeGreaterThan(10);
       for (const t of [0, 0.25, 0.5, 0.75, 1]) expect(buildToon(a, view, mixPose(POSES.ready, POSES.fhHit, t)).length).toBeGreaterThan(10);
     }

@@ -3,7 +3,7 @@ import type { ToonPose } from './toon/character';
 /**
  * 'front' = faces the camera, 'back' = seen from behind, 'left' / 'right' = running to that side of the screen.
  * The near team normally shows its back and the far team its front; players turn when they run or wait for a ball
- * that comes off the back glass. (The toon characters have no profile: a runner keeps his team's view and runs bent.)
+ * that comes off the back glass. A player who runs sideways (or is turned sideways) is shown in profile.
  */
 export type Facing = 'front' | 'back' | 'left' | 'right';
 

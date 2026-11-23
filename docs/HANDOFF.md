@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.95)_
+_Last updated: 2026-11-23 (v0.96)_
+
+## v0.96: profile view for sideways running
+- `ToonView` now has `'side'` (profile, facing right): `buildSide` in `src/art/toon/character.ts`, built from the same `PoseSpec`s as front/back (stride from the ankle offsets x2, knees bend forward, near arm with the racket, far arm and leg shaded, racket narrowed and tilted up when held in front so it does not cover the face, all hair styles, band, cap, wristband, skirt).
+- `toonViewOf` in `MatchScene.ts` returns `'side'` for facing left/right; `showSprite` mirrors the front view and the profile when facing left. `movePlayers` already sets left/right facing for mostly sideways moves, so runners are shown in profile; they return to the team view when they stop. The rulo already turned the player sideways and now shows the profile too.
+- Tests: all hair styles in all three views, profile differs from front/back. Pose sheet: `npx vite-node scripts/poseSheet.ts you:0 side /tmp/side.html`.
+- Not done (next for characters): split step, braking, lunge, squash and stretch, racket follow-through variants, crossing hands in the run cycle, a 3/4 view for diagonal runs, prewarming the profile textures.
 
 ## v0.95: real openings in the side walls (replace the v0.94 "door")
 - **What a real court has** (FIP Rules of Padel, 2026 edition, and the LTA court guidance; summarised on padel-rules.pages.dev): access is in the **side** walls, never the back walls, symmetric about the centre, one or two per side, with or without a door. Single: 1.05 to 2.20 m wide, 2.00 to 2.20 m high. Double (each): 0.72 to 1.10 m wide, same height. Without a door a beam or duct lies on the floor in the opening; handles are outside; posts and the net post are padded (at least 2 cm). Out-of-court play (tournament courts, two openings per side, free space outside at least 3 m deep and 4 m either side of the net, 3 m high): a ball that **bounced in the receiver's half** and leaves through an opening or over a side wall ("por 3") stays in play: the receiver may chase it until it bounces a second time or touches something outside, and must return it so that it bounces in the opponents' court (over the net, round the net post, touching the net or posts is allowed). Over the back wall ("por 4") the point is lost even then; a ball that leaves without bouncing in the receiver's half loses the point for the hitter. Only one of a pair plays the ball. A served ball that bounces in the box and leaves through a door is a fault on a court without out-of-court play, otherwise the receiver may chase it. Above 0.92 m a player may touch the door post (not the net).

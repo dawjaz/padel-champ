@@ -7,7 +7,8 @@ import { ellipsePath, luma, rotateAbout, scaleAbout, shadeHex, translate, type M
  * off hand, the feet, the lean of the upper body and the crouch (see `POSES`); arms and legs are two-bone
  * limbs solved from those targets.
  */
-export type ToonView = 'front' | 'back';
+/** 'side' = profile, facing right (the match mirrors it for a runner going left). */
+export type ToonView = 'front' | 'back' | 'side';
 
 /** Same names as the old pixel characters, so the match can swap them one for one. */
 export type ToonPose =
@@ -179,6 +180,7 @@ function racketMatrix(hand: Pt, deg: number): { m: Mat; at: (x: number, y: numbe
 }
 
 export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonPose | PoseSpec = 'idle', shadow = true): Op[] {
+  if (view === 'side') return buildSide(L, typeof pose === 'string' ? POSES[pose] : pose, shadow);
   const back = view === 'back';
   const sk = L.skin;
   const skd = shadeHex(sk, 0.8);
@@ -349,6 +351,135 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
     racketPart.push(...handOps(offHand));
   }
   if (frontOps.length > 0) u.unshift(...frontOps);
+  o.push({ k: 'g', m: bodyM, ops: u });
+  return o;
+}
+
+/**
+ * Profile view, facing right. It takes the same pose specs as the front and back views: how far each ankle is from the middle of its
+ * leg's own stance is the stride (forward or back), a raised ankle is a foot off the ground, the hands' distance from the centre line is how
+ * far forward or back they are. The racket arm is the near one (seen from the camera's side), the other arm and leg are shaded a little.
+ */
+function buildSide(L: ToonLook, P: PoseSpec, shadow: boolean): Op[] {
+  const sk = L.skin;
+  const skd = shadeHex(sk, 0.8);
+  const hh = shadeHex(L.hair, 1.7, 0.9);
+  const hd = shadeHex(L.hair, 0.62);
+  const o: Op[] = [];
+  const lift = Math.max(0, -P.crouch);
+  if (shadow) o.push(p(ellipsePath(100, 334, 58 - lift * 0.4, 8 - lift * 0.1), { fill: `rgba(11,31,58,${0.22 - lift * 0.003})` }));
+  const hipY = 198 + P.crouch;
+
+  // Legs: the far leg first. The knee bends forward, a foot that is off the ground points its toe down.
+  const leg = (an: Pt, centre: number, far: boolean): void => {
+    const ax = R(100 + (an[0] - centre) * 2);
+    const ay = an[1];
+    const knee = bend([100, hipY], [ax, ay], 53, 54, (p1, p2) => (p1[0] > p2[0] ? p1 : p2));
+    o.push(...limbs([[`M100 ${hipY} L ${R(knee[0])} ${R(knee[1])}`, 27], [`M${R(knee[0])} ${R(knee[1])} L ${ax} ${ay}`, 19]], far ? skd : sk));
+    o.push(p(`M${ax - 7} ${ay - 8} L ${ax + 7} ${ay - 8} L ${ax + 7} ${ay + 6} L ${ax - 7} ${ay + 6} Z`, { fill: far ? '#d4dae6' : '#ffffff', stroke: OUTLINE, sw: 2.4 }));
+    const shoe = far ? shadeHex(L.shoes, 0.82) : L.shoes;
+    const tilt = Math.min(1, Math.max(0, (GROUND - ay) / 18)) * 28;
+    o.push({
+      k: 'g',
+      m: rotateAbout(tilt, ax, ay),
+      ops: [
+        shape(`M${ax - 11} ${ay + 4} L ${ax + 8} ${ay + 4} C ${ax + 22} ${ay + 6}, ${ax + 32} ${ay + 14}, ${ax + 31} ${ay + 24} L ${ax - 14} ${ay + 24} C ${ax - 17} ${ay + 16}, ${ax - 15} ${ay + 8}, ${ax - 11} ${ay + 4} Z`, shoe),
+        p(`M${ax - 15} ${ay + 20} L ${ax + 32} ${ay + 20} L ${ax + 32} ${ay + 27} L ${ax - 15} ${ay + 27} Z`, { fill: '#e8ecf4', stroke: OUTLINE, sw: 2.4 }),
+        p(`M${ax + 2} ${ay + 6} q 9 1 15 9`, { stroke: shadeHex(L.shoes, 0.7), sw: 2.6, cap: 'round' }),
+      ],
+    });
+  };
+  leg(P.right, 124, true);
+  leg(P.left, 76, false);
+
+  // Upper body: leaned about the waist, lowered by the crouch.
+  const rot = rotateAbout(P.lean, 100, 190);
+  const bodyM: Mat = [rot[0], rot[1], rot[2], rot[3], rot[4], rot[5] + P.crouch];
+  const u: Op[] = [];
+  const fwd = (x: number): number => R(100 + (x - 100) * 0.7);
+  const handOps = (h: Pt, shade: boolean): Op[] => [
+    p(ellipsePath(h[0], h[1] + 2, 11, 11), { fill: shade ? skd : sk, stroke: OUTLINE, sw: 2.4 }),
+    p(`M${h[0] - 6} ${h[1] - 1} q6 -4 12 0 M${h[0] - 6} ${h[1] + 4} q6 -3 12 0`, { stroke: shade ? shadeHex(sk, 0.66) : skd, sw: 2, cap: 'round' }),
+  ];
+  const arm = (shoulder: Pt, hand: Pt, sleeve: string, skin: string): Op[] => {
+    const e = bend(shoulder, hand, 42, 42, (p1, p2) => (p1[1] > p2[1] ? p1 : p2));
+    const ex = R(e[0]);
+    const ey = R(e[1]);
+    return [...limbs([[`M${shoulder[0]} ${shoulder[1]} L ${ex} ${ey}`, 27]], sleeve, 0.3), ...limbs([[`M${ex} ${ey} L ${R(hand[0])} ${R(hand[1])}`, 19]], skin)];
+  };
+  const hand: Pt = [fwd(P.hand[0]), P.hand[1]];
+  // A racket held up in front of the body (ready, running) would cover the face from the side: it points forward and up instead.
+  const rkAngle = Math.abs(P.racket) < 30 ? P.racket + 52 : P.racket;
+  const rk = racketMatrix(hand, rkAngle);
+  // The racket is seen edge-on more than face-on from the side: its local x axis is narrowed.
+  const racketM: Mat = [rk.m[0] * 0.55, rk.m[1] * 0.55, rk.m[2], rk.m[3], rk.m[4], rk.m[5]];
+  const offHand: Pt = P.off === 'grip' ? rk.at(0, -34) : [fwd(P.off[0]), P.off[1]];
+
+  // hair that hangs behind the head, then the far arm
+  const behind: Op[] = [];
+  if (L.style === 'afro') behind.push(shape(AFRO, L.hair));
+  if (L.style === 'long') behind.push(shape('M72 50 C 60 92, 62 126, 76 138 L 100 122 L 98 86 Z', L.hair));
+  if (L.style === 'ponytail') behind.push(shape('M74 40 C 36 38, 30 84, 50 112 C 58 118, 64 108, 58 98 C 52 80, 60 64, 78 58 Z', L.hair));
+  u.push({ k: 'g', m: HEAD_SCALE, ops: behind });
+  if (P.off !== 'grip') {
+    u.push(...arm([97, 114], offHand, shadeHex(L.shirt, 0.82), skd));
+    u.push(...handOps(offHand, true));
+  }
+
+  // shorts or skirt, torso (narrower than from the front)
+  if (L.skirt) {
+    u.push(shape('M76 176 L 126 176 L 138 226 C 116 234, 90 234, 66 226 Z', L.bottom));
+    u.push(p('M66 226 C 90 234, 116 234, 138 226', { stroke: L.bottomTrim, sw: 3.4 }));
+  } else {
+    u.push(shape('M76 176 L 126 176 L 130 228 L 98 234 L 72 230 Z', L.bottom));
+    u.push(p('M78 180 L 74 228', { stroke: L.bottomTrim, sw: 3.2 }));
+  }
+  u.push(shape('M77 112 C 84 100, 116 100, 126 112 L 123 180 C 112 186, 90 186, 79 180 Z', L.shirt));
+  u.push(p('M77 112 C 80 106, 86 102, 92 101 L 92 183 C 86 183, 82 182, 79 180 Z', { fill: shadeHex(L.shirt, 0.62), a: 0.5 }));
+  u.push(p('M78 130 C 96 136, 110 136, 126 130 L 125 142 C 110 148, 96 148, 78 142 Z', { fill: L.trim, a: 0.95 }));
+  u.push(p('M77 112 C 84 100, 116 100, 126 112', { stroke: L.trim, sw: 3 }));
+  // neck
+  u.push(shape('M94 88 L 94 108 C 100 114, 110 114, 114 108 L 112 88 Z', sk));
+  u.push(p('M94 100 C 100 108, 108 108, 112 102 L 112 88 L 104 88 C 104 98, 100 100, 94 100Z', { fill: skd, a: 0.5 }));
+
+  // head in profile, nose to the right
+  const head: Op[] = [];
+  head.push(shape('M70 50 C 68 22, 100 12, 124 24 C 138 32, 140 46, 138 56 L 146 66 C 147 70, 142 72, 138 72 C 138 78, 136 84, 130 88 C 120 94, 106 96, 94 90 C 78 82, 70 68, 70 50 Z', sk));
+  head.push(p('M94 90 C 106 96, 120 94, 130 88 C 124 90, 110 90, 100 84 Z', { fill: skd, a: 0.5 }));
+  head.push(p(ellipsePath(96, 62, 6, 8), { fill: sk, stroke: OUTLINE, sw: 2.2 }));
+  head.push(p(ellipsePath(96, 63, 2.6, 4), { fill: skd, a: 0.7 }));
+  head.push(p(ellipsePath(124, 54, 6.4, 6.4), { fill: '#ffffff', stroke: OUTLINE, sw: 2 }));
+  head.push(p(ellipsePath(126, 55, 3.8, 3.8), { fill: L.eye }));
+  head.push(p(ellipsePath(126.4, 55, 2, 2), { fill: '#0b0b12' }));
+  head.push(p(ellipsePath(127.4, 53.4, 1.3, 1.3), { fill: '#ffffff' }));
+  head.push(p('M116 44 C 121 40, 129 40, 134 45', { stroke: hd, sw: L.female ? 2.8 : 3.8, cap: 'round' }));
+  if (L.female) head.push(p('M130 50 q4 -3 7 -1', { stroke: OUTLINE, sw: 2, cap: 'round' }));
+  head.push(p('M126 80 C 130 83, 135 82, 137 79', { stroke: L.lip, sw: 2.4, cap: 'round' }));
+  head.push(p(ellipsePath(116, 71, 6, 3.4), { fill: '#e8706a', a: 0.22 }));
+  if (L.style !== 'bald' && L.style !== 'afro') {
+    head.push(shape('M68 54 C 62 18, 104 6, 128 20 C 140 26, 142 38, 138 46 C 130 38, 118 35, 106 38 C 94 40, 86 46, 82 58 C 82 70, 88 82, 96 88 L 84 86 C 72 78, 66 64, 68 54 Z', L.hair));
+    head.push(p('M82 26 C 94 16, 112 16, 126 24', { stroke: hh, sw: 4, cap: 'round', a: 0.7 }));
+  }
+  if (L.style === 'afro') {
+    head.push(shape('M70 50 C 68 24, 88 14, 108 16 C 128 18, 140 30, 138 46 C 130 38, 118 34, 106 36 C 94 38, 84 44, 80 58 Z', L.hair));
+  }
+  if (L.style === 'bun') head.push({ k: 'g', m: translate(-24, 10), ops: [shape(BUN, L.hair)] });
+  if (L.band) head.push(shape('M70 42 C 90 32, 126 30, 140 44 L 138 52 C 124 40, 92 42, 70 52 Z', L.band));
+  if (L.cap) {
+    head.push(shape('M68 44 C 66 14, 124 6, 138 36 C 120 30, 90 34, 68 44 Z', L.cap));
+    head.push(shape('M130 36 C 148 38, 160 42, 164 48 C 150 46, 138 44, 128 44 Z', shadeHex(L.cap, 0.7)));
+  }
+  u.push({ k: 'g', m: HEAD_SCALE, ops: head });
+
+  // racket arm (near), racket, hand
+  u.push(...arm([104, 114], hand, L.shirt, sk));
+  u.push({ k: 'g', m: racketM, ops: racketOps(L.racket, L.racketShape) });
+  u.push(...handOps(hand, false));
+  if (L.wristband) u.push(p(`M${R(hand[0] - 9)} ${R(hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
+  if (P.off === 'grip') {
+    u.push(...arm([97, 114], offHand, shadeHex(L.shirt, 0.82), skd));
+    u.push(...handOps(offHand, true));
+  }
   o.push({ k: 'g', m: bodyM, ops: u });
   return o;
 }
