@@ -1,6 +1,16 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.86)_
+_Last updated: 2026-11-23 (v0.87)_
+
+## v0.87: weekly challenges, rivals, city arenas, calendar map (world and gamification, steps 4 to 7)
+- **Weekly challenges** (`src/career/weekly.ts`, `src/data/weekly.json`, `WeeklyScene`, save field `weekly`): three bigger tasks a week (Monday to Sunday, picked from 10 by the week, distinct stats), 150 coins each, bonus for all three: 250 coins + a gear pack. Same match facts as the daily tasks (`mergeFacts` in `daily.ts` is shared), career matches only. Reached from a WEEKLY CHALLENGES button in `DailyScene`; the DAILY badge on the title screen also waits for weekly rewards.
+- **Rivals** (`src/career/rivals.ts`, `src/data/rivals.json`): the first opponent says a short line before the match (`BracketScene`, under the strength comparison) and after it (`ResultScene`, between rounds of a tournament only, where the progress block is empty). The line is picked from the rival's name (stable), so it does not flicker.
+- **Arena per city** (`courtThemes.ts`, `arenaHd.ts`): besides the court, each theme tints the sky above the stands, the ground, the LED board, the spotlights and the crowd (fullness and strength). Still dark and calm, as the owner wanted in v0.78. Preview: a throwaway page that calls `renderArena(1, theme)` for every theme (see the git history of this note for the snippet idea: vite dev server plus headless Chrome).
+- **Calendar map** (`MapScene`, `src/art/worldMap.ts`, `src/data/cityMap.json`): a stylised 2D world map, arrows move through the 24 weeks, the cities of the week's tournaments are big dots in the colour of their court, with a list below. Button MAP in `CalendarScene`. Rough hand-made continents; replace with better shapes if wanted. A real 3D globe is still a separate decision.
+- Tests: `weekly.test.ts`, `rivals.test.ts`, `worldMap.test.ts` (every calendar city has a map position, a theme and a rival line pool).
+- Scene screenshots: with `npx vite --port 5199` running and the dev-only `window.__game`, a Playwright script can open a scene (`getScenes(true).forEach(s => s.scene.start('MapScene'))`) and save a PNG.
+- Not checked on a device. Retune after play: weekly numbers and rewards, rival lines (English, max 60 characters each).
+- Not done yet: minigames between tournaments, local rankings, other audience per city (people, flags), real globe.
 
 ## v0.86: the serve ball in the server's hand, in front of the body
 - Owner report: at the serve the ball is behind the player. It was put at the server's own court position (inside his body, 0.9 m up).

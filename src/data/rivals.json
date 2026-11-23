@@ -1,0 +1,32 @@
+{
+  "before": [
+    "I have not lost on this court yet.",
+    "Nice to meet you. Do not get comfortable.",
+    "We trained for this one all week.",
+    "Bring your best bandeja. You will need it.",
+    "Last time I won in two sets. Remember?",
+    "My partner and I never rush. We wait for mistakes.",
+    "I like a big crowd. It makes me play better.",
+    "Do not aim at the glass. I live there.",
+    "Good luck. You will need a bit of it.",
+    "I heard you are climbing the ranking fast."
+  ],
+  "afterYouWin": [
+    "Well played. Next time will be different.",
+    "That bajada was unreal. Respect.",
+    "You earned it. See you at the next tournament.",
+    "I will remember that smash for a while.",
+    "Good match. I need more time at the net.",
+    "Okay, you were better today. Just today.",
+    "Great rallies. Let us do it again soon."
+  ],
+  "afterYouLose": [
+    "Good fight. Come back stronger.",
+    "Close in places. Keep practising your lobs.",
+    "Thanks for the match. Learn from the glass.",
+    "Today was ours. Tomorrow is another day.",
+    "You had your chances. Take them next time.",
+    "Not bad at all. Train the second serve.",
+    "I enjoyed that. Ask me for a rematch."
+  ]
+}

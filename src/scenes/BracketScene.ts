@@ -4,6 +4,7 @@ import { activeBracket, withdraw } from '../career/careerFlow';
 import { consumableById, toggleQueued } from '../career/gear';
 import { heroFrom } from '../career/profile';
 import { eventById } from '../career/season';
+import { rivalLine } from '../career/rivals';
 import { STAT_KEYS } from '../game/attributes';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
@@ -61,6 +62,9 @@ export class BracketScene extends Phaser.Scene {
     const y0 = 98 + round.length * (rowH + 4) + 10;
     text(WIDTH / 2, y0 + 8, `NEXT: ${opp.name.toUpperCase()}`, 16, TC.navy, true);
     text(WIDTH / 2, y0 + 30, `OPPONENT ${opp.rating.toFixed(1)}   YOU ${heroAvg.toFixed(1)}`, 12, opp.rating > heroAvg + 0.5 ? 0xc62828 : opp.rating < heroAvg - 0.5 ? TC.green : TC.orange, true);
+
+    // A line from the next opponent (the same one every time you see this round).
+    text(WIDTH / 2, y0 + 50, `"${rivalLine('before', opp.players[0].name, `${bracket.roundsWon}`)}"`, 10, TC.navy).setWordWrapWidth(330);
 
     // One boost from the bag can be used in this match (bought in the shop between tournaments).
     const inv = profile.inventory;

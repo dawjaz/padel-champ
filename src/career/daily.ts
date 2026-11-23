@@ -50,13 +50,13 @@ export function refresh(d: Daily, today: string): Daily {
   return d.day === today ? d : { ...d, day: today, progress: {}, claimed: [], bonusClaimed: false };
 }
 
-function seedOf(s: string): number {
+export function seedOf(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 }
 
-function mulberry(seed: number): () => number {
+export function mulberry(seed: number): () => number {
   let a = seed;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -123,9 +123,9 @@ export interface DailyFacts {
   ace: number;
 }
 
-export function addFacts(d: Daily, today: string, f: DailyFacts): Daily {
-  const cur = refresh(d, today);
-  const pr = { ...cur.progress };
+/** Adds the facts of one career match to a progress record ('rally' is a best, everything else adds up). */
+export function mergeFacts(progress: Partial<Record<DailyStat, number>>, f: DailyFacts): Partial<Record<DailyStat, number>> {
+  const pr = { ...progress };
   const add = (k: DailyStat, n: number): void => void (pr[k] = (pr[k] ?? 0) + n);
   add('played', 1);
   add('won', f.won ? 1 : 0);
@@ -136,7 +136,12 @@ export function addFacts(d: Daily, today: string, f: DailyFacts): Daily {
   add('viboraBandeja', f.viboraBandeja);
   add('bajada', f.bajada);
   add('ace', f.ace);
-  return { ...cur, progress: pr };
+  return pr;
+}
+
+export function addFacts(d: Daily, today: string, f: DailyFacts): Daily {
+  const cur = refresh(d, today);
+  return { ...cur, progress: mergeFacts(cur.progress, f) };
 }
 
 export interface TaskView {

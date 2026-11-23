@@ -17,6 +17,8 @@ import { MatchScene } from './scenes/MatchScene';
 import { ResultScene } from './scenes/ResultScene';
 import { AchievementsScene } from './scenes/AchievementsScene';
 import { DailyScene } from './scenes/DailyScene';
+import { WeeklyScene } from './scenes/WeeklyScene';
+import { MapScene } from './scenes/MapScene';
 import { CollectionScene } from './scenes/CollectionScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -37,7 +39,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, DailyScene, CollectionScene, TutorialScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, DailyScene, WeeklyScene, MapScene, CollectionScene, TutorialScene],
 });
 
 // Dev server only: lets screenshot scripts jump to a scene.

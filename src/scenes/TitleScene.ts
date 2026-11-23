@@ -8,6 +8,7 @@ import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { applyLook } from '../career/gear';
 import { dayKey, hasWaiting } from '../career/daily';
+import { weekKey, weeklyWaiting } from '../career/weekly';
 import { getSave } from '../save';
 import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, iconChip, makeThemeButton, TC, themeText } from '../theme';
 
@@ -39,7 +40,7 @@ export class TitleScene extends Phaser.Scene {
     this.drawPlate(profile.xp);
 
     // Daily rewards: a badge on the stage, with a pulsing dot while something waits to be claimed.
-    const waiting = hasWaiting(save.daily, dayKey(new Date()));
+    const waiting = hasWaiting(save.daily, dayKey(new Date())) || weeklyWaiting(save.weekly, weekKey(new Date()));
     const dg = this.add.graphics().setPosition(14, 74);
     drawCard(dg, 84, 38, { radius: 12 });
     themeText(this, 56, 93, 'DAILY', { size: 15, font: 'display', color: waiting ? TC.orange : TC.navy });

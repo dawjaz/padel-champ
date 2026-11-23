@@ -102,6 +102,6 @@ export class DailyScene extends Phaser.Scene {
       }, 'primary', 18);
     } else themeText(this, WIDTH - 62, by + 31, `+${BONUS_COINS}`, { size: 16, color: TC.sub, font: 'display' });
 
-    themeText(this, WIDTH / 2, 600, 'New tasks every day. Quick matches do not count.', { size: 11, color: TC.sub });
+    makeThemeButton(this, WIDTH / 2, 606, 270, 38, 'WEEKLY CHALLENGES', () => this.scene.start('WeeklyScene'), 'blue', 14);
   }
 }
