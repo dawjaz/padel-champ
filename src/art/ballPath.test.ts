@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SHOTS } from '../game/catalog';
 import { landingX } from '../game/court';
 import type { ShotDef } from '../game/types';
+import { SIDE_OPENINGS } from './walls';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
@@ -642,7 +643,8 @@ describe('serve faults stay in the court', () => {
                 const from = { x: hx, z: side === 0 ? 18.5 : 1.5 };
                 const f = buildFlight({ from, startH: 0.9, hitterSide: side, shot: s, landX: lx, landDepth: 3 + seed, outcome: 'fault', errorKind: kind, seed });
                 const c = buildCoast(f, s.flight.spin);
-                const bad = [...f.path, ...c.path].find((p) => Math.abs(p.x) > 5.05 || p.z < -0.05 || p.z > 20.05);
+                // The only way out of the court is through an opening in a side wall (the ball is then at the opening's z and lower than its top).
+                const bad = [...f.path, ...c.path].find((p) => (Math.abs(p.x) > 5.05 && !SIDE_OPENINGS.some((o) => p.z >= o.z0 - 0.4 && p.z <= o.z1 + 0.4)) || p.z < -0.05 || p.z > 20.05);
                 if (bad) problems.push(`${s.id}/${kind}/${side}/${hx}/${lx}/${seed}: ${JSON.stringify(bad)}`);
               }
             }

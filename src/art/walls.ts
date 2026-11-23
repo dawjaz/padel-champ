@@ -45,8 +45,21 @@ export function sideWallHeightAt(z: number): number {
 }
 
 /**
- * The entrance door in each side wall: a 1 m wide, 2.05 m high gate in the mesh part of the fence, on the near side of the net
- * (z in metres along the court, 10 = net). Only drawn for now: the ball still treats the door like the rest of the fence
- * (running out through it comes with the special shots).
+ * The two openings in each side wall (FIP: access to the court is placed symmetrically about the centre, one or two per side; with two,
+ * each is 0.72 to 1.10 m wide and 2.00 to 2.20 m high). They are real gaps: no door, a floor beam in the opening, padded posts, and
+ * the mesh goes on above them. z is metres along the court (10 = net), so the net post stands between the two openings.
+ * Ball and players can pass through an opening.
  */
-export const SIDE_DOOR = { z0: 11.5, z1: 12.5, height: 2.05 } as const;
+export const OPENING_HEIGHT = 2.05;
+export const SIDE_OPENINGS: ReadonlyArray<{ z0: number; z1: number }> = [
+  { z0: 8.85, z1: 9.85 },
+  { z0: 10.15, z1: 11.15 },
+];
+
+/** True when the point of the side wall at (z, h) is open space: inside an opening, below its top. */
+export function isSideOpening(z: number, h: number): boolean {
+  return h < OPENING_HEIGHT && SIDE_OPENINGS.some((o) => z > o.z0 && z < o.z1);
+}
+
+/** The openings that lie in this piece of the side wall. */
+export const openingsIn = (z0: number, z1: number): Array<{ z0: number; z1: number }> => SIDE_OPENINGS.filter((o) => o.z0 >= z0 && o.z1 <= z1);

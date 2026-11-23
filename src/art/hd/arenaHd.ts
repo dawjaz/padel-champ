@@ -1,5 +1,5 @@
 import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
-import { BACK_WALL, SIDE_DOOR, sideWallSegments } from '../walls';
+import { BACK_WALL, OPENING_HEIGHT, openingsIn, sideWallSegments } from '../walls';
 import { COURT_THEMES, DEFAULT_THEME_ID, type CourtTheme } from './courtThemes';
 
 /**
@@ -315,35 +315,43 @@ function post(g: Ctx, at: At, u: number, h1: number): void {
   g.lineCap = 'butt';
 }
 
-/** The entrance gate in the mesh fence: a steel frame, bars, hinges and a handle. */
-function door(g: Ctx, at: At): void {
-  const { z0, z1, height: H } = SIDE_DOOR;
-  const q = [at(z0, 0), at(z1, 0), at(z1, H), at(z0, H)];
-  // The gap in the fence: darker than the mesh around it.
-  g.fillStyle = 'rgba(6,12,34,0.55)';
-  poly(g, q);
+/** The opening in the mesh fence: open space, a beam on the floor, padded posts at its sides (the mesh goes on above it). */
+function opening(g: Ctx, at: At, z0: number, z1: number): void {
+  // A shadow on the court where the light comes through, then the floor beam.
+  const beam = [at(z0, 0), at(z1, 0), at(z1, 0.1), at(z0, 0.1)];
+  g.fillStyle = '#6a7690';
+  poly(g, beam);
   g.fill();
-  // Horizontal bars of the leaf.
-  g.strokeStyle = 'rgba(190,204,230,0.7)';
-  g.lineWidth = 1.4;
-  for (const h of [0.35, 0.8, 1.25, 1.7]) line(g, at(z0, h), at(z1, h));
-  // Frame: dark edge, steel body, light highlight.
-  for (const [w, c] of [[4.6, 'rgba(8,18,50,0.9)'], [3, '#8f9bb8'], [1, 'rgba(240,247,255,0.9)']] as const) {
-    g.strokeStyle = c;
-    g.lineWidth = w;
-    poly(g, q);
-    g.stroke();
-  }
-  // Hinges on the far side, latch and handle on the near side.
-  g.strokeStyle = '#2b3350';
+  g.strokeStyle = 'rgba(235,242,255,0.85)';
+  g.lineWidth = 1;
+  line(g, at(z0, 0.1), at(z1, 0.1));
+  g.strokeStyle = 'rgba(8,18,50,0.7)';
+  g.lineWidth = 1.2;
+  poly(g, beam);
+  g.stroke();
+  // Padded door posts (foam sleeves, dark blue) up to the top of the opening.
+  for (const u of [z0, z1]) padPost(g, at, u, OPENING_HEIGHT);
+  // The lintel: the frame bar over the opening.
+  g.strokeStyle = '#7e8aa6';
   g.lineWidth = 3;
-  for (const h of [0.3, 1.75]) line(g, at(z0 - 0.02, h), at(z0 + 0.1, h));
-  g.strokeStyle = '#ffd24a';
-  g.lineWidth = 2.6;
-  line(g, at(z1 - 0.22, 1.0), at(z1 - 0.05, 1.0));
-  g.strokeStyle = 'rgba(8,18,50,0.8)';
-  g.lineWidth = 0.8;
-  line(g, at(z1 - 0.22, 0.96), at(z1 - 0.05, 0.96));
+  line(g, at(z0, OPENING_HEIGHT), at(z1, OPENING_HEIGHT));
+}
+
+/** A steel post with a padded foam sleeve. */
+function padPost(g: Ctx, at: At, u: number, h1: number): void {
+  const a = at(u, 0);
+  const b = at(u, h1);
+  g.lineCap = 'round';
+  g.strokeStyle = 'rgba(0,10,40,0.85)';
+  g.lineWidth = 6;
+  line(g, a, b);
+  g.strokeStyle = '#27407a';
+  g.lineWidth = 4.2;
+  line(g, a, b);
+  g.strokeStyle = '#6f8fd6';
+  g.lineWidth = 1.2;
+  line(g, { x: a.x - 0.9, y: a.y }, { x: b.x - 0.9, y: b.y });
+  g.lineCap = 'butt';
 }
 
 function drawAds(g: Ctx, theme: CourtTheme): void {
@@ -389,9 +397,19 @@ function drawWalls(g: Ctx, theme: CourtTheme): void {
     const at: At = (z, h) => P(sign * 5, z, h);
     segs.forEach((seg, i) => {
       if (seg.glass > 0) glassBand(g, at, seg.z0, seg.z1, 0, seg.glass, 2, 31 + i * 7 + (sign > 0 ? 3 : 0));
-      if (seg.mesh > 0) meshBand(g, at, seg.z0, seg.z1, seg.glass, seg.glass + seg.mesh);
+      if (seg.mesh > 0) {
+        // The mesh goes on in front of and between the openings, and over them; the openings themselves are open space.
+        const holes = seg.glass === 0 ? openingsIn(seg.z0, seg.z1) : [];
+        let from = seg.z0;
+        for (const o of holes) {
+          if (o.z0 > from) meshBand(g, at, from, o.z0, seg.glass, seg.glass + seg.mesh);
+          meshBand(g, at, o.z0, o.z1, OPENING_HEIGHT, seg.glass + seg.mesh);
+          from = o.z1;
+        }
+        if (seg.z1 > from) meshBand(g, at, from, seg.z1, seg.glass, seg.glass + seg.mesh);
+        for (const o of holes) opening(g, at, o.z0, o.z1);
+      }
     });
-    door(g, at);
     for (const z of [0, 2, 4, 6.5, 10, 13.5, 16, 18, 20]) post(g, at, z, z <= 2 || z >= 18 ? 4 : z <= 4 || z >= 16 ? 3 : 3);
   }
   drawNearWall(g);

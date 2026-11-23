@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACK_WALL, SIDE_DOOR, sideWallHeightAt, sideWallSegments } from './walls';
+import { BACK_WALL, isSideOpening, OPENING_HEIGHT, SIDE_OPENINGS, sideWallHeightAt, sideWallSegments } from './walls';
 
 describe('walls', () => {
   it('has a 4 m back wall: 3 m glass and 1 m mesh', () => {
@@ -33,11 +33,28 @@ describe('walls', () => {
     expect(segs.some((s) => s.glass === 0 && s.mesh > 0)).toBe(true);
   });
 
-  it('puts the entrance door in the mesh-only part of the side wall, below the top of the mesh', () => {
-    const seg = sideWallSegments().find((x) => SIDE_DOOR.z0 >= x.z0 && SIDE_DOOR.z1 <= x.z1);
-    expect(seg).toBeDefined();
-    expect(seg!.glass).toBe(0);
-    expect(SIDE_DOOR.height).toBeLessThanOrEqual(seg!.mesh);
-    expect(SIDE_DOOR.z1 - SIDE_DOOR.z0).toBeCloseTo(1, 5);
+  it('has two openings per side wall, symmetric about the net, in the mesh-only part, 0.72 to 1.10 m wide and 2.0 to 2.2 m high', () => {
+    expect(SIDE_OPENINGS).toHaveLength(2);
+    const [a, b] = SIDE_OPENINGS;
+    expect(a.z0 + b.z1).toBeCloseTo(20, 6);
+    expect(a.z1 + b.z0).toBeCloseTo(20, 6);
+    for (const o of SIDE_OPENINGS) {
+      expect(o.z1 - o.z0).toBeGreaterThanOrEqual(0.72);
+      expect(o.z1 - o.z0).toBeLessThanOrEqual(1.1);
+      const seg = sideWallSegments().find((x) => o.z0 >= x.z0 && o.z1 <= x.z1);
+      expect(seg?.glass).toBe(0);
+      expect(OPENING_HEIGHT).toBeGreaterThanOrEqual(2);
+      expect(OPENING_HEIGHT).toBeLessThanOrEqual(2.2);
+      expect(OPENING_HEIGHT).toBeLessThan(seg!.mesh);
+    }
+  });
+
+  it('isSideOpening is open space only inside an opening and below its top', () => {
+    const o = SIDE_OPENINGS[0];
+    const mid = (o.z0 + o.z1) / 2;
+    expect(isSideOpening(mid, 1)).toBe(true);
+    expect(isSideOpening(mid, OPENING_HEIGHT + 0.1)).toBe(false);
+    expect(isSideOpening(o.z0 - 0.5, 1)).toBe(false);
+    expect(isSideOpening(10, 1)).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { NET_Z } from '../game/court';
 import type { CourtPos, ErrorKind, Height, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { NET_HEIGHT_M } from './camera';
-import { BACK_WALL, sideWallHeightAt, sideWallSegments } from './walls';
+import { BACK_WALL, isSideOpening, sideWallHeightAt, sideWallSegments } from './walls';
 
 /**
  * Ball flight with real physics (pure, so it is testable). Metres and seconds; x across (-5..5),
@@ -228,6 +228,7 @@ function arcPoint(from: Vec, a: Arc, t: number): Vec {
 
 /** What is hit when the ball reaches a wall at this height: glass, mesh, or nothing (it flies out). */
 function sideWallMaterial(z: number, h: number): 'glass' | 'mesh' | 'out' {
+  if (isSideOpening(z, h)) return 'out';
   const zz = clamp(z, 0, 20);
   const seg = sideWallSegments().find((s) => zz >= s.z0 && zz <= s.z1) ?? sideWallSegments()[0];
   if (h < seg.glass) return 'glass';
