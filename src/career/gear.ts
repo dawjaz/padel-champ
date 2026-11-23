@@ -36,6 +36,8 @@ export interface Brand {
   tag: string;
   /** Light, main, dark and accent colour. */
   colors: string[];
+  /** Set bonus: +1 to the first stat with 3 pieces of the brand equipped, +1 to both with 5. */
+  set: StatKey[];
 }
 
 export interface Consumable {
@@ -122,7 +124,33 @@ export function unequip(inv: Inventory, slot: Slot): Inventory {
   return { ...inv, equipped };
 }
 
-/** The sum of the bonuses of everything that is equipped. */
+/** Pieces needed for the first and the full set bonus. */
+export const SET_PIECES = [3, 5] as const;
+
+export interface SetBonus {
+  brand: Brand;
+  pieces: number;
+  /** The stats that get +1 now (empty below 3 pieces). */
+  stats: StatKey[];
+}
+
+/** The brand with the most equipped pieces and its set bonus (null when nothing is equipped). Ties go to the brand listed first. */
+export function setBonusOf(inv: Inventory): SetBonus | null {
+  const count: Record<string, number> = {};
+  for (const slot of SLOTS) {
+    const g = inv.equipped[slot] ? gearById(inv.equipped[slot]!) : undefined;
+    if (g) count[g.brand] = (count[g.brand] ?? 0) + 1;
+  }
+  let best: SetBonus | null = null;
+  for (const brand of BRANDS) {
+    const pieces = count[brand.id] ?? 0;
+    if (pieces === 0 || (best && pieces <= best.pieces)) continue;
+    best = { brand, pieces, stats: brand.set.slice(0, pieces >= SET_PIECES[1] ? 2 : pieces >= SET_PIECES[0] ? 1 : 0) };
+  }
+  return best;
+}
+
+/** The sum of the bonuses of everything that is equipped, plus the set bonus. */
 export function gearBonus(inv: Inventory): Record<StatKey, number> {
   const sum = { power: 0, spin: 0, technique: 0, accuracy: 0, stamina: 0, speed: 0, defense: 0 } as Record<StatKey, number>;
   for (const slot of SLOTS) {
@@ -130,8 +158,12 @@ export function gearBonus(inv: Inventory): Record<StatKey, number> {
     if (!g) continue;
     for (const [k, v] of Object.entries(g.bonus)) sum[k as StatKey] += v ?? 0;
   }
+  for (const k of setBonusOf(inv)?.stats ?? []) sum[k] += 1;
   return sum;
 }
+
+/** How many of the brand's 20 items (5 slots x 4 models) are owned. */
+export const ownedOfBrand = (inv: Inventory, brand: string): number => GEAR.filter((g) => g.brand === brand && inv.owned.includes(g.id)).length;
 
 /** The look of the hero with the colours of the equipped items (and the shape of the racket). */
 export function applyLook(base: Appearance, inv: Inventory): Appearance {

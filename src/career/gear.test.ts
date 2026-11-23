@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { Appearance, PlayerDef } from '../game/types';
-import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, BRANDS, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
+import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, BRANDS, ownedOfBrand, setBonusOf, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
 import { award, heroFrom, newProfile, spend, xpToReach } from './profile';
 
 const look: Appearance = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' };
@@ -151,5 +151,40 @@ describe('storage safety', () => {
     expect(bad.pity).toEqual({});
     expect(bad.boosts).toEqual(['gel', 'isotonic']); // unknown dropped, at most two
     expect(bad.queued).toEqual(['gel']); // one pick, and it has to be in the bag
+  });
+});
+
+describe('brand set bonus', () => {
+  const wear = (brand: string, slots: readonly string[]): Inventory => {
+    let inv = newInventory();
+    for (const s of slots) {
+      inv = own(inv, `${brand}_${s}_1`);
+      inv = equip(inv, `${brand}_${s}_1`, 1);
+    }
+    return inv;
+  };
+  const SIX = ['top', 'shorts', 'shoes', 'racket', 'bag'] as const;
+  const base = (inv: Inventory): number => Object.values(gearBonus(inv)).reduce((a, b) => a + b, 0);
+  const rawSum = (inv: Inventory): number => SLOTS.reduce((a, s) => a + Object.values(gearById(inv.equipped[s] ?? '')?.bonus ?? {}).reduce((x, y) => x + (y ?? 0), 0), 0);
+  it('two pieces give nothing, three give +1 to the first stat, five +1 to two', () => {
+    expect(setBonusOf(wear('bavole', SIX.slice(0, 2)))?.stats).toEqual([]);
+    expect(base(wear('bavole', SIX.slice(0, 2)))).toBe(rawSum(wear('bavole', SIX.slice(0, 2))));
+    const three = wear('bavole', SIX.slice(0, 3));
+    expect(setBonusOf(three)?.stats).toEqual(['power']);
+    expect(base(three)).toBe(rawSum(three) + 1);
+    const five = wear('bavole', SIX);
+    expect(setBonusOf(five)?.stats).toEqual(['power', 'spin']);
+    expect(base(five)).toBe(rawSum(five) + 2);
+  });
+  it('mixed brands: the brand with the most pieces counts; nothing equipped gives none', () => {
+    expect(setBonusOf({ ...newInventory(), equipped: {} })).toBeNull();
+    let inv = wear('toropad', ['top', 'shorts', 'shoes']);
+    inv = equip(own(inv, 'syrix_racket_1'), 'syrix_racket_1', 1);
+    expect(setBonusOf(inv)?.brand.id).toBe('toropad');
+  });
+  it('every brand has two set stats and owned counts per brand', () => {
+    for (const b of BRANDS) expect(b.set).toHaveLength(2);
+    expect(ownedOfBrand(newInventory(), 'adaro')).toBe(5);
+    expect(ownedOfBrand(newInventory(), 'bavole')).toBe(0);
   });
 });

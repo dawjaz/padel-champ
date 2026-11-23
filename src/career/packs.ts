@@ -49,7 +49,7 @@ export interface Opened {
 }
 
 /** Opens one pack (the price is not charged here). New items go to the inventory; a duplicate turns into coins. */
-export function openPack(profile: Profile, packId: string, rng: Rng): Opened {
+export function openPack(profile: Profile, packId: string, rng: Rng, brand?: string): Opened {
   const def = packById(packId);
   if (!def) return { profile, drops: [] };
   let inv: Inventory = profile.inventory;
@@ -61,7 +61,7 @@ export function openPack(profile: Profile, packId: string, rng: Rng): Opened {
   for (let i = 0; i < (def.items ?? 0); i++) {
     const min = forced && i === 0 && !gotPity ? pityMin : undefined;
     const rarity = rollRarity(def.odds ?? { common: 100 }, rng, min);
-    const pool = GEAR.filter((g) => g.rarity === rarity);
+    const pool = GEAR.filter((g) => g.rarity === rarity && (brand === undefined || g.brand === brand));
     const item = pool[Math.floor(rng() * pool.length)];
     const duplicate = inv.owned.includes(item.id);
     const refund = duplicate ? DUPLICATE_COINS[item.rarity] : 0;
@@ -83,11 +83,16 @@ export const canBuy = (p: Profile, packId: string): boolean => {
   return !!def && p.coins >= def.price;
 };
 
-/** Pays for the pack and opens it, or returns null when there are not enough coins. */
-export function buyPack(profile: Profile, packId: string, rng: Rng): Opened | null {
+/** The price of a pack; a pack of one brand costs a surcharge (rounded to 10 coins). */
+export function priceOf(def: PackDef, brand?: string): number {
+  return brand === undefined ? def.price : Math.round((def.price * (1 + packsData.brandSurcharge)) / 10) * 10;
+}
+
+/** Pays for the pack and opens it, or returns null when there are not enough coins. A brand pack only has items of that brand. */
+export function buyPack(profile: Profile, packId: string, rng: Rng, brand?: string): Opened | null {
   const def = packById(packId);
-  if (!def || profile.coins < def.price) return null;
-  return openPack({ ...profile, coins: profile.coins - def.price }, packId, rng);
+  if (!def || profile.coins < priceOf(def, brand)) return null;
+  return openPack({ ...profile, coins: profile.coins - priceOf(def, brand) }, packId, rng, brand);
 }
 
 /** Opens one of the unopened (free) packs, or returns null when there is none. */

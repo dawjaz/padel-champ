@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.81)_
+_Last updated: 2026-11-22 (v0.82)_
+
+## v0.82: collection screen, brand set bonus, brand packs (world and gamification, step 2)
+- **Set bonus** (`setBonusOf` in `career/gear.ts`, `set` stats per brand in `brands.json`): the brand with most equipped pieces gives +1 to its first stat with 3 pieces, +1 to both with 5; it is included in `gearBonus`, so Hero and Gear show it in the totals (Gear also names the set).
+- **`CollectionScene`** (button COLLECTION on the title screen): per brand, a grid of 5 slots x 4 models (owned with bonus, worn, or ? with the needed level), set bonus lines, total x/120.
+- **Brand packs in the shop:** a brand selector above the packs; a pack of one brand only drops that brand's items and costs +50% (`brandSurcharge` in `packs.json`, `priceOf`). Free level-up packs are never limited. Pity works as before.
+- Title screen: stats line shortened, COLLECTION and SETTINGS buttons moved up 2 px. Tests added for set bonus and brand packs (retune the numbers after play-testing).
 
 ## v0.81: daily rewards and tasks (world and gamification, step 1)
 - `src/career/daily.ts` (pure, tested) + `src/data/daily.json`: login reward on a 7-day streak (coins 30..80, day 7 = 100 coins + a gear pack; a missed day restarts the streak), three tasks a day picked from a pool of 10 by the date (same for everybody, distinct stats), 30 coins per task, 100 coins bonus for all three. Only career matches count (quick match = sparring).

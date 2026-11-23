@@ -3,7 +3,7 @@ import { addToon } from '../art/toonTexture';
 import { sfx } from '../audio';
 import { drawIcon, drawRacketShape } from '../art/icons';
 import { WIDTH } from '../config';
-import { applyLook, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, itemsOfBrand, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { applyLook, setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, itemsOfBrand, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -87,7 +87,9 @@ export class GearScene extends Phaser.Scene {
     this.dyn.push(addToon(this, WIDTH / 2, 288, 210, applyLook(HERO.appearance, inv), 'front'));
     const bonus = gearBonus(inv);
     const lines = STAT_KEYS.filter((k) => bonus[k] > 0).map((k) => `+${bonus[k]} ${SHORT[k]}`);
-    this.label(WIDTH / 2, 308, lines.length > 0 ? lines.join('  ') : 'NOTHING EQUIPPED', 11, lines.length > 0 ? TC.orange : TC.sub).setWordWrapWidth(150).setAlign('center');
+    this.label(WIDTH / 2, 302, lines.length > 0 ? lines.join('  ') : 'NOTHING EQUIPPED', 11, lines.length > 0 ? TC.orange : TC.sub).setWordWrapWidth(240).setAlign('center');
+    const set = setBonusOf(inv);
+    if (set && set.stats.length > 0) this.label(WIDTH / 2, 315, `${set.brand.name.toUpperCase()} SET ${set.pieces}/5 (INCLUDED)`, 9, TC.blue);
     SLOTS.forEach((s, i) => {
       const left = i < 3;
       const x = left ? 10 : WIDTH - 76;

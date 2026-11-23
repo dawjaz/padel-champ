@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
-import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, RARITIES, type Opened, type PackDef } from '../career/packs';
-import { CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
+import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, priceOf, RARITIES, type Opened, type PackDef } from '../career/packs';
+import { BRANDS, CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -17,6 +17,8 @@ const describe = (p: PackDef): string => {
 export class ShopScene extends Phaser.Scene {
   private dyn: Phaser.GameObjects.GameObject[] = [];
   private note = '';
+  /** The brand a bought pack is limited to (null = any brand), a surcharge applies. */
+  private brand: string | null = null;
 
   constructor() {
     super('ShopScene');
@@ -67,8 +69,25 @@ export class ShopScene extends Phaser.Scene {
       y += 42;
     }
 
+    // Brand filter for the packs you buy (the free level-up packs are never limited).
+    const names = ['ANY BRAND', ...BRANDS.map((b) => b.name.toUpperCase())];
+    const ids: Array<string | null> = [null, ...BRANDS.map((b) => b.id)];
+    const bi = Math.max(0, ids.indexOf(this.brand));
+    const go = (d: number): void => {
+      this.brand = ids[(bi + d + ids.length) % ids.length];
+      this.redraw();
+    };
+    this.dyn.push(...makeThemeButton(this, 34, y + 18, 46, 34, '<', () => go(-1), 'blue', 20).parts);
+    this.dyn.push(...makeThemeButton(this, WIDTH - 34, y + 18, 46, 34, '>', () => go(1), 'blue', 20).parts);
+    const bg = this.add.graphics().setPosition(64, y + 1);
+    drawCard(bg, WIDTH - 128, 34, { radius: 12 });
+    this.dyn.push(bg);
+    this.label(WIDTH / 2, y + 12, names[bi], 14, TC.navy, 0.5, true);
+    this.label(WIDTH / 2, y + 27, this.brand ? `ONLY ${names[bi]} ITEMS  +50% PRICE` : 'PACKS GIVE ITEMS OF ANY BRAND', 9, this.brand ? TC.orange : TC.sub);
+    y += 42;
+
     const cardH = 108;
-    const gap = 8;
+    const gap = 4;
     const top = y;
     PACKS.forEach((def, i) => {
       const cy = top + i * (cardH + gap) + cardH / 2;
@@ -97,8 +116,9 @@ export class ShopScene extends Phaser.Scene {
         });
         if (def.pity) this.label(x0 + 14, y0 + cardH - 12, `SURE ${def.pity.min.toUpperCase()}+ EVERY ${def.pity.after} PACKS (${p.inventory.pity[def.id] ?? 0}/${def.pity.after - 1})`, 9, TC.blue, 0);
       }
-      const afford = p.coins >= def.price;
-      const b = makeThemeButton(this, 282, cy - 8, 100, 46, `${def.price}`, () => this.open(buyPack(getSave().profile, def.id, Math.random), def.name), afford ? 'primary' : 'secondary', 18);
+      const price = priceOf(def, this.brand ?? undefined);
+      const afford = p.coins >= price;
+      const b = makeThemeButton(this, 282, cy - 8, 100, 46, `${price}`, () => this.open(buyPack(getSave().profile, def.id, Math.random, this.brand ?? undefined), def.name), afford ? 'primary' : 'secondary', 18);
       b.text.setAlpha(afford ? 1 : 0.45);
       this.dyn.push(...b.parts);
       this.label(282, cy + 24, 'COINS', 10, TC.sub);

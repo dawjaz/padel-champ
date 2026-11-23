@@ -1,13 +1,17 @@
 [
  {
   "id": "bavole",
-  "name": "Bavolé",
+  "name": "Bavol\u00e9",
   "tag": "Power and spin",
   "colors": [
    "#f4f4f4",
    "#2f6df0",
    "#17306b",
    "#f6d743"
+  ],
+  "set": [
+   "power",
+   "spin"
   ]
  },
  {
@@ -19,6 +23,10 @@
    "#d82800",
    "#1d1d2b",
    "#f8b800"
+  ],
+  "set": [
+   "power",
+   "speed"
   ]
  },
  {
@@ -30,6 +38,10 @@
    "#6a3de0",
    "#241a52",
    "#35c4a8"
+  ],
+  "set": [
+   "accuracy",
+   "technique"
   ]
  },
  {
@@ -41,6 +53,10 @@
    "#3a4a6b",
    "#3cbcfc",
    "#1d1d2b"
+  ],
+  "set": [
+   "technique",
+   "defense"
   ]
  },
  {
@@ -52,6 +68,10 @@
    "#f2a33a",
    "#0f7a6a",
    "#1d1d2b"
+  ],
+  "set": [
+   "speed",
+   "stamina"
   ]
  },
  {
@@ -63,6 +83,10 @@
    "#1fae6b",
    "#0d3b2a",
    "#f6d743"
+  ],
+  "set": [
+   "defense",
+   "stamina"
   ]
  }
 ]

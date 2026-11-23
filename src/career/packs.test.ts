@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seededRng } from '../game/rng';
 import { CONSUMABLES, gearById, newInventory } from './gear';
-import { boostProblem, buyBoost, buyPack, canBuy, DUPLICATE_COINS, LEVEL_UP_PACK, oddsOf, openPack, openStockPack, packById, PACKS, rollRarity } from './packs';
+import { boostProblem, buyBoost, buyPack, canBuy, DUPLICATE_COINS, LEVEL_UP_PACK, oddsOf, openPack, openStockPack, packById, PACKS, priceOf, rollRarity } from './packs';
 import { award, levelOf, newProfile, xpToReach, type Profile } from './profile';
 
 describe('pack data', () => {
@@ -115,5 +115,25 @@ describe('buying and free packs', () => {
     expect(openStockPack(r2.profile, LEVEL_UP_PACK, seededRng(4))).toBeNull();
     p = newProfile();
     expect(p.inventory).toEqual(newInventory());
+  });
+});
+
+describe('brand packs', () => {
+  it('only drop items of the chosen brand and cost a surcharge', () => {
+    const gear = packById('gear')!;
+    expect(priceOf(gear, 'noctra')).toBeGreaterThan(gear.price);
+    expect(priceOf(gear)).toBe(gear.price);
+    const rng = seededRng(7);
+    for (let i = 0; i < 40; i++) {
+      const r = openPack({ ...newProfile(), coins: 0 }, 'premium', rng, 'noctra');
+      for (const d of r.drops) expect(d.item.brand).toBe('noctra');
+    }
+  });
+  it('buying a brand pack charges the surcharge', () => {
+    const gear = packById('gear')!;
+    const p = { ...newProfile(), coins: 1000 };
+    const r = buyPack(p, 'gear', seededRng(1), 'syrix')!;
+    expect(r.profile.coins + r.drops.reduce((a, d) => a + d.coins, 0)).toBe(1000 - priceOf(gear, 'syrix'));
+    expect(buyPack({ ...p, coins: gear.price }, 'gear', seededRng(1), 'syrix')).toBeNull();
   });
 });
