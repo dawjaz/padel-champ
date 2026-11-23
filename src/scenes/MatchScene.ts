@@ -458,6 +458,15 @@ export class MatchScene extends Phaser.Scene {
     this.redrawOverlay();
   }
 
+  /** The ball of a serve is held in the server's free hand: in front of the body (towards the net) and on the side of that hand, at waist height. */
+  private putServeBall(serverId: string, side: SideIndex): void {
+    const pos = this.pos[serverId];
+    // The hero is seen from behind and the opponents from the front (mirrored), so the free hand is on opposite sides of the screen.
+    const dx = side === 0 ? -0.4 : 0.4;
+    const dz = side === 0 ? -0.5 : 0.5;
+    this.setBall(pos.x + dx, pos.z + dz, this.ballH, false);
+  }
+
   /** Places the ball. `trail` = false puts it down without a trail (a new serve). */
   private setBall(x: number, z: number, h: number, trail = true): void {
     const p = project(x, z, h);
@@ -1120,9 +1129,9 @@ export class MatchScene extends Phaser.Scene {
     };
     this.movePlayers(targets, 450, () => {
       this.stance[server.id] = 'smash';
-      this.setPose(server.id, 'smashPrep');
+      this.setPose(server.id, 'fhPrep');
       this.ballH = HIT_HEIGHT_M;
-      this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH, false);
+      this.putServeBall(server.id, serverSide);
       this.chooseReceive(shot);
     });
   }
@@ -1186,8 +1195,6 @@ export class MatchScene extends Phaser.Scene {
           return;
         }
         this.stopCoast();
-        this.ballH = HIT_HEIGHT_M;
-        this.setBall(setup.server.x, setup.server.z, this.ballH, false);
         this.serveTurn();
       };
       place();
@@ -1221,10 +1228,10 @@ export class MatchScene extends Phaser.Scene {
     const tag = st.attempt === 2 ? ' (2nd serve)' : '';
 
     this.stance[server.id] = 'smash';
-    this.setPose(server.id, 'smashPrep'); // the toss: racket back, other arm up
+    this.setPose(server.id, 'fhPrep'); // racket back, the ball in the free hand in front of the body (a padel serve is hit low, after a bounce)
     // The ball is back in the server's hand (after a fault it lay at the net).
     this.ballH = HIT_HEIGHT_M;
-    this.setBall(this.pos[server.id].x, this.pos[server.id].z, this.ballH, false);
+    this.putServeBall(server.id, st.servingSide);
 
     if (this.isHuman(st.servingSide, st.serverIdx)) {
       this.setActive(server.id);

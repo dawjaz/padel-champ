@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.85)_
+_Last updated: 2026-11-23 (v0.86)_
+
+## v0.86: the serve ball in the server's hand, in front of the body
+- Owner report: at the serve the ball is behind the player. It was put at the server's own court position (inside his body, 0.9 m up).
+- `MatchScene.putServeBall`: before a serve (match and practice) the ball is held in the server's free hand: 0.5 m in front of him (towards the net) and 0.4 m to the side of that hand (opposite sides for the hero seen from behind and for opponents seen from the front), at waist height (padel serves are hit low, after a bounce). The pose of the serve preparation is `fhPrep` (racket back, free arm out) instead of the tennis-style `smashPrep` toss pose with the arm up.
+- Not checked in a match on a device. The flight of the serve still starts at the server's court position, so the ball jumps about half a metre at the hit; if it looks bad, start `Flight` from the same spot (`ballPath.ts`).
 
 ## v0.85: more natural arms and legs (characters and animation, step 2)
 - Owner report (after v0.84): arm layout still unnatural, the backhand looked as if the right arm was pulled behind the back, legs bowed out and looked comical; they should run on straighter legs and go a little lower at the hit.
