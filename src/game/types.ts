@@ -30,6 +30,8 @@ export interface Appearance {
 export interface PlayerDef {
   id: string;
   name: string;
+  /** Nickname shown after the name (every player has one). */
+  nick?: string;
   /** Attributes on a 1-10 scale (5 = neutral). */
   stats: Record<StatKey, number>;
   /** Derived from stamina (`gutsFor`); kept here so that the scenes read one number. */

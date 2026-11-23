@@ -158,6 +158,43 @@ export function drawCoin(g: Phaser.GameObjects.Graphics, x: number, y: number, r
   g.strokeCircle(x, y, r * 0.6);
 }
 
+/** The experience icon: a white star on a blue disc (the coin's counterpart). */
+export function drawXp(g: Phaser.GameObjects.Graphics, x: number, y: number, r: number): void {
+  g.fillStyle(TC.blue, 1);
+  g.fillCircle(x, y, r);
+  g.lineStyle(1.5, TC.navy, 1);
+  g.strokeCircle(x, y, r);
+  const pts: { x: number; y: number }[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 === 0 ? r * 0.7 : r * 0.3;
+    pts.push({ x: x + Math.cos(a) * rr, y: y + 0.5 + Math.sin(a) * rr });
+  }
+  g.fillStyle(TC.white, 1);
+  g.fillPoints(pts, true);
+}
+
+export type RewardKind = 'xp' | 'coin';
+
+/** A row of rewards, each an icon and an amount (for example "(star) +120   (coin) +40"), centred on `cx` at height `y`. */
+export function rewardRow(scene: Phaser.Scene, cx: number, y: number, items: { kind: RewardKind | null; text: string }[], o: { size?: number; color?: number } = {}): Phaser.GameObjects.GameObject[] {
+  const size = o.size ?? 15;
+  const r = size * 0.62;
+  const gap = 16;
+  const labels = items.map((it) => themeText(scene, 0, y + 1, it.text, { size, color: o.color ?? TC.navy, font: 'display', origin: [0, 0.5] }));
+  const widths = items.map((it, i) => (it.kind ? r * 2 + 5 : 0) + labels[i].width);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1);
+  const g = scene.add.graphics();
+  let x = cx - total / 2;
+  items.forEach((it, i) => {
+    if (it.kind === 'xp') drawXp(g, x + r, y, r);
+    else if (it.kind === 'coin') drawCoin(g, x + r, y, r);
+    labels[i].x = x + (it.kind ? r * 2 + 5 : 0);
+    x += widths[i] + gap;
+  });
+  return [g, ...labels];
+}
+
 /** White pill with a gold coin and the amount, right-aligned to `right`, vertically centred on `y`. */
 export function coinPill(scene: Phaser.Scene, right: number, y: number, amount: number): Phaser.GameObjects.GameObject[] {
   const label = themeText(scene, 0, y + 1, amount.toLocaleString('en-US'), { size: 14, origin: [0, 0.5] });

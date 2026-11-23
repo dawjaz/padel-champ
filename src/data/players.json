@@ -3,7 +3,15 @@
     {
       "id": "toro",
       "name": "Dani",
-      "stats": { "power": 8, "spin": 5, "technique": 5, "accuracy": 5, "stamina": 5, "speed": 5, "defense": 5 },
+      "stats": {
+        "power": 8,
+        "spin": 5,
+        "technique": 5,
+        "accuracy": 5,
+        "stamina": 5,
+        "speed": 5,
+        "defense": 5
+      },
       "maxGuts": 10,
       "appearance": {
         "gender": "male",
@@ -15,12 +23,21 @@
         "bottomStyle": "shorts",
         "shoes": "#f4f4f4",
         "racket": "#f2a33a"
-      }
+      },
+      "nick": "Thunder"
     },
     {
       "id": "mia",
       "name": "Lucy",
-      "stats": { "power": 5, "spin": 7, "technique": 8, "accuracy": 7, "stamina": 6, "speed": 7, "defense": 4 },
+      "stats": {
+        "power": 5,
+        "spin": 7,
+        "technique": 8,
+        "accuracy": 7,
+        "stamina": 6,
+        "speed": 7,
+        "defense": 4
+      },
       "maxGuts": 11,
       "appearance": {
         "gender": "female",
@@ -33,14 +50,23 @@
         "shoes": "#f2a33a",
         "racket": "#e8554e",
         "headband": "#e8554e"
-      }
+      },
+      "nick": "Velvet"
     }
   ],
   "cpu": [
     {
       "id": "bruno",
       "name": "Bruno",
-      "stats": { "power": 6, "spin": 5, "technique": 6, "accuracy": 5, "stamina": 6, "speed": 4, "defense": 8 },
+      "stats": {
+        "power": 6,
+        "spin": 5,
+        "technique": 6,
+        "accuracy": 5,
+        "stamina": 6,
+        "speed": 4,
+        "defense": 8
+      },
       "maxGuts": 11,
       "appearance": {
         "gender": "male",
@@ -52,12 +78,21 @@
         "bottomStyle": "shorts",
         "shoes": "#222222",
         "racket": "#9b6ee0"
-      }
+      },
+      "nick": "Bulldog"
     },
     {
       "id": "ines",
       "name": "Ines",
-      "stats": { "power": 7, "spin": 6, "technique": 5, "accuracy": 5, "stamina": 5, "speed": 6, "defense": 5 },
+      "stats": {
+        "power": 7,
+        "spin": 6,
+        "technique": 5,
+        "accuracy": 5,
+        "stamina": 5,
+        "speed": 6,
+        "defense": 5
+      },
       "maxGuts": 10,
       "appearance": {
         "gender": "female",
@@ -70,7 +105,8 @@
         "shoes": "#35c4a8",
         "racket": "#35c4a8",
         "headband": "#35c4a8"
-      }
+      },
+      "nick": "Icicle"
     }
   ]
 }

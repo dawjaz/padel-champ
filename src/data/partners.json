@@ -1,269 +1,279 @@
 {
- "default": "olek",
- "partners": [
-  {
-   "id": "olek",
-   "name": "Oliver",
-   "stats": {
-    "power": 4,
-    "spin": 3,
-    "technique": 3,
-    "accuracy": 3,
-    "stamina": 4,
-    "speed": 3,
-    "defense": 4
-   },
-   "price": 0,
-   "appearance": {
-    "gender": "male",
-    "skin": "#f1c27d",
-    "hairStyle": "short",
-    "hairColor": "#6b4423",
-    "shirt": "#9aa3ad",
-    "bottom": "#3b4252",
-    "bottomStyle": "shorts",
-    "shoes": "#f4f4f4",
-    "racket": "#15151c"
-   },
-   "minLevel": 1
-  },
-  {
-   "id": "lena",
-   "name": "Elena",
-   "stats": {
-    "power": 4,
-    "spin": 4,
-    "technique": 5,
-    "accuracy": 4,
-    "stamina": 5,
-    "speed": 4,
-    "defense": 5
-   },
-   "price": 200,
-   "appearance": {
-    "gender": "female",
-    "skin": "#f1c27d",
-    "hairStyle": "bun",
-    "hairColor": "#7a4a1d",
-    "shirt": "#3a6df0",
-    "bottom": "#f4f4f4",
-    "bottomStyle": "skirt",
-    "shoes": "#f4f4f4",
-    "racket": "#15151c"
-   },
-   "minLevel": 3
-  },
-  {
-   "id": "tomek",
-   "name": "Tom",
-   "stats": {
-    "power": 7,
-    "spin": 4,
-    "technique": 4,
-    "accuracy": 4,
-    "stamina": 6,
-    "speed": 5,
-    "defense": 6
-   },
-   "price": 450,
-   "appearance": {
-    "gender": "male",
-    "skin": "#e0ac69",
-    "hairStyle": "bald",
-    "hairColor": "#000000",
-    "shirt": "#e8554e",
-    "bottom": "#1a1a1a",
-    "bottomStyle": "shorts",
-    "shoes": "#15151c",
-    "racket": "#3cbcfc"
-   },
-   "minLevel": 6
-  },
-  {
-   "id": "marco",
-   "name": "Marco",
-   "stats": {
-    "power": 6,
-    "spin": 6,
-    "technique": 7,
-    "accuracy": 6,
-    "stamina": 6,
-    "speed": 6,
-    "defense": 6
-   },
-   "price": 800,
-   "appearance": {
-    "gender": "male",
-    "skin": "#e0ac69",
-    "hairStyle": "short",
-    "hairColor": "#1a1a1a",
-    "shirt": "#00a800",
-    "bottom": "#1a1a1a",
-    "bottomStyle": "shorts",
-    "shoes": "#f4f4f4",
-    "racket": "#f2a33a"
-   },
-   "minLevel": 9
-  },
-  {
-   "id": "mia",
-   "name": "Mia",
-   "stats": {
-    "power": 5,
-    "spin": 7,
-    "technique": 8,
-    "accuracy": 7,
-    "stamina": 6,
-    "speed": 7,
-    "defense": 4
-   },
-   "price": 1300,
-   "appearance": {
-    "gender": "female",
-    "skin": "#8d5524",
-    "hairStyle": "ponytail",
-    "hairColor": "#2a1608",
-    "shirt": "#f6d743",
-    "bottom": "#e8554e",
-    "bottomStyle": "skirt",
-    "shoes": "#f2a33a",
-    "racket": "#e8554e",
-    "headband": "#e8554e"
-   },
-   "minLevel": 12
-  },
-  {
-   "id": "kasia",
-   "name": "Claire",
-   "stats": {
-    "power": 5,
-    "spin": 6,
-    "technique": 6,
-    "accuracy": 7,
-    "stamina": 9,
-    "speed": 7,
-    "defense": 9
-   },
-   "price": 2000,
-   "appearance": {
-    "gender": "female",
-    "skin": "#f1c27d",
-    "hairStyle": "ponytail",
-    "hairColor": "#c9a227",
-    "shirt": "#2fb5a0",
-    "bottom": "#f4f4f4",
-    "bottomStyle": "skirt",
-    "shoes": "#2fb5a0",
-    "racket": "#15151c"
-   },
-   "minLevel": 15
-  },
-  {
-   "id": "sofia",
-   "name": "Sofia",
-   "stats": {
-    "power": 7,
-    "spin": 8,
-    "technique": 7,
-    "accuracy": 8,
-    "stamina": 7,
-    "speed": 7,
-    "defense": 7
-   },
-   "price": 3000,
-   "appearance": {
-    "gender": "female",
-    "skin": "#c68642",
-    "hairStyle": "long",
-    "hairColor": "#0d0d0d",
-    "shirt": "#c060ff",
-    "bottom": "#2b2b5e",
-    "bottomStyle": "skirt",
-    "shoes": "#e8554e",
-    "racket": "#f6d743"
-   },
-   "minLevel": 18
-  },
-  {
-   "id": "ivan",
-   "name": "Ian",
-   "stats": {
-    "power": 10,
-    "spin": 8,
-    "technique": 7,
-    "accuracy": 7,
-    "stamina": 8,
-    "speed": 7,
-    "defense": 7
-   },
-   "price": 4200,
-   "appearance": {
-    "gender": "male",
-    "skin": "#c68642",
-    "hairStyle": "long",
-    "hairColor": "#2a1608",
-    "shirt": "#7a3cc0",
-    "bottom": "#15151c",
-    "bottomStyle": "shorts",
-    "shoes": "#f2a33a",
-    "racket": "#e8554e",
-    "headband": "#f4f4f4"
-   },
-   "minLevel": 21
-  },
-  {
-   "id": "diego",
-   "name": "Diego",
-   "stats": {
-    "power": 9,
-    "spin": 8,
-    "technique": 9,
-    "accuracy": 8,
-    "stamina": 8,
-    "speed": 8,
-    "defense": 9
-   },
-   "price": 6000,
-   "appearance": {
-    "gender": "male",
-    "skin": "#8d5524",
-    "hairStyle": "afro",
-    "hairColor": "#0d0d0d",
-    "shirt": "#d82800",
-    "bottom": "#f4f4f4",
-    "bottomStyle": "shorts",
-    "shoes": "#15151c",
-    "racket": "#3cbcfc",
-    "headband": "#f8b800"
-   },
-   "minLevel": 24
-  },
-  {
-   "id": "ana",
-   "name": "Ana",
-   "stats": {
-    "power": 9,
-    "spin": 9,
-    "technique": 10,
-    "accuracy": 10,
-    "stamina": 9,
-    "speed": 9,
-    "defense": 9
-   },
-   "price": 9000,
-   "appearance": {
-    "gender": "female",
-    "skin": "#8d5524",
-    "hairStyle": "bun",
-    "hairColor": "#0d0d0d",
-    "shirt": "#f6d743",
-    "bottom": "#15151c",
-    "bottomStyle": "skirt",
-    "shoes": "#f6d743",
-    "racket": "#d82800",
-    "headband": "#15151c"
-   },
-   "minLevel": 27
-  }
- ]
+  "default": "olek",
+  "partners": [
+    {
+      "id": "olek",
+      "name": "Oliver",
+      "stats": {
+        "power": 4,
+        "spin": 3,
+        "technique": 3,
+        "accuracy": 3,
+        "stamina": 4,
+        "speed": 3,
+        "defense": 4
+      },
+      "price": 0,
+      "appearance": {
+        "gender": "male",
+        "skin": "#f1c27d",
+        "hairStyle": "short",
+        "hairColor": "#6b4423",
+        "shirt": "#9aa3ad",
+        "bottom": "#3b4252",
+        "bottomStyle": "shorts",
+        "shoes": "#f4f4f4",
+        "racket": "#15151c"
+      },
+      "minLevel": 1,
+      "nick": "The Wall"
+    },
+    {
+      "id": "lena",
+      "name": "Elena",
+      "stats": {
+        "power": 4,
+        "spin": 4,
+        "technique": 5,
+        "accuracy": 4,
+        "stamina": 5,
+        "speed": 4,
+        "defense": 5
+      },
+      "price": 200,
+      "appearance": {
+        "gender": "female",
+        "skin": "#f1c27d",
+        "hairStyle": "bun",
+        "hairColor": "#7a4a1d",
+        "shirt": "#3a6df0",
+        "bottom": "#f4f4f4",
+        "bottomStyle": "skirt",
+        "shoes": "#f4f4f4",
+        "racket": "#15151c"
+      },
+      "minLevel": 3,
+      "nick": "Lightning"
+    },
+    {
+      "id": "tomek",
+      "name": "Tom",
+      "stats": {
+        "power": 7,
+        "spin": 4,
+        "technique": 4,
+        "accuracy": 4,
+        "stamina": 6,
+        "speed": 5,
+        "defense": 6
+      },
+      "price": 450,
+      "appearance": {
+        "gender": "male",
+        "skin": "#e0ac69",
+        "hairStyle": "bald",
+        "hairColor": "#000000",
+        "shirt": "#e8554e",
+        "bottom": "#1a1a1a",
+        "bottomStyle": "shorts",
+        "shoes": "#15151c",
+        "racket": "#3cbcfc"
+      },
+      "minLevel": 6,
+      "nick": "Tank"
+    },
+    {
+      "id": "marco",
+      "name": "Marco",
+      "stats": {
+        "power": 6,
+        "spin": 6,
+        "technique": 7,
+        "accuracy": 6,
+        "stamina": 6,
+        "speed": 6,
+        "defense": 6
+      },
+      "price": 800,
+      "appearance": {
+        "gender": "male",
+        "skin": "#e0ac69",
+        "hairStyle": "short",
+        "hairColor": "#1a1a1a",
+        "shirt": "#00a800",
+        "bottom": "#1a1a1a",
+        "bottomStyle": "shorts",
+        "shoes": "#f4f4f4",
+        "racket": "#f2a33a"
+      },
+      "minLevel": 9,
+      "nick": "Rocket"
+    },
+    {
+      "id": "mia",
+      "name": "Mia",
+      "stats": {
+        "power": 5,
+        "spin": 7,
+        "technique": 8,
+        "accuracy": 7,
+        "stamina": 6,
+        "speed": 7,
+        "defense": 4
+      },
+      "price": 1300,
+      "appearance": {
+        "gender": "female",
+        "skin": "#8d5524",
+        "hairStyle": "ponytail",
+        "hairColor": "#2a1608",
+        "shirt": "#f6d743",
+        "bottom": "#e8554e",
+        "bottomStyle": "skirt",
+        "shoes": "#f2a33a",
+        "racket": "#e8554e",
+        "headband": "#e8554e"
+      },
+      "minLevel": 12,
+      "nick": "Pixie"
+    },
+    {
+      "id": "kasia",
+      "name": "Claire",
+      "stats": {
+        "power": 5,
+        "spin": 6,
+        "technique": 6,
+        "accuracy": 7,
+        "stamina": 9,
+        "speed": 7,
+        "defense": 9
+      },
+      "price": 2000,
+      "appearance": {
+        "gender": "female",
+        "skin": "#f1c27d",
+        "hairStyle": "ponytail",
+        "hairColor": "#c9a227",
+        "shirt": "#2fb5a0",
+        "bottom": "#f4f4f4",
+        "bottomStyle": "skirt",
+        "shoes": "#2fb5a0",
+        "racket": "#15151c"
+      },
+      "minLevel": 15,
+      "nick": "Clutch"
+    },
+    {
+      "id": "sofia",
+      "name": "Sofia",
+      "stats": {
+        "power": 7,
+        "spin": 8,
+        "technique": 7,
+        "accuracy": 8,
+        "stamina": 7,
+        "speed": 7,
+        "defense": 7
+      },
+      "price": 3000,
+      "appearance": {
+        "gender": "female",
+        "skin": "#c68642",
+        "hairStyle": "long",
+        "hairColor": "#0d0d0d",
+        "shirt": "#c060ff",
+        "bottom": "#2b2b5e",
+        "bottomStyle": "skirt",
+        "shoes": "#e8554e",
+        "racket": "#f6d743"
+      },
+      "minLevel": 18,
+      "nick": "Sunny"
+    },
+    {
+      "id": "ivan",
+      "name": "Ian",
+      "stats": {
+        "power": 10,
+        "spin": 8,
+        "technique": 7,
+        "accuracy": 7,
+        "stamina": 8,
+        "speed": 7,
+        "defense": 7
+      },
+      "price": 4200,
+      "appearance": {
+        "gender": "male",
+        "skin": "#c68642",
+        "hairStyle": "long",
+        "hairColor": "#2a1608",
+        "shirt": "#7a3cc0",
+        "bottom": "#15151c",
+        "bottomStyle": "shorts",
+        "shoes": "#f2a33a",
+        "racket": "#e8554e",
+        "headband": "#f4f4f4"
+      },
+      "minLevel": 21,
+      "nick": "Iron"
+    },
+    {
+      "id": "diego",
+      "name": "Diego",
+      "stats": {
+        "power": 9,
+        "spin": 8,
+        "technique": 9,
+        "accuracy": 8,
+        "stamina": 8,
+        "speed": 8,
+        "defense": 9
+      },
+      "price": 6000,
+      "appearance": {
+        "gender": "male",
+        "skin": "#8d5524",
+        "hairStyle": "afro",
+        "hairColor": "#0d0d0d",
+        "shirt": "#d82800",
+        "bottom": "#f4f4f4",
+        "bottomStyle": "shorts",
+        "shoes": "#15151c",
+        "racket": "#3cbcfc",
+        "headband": "#f8b800"
+      },
+      "minLevel": 24,
+      "nick": "El Toro"
+    },
+    {
+      "id": "ana",
+      "name": "Ana",
+      "stats": {
+        "power": 9,
+        "spin": 9,
+        "technique": 10,
+        "accuracy": 10,
+        "stamina": 9,
+        "speed": 9,
+        "defense": 9
+      },
+      "price": 9000,
+      "appearance": {
+        "gender": "female",
+        "skin": "#8d5524",
+        "hairStyle": "bun",
+        "hairColor": "#0d0d0d",
+        "shirt": "#f6d743",
+        "bottom": "#15151c",
+        "bottomStyle": "skirt",
+        "shoes": "#f6d743",
+        "racket": "#d82800",
+        "headband": "#15151c"
+      },
+      "minLevel": 27,
+      "nick": "Ace"
+    }
+  ]
 }

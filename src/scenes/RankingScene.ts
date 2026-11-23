@@ -60,7 +60,7 @@ export class RankingScene extends Phaser.Scene {
     const save = getSave();
     const c = save.profile.career;
     const partner = partnerById(c.partnerId);
-    const me = `YOU / ${(partner?.name ?? 'PARTNER').toUpperCase()}`;
+    const me = `${save.profile.name.toUpperCase()} / ${(partner?.name ?? 'PARTNER').toUpperCase()}`;
     const all = worldRanking(c, me);
     add(themeText(this, 16, 134, `SEASON ${c.season}   WEEK ${c.week}/${WEEKS}`, { size: 13, font: 'display', origin: [0, 0.5] }));
     add(themeText(this, WIDTH - 16, 134, `YOUR PLACE  #${positionOf(c)}`, { size: 13, color: TC.orange, font: 'display', origin: [1, 0.5] }));

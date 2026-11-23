@@ -2,6 +2,8 @@
 // All numbers live in src/data/levels.json.
 
 import levels from '../data/levels.json';
+import playersData from '../data/players.json';
+import { cleanName, MAX_NAME, MAX_NICK } from '../game/names';
 import packsData from '../data/packs.json';
 import { newCareer, sanitizeCareer, type Career } from './season';
 import { applyLook, gearBonus, legacyRefund, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
@@ -11,6 +13,9 @@ import type { PlayerDef, StatKey } from '../game/types';
 export type Alloc = Record<StatKey, number>;
 
 export interface Profile {
+  /** The hero's name and nickname (the player can change both). */
+  name: string;
+  nick: string;
   xp: number;
   coins: number;
   /** Skill points put into each attribute (on top of `levels.startStat`). */
@@ -37,7 +42,11 @@ export interface Reward {
 
 export const emptyAlloc = (): Alloc => Object.fromEntries(STAT_KEYS.map((k) => [k, 0])) as Alloc;
 
-export const newProfile = (): Profile => ({ xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
+const BASE_HERO = playersData.you[0];
+export const DEFAULT_NAME = BASE_HERO.name;
+export const DEFAULT_NICK = BASE_HERO.nick;
+
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -121,7 +130,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     alloc[k] = Math.max(0, v);
     left -= alloc[k];
   }
-  return { xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  return { name: cleanName(o.name, MAX_NAME, DEFAULT_NAME), nick: cleanName(o.nick, MAX_NICK, DEFAULT_NICK), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */
@@ -130,5 +139,5 @@ export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef 
   const stats = Object.fromEntries(
     STAT_KEYS.map((k) => [k, Math.min(levels.statMax, statValue(p, k) + gear[k] + (boost?.stats[k] ?? 0))]),
   ) as Record<StatKey, number>;
-  return { ...base, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: applyLook(base.appearance, p.inventory) };
+  return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: applyLook(base.appearance, p.inventory) };
 }

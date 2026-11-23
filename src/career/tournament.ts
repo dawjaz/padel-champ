@@ -78,7 +78,7 @@ function makeAppearance(rng: Rng, female: boolean): Appearance {
 /** One opponent: attributes scatter around the division rating. */
 export function makePlayer(rng: Rng, rating: number, id: string, name: string): PlayerDef {
   const stats = Object.fromEntries(STAT_KEYS.map((k) => [k, clamp(Math.round(rating + (rng() - 0.5) * 3), 1, 10)])) as Record<StatKey, number>;
-  return { id, name, stats, maxGuts: gutsFor(stats.stamina), appearance: makeAppearance(rng, rng() < 0.5) };
+  return { id, name, nick: (oppData.nicks as Record<string, string>)[name], stats, maxGuts: gutsFor(stats.stamina), appearance: makeAppearance(rng, rng() < 0.5) };
 }
 
 const averageStat = (p: PlayerDef): number => STAT_KEYS.reduce((a, k) => a + p.stats[k], 0) / STAT_KEYS.length;

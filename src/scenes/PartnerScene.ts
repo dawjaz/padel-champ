@@ -108,6 +108,7 @@ export class PartnerScene extends Phaser.Scene {
       }
       // Name and state.
       text(x + 10, y + 79, def.name.toUpperCase(), 17, TC.navy, 0, true);
+      if (def.nick) text(x + 10, y + 92, `"${def.nick.toUpperCase()}"`, 9, TC.orange, 0);
       const state = chosen ? 'PLAYING' : owned ? 'OWNED' : lvlOk ? `${def.price}` : `LEVEL ${def.minLevel}`;
       const bw = state.length * 6.5 + 14;
       const sb = add(this.add.graphics());

@@ -10,7 +10,7 @@ import { applyLook } from '../career/gear';
 import { dayKey, hasWaiting } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
 import { getSave } from '../save';
-import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, iconChip, makeThemeButton, TC, themeText } from '../theme';
+import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, drawXp, iconChip, makeThemeButton, TC, themeText } from '../theme';
 
 const HERO = (playersData.you as unknown as PlayerDef[])[0];
 
@@ -137,18 +137,21 @@ export class TitleScene extends Phaser.Scene {
     const g = this.add.graphics();
     drawCard(g, 328, 62, { radius: 16 });
     g.setPosition(-164, -31);
-    const name = themeText(this, -150, -14, HERO.name.toUpperCase(), { size: 24, font: 'display', origin: [0, 0.5] });
+    const prof = getSave().profile;
+    const name = themeText(this, -150, -18, prof.name.toUpperCase(), { size: 22, font: 'display', origin: [0, 0.5] });
+    const nick = themeText(this, -150, -2, `"${prof.nick.toUpperCase()}"`, { size: 10, color: TC.orange, origin: [0, 0.5] });
     const badge = this.add.graphics();
     const bx = -150 + name.width + 10;
     badge.fillStyle(TC.gold, 1);
-    badge.fillRoundedRect(bx, -26, 54, 22, 11);
+    badge.fillRoundedRect(bx, -29, 54, 22, 11);
     badge.lineStyle(2, TC.navy, 1);
-    badge.strokeRoundedRect(bx, -26, 54, 22, 11);
-    const lv = themeText(this, bx + 27, -15, `LVL ${level}`, { size: 12, origin: [0.5, 0.5] });
-    const xpLabel = themeText(this, -150, 12, 'XP', { size: 12, color: TC.orange, origin: [0, 0.5] });
+    badge.strokeRoundedRect(bx, -29, 54, 22, 11);
+    const lv = themeText(this, bx + 27, -18, `LVL ${level}`, { size: 12, origin: [0.5, 0.5] });
+    const xpLabel = this.add.graphics();
+    drawXp(xpLabel, -142, 15, 8);
     const xb = this.add.graphics();
-    drawBar(xb, -128, 5, 170, 14, next > 0 ? into / next : 1, TC.orange);
-    const num = themeText(this, 150, 12, `${into.toLocaleString('en-US')} / ${next.toLocaleString('en-US')}`, { size: 12, origin: [1, 0.5] });
-    c.add([g, name, badge, lv, xpLabel, xb, num]);
+    drawBar(xb, -128, 8, 170, 14, next > 0 ? into / next : 1, TC.orange);
+    const num = themeText(this, 150, 15, `${into.toLocaleString('en-US')} / ${next.toLocaleString('en-US')}`, { size: 12, origin: [1, 0.5] });
+    c.add([g, name, nick, badge, lv, xpLabel, xb, num]);
   }
 }

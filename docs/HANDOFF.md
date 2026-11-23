@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.91)_
+_Last updated: 2026-11-23 (v0.92)_
+
+## v0.92: nicknames, editable hero name, retirement wording, XP icon and animated XP bar
+- **Nicknames**: `PlayerDef.nick`; data in `players.json`, `partners.json` and `opponents.json` (`nicks`, keyed by first name; `makePlayer` looks it up). `src/game/names.ts`: `cleanName` (safe Title Case, max `MAX_NAME` 10 / `MAX_NICK` 14), `withNick` (`Adam "Anvil"`). Shown in the face-off (two lines, one per opponent), the rival bubble (`rivalTalk` option `nick`), the title plate, the HERO screen and the partner cards. In-court labels and the scoreboard still use first names only (no room).
+- **Hero name**: `Profile.name` / `Profile.nick` (defaults Dani / Thunder, sanitized), `heroFrom` applies them. `NameEditScene` (EDIT button on the HERO card): on-screen keyboard plus physical keyboard, first key replaces the old text, Tab/Enter switch fields. The world ranking row uses the hero's name.
+- **Retirement**: the walkover wording is gone; giving up a match is "RETIRE" (dialog RETIRE FROM THE MATCH?, result RETIRED, THE OPPONENTS WIN BY RETIREMENT, `retired` flag in `ResultData`, `endMatch(winner, retired)`). The old "games when you stopped" line is removed. The match menu button text is centred.
+- **XP icon**: `drawXp` (white star on a blue disc) and `rewardRow` (icon plus amount, centred) in `theme.ts`; used for the tournament prize, the matches row and the HERO and title XP bars.
+- **XP bar on the result screen** (`ResultScene.xpBar`): starts at the XP before the tournament and fills (1.5 s) to now; over a level-up it fills, the label flashes LEVEL UP! and it goes on in the new level.
+- Tests: `names.test.ts` (357 in total).
+- Not done: nicknames in the match HUD; nicknames of the world ranking pairs; renaming the partner.
 
 ## v0.91: sounds and the way out of a match
 - **Sounds** (`audio.ts`): `coinFlip` (rising glitter at the throw) and `coinLand` (two bright tings) in the coin toss; `type` (a very quiet 18 ms tick) in `speech.ts`, every second letter, not for spaces, pitch varied. `sfx(name, pitch = 1)`; `STYLE` table sets wave and gain per effect.

@@ -7,7 +7,8 @@ import { rivalLine } from '../career/rivals';
 import { rivalTalk } from '../speech';
 import type { Appearance } from '../game/types';
 import { levelOf, levelProgress, type Reward } from '../career/profile';
-import { applyLightScreen, drawBar, drawCard, makeThemeButton, TC, themeText } from '../theme';
+import { sfx } from '../audio';
+import { applyLightScreen, drawBar, drawCard, makeThemeButton, rewardRow, tcss, TC, themeText } from '../theme';
 
 export interface ResultData {
   winner: SideIndex;
@@ -19,10 +20,10 @@ export interface ResultData {
   packs?: number;
   /** A career match: the tournament goes on or ends here. */
   career?: boolean;
-  /** The match was forfeited from the menu: the opponents win by walkover. */
-  walkover?: boolean;
+  /** The hero retired from the match (END THE GAME): the opponents win by retirement. */
+  retired?: boolean;
   /** The rival (first opponent) of a career match: he says a line after the match. */
-  rival?: { name: string; appearance: Appearance };
+  rival?: { name: string; nick?: string; appearance: Appearance };
   /** Achievements unlocked by this match: "Name +coins". */
   trophies?: string[];
   finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string }; matches: Reward };
@@ -36,7 +37,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, trophies: data.trophies ?? [], finished: data.finished, rival: data.rival, walkover: data.walkover === true };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, trophies: data.trophies ?? [], finished: data.finished, rival: data.rival, retired: data.retired === true };
   }
 
   create(): void {
@@ -48,23 +49,32 @@ export class ResultScene extends Phaser.Scene {
     // Big result banner
     const ban = this.add.graphics().setPosition(30, 52);
     drawCard(ban, WIDTH - 60, 84, { radius: 22, fill: won ? TC.gold : TC.white, shadow: 5 });
-    const walkover = this.outcome.walkover === true;
-    text(94, won ? 'YOU WIN!' : walkover ? 'FORFEIT' : 'YOU LOSE', 46, won ? TC.navy : 0xc62828);
+    const retired = this.outcome.retired === true;
+    text(94, won ? 'YOU WIN!' : retired ? 'RETIRED' : 'YOU LOSE', 46, won ? TC.navy : 0xc62828);
     // Score
     const sc = this.add.graphics().setPosition(WIDTH / 2 - 80, 156);
     drawCard(sc, 160, 78, { radius: 18 });
     text(188, `${this.outcome.games[0]} - ${this.outcome.games[1]}`, 40, TC.navy);
-    text(220, 'GAMES', 11, TC.sub, false);
-    if (walkover) text(246, 'THE OPPONENTS WIN BY WALKOVER', 13, 0xc62828, true);
+    if (!retired) text(220, 'GAMES', 11, TC.sub, false);
+    else text(256, 'THE OPPONENTS WIN BY RETIREMENT', 13, 0xc62828, true);
 
     const fin = this.outcome.finished;
     const summary = fin
-      ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}\n+${fin.prize.coins} COINS  +${fin.prize.xp} XP  +${fin.prize.rank} RANK${fin.prize.pack ? '  +PACK' : ''}`
+      ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}`
       : this.outcome.career
         ? 'ROUND WON: THE TOURNAMENT GOES ON'
         : '';
     // A quick match is a sparring: no summary line at all.
-    if (summary !== '') text(290, summary, 15, TC.navy, true).setLineSpacing(2);
+    if (summary !== '') text(retired ? 290 : 280, summary, 15, TC.navy, true).setLineSpacing(2);
+    // The prize of the tournament, with icons: coins, XP, ranking points and the pack.
+    if (fin) {
+      rewardRow(this, WIDTH / 2, 316, [
+        { kind: 'coin', text: `+${fin.prize.coins}` },
+        { kind: 'xp', text: `+${fin.prize.xp}` },
+        { kind: null, text: `+${fin.prize.rank} RANK` },
+        ...(fin.prize.pack ? [{ kind: null, text: '+PACK' }] : []),
+      ]);
+    }
 
     const prof = getSave().profile;
     // While a tournament is going on nothing about the hero changes or is shown (XP, level, free packs): that comes with the
@@ -72,20 +82,19 @@ export class ResultScene extends Phaser.Scene {
     const locked = tournamentActive(prof);
     // A match of the tournament itself shows none of it, and a quick match (a sparring) has no progress to show.
     const hideProgress = !this.outcome.career || locked;
-    const lvl = levelOf(prof.xp);
     const rw = this.outcome.reward;
     if (!hideProgress) {
-      if (rw) text(344, `${fin ? 'MATCHES  ' : ''}+${rw.xp} XP    +${rw.coins} COINS`, 15, TC.orange);
-      text(368, this.outcome.levelUp ? `LEVEL UP!  LEVEL ${this.outcome.levelUp}` : `LEVEL ${lvl}`, 14, this.outcome.levelUp ? TC.orange : TC.navy);
-      const bar = this.add.graphics();
-      drawBar(bar, WIDTH / 2 - 100, 384, 200, 12, levelProgress(prof.xp), TC.orange);
+      // What the matches of the tournament paid (the XP also goes into the bar below).
+      const matches = fin?.matches ?? rw;
+      if (matches) rewardRow(this, WIDTH / 2, 342, [{ kind: null, text: 'MATCHES' }, { kind: 'xp', text: `+${matches.xp}` }, { kind: 'coin', text: `+${matches.coins}` }], { size: 14, color: TC.orange });
+      this.xpBar(prof.xp, (fin ? fin.prize.xp + fin.matches.xp : (rw?.xp ?? 0)));
       if (this.outcome.packs) text(412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
     }
     // The rival's line (between rounds of a tournament, where the progress block above is empty): his head and a bubble, typed letter by letter.
-    if (this.outcome.rival && this.outcome.career && hideProgress && !walkover) {
+    if (this.outcome.rival && this.outcome.career && hideProgress && !retired) {
       const r = this.outcome.rival;
       const line = rivalLine(won ? 'afterYouWin' : 'afterYouLose', r.name, `${this.outcome.games[0]}-${this.outcome.games[1]}`);
-      rivalTalk(this, { appearance: r.appearance, name: r.name, line, layout: 'side', x: 22, y: 330, headWidth: 62, bubbleWidth: 252, textSize: 13 });
+      rivalTalk(this, { appearance: r.appearance, name: r.name, nick: r.nick, line, layout: 'side', x: 22, y: 330, headWidth: 62, bubbleWidth: 252, textSize: 13 });
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {
@@ -111,5 +120,44 @@ export class ResultScene extends Phaser.Scene {
       small(WIDTH / 2 - 64, 510, 120, 48, 'HERO', 'CharacterScene');
       makeThemeButton(this, WIDTH / 2 + 64, 510, 120, 48, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 15);
     }
+  }
+
+  /** The level and XP bar: it starts where the hero was before the tournament and fills up to where he is now (over a level-up it fills, flashes and starts again). */
+  private xpBar(xpAfter: number, gain: number): void {
+    const xpBefore = Math.max(0, xpAfter - gain);
+    const barX = WIDTH / 2 - 100;
+    const levelNow = levelOf(xpAfter);
+    const label = (level: number, up: boolean): string => (up ? `LEVEL UP!  LEVEL ${level}` : `LEVEL ${level}`);
+    const lvlText = themeText(this, WIDTH / 2, 368, label(levelOf(xpBefore), false), { size: 14, font: 'display' });
+    const bar = this.add.graphics();
+    const paint = (xp: number): void => {
+      bar.clear();
+      drawBar(bar, barX, 384, 200, 12, levelProgress(xp), TC.orange);
+    };
+    paint(xpBefore);
+    if (gain <= 0) {
+      lvlText.setText(label(levelNow, false));
+      return;
+    }
+    let shown = levelOf(xpBefore);
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      delay: 600,
+      duration: 1500,
+      ease: 'Sine.easeInOut',
+      onUpdate: (tw) => {
+        const xp = xpBefore + (xpAfter - xpBefore) * (tw.getValue() ?? 0);
+        paint(xp);
+        const level = levelOf(xp);
+        if (level !== shown) {
+          shown = level;
+          lvlText.setText(label(level, true)).setColor(tcss(TC.orange));
+          this.tweens.add({ targets: lvlText, scale: 1.25, duration: 150, yoyo: true });
+          sfx('win');
+        }
+      },
+      onComplete: () => paint(xpAfter),
+    });
   }
 }

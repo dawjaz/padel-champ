@@ -290,8 +290,8 @@ export class MatchScene extends Phaser.Scene {
       .setVisible(false);
 
     this.makeExitButton();
-    this.events.on('forfeit-confirmed', () => this.forfeit());
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('forfeit-confirmed'));
+    this.events.on('retire-confirmed', () => this.retire());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('retire-confirmed'));
 
     this.refreshScore();
     this.refreshGuts();
@@ -301,7 +301,7 @@ export class MatchScene extends Phaser.Scene {
 
   // ---------- way out of the match ----------
   // Quick match and practice: GO TO MAIN MENU (tap twice). Career match: before the toss TOURNAMENT MENU (no harm done, the boost comes back),
-  // after it END THE GAME, which asks first and then gives the match to the opponents by walkover.
+  // after it END THE GAME, which asks first and then gives the match to the opponents by retirement.
 
   private makeExitButton(): void {
     const label = (): string => (!this.career ? 'GO TO\nMAIN MENU' : this.started ? 'END THE\nGAME' : 'TOURNAMENT\nMENU');
@@ -332,15 +332,15 @@ export class MatchScene extends Phaser.Scene {
         this.scene.pause();
         this.scene.launch('ConfirmScene', {
           under: this.scene.key,
-          title: 'FORFEIT THE MATCH?',
-          text: 'The match is over and your opponents win it by walkover. This counts as a loss in the tournament.',
-          yes: 'YES, FORFEIT',
+          title: 'RETIRE FROM THE MATCH?',
+          text: 'You stop playing and your opponents win the match by retirement. This counts as a loss in the tournament.',
+          yes: 'YES, RETIRE',
           no: 'KEEP PLAYING',
-          event: 'forfeit-confirmed',
+          event: 'retire-confirmed',
         });
       }
     }, 'secondary', 9);
-    exit.text.setLineSpacing(-2);
+    exit.text.setAlign('center').setLineSpacing(-2);
     this.exitButton = exit;
     for (const part of exit.parts) (part as Phaser.GameObjects.GameObject & { setDepth: (d: number) => unknown }).setDepth(10002);
     this.refreshExitLabel = (): void => {
@@ -357,8 +357,8 @@ export class MatchScene extends Phaser.Scene {
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(scene, data));
   }
 
-  /** END THE GAME confirmed: the match is lost by walkover. */
-  private forfeit(): void {
+  /** END THE GAME confirmed: the hero retires and the match is lost by retirement. */
+  private retire(): void {
     if (this.over) return;
     this.endMatch(1, true);
   }
@@ -1909,13 +1909,13 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
-  private endMatch(winner: SideIndex, walkover = false): void {
+  private endMatch(winner: SideIndex, retired = false): void {
     if (this.over) return;
     this.over = true;
     this.clearMenu();
     this.setActive(null);
-    // A forfeited match pays nothing (no XP and coins for giving up).
-    const reward = walkover ? { xp: 0, coins: 0 } : matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
+    // A match the hero retires from pays nothing (no XP and coins for giving up).
+    const reward = retired ? { xp: 0, coins: 0 } : matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
     const levelBefore = levelOf(getSave().profile.xp);
     const out: { finished?: Finished; trophies: string[] } = { trophies: [] };
     // A quick match is a sparring: it changes nothing (no XP, coins, stats, records or achievements). Only career matches count.
@@ -1946,8 +1946,8 @@ export class MatchScene extends Phaser.Scene {
     const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     if (this.exitButton) for (const part of this.exitButton.parts) (part as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(false);
-    this.say(walkover ? 'MATCH FORFEITED: WALKOVER FOR THE OPPONENTS' : winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
+    this.say(retired ? 'YOU RETIRE: THE OPPONENTS WIN BY RETIREMENT' : winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, walkover, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, retired, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, nick: this.career.opponents[0].nick, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
   }
 }

@@ -1,3 +1,4 @@
+import { withNick } from '../game/names';
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { activeBracket, withdraw } from '../career/careerFlow';
@@ -103,10 +104,10 @@ export class BracketScene extends Phaser.Scene {
     const depth = 20000;
     const veil = this.add.rectangle(WIDTH / 2, 320, WIDTH, 640, TC.navyDark, 1).setDepth(depth).setInteractive();
     const title = themeText(this, WIDTH / 2, 70, 'YOUR NEXT OPPONENT', { size: 15, color: TC.gold, font: 'display' }).setDepth(depth + 1);
-    const names = themeText(this, WIDTH / 2, 98, players.map((pl) => pl.name.toUpperCase()).join('  &  '), { size: 17, color: TC.white, font: 'display' }).setDepth(depth + 1);
+    const names = players.map((pl, i) => themeText(this, WIDTH / 2, 94 + i * 20, withNick(pl).toUpperCase(), { size: 16, color: TC.white, font: 'display' }).setDepth(depth + 1));
     let hint: Phaser.GameObjects.Text | null = null;
     const talk: Talk = rivalTalk(this, {
-      appearance: players[0].appearance, name: players[0].name, line, layout: 'below', x: WIDTH / 2, y: 118, headWidth: 150, bubbleWidth: 300, textSize: 17, depth: depth + 1,
+      appearance: players[0].appearance, name: players[0].name, nick: players[0].nick, line, layout: 'below', x: WIDTH / 2, y: 132, headWidth: 150, bubbleWidth: 300, textSize: 17, depth: depth + 1,
       onDone: () => {
         hint = themeText(this, WIDTH / 2, 590, 'TAP TO START THE MATCH', { size: 14, color: TC.white, font: 'display' }).setDepth(depth + 1);
         this.tweens.add({ targets: hint, alpha: 0.35, duration: 600, yoyo: true, repeat: -1 });
