@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.92)_
+_Last updated: 2026-11-23 (v0.93)_
+
+## v0.93: real item pictures in the collection
+- `src/art/gearArt.ts`: `drawGear(g, item, cx, cy, size)` draws a shirt, shorts, shoes, racket (head shape of the item, strings) or bag in the colour of the item with the accent of its brand (`brands.json` colour 4); `shade` mixes a colour with white or black.
+- **CollectionScene**: every tile shows the item. Owned: full colour, tile tinted by rarity with a rarity bar and the bonus under the picture, a WORN tag on the one in use. Not owned: the picture at 36% opacity on a pale tile with its LVL. Tiles are 76 px high now.
+- **GearScene** rows use the same pictures (faded when not owned or the level is too low). Slot buttons and the other icons are unchanged.
+- Not done: the shop and pack screens still use flat icons; there is no test for the drawing (visual only).
 
 ## v0.92: nicknames, editable hero name, retirement wording, XP icon and animated XP bar
 - **Nicknames**: `PlayerDef.nick`; data in `players.json`, `partners.json` and `opponents.json` (`nicks`, keyed by first name; `makePlayer` looks it up). `src/game/names.ts`: `cleanName` (safe Title Case, max `MAX_NAME` 10 / `MAX_NICK` 14), `withNick` (`Adam "Anvil"`). Shown in the face-off (two lines, one per opponent), the rival bubble (`rivalTalk` option `nick`), the title plate, the HERO screen and the partner cards. In-court labels and the scoreboard still use first names only (no room).

@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { addToon } from '../art/toonTexture';
 import { sfx } from '../audio';
-import { drawIcon, drawRacketShape } from '../art/icons';
+import { drawIcon } from '../art/icons';
+import { drawGear } from '../art/gearArt';
 import { WIDTH } from '../config';
 import { applyLook, setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, itemsOfBrand, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { levelOf } from '../career/profile';
@@ -154,8 +155,8 @@ export class GearScene extends Phaser.Scene {
       tint.fillStyle(rc, usable ? 1 : 0.5);
       tint.fillRoundedRect(12, y + 8, 6, 34, 3);
       const ic = this.add.graphics().setDepth(5);
-      if (it.shape) drawRacketShape(ic, it.shape, 44, y + 25, 32, usable ? rc : 0x8d9bb0);
-      else drawIcon(ic, it.slot, 44, y + 25, 26, usable ? rc : 0x8d9bb0);
+      drawGear(ic, it, 44, y + 25, 38);
+      if (!usable) ic.setAlpha(owned ? 0.5 : 0.36);
       this.dyn.push(tint, ic);
       const name = this.label(66, y + 17, it.name, 14, usable ? TC.navy : TC.sub, 0, true);
       this.label(66, y + 36, bonusText(it.bonus), 11, usable ? TC.orange : TC.sub, 0);
