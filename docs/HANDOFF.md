@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.82)_
+_Last updated: 2026-11-23 (v0.83)_
+
+## v0.83: court colours by tournament city (world and gamification, step 3)
+- `src/art/hd/courtThemes.ts`: 6 muted court themes (blue = default, teal, green, clay, plum, steel): court surface, slab faces and crowd tones. `src/data/cities.json` maps each of the 24 calendar cities to a theme (balance-like data, change it there); `themeIdOfCity` falls back to blue for sparring, practice and unknown cities. Test: every calendar city is mapped, at least 5 themes in use.
+- `renderArena(scale, theme)`; `ensureArenaTextures(scene, themeId)` renders the back picture once per theme (key `hd:arena-back:<id>`, older themes are removed) and keeps one shared net strip. `CareerMatch.city` is set in `BracketScene` from the active event; `MatchScene` picks the theme from it.
+- Surroundings (stands, floor, ad strip) stay navy as the owner wanted in v0.78; only the court and the crowd tones change.
+- Not checked on a device yet: how the colours look with the ball and the toon characters (clay and steel are the ones to look at first). Not done yet: other audience/surroundings per city, globe calendar, weekly challenges, minigames.
 
 ## v0.82: collection screen, brand set bonus, brand packs (world and gamification, step 2)
 - **Set bonus** (`setBonusOf` in `career/gear.ts`, `set` stats per brand in `brands.json`): the brand with most equipped pieces gives +1 to its first stat with 3 pieces, +1 to both with 5; it is included in `gearBonus`, so Hero and Gear show it in the totals (Gear also names the set).

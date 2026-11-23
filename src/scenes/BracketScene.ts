@@ -3,6 +3,7 @@ import { WIDTH } from '../config';
 import { activeBracket, withdraw } from '../career/careerFlow';
 import { consumableById, toggleQueued } from '../career/gear';
 import { heroFrom } from '../career/profile';
+import { eventById } from '../career/season';
 import { STAT_KEYS } from '../game/attributes';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
@@ -81,7 +82,7 @@ export class BracketScene extends Phaser.Scene {
       });
     }
 
-    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.scene.start('MatchScene', { practice: null, career: { opponents: opp.players, name: bracket.division.name } }), 'primary', 22);
+    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.scene.start('MatchScene', { practice: null, career: { opponents: opp.players, name: bracket.division.name, city: eventById(profile.career.active?.eventId ?? '')?.city } }), 'primary', 22);
     const leave = makeThemeButton(this, WIDTH / 2, 598, 200, 38, 'WITHDRAW', () => {
       if (!this.confirm) {
         this.confirm = true;

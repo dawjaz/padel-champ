@@ -6,7 +6,8 @@ import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
 import { mixPose, POSES, runFrame, RUN_FRAMES, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
-import { ARENA_BACK_KEY, ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
+import { themeIdOfCity } from '../art/hd/courtThemes';
+import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
@@ -41,6 +42,8 @@ let TEAMS: Teams = [BASE_YOU, DEFAULT_CPU];
 export interface CareerMatch {
   opponents: PlayerDef[];
   name: string;
+  /** The tournament city: picks the court colours (see art/hd/courtThemes.ts). */
+  city?: string;
 }
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
@@ -374,8 +377,8 @@ export class MatchScene extends Phaser.Scene {
   // ---------- arena: a pre-rendered, lit picture of the court (see art/hd/arenaHd.ts) ----------
 
   private drawArenaHd(): void {
-    const { netY } = ensureArenaTextures(this);
-    this.add.image(0, 0, ARENA_BACK_KEY).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
+    const { netY, backKey } = ensureArenaTextures(this, themeIdOfCity(this.career?.city));
+    this.add.image(0, 0, backKey).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
     // The net is its own strip, sorted with the players: far players stand behind it, near players in front.
     const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
     net.setDisplaySize(WIDTH, net.height / HD_SCALE);

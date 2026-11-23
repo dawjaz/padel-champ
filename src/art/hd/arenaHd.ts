@@ -1,5 +1,6 @@
 import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
 import { BACK_WALL, sideWallSegments } from '../walls';
+import { COURT_THEMES, DEFAULT_THEME_ID, type CourtTheme } from './courtThemes';
 
 /**
  * STYLIZED 2D/3D look: a faux-3D court (raised slab with visible thickness, ambient occlusion, cast shadows, specular sheen, thick glass, cylindrical posts) drawn as a high-resolution picture (Canvas2D, pure and browser-testable).
@@ -50,14 +51,14 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function drawStands(g: Ctx, rnd: () => number): void {
+function drawStands(g: Ctx, rnd: () => number, theme: CourtTheme): void {
   // Dusk arena: soft gradient and an out-of-focus crowd made of bokeh blobs (cheap: no filters).
   const sky = g.createLinearGradient(0, 0, 0, 112);
   sky.addColorStop(0, '#1c2f5c');
   sky.addColorStop(1, '#3b5a94');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, 112);
-  const tones = ['#ff9f6e', '#ffd36e', '#6ec8ff', '#b58cff', '#ff6e9a', '#8affc1'];
+  const tones = theme.crowd;
   for (let row = 0; row < 5; row++) {
     for (let x = -6; x < W + 6; x += 7 - row * 0.4) {
       const y = 30 + row * 14 + (rnd() - 0.5) * 3;
@@ -81,7 +82,7 @@ function drawStands(g: Ctx, rnd: () => number): void {
   }
 }
 
-function drawFloor(g: Ctx, rnd: () => number): void {
+function drawFloor(g: Ctx, rnd: () => number, theme: CourtTheme): void {
   const P = project;
   // Ground: dark soft studio floor with a pool of light
   const ground = g.createLinearGradient(0, 96, 0, 400);
@@ -94,13 +95,13 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   const T = -0.45;
   const slabFront = [P(-5, 20, 0), P(5, 20, 0), P(5, 20, T), P(-5, 20, T)];
   const front = g.createLinearGradient(0, slabFront[0].y, 0, slabFront[3].y);
-  front.addColorStop(0, '#1d4f9a');
-  front.addColorStop(1, '#0d2757');
+  front.addColorStop(0, theme.slabTop);
+  front.addColorStop(1, theme.slabBottom);
   g.fillStyle = front;
   poly(g, slabFront);
   g.fill();
   for (const sg of [-1, 1]) {
-    g.fillStyle = sg < 0 ? '#163f7e' : '#112f63';
+    g.fillStyle = sg < 0 ? theme.slabLeft : theme.slabRight;
     poly(g, [P(sg * 5, 0, 0), P(sg * 5, 20, 0), P(sg * 5, 20, T), P(sg * 5, 0, T)]);
     g.fill();
   }
@@ -116,8 +117,8 @@ function drawFloor(g: Ctx, rnd: () => number): void {
   const far = floor[0].y;
   const near = floor[3].y;
   const body = g.createLinearGradient(0, far, 0, near);
-  body.addColorStop(0, '#6aaaf8');
-  body.addColorStop(1, '#3a78dc');
+  body.addColorStop(0, theme.top);
+  body.addColorStop(1, theme.bottom);
   g.fillStyle = body;
   poly(g, floor);
   g.fill();
@@ -465,12 +466,12 @@ function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
   return { c, y: y0 };
 }
 
-export function renderArena(scale = 2): HdArena {
+export function renderArena(scale = 2, theme: CourtTheme = COURT_THEMES[DEFAULT_THEME_ID]): HdArena {
   const { c: back, g } = canvasOf(W * scale, H * scale);
   g.scale(scale, scale);
   const rnd = makeRng(20261119);
-  drawStands(g, rnd);
-  drawFloor(g, rnd);
+  drawStands(g, rnd, theme);
+  drawFloor(g, rnd, theme);
   drawWalls(g);
   drawVignette(g);
   drawMenuBackdrop(g);
