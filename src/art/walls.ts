@@ -43,3 +43,10 @@ export function sideWallHeightAt(z: number): number {
   const seg = sideWallSegments().find((s) => z >= s.z0 && z <= s.z1);
   return seg ? seg.glass + seg.mesh : 0;
 }
+
+/**
+ * The entrance door in each side wall: a 1 m wide, 2.05 m high gate in the mesh part of the fence, on the near side of the net
+ * (z in metres along the court, 10 = net). Only drawn for now: the ball still treats the door like the rest of the fence
+ * (running out through it comes with the special shots).
+ */
+export const SIDE_DOOR = { z0: 11.5, z1: 12.5, height: 2.05 } as const;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACK_WALL, sideWallHeightAt, sideWallSegments } from './walls';
+import { BACK_WALL, SIDE_DOOR, sideWallHeightAt, sideWallSegments } from './walls';
 
 describe('walls', () => {
   it('has a 4 m back wall: 3 m glass and 1 m mesh', () => {
@@ -31,5 +31,13 @@ describe('walls', () => {
     const segs = sideWallSegments();
     expect(segs[0].glass).toBeGreaterThan(0);
     expect(segs.some((s) => s.glass === 0 && s.mesh > 0)).toBe(true);
+  });
+
+  it('puts the entrance door in the mesh-only part of the side wall, below the top of the mesh', () => {
+    const seg = sideWallSegments().find((x) => SIDE_DOOR.z0 >= x.z0 && SIDE_DOOR.z1 <= x.z1);
+    expect(seg).toBeDefined();
+    expect(seg!.glass).toBe(0);
+    expect(SIDE_DOOR.height).toBeLessThanOrEqual(seg!.mesh);
+    expect(SIDE_DOOR.z1 - SIDE_DOOR.z0).toBeCloseTo(1, 5);
   });
 });

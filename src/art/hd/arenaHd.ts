@@ -1,5 +1,5 @@
 import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
-import { BACK_WALL, sideWallSegments } from '../walls';
+import { BACK_WALL, SIDE_DOOR, sideWallSegments } from '../walls';
 import { COURT_THEMES, DEFAULT_THEME_ID, type CourtTheme } from './courtThemes';
 
 /**
@@ -315,6 +315,37 @@ function post(g: Ctx, at: At, u: number, h1: number): void {
   g.lineCap = 'butt';
 }
 
+/** The entrance gate in the mesh fence: a steel frame, bars, hinges and a handle. */
+function door(g: Ctx, at: At): void {
+  const { z0, z1, height: H } = SIDE_DOOR;
+  const q = [at(z0, 0), at(z1, 0), at(z1, H), at(z0, H)];
+  // The gap in the fence: darker than the mesh around it.
+  g.fillStyle = 'rgba(6,12,34,0.55)';
+  poly(g, q);
+  g.fill();
+  // Horizontal bars of the leaf.
+  g.strokeStyle = 'rgba(190,204,230,0.7)';
+  g.lineWidth = 1.4;
+  for (const h of [0.35, 0.8, 1.25, 1.7]) line(g, at(z0, h), at(z1, h));
+  // Frame: dark edge, steel body, light highlight.
+  for (const [w, c] of [[4.6, 'rgba(8,18,50,0.9)'], [3, '#8f9bb8'], [1, 'rgba(240,247,255,0.9)']] as const) {
+    g.strokeStyle = c;
+    g.lineWidth = w;
+    poly(g, q);
+    g.stroke();
+  }
+  // Hinges on the far side, latch and handle on the near side.
+  g.strokeStyle = '#2b3350';
+  g.lineWidth = 3;
+  for (const h of [0.3, 1.75]) line(g, at(z0 - 0.02, h), at(z0 + 0.1, h));
+  g.strokeStyle = '#ffd24a';
+  g.lineWidth = 2.6;
+  line(g, at(z1 - 0.22, 1.0), at(z1 - 0.05, 1.0));
+  g.strokeStyle = 'rgba(8,18,50,0.8)';
+  g.lineWidth = 0.8;
+  line(g, at(z1 - 0.22, 0.96), at(z1 - 0.05, 0.96));
+}
+
 function drawAds(g: Ctx, theme: CourtTheme): void {
   const P = project;
   const strip = [P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.55), P(-5, 0, 0.55)];
@@ -360,6 +391,7 @@ function drawWalls(g: Ctx, theme: CourtTheme): void {
       if (seg.glass > 0) glassBand(g, at, seg.z0, seg.z1, 0, seg.glass, 2, 31 + i * 7 + (sign > 0 ? 3 : 0));
       if (seg.mesh > 0) meshBand(g, at, seg.z0, seg.z1, seg.glass, seg.glass + seg.mesh);
     });
+    door(g, at);
     for (const z of [0, 2, 4, 6.5, 10, 13.5, 16, 18, 20]) post(g, at, z, z <= 2 || z >= 18 ? 4 : z <= 4 || z >= 16 ? 3 : 3);
   }
   drawNearWall(g);

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { sfx } from '../audio';
-import { drawIcon } from '../art/icons';
+import { drawGear } from '../art/gearArt';
 import { HEIGHT, WIDTH } from '../config';
 import { SLOT_LABEL } from '../career/gear';
 import type { Drop } from '../career/packs';
@@ -85,7 +85,7 @@ export class PackScene extends Phaser.Scene {
             t(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, TC.orange, true);
             t(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? TC.sub : TC.blue, true);
             const ic = this.add.graphics();
-            drawIcon(ic, d.item.slot, 310, cy, 40, color);
+            drawGear(ic, d.item, 306, cy, 56);
             added.push(ic);
             if (d.item.rarity !== 'common') burst(color, shine);
             if (shine) this.cameras.main.flash(180, 255, 240, 170);

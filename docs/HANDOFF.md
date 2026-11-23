@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.93)_
+_Last updated: 2026-11-23 (v0.94)_
+
+## v0.94: entrance doors on the court and item pictures in pack opening
+- **Doors (visual only)**: `SIDE_DOOR` in `src/art/walls.ts` (z 11.5 to 12.5, 2.05 m high, in the mesh-only part of each side wall, on the near side of the net); `door()` in `arenaHd.ts` draws a dark gap, bars, steel frame, hinges and a gold latch on both side walls. Physics, ball paths and shots are untouched: the ball treats the door like the rest of the fence. Running out through the door comes with the special shots, after the shot physics, characters and movement are settled (owner's order: physics first, then characters and movement, then special shots).
+- **PackScene** shows the item with `drawGear` (rarity colour frame as before). The shop itself only lists packs, so it has no item pictures to change.
+- Tests: `walls.test.ts` checks the door lies in the mesh-only segment (358 in total).
 
 ## v0.93: real item pictures in the collection
 - `src/art/gearArt.ts`: `drawGear(g, item, cx, cy, size)` draws a shirt, shorts, shoes, racket (head shape of the item, strings) or bag in the colour of the item with the accent of its brand (`brands.json` colour 4); `shade` mixes a colour with white or black.
