@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.87)_
+_Last updated: 2026-11-23 (v0.88)_
+
+## v0.88: owner fixes after v0.87 (navy court, talking rivals, coin-toss ball, better map)
+- **Court colour:** the brick/orange theme `clay` is now `navy` (a dark navy court, `courtThemes.ts`; `cities.json` updated). Rome, Doha, Riyadh, Paris and Sevilla use it.
+- **Rivals talk** (`src/speech.ts`, `rivalTalk`): the rival's head (portrait cropped at the chin, `addToonHead`) with a speech bubble; the line is typed letter by letter (clock-based, 34 ms a letter, so slow phones type at the same speed), the head bobs while he talks. PLAY MATCH in `BracketScene` opens a face-off overlay (`faceOff`: your next opponent, names, head and bubble; the first tap skips the typing, the next starts the match). `ResultScene` shows the after-match line the same way (small head on the left, bubble on the right) between rounds of a tournament.
+- **Ball at the coin toss:** the ball sprite and its glow are hidden until `setBall` places them (they showed at full texture size in the top left corner before the first serve).
+- **Map:** real coastlines (Natural Earth 1:50m through the npm package `world-atlas`, simplified with Douglas-Peucker 0.1 degrees and clipped to -110..70 E, -45..72 N, `src/data/land.json`, 47 KB; lakes and inland seas are drawn as holes). `worldMap.ts` now has two views: the world, and Europe when every tournament of the week is in Europe (zoom, so neighbouring cities are apart). `placeLabels` puts every city name beside its dot (above, below, right, left, then further away with a leader line) so that no name covers any dot or another name and all stay inside the card (tests for Paris/Brussels/Amsterdam and others). Dots are smaller in the world view (r 5) than in the Europe view (r 7).
+- **Entry fee** in the map's tournament list: "ENTRY FEE" with the number and a gold coin icon (`drawCoin` in `theme.ts`). The Career screen buttons still show "FEE 40" as text.
+- To regenerate the land data: in a temp folder `npm i world-atlas topojson-client`, take `land-50m.json`, convert with `feature()`, clip, simplify (the script was a 60-line Node file; the output format is `[{outer: [[lon,lat]...], holes: [[...]]}]`).
+- Not checked on a device.
 
 ## v0.87: weekly challenges, rivals, city arenas, calendar map (world and gamification, steps 4 to 7)
 - **Weekly challenges** (`src/career/weekly.ts`, `src/data/weekly.json`, `WeeklyScene`, save field `weekly`): three bigger tasks a week (Monday to Sunday, picked from 10 by the week, distinct stats), 150 coins each, bonus for all three: 250 coins + a gear pack. Same match facts as the daily tasks (`mergeFacts` in `daily.ts` is shared), career matches only. Reached from a WEEKLY CHALLENGES button in `DailyScene`; the DAILY badge on the title screen also waits for weekly rewards.

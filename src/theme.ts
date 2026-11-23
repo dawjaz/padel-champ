@@ -149,6 +149,15 @@ export function drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, w:
   g.strokeRoundedRect(x, y, w, h, r);
 }
 
+/** A small gold coin (the currency icon). */
+export function drawCoin(g: Phaser.GameObjects.Graphics, x: number, y: number, r: number): void {
+  g.fillStyle(TC.gold, 1);
+  g.fillCircle(x, y, r);
+  g.lineStyle(1.5, TC.goldDark, 1);
+  g.strokeCircle(x, y, r);
+  g.strokeCircle(x, y, r * 0.6);
+}
+
 /** White pill with a gold coin and the amount, right-aligned to `right`, vertically centred on `y`. */
 export function coinPill(scene: Phaser.Scene, right: number, y: number, amount: number): Phaser.GameObjects.GameObject[] {
   const label = themeText(scene, 0, y + 1, amount.toLocaleString('en-US'), { size: 14, origin: [0, 0.5] });

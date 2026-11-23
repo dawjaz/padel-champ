@@ -220,8 +220,9 @@ export class MatchScene extends Phaser.Scene {
     this.createViews();
     this.redrawBall = ensureBallTextures(this).redrawBall;
     this.trailGfx = this.add.graphics().setDepth(4990);
-    this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8);
-    this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000);
+    this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8).setVisible(false);
+    // Hidden until the first serve puts it down: before that it would show at its full texture size in the corner (coin toss).
+    this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000).setVisible(false);
 
     // Control sheet under the court: the status line and the buttons sit on it.
     const sheet = this.add.graphics().setDepth(8000);
@@ -486,7 +487,8 @@ export class MatchScene extends Phaser.Scene {
       }
     }
     this.ballTurnedAt = now;
-    this.ball.setPosition(p.x, p.y).setDisplaySize(d, d);
+    this.ball.setPosition(p.x, p.y).setDisplaySize(d, d).setVisible(true);
+    this.ballGlow.setVisible(true);
     this.ballGlow.setPosition(p.x, p.y).setDisplaySize(d * 3.4, d * 3.4);
     // A ball lying on (or just above) the floor is sorted with the players, so a player standing in front covers it.
     const low = h < 0.4;
@@ -1874,6 +1876,6 @@ export class MatchScene extends Phaser.Scene {
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
     this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, rival: this.career?.opponents[0]?.name, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
   }
 }

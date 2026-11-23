@@ -5,6 +5,7 @@ import { consumableById, toggleQueued } from '../career/gear';
 import { heroFrom } from '../career/profile';
 import { eventById } from '../career/season';
 import { rivalLine } from '../career/rivals';
+import { rivalTalk, type Talk } from '../speech';
 import { STAT_KEYS } from '../game/attributes';
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
@@ -63,9 +64,6 @@ export class BracketScene extends Phaser.Scene {
     text(WIDTH / 2, y0 + 8, `NEXT: ${opp.name.toUpperCase()}`, 16, TC.navy, true);
     text(WIDTH / 2, y0 + 30, `OPPONENT ${opp.rating.toFixed(1)}   YOU ${heroAvg.toFixed(1)}`, 12, opp.rating > heroAvg + 0.5 ? 0xc62828 : opp.rating < heroAvg - 0.5 ? TC.green : TC.orange, true);
 
-    // A line from the next opponent (the same one every time you see this round).
-    text(WIDTH / 2, y0 + 50, `"${rivalLine('before', opp.players[0].name, `${bracket.roundsWon}`)}"`, 10, TC.navy).setWordWrapWidth(330);
-
     // One boost from the bag can be used in this match (bought in the shop between tournaments).
     const inv = profile.inventory;
     const bagIds = [...new Set(inv.boosts)];
@@ -86,7 +84,7 @@ export class BracketScene extends Phaser.Scene {
       });
     }
 
-    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.scene.start('MatchScene', { practice: null, career: { opponents: opp.players, name: bracket.division.name, city: eventById(profile.career.active?.eventId ?? '')?.city } }), 'primary', 22);
+    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.faceOff(opp.players, rivalLine('before', opp.players[0].name, `${bracket.roundsWon}`), { opponents: opp.players, name: bracket.division.name, city: eventById(profile.career.active?.eventId ?? '')?.city }), 'primary', 22);
     const leave = makeThemeButton(this, WIDTH / 2, 598, 200, 38, 'WITHDRAW', () => {
       if (!this.confirm) {
         this.confirm = true;
@@ -98,5 +96,31 @@ export class BracketScene extends Phaser.Scene {
       if (f) updateSave((d) => ({ ...d, profile: f.profile }));
       this.scene.start('CalendarScene');
     }, 'secondary', 13);
+  }
+
+  /** The face-off before a match: the rival's head and a speech bubble with his line, typed letter by letter. A tap skips the typing, the next tap starts the match. */
+  private faceOff(players: PlayerDef[], line: string, career: { opponents: PlayerDef[]; name: string; city?: string }): void {
+    const depth = 20000;
+    const veil = this.add.rectangle(WIDTH / 2, 320, WIDTH, 640, TC.navyDark, 1).setDepth(depth).setInteractive();
+    const title = themeText(this, WIDTH / 2, 70, 'YOUR NEXT OPPONENT', { size: 15, color: TC.gold, font: 'display' }).setDepth(depth + 1);
+    const names = themeText(this, WIDTH / 2, 98, players.map((pl) => pl.name.toUpperCase()).join('  &  '), { size: 17, color: TC.white, font: 'display' }).setDepth(depth + 1);
+    let hint: Phaser.GameObjects.Text | null = null;
+    const talk: Talk = rivalTalk(this, {
+      appearance: players[0].appearance, name: players[0].name, line, layout: 'below', x: WIDTH / 2, y: 118, headWidth: 150, bubbleWidth: 300, textSize: 17, depth: depth + 1,
+      onDone: () => {
+        hint = themeText(this, WIDTH / 2, 590, 'TAP TO START THE MATCH', { size: 14, color: TC.white, font: 'display' }).setDepth(depth + 1);
+        this.tweens.add({ targets: hint, alpha: 0.35, duration: 600, yoyo: true, repeat: -1 });
+      },
+    });
+    veil.on('pointerdown', () => {
+      if (!talk.isDone()) talk.skip();
+      else {
+        talk.destroy();
+        void title;
+        void names;
+        void hint;
+        this.scene.start('MatchScene', { practice: null, career });
+      }
+    });
   }
 }

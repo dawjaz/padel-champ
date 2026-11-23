@@ -4,6 +4,8 @@ import { getSave } from '../save';
 import { tournamentActive } from '../career/careerFlow';
 import type { SideIndex } from '../game/types';
 import { rivalLine } from '../career/rivals';
+import { rivalTalk } from '../speech';
+import type { Appearance } from '../game/types';
 import { levelOf, levelProgress, type Reward } from '../career/profile';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, TC, themeText } from '../theme';
 
@@ -18,7 +20,7 @@ export interface ResultData {
   /** A career match: the tournament goes on or ends here. */
   career?: boolean;
   /** The rival (first opponent) of a career match: he says a line after the match. */
-  rival?: string;
+  rival?: { name: string; appearance: Appearance };
   /** Achievements unlocked by this match: "Name +coins". */
   trophies?: string[];
   finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string }; matches: Reward };
@@ -75,12 +77,11 @@ export class ResultScene extends Phaser.Scene {
       drawBar(bar, WIDTH / 2 - 100, 384, 200, 12, levelProgress(prof.xp), TC.orange);
       if (this.outcome.packs) text(412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
     }
-    // The rival's line (between rounds of a tournament, where the progress block above is empty).
+    // The rival's line (between rounds of a tournament, where the progress block above is empty): his head and a bubble, typed letter by letter.
     if (this.outcome.rival && this.outcome.career && hideProgress) {
-      const line = rivalLine(won ? 'afterYouWin' : 'afterYouLose', this.outcome.rival, `${this.outcome.games[0]}-${this.outcome.games[1]}`);
-      const first = this.outcome.rival.split(' ')[0];
-      text(352, first.toUpperCase(), 11, TC.orange, true);
-      text(384, `"${line}"`, 12, TC.navy, false).setWordWrapWidth(300);
+      const r = this.outcome.rival;
+      const line = rivalLine(won ? 'afterYouWin' : 'afterYouLose', r.name, `${this.outcome.games[0]}-${this.outcome.games[1]}`);
+      rivalTalk(this, { appearance: r.appearance, name: r.name, line, layout: 'side', x: 22, y: 330, headWidth: 62, bubbleWidth: 252, textSize: 13 });
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {

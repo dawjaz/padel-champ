@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { COURT_THEMES, themeIdOfCity } from '../art/hd/courtThemes';
-import { cityPosition, LAND, projectLonLat, type Frame } from '../art/worldMap';
+import { cityPosition, EUROPE_VIEW, landFor, placeLabels, projectLonLat, viewFor, type Frame, type LonLat } from '../art/worldMap';
 import { EVENTS, eventName, eventsOfWeek, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
 import { getSave } from '../save';
-import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { applyLightScreen, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const FRAME: Frame = { x: 18, y: 78, w: 324, h: 196 };
+const OCEAN = 0xdcebfb;
+const LAND_FILL = 0xb9d2ee;
+const LAND_LINE = 0x8fb0d8;
 const hex = (css: string): number => parseInt(css.slice(1), 16);
 
 /** The career calendar as a world map: arrows move through the weeks, the cities of the week's tournaments light up in the colour of their court. */
@@ -38,44 +41,65 @@ export class MapScene extends Phaser.Scene {
       return o;
     };
 
-    // The map card: ocean, land, every tournament city as a small dot.
+    // The map card: ocean, land, every tournament city as a small dot. When all tournaments of the week are in Europe the map
+    // zooms there, so that neighbouring cities are apart.
+    const events = eventsOfWeek(this.week);
+    const view = viewFor(events.map((e) => e.city));
     const card = add(this.add.graphics().setPosition(12, 70));
-    drawCard(card, WIDTH - 24, 212, { radius: 16, fill: 0xdcebfb });
+    drawCard(card, WIDTH - 24, 212, { radius: 16, fill: OCEAN });
     const land = add(this.add.graphics());
-    land.fillStyle(0xb9d2ee, 1);
-    land.lineStyle(1.5, 0x8fb0d8, 1);
-    for (const poly of LAND) {
-      const pts = poly.map((p) => projectLonLat(p, FRAME));
-      land.fillPoints(pts, true);
-      land.strokePoints(pts, true);
+    const toPts = (ring: LonLat[]): Phaser.Math.Vector2[] => ring.map((p) => { const q = projectLonLat(p, FRAME, view); return new Phaser.Math.Vector2(q.x, q.y); });
+    const shapes = landFor(view);
+    land.fillStyle(LAND_FILL, 1);
+    for (const l of shapes) land.fillPoints(toPts(l.outer), true);
+    land.fillStyle(OCEAN, 1); // lakes and inland seas (Black Sea, Caspian Sea)
+    for (const l of shapes) for (const h of l.holes) land.fillPoints(toPts(h), true);
+    land.lineStyle(1.2, LAND_LINE, 1);
+    for (const l of shapes) {
+      land.strokePoints(toPts(l.outer), true);
+      for (const h of l.holes) land.strokePoints(toPts(h), true);
     }
+    const weekCities = new Set(events.map((e) => e.city));
+    const small: Array<{ x: number; y: number; r: number }> = [];
     const dots = add(this.add.graphics());
-    const cities = new Set(EVENTS.map((e) => e.city));
-    dots.fillStyle(TC.navy, 0.35);
-    for (const c of cities) {
-      const p = cityPosition(c, FRAME);
-      if (p) dots.fillCircle(p.x, p.y, 2.4);
+    dots.fillStyle(TC.navy, 0.4);
+    for (const c of new Set(EVENTS.map((e) => e.city))) {
+      if (weekCities.has(c)) continue;
+      const p = cityPosition(c, FRAME, view);
+      if (!p || p.x <= FRAME.x + 1 || p.x >= FRAME.x + FRAME.w - 1 || p.y <= FRAME.y + 1 || p.y >= FRAME.y + FRAME.h - 1) continue;
+      dots.fillCircle(p.x, p.y, 2.6);
+      small.push({ x: p.x, y: p.y, r: 3.5 });
     }
 
-    // The tournaments of the viewed week: big dots in the court colour with the city name.
-    const events = eventsOfWeek(this.week);
-    events.forEach((e, i) => {
-      const p = cityPosition(e.city, FRAME);
-      if (!p) return;
+    // The tournaments of the viewed week: big dots in the court colour, with names placed so that nothing covers anything.
+    // In the zoomed Europe view the dots are big; in the world view neighbours (Berlin, Warsaw) are only about 14 px apart, so they are smaller.
+    const R = view === EUROPE_VIEW ? 7 : 5;
+    const spots = events.flatMap((e) => {
+      const p = cityPosition(e.city, FRAME, view);
+      return p ? [{ e, p }] : [];
+    });
+    const texts = spots.map(({ e }) => {
+      const t = add(themeText(this, 0, 0, e.city.toUpperCase(), { size: 10, font: 'display', origin: [0.5, 0.5] }));
+      t.setStroke('#ffffff', 4);
+      return t;
+    });
+    const places = placeLabels(spots.map(({ p }, i) => ({ x: p.x, y: p.y, r: R + 1, w: texts[i].width + 2, h: texts[i].height - 2 })), small, FRAME);
+    const lines = add(this.add.graphics());
+    lines.lineStyle(1.5, TC.navy, 0.8);
+    spots.forEach(({ e, p }, i) => {
       const colour = hex(COURT_THEMES[themeIdOfCity(e.city)].top);
-      const ring = add(this.add.circle(p.x, p.y, 9, colour, 0.25));
+      const ring = add(this.add.circle(p.x, p.y, R + 2, colour, 0.25));
       this.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 1100, repeat: -1 });
+      if (places[i].leader) lines.lineBetween(...(places[i].leader as [number, number, number, number]));
       const dot = add(this.add.graphics());
       dot.fillStyle(0xffffff, 1);
-      dot.fillCircle(p.x, p.y, 7);
+      dot.fillCircle(p.x, p.y, R);
       dot.fillStyle(colour, 1);
-      dot.fillCircle(p.x, p.y, 5);
+      dot.fillCircle(p.x, p.y, R - 2);
       dot.lineStyle(2, TC.navy, 1);
-      dot.strokeCircle(p.x, p.y, 7);
-      // Names alternate above and below so that neighbouring cities do not cover each other.
-      const above = i % 2 === 0;
-      const t = add(themeText(this, Math.max(34, Math.min(WIDTH - 34, p.x)), p.y + (above ? -17 : 17), e.city.toUpperCase(), { size: 10, font: 'display', origin: [0.5, 0.5] }));
-      t.setStroke('#ffffff', 4);
+      dot.strokeCircle(p.x, p.y, R);
+      texts[i].setPosition(places[i].x, places[i].y);
+      this.children.bringToTop(texts[i]);
     });
     if (events.length === 0) add(themeText(this, WIDTH / 2, 176, 'NO TOURNAMENTS THIS WEEK', { size: 13, color: TC.sub, font: 'display' }));
 
@@ -106,7 +130,12 @@ export class MapScene extends Phaser.Scene {
       sw.lineStyle(2, TC.navy, 1);
       sw.strokeRoundedRect(22, y + 9, 32, 32, 8);
       add(themeText(this, 64, y + 17, eventName(e).toUpperCase(), { size: 13, font: 'display', origin: [0, 0.5] }));
-      add(themeText(this, 64, y + 36, `${div?.draw ?? '?'} PAIRS   FEE ${div?.fee ?? '?'}`, { size: 11, color: TC.sub, origin: [0, 0.5] }));
+      const pairs = add(themeText(this, 64, y + 36, `${div?.draw ?? '?'} PAIRS`, { size: 11, color: TC.sub, origin: [0, 0.5] }));
+      const fx = 64 + pairs.width + 16;
+      add(themeText(this, fx, y + 36, 'ENTRY FEE', { size: 11, color: TC.sub, origin: [0, 0.5] }));
+      const fee = add(themeText(this, fx + 66, y + 36, `${div?.fee ?? '?'}`, { size: 13, font: 'display', origin: [0, 0.5] }));
+      const coin = add(this.add.graphics());
+      drawCoin(coin, fx + 66 + fee.width + 11, y + 36, 8);
     });
 
     add(themeText(this, WIDTH / 2, 618, 'THE DOT COLOUR IS THE COLOUR OF THE COURT THERE', { size: 10, color: TC.sub, font: 'display' }));
