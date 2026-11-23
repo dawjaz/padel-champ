@@ -5,6 +5,7 @@
  */
 
 import { emptyRecords, sanitizeRecords, sanitizeUnlocked, type Records } from './career/achievements';
+import { newDaily, sanitizeDaily, type Daily } from './career/daily';
 import { newProfile, sanitizeProfile, type Profile } from './career/profile';
 
 export interface SaveData {
@@ -15,6 +16,8 @@ export interface SaveData {
   /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
   achievements: string[];
   records: Records;
+  /** Daily login reward and tasks (see career/daily.ts). */
+  daily: Daily;
 }
 
 export interface KeyValueStore {
@@ -26,7 +29,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily() };
 }
 
 function count(v: unknown): number {
@@ -49,6 +52,7 @@ export function parseSave(raw: string | null): SaveData {
       profile: sanitizeProfile(p?.profile),
       achievements: sanitizeUnlocked(p?.achievements),
       records: sanitizeRecords(p?.records),
+      daily: sanitizeDaily(p?.daily),
     };
   } catch {
     return base;

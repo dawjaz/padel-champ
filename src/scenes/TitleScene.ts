@@ -7,6 +7,7 @@ import { BUILD_ID, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH }
 import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { applyLook } from '../career/gear';
+import { dayKey, hasWaiting } from '../career/daily';
 import { getSave } from '../save';
 import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, iconChip, makeThemeButton, TC, themeText } from '../theme';
 
@@ -36,6 +37,22 @@ export class TitleScene extends Phaser.Scene {
     const hero = addToon(this, WIDTH / 2, 308, 236, applyLook(HERO.appearance, profile.inventory), 'front');
     this.tweens.add({ targets: hero, y: hero.y - 5, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.drawPlate(profile.xp);
+
+    // Daily rewards: a badge on the stage, with a pulsing dot while something waits to be claimed.
+    const waiting = hasWaiting(save.daily, dayKey(new Date()));
+    const dg = this.add.graphics().setPosition(14, 74);
+    drawCard(dg, 84, 38, { radius: 12 });
+    themeText(this, 56, 93, 'DAILY', { size: 15, font: 'display', color: waiting ? TC.orange : TC.navy });
+    const dz = this.add.zone(56, 93, 84, 38).setInteractive({ useHandCursor: true });
+    dz.on('pointerdown', () => this.scene.start('DailyScene'));
+    if (waiting) {
+      const dot = this.add.graphics();
+      dot.fillStyle(0xe53935, 1);
+      dot.fillCircle(92, 78, 7);
+      dot.lineStyle(2, TC.navy, 1);
+      dot.strokeCircle(92, 78, 7);
+      this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1 });
+    }
 
     // Career is the main button, the four tiles below.
     const locked = tournamentActive(profile);

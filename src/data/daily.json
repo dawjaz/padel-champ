@@ -1,0 +1,19 @@
+{
+  "loginCoins": [30, 40, 50, 60, 70, 80, 100],
+  "loginPack": "gear",
+  "taskCoins": 30,
+  "bonusCoins": 100,
+  "tasksPerDay": 3,
+  "tasks": [
+    { "id": "play2", "text": "Play 2 career matches", "stat": "played", "n": 2 },
+    { "id": "win1", "text": "Win a career match", "stat": "won", "n": 1 },
+    { "id": "points20", "text": "Win 20 points", "stat": "points", "n": 20 },
+    { "id": "points35", "text": "Win 35 points", "stat": "points", "n": 35 },
+    { "id": "rally9", "text": "Play a rally of 9 hits", "stat": "rally", "n": 9 },
+    { "id": "smash2", "text": "Win 2 points with a smash", "stat": "smash", "n": 2 },
+    { "id": "dejada1", "text": "Win a point with a Dejada", "stat": "dejada", "n": 1 },
+    { "id": "vb2", "text": "Win 2 points with a Vibora or Bandeja", "stat": "viboraBandeja", "n": 2 },
+    { "id": "bajada1", "text": "Win a point with a Bajada", "stat": "bajada", "n": 1 },
+    { "id": "ace2", "text": "Serve 2 aces", "stat": "ace", "n": 2 }
+  ]
+}

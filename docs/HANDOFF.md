@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-22 (v0.80)_
+_Last updated: 2026-11-22 (v0.81)_
+
+## v0.81: daily rewards and tasks (world and gamification, step 1)
+- `src/career/daily.ts` (pure, tested) + `src/data/daily.json`: login reward on a 7-day streak (coins 30..80, day 7 = 100 coins + a gear pack; a missed day restarts the streak), three tasks a day picked from a pool of 10 by the date (same for everybody, distinct stats), 30 coins per task, 100 coins bonus for all three. Only career matches count (quick match = sparring).
+- Save: `daily` field (sanitized). `MatchScene` counts the hero side's winners/aces by shot kind (`countDailyWin`) and `endMatch` calls `addFacts`. New `DailyScene` (claim buttons) and a DAILY badge with a red dot on the title screen while something waits.
+- Dates use the device's local day (`dayKey`); changing the clock can cheat it (accepted for an offline game).
+- Not done yet: collection screen + set bonus, per-city courts, globe calendar, minigames, weekly challenges.
 
 ## Next session (agreed 2026-11-22)
 1. World and gamification (plan point 4): start by discussing which item first (daily login reward and daily tasks, collection screen with set bonus, per-city court colours; globe and minigames need decisions).

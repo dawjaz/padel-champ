@@ -29,6 +29,7 @@ import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
 import { heroFrom, levelOf, matchReward } from '../career/profile';
 import { claim, newlyEarned, progressOf, recordMatch } from '../career/achievements';
+import { addFacts, dayKey } from '../career/daily';
 import { getSave, recordResult, updateSave } from '../save';
 
 const BASE_YOU = playersData.you as unknown as PlayerDef[];
@@ -122,6 +123,8 @@ export class MatchScene extends Phaser.Scene {
   private serveSpots: Record<string, CourtPos> = {};
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
+  /** Points the hero's side won with certain shots (for the daily tasks). */
+  private dailyWins = { smash: 0, dejada: 0, viboraBandeja: 0, bajada: 0, ace: 0 };
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
   private recoveryPct = 0;
   private server: SideIndex = 0;
@@ -195,6 +198,7 @@ export class MatchScene extends Phaser.Scene {
     }
     this.pointsWon = [0, 0];
     this.longestRally = 0;
+    this.dailyWins = { smash: 0, dejada: 0, viboraBandeja: 0, bajada: 0, ace: 0 };
     this.matchScore = newScore(2);
     this.server = 0;
     this.serverIdx = [0, 0];
@@ -1721,6 +1725,7 @@ export class MatchScene extends Phaser.Scene {
             : `${step.shot.name}: ${step.errorKind === 'glass' ? 'out, back glass' : step.errorKind === 'mesh' ? 'out, fence' : step.errorKind === 'side' ? 'out, side wall' : 'net'}`,
       };
       if (b) this.announce(b[0], b[1], how[step.outcome]);
+      if (step.pointWinner === 0 && step.side === 0 && (step.outcome === 'ace' || step.outcome === 'winner')) this.countDailyWin(step);
       if (step.outcome === 'ace' || step.outcome === 'winner') {
         this.cameras.main.shake(140, 0.004);
         this.winFlash();
@@ -1785,6 +1790,17 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
+  /** Counts a point the hero's side won with a winner or an ace, by the kind of shot (for the daily tasks). */
+  private countDailyWin(step: Step): void {
+    const id = step.shot.id;
+    const w = this.dailyWins;
+    if (step.outcome === 'ace') w.ace++;
+    else if (id === 'smash_x3' || id === 'smash_x4') w.smash++;
+    else if (id === 'dejada') w.dejada++;
+    else if (id === 'vibora' || id === 'bandeja') w.viboraBandeja++;
+    else if (id.startsWith('bajada')) w.bajada++;
+  }
+
   private endPoint(winner: SideIndex): void {
     if (this.practice) {
       this.practiceMenu();
@@ -1838,7 +1854,8 @@ export class MatchScene extends Phaser.Scene {
       const earned = newlyEarned(progressOf(r.stats, records, profile), r.achievements);
       const claimed = claim(profile, r.achievements, earned);
       out.trophies = earned.map((a) => `${a.name} +${a.coins}`);
-      return { ...r, profile: claimed.profile, records, achievements: claimed.unlocked };
+      const daily = addFacts(r.daily, dayKey(new Date()), { won: winner === 0, points: this.pointsWon[0], longestRally: this.longestRally, ...this.dailyWins });
+      return { ...r, profile: claimed.profile, records, achievements: claimed.unlocked, daily };
     });
     const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
