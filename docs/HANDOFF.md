@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.90)_
+_Last updated: 2026-11-23 (v0.91)_
+
+## v0.91: sounds and the way out of a match
+- **Sounds** (`audio.ts`): `coinFlip` (rising glitter at the throw) and `coinLand` (two bright tings) in the coin toss; `type` (a very quiet 18 ms tick) in `speech.ts`, every second letter, not for spaces, pitch varied. `sfx(name, pitch = 1)`; `STYLE` table sets wave and gain per effect.
+- **Quick match / practice**: the button says GO TO MAIN MENU, tap twice (SURE?), then `leaveTo` fades the camera to the light menu colour (380 ms) before `TitleScene`.
+- **Career match**: before the coin is called the button is TOURNAMENT MENU (back to `BracketScene`, the boost of the match is given back from `inventoryBefore`). After the call it is END THE GAME, which opens `ConfirmScene` (a generic yes/no scene over a paused scene; the answer comes back as an event on the scene underneath) and on YES calls `endMatch(1, true)`.
+- **Walkover**: runs through the normal career pipeline (loss recorded, tournament result, daily/weekly facts) but pays no XP and coins; `ResultScene` gets `walkover` and shows FORFEIT and THE OPPONENTS WIN BY WALKOVER; the rival bubble is not shown.
+- `over` flag in `MatchScene` stops a second `endMatch`/exit.
+- Not done: a forfeit still counts the games played so far only as a display; no penalty beyond the loss and the lost fee.
 
 ## v0.90: local rankings and records (world and gamification), ready for online later
 - **RankingScene** (button RANKS on the Career screen, next to MAP): tabs WORLD, RECORDS, ONLINE.

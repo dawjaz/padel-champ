@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Appearance } from './game/types';
 import { addToonHead } from './art/toonTexture';
+import { sfx } from './audio';
 import { drawCard, TC, themeText } from './theme';
 
 export interface Talk {
@@ -96,6 +97,8 @@ export function rivalTalk(scene: Phaser.Scene, o: TalkOptions): Talk {
     callback: () => {
       const n = Math.min(wrapped.length, Math.floor((scene.time.now - startedAt) / MS_PER_CHAR));
       if (n !== shown) {
+        // A soft tick for every second letter (not for spaces and line breaks), at a slightly different pitch each time.
+        for (let k = shown; k < n; k++) if (k % 2 === 0 && wrapped[k].trim() !== '') { sfx('type', 0.85 + Math.random() * 0.4); break; }
         shown = n;
         text.setText(wrapped.slice(0, shown));
       }

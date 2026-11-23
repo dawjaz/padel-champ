@@ -5,7 +5,7 @@ import { getSave } from './save';
  * No audio files needed. Replace with real chiptune (FamiStudio / jsfxr exports) later,
  * keeping the same `sfx(name)` calls so scenes do not change.
  */
-export type SfxName = 'select' | 'hit' | 'point' | 'win' | 'lose';
+export type SfxName = 'select' | 'hit' | 'point' | 'win' | 'lose' | 'coinFlip' | 'coinLand' | 'type';
 
 /** [frequency in Hz, duration in ms] */
 const NOTES: Record<SfxName, Array<[number, number]>> = {
@@ -30,6 +30,29 @@ const NOTES: Record<SfxName, Array<[number, number]>> = {
     [330, 150],
     [262, 300],
   ],
+  // A coin thrown up: a quick rising glitter.
+  coinFlip: [
+    [1319, 35],
+    [1568, 35],
+    [1976, 35],
+    [2637, 60],
+  ],
+  // A coin landing: a bright "ting", then a smaller one as it settles.
+  coinLand: [
+    [1976, 70],
+    [2637, 220],
+    [1976, 50],
+    [2637, 150],
+  ],
+  // One letter of a speech bubble: a short soft tick (the pitch is varied by the caller).
+  type: [[660, 18]],
+};
+
+/** Sound character per effect: the default is a square wave at 0.08. */
+const STYLE: Partial<Record<SfxName, { wave: OscillatorType; gain: number }>> = {
+  coinFlip: { wave: 'triangle', gain: 0.1 },
+  coinLand: { wave: 'triangle', gain: 0.12 },
+  type: { wave: 'square', gain: 0.025 },
 };
 
 let ctx: AudioContext | null = null;
@@ -43,7 +66,8 @@ function getContext(): AudioContext | null {
   return ctx;
 }
 
-export function sfx(name: SfxName): void {
+/** `pitch` multiplies the frequencies (1 = as written). */
+export function sfx(name: SfxName, pitch = 1): void {
   if (!getSave().settings.sound) return;
   try {
     const c = getContext();
@@ -55,9 +79,10 @@ export function sfx(name: SfxName): void {
       const dur = ms / 1000;
       const osc = c.createOscillator();
       const gain = c.createGain();
-      osc.type = 'square';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.08, t);
+      const style = STYLE[name];
+      osc.type = style?.wave ?? 'square';
+      osc.frequency.value = freq * pitch;
+      gain.gain.setValueAtTime(style?.gain ?? 0.08, t);
       gain.gain.setValueAtTime(0, t + dur);
       osc.connect(gain);
       gain.connect(c.destination);

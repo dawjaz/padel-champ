@@ -19,6 +19,8 @@ export interface ResultData {
   packs?: number;
   /** A career match: the tournament goes on or ends here. */
   career?: boolean;
+  /** The match was forfeited from the menu: the opponents win by walkover. */
+  walkover?: boolean;
   /** The rival (first opponent) of a career match: he says a line after the match. */
   rival?: { name: string; appearance: Appearance };
   /** Achievements unlocked by this match: "Name +coins". */
@@ -34,7 +36,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data: Partial<ResultData>): void {
-    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, trophies: data.trophies ?? [], finished: data.finished, rival: data.rival };
+    this.outcome = { winner: data.winner ?? 0, games: data.games ?? [0, 0], reward: data.reward, levelUp: data.levelUp ?? 0, packs: data.packs ?? 0, career: data.career ?? false, trophies: data.trophies ?? [], finished: data.finished, rival: data.rival, walkover: data.walkover === true };
   }
 
   create(): void {
@@ -46,12 +48,14 @@ export class ResultScene extends Phaser.Scene {
     // Big result banner
     const ban = this.add.graphics().setPosition(30, 52);
     drawCard(ban, WIDTH - 60, 84, { radius: 22, fill: won ? TC.gold : TC.white, shadow: 5 });
-    text(94, won ? 'YOU WIN!' : 'YOU LOSE', 46, won ? TC.navy : 0xc62828);
+    const walkover = this.outcome.walkover === true;
+    text(94, won ? 'YOU WIN!' : walkover ? 'FORFEIT' : 'YOU LOSE', 46, won ? TC.navy : 0xc62828);
     // Score
     const sc = this.add.graphics().setPosition(WIDTH / 2 - 80, 156);
     drawCard(sc, 160, 78, { radius: 18 });
     text(188, `${this.outcome.games[0]} - ${this.outcome.games[1]}`, 40, TC.navy);
     text(220, 'GAMES', 11, TC.sub, false);
+    if (walkover) text(246, 'THE OPPONENTS WIN BY WALKOVER', 13, 0xc62828, true);
 
     const fin = this.outcome.finished;
     const summary = fin
@@ -78,7 +82,7 @@ export class ResultScene extends Phaser.Scene {
       if (this.outcome.packs) text(412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
     }
     // The rival's line (between rounds of a tournament, where the progress block above is empty): his head and a bubble, typed letter by letter.
-    if (this.outcome.rival && this.outcome.career && hideProgress) {
+    if (this.outcome.rival && this.outcome.career && hideProgress && !walkover) {
       const r = this.outcome.rival;
       const line = rivalLine(won ? 'afterYouWin' : 'afterYouLose', r.name, `${this.outcome.games[0]}-${this.outcome.games[1]}`);
       rivalTalk(this, { appearance: r.appearance, name: r.name, line, layout: 'side', x: 22, y: 330, headWidth: 62, bubbleWidth: 252, textSize: 13 });

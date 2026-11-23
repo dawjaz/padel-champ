@@ -28,7 +28,7 @@ import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul 
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
-import { heroFrom, levelOf, matchReward } from '../career/profile';
+import { heroFrom, levelOf, matchReward, type Profile } from '../career/profile';
 import { claim, newlyEarned, progressOf, recordMatch } from '../career/achievements';
 import { addFacts, dayKey } from '../career/daily';
 import { addWeeklyFacts, weekKey } from '../career/weekly';
@@ -120,6 +120,12 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 export class MatchScene extends Phaser.Scene {
   private matchScore: MatchScore = newScore(2);
   private career: CareerMatch | null = null;
+  /** The inventory before the boost of this career match was used up: given back when the player leaves before the match starts. */
+  private inventoryBefore: Profile['inventory'] | null = null;
+  /** True once the coin toss has been called: from then on a career match cannot be left without forfeiting. */
+  private started = false;
+  private over = false;
+  private exitButton: ReturnType<typeof makeThemeButton> | null = null;
   /** The text on the status line (it stays until the next shot replaces it). */
   private lastSaid = '';
   /** Set for the shot in the air: the court mark at its bounce is stronger (Por Cuatro, a strong Por Tres). */
@@ -194,6 +200,9 @@ export class MatchScene extends Phaser.Scene {
     applyHd(this);
     const profile = getSave().profile;
     // The boost chosen before a tournament match boosts that match only and is used up when it starts.
+    this.inventoryBefore = this.career ? profile.inventory : null;
+    this.started = false;
+    this.over = false;
     const boost = this.career ? boostOf(profile.inventory) : undefined;
     this.recoveryPct = boost?.recoveryPct ?? 0;
     const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
@@ -280,30 +289,78 @@ export class MatchScene extends Phaser.Scene {
       .setDepth(9001)
       .setVisible(false);
 
-    // Way out to the main menu (quick match and practice; a career match has to be played on): tap twice to leave.
-    if (!this.career) {
-      let armed = false;
-      const exit = makeThemeButton(this, 38, 27, 62, 30, 'MENU', () => {
+    this.makeExitButton();
+    this.events.on('forfeit-confirmed', () => this.forfeit());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('forfeit-confirmed'));
+
+    this.refreshScore();
+    this.refreshGuts();
+    if (this.practice) this.practiceMenu();
+    else this.coinToss();
+  }
+
+  // ---------- way out of the match ----------
+  // Quick match and practice: GO TO MAIN MENU (tap twice). Career match: before the toss TOURNAMENT MENU (no harm done, the boost comes back),
+  // after it END THE GAME, which asks first and then gives the match to the opponents by walkover.
+
+  private makeExitButton(): void {
+    const label = (): string => (!this.career ? 'GO TO\nMAIN MENU' : this.started ? 'END THE\nGAME' : 'TOURNAMENT\nMENU');
+    let armed = false;
+    const exit = makeThemeButton(this, 40, 27, 70, 36, label(), () => {
+      if (this.over) return;
+      if (!this.career) {
         if (!armed) {
           armed = true;
           exit.text.setText('SURE?');
           exit.text.setColor('#c62828');
           this.time.delayedCall(2500, () => {
             armed = false;
-            exit.text.setText('MENU');
+            exit.text.setText(label());
             exit.text.setColor(NAVY_CSS);
           });
           return;
         }
-        this.scene.start('TitleScene');
-      }, 'secondary', 12);
-      for (const part of exit.parts) (part as Phaser.GameObjects.GameObject & { setDepth: (d: number) => unknown }).setDepth(10002);
-    }
+        this.leaveTo('TitleScene');
+      } else if (!this.started) {
+        // Nothing has happened yet: back to the tournament, with the boost of this match given back.
+        if (this.inventoryBefore) {
+          const inv = this.inventoryBefore;
+          updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: inv } }));
+        }
+        this.leaveTo('BracketScene');
+      } else {
+        this.scene.pause();
+        this.scene.launch('ConfirmScene', {
+          under: this.scene.key,
+          title: 'FORFEIT THE MATCH?',
+          text: 'The match is over and your opponents win it by walkover. This counts as a loss in the tournament.',
+          yes: 'YES, FORFEIT',
+          no: 'KEEP PLAYING',
+          event: 'forfeit-confirmed',
+        });
+      }
+    }, 'secondary', 9);
+    exit.text.setLineSpacing(-2);
+    this.exitButton = exit;
+    for (const part of exit.parts) (part as Phaser.GameObjects.GameObject & { setDepth: (d: number) => unknown }).setDepth(10002);
+    this.refreshExitLabel = (): void => {
+      exit.text.setText(label());
+    };
+  }
 
-    this.refreshScore();
-    this.refreshGuts();
-    if (this.practice) this.practiceMenu();
-    else this.coinToss();
+  private refreshExitLabel: () => void = () => undefined;
+
+  /** Leaves the match with a quick fade to light (the menus are light screens), not a hard cut. */
+  private leaveTo(scene: string, data?: object): void {
+    this.over = true;
+    this.cameras.main.fadeOut(380, 234, 241, 250);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(scene, data));
+  }
+
+  /** END THE GAME confirmed: the match is lost by walkover. */
+  private forfeit(): void {
+    if (this.over) return;
+    this.endMatch(1, true);
   }
 
   // ---------- coin toss: the side that wins it serves first ----------
@@ -330,6 +387,8 @@ export class MatchScene extends Phaser.Scene {
 
   private flipCoinAnimation(call: CoinFace): void {
     this.clearMenu();
+    this.started = true;
+    this.refreshExitLabel();
     const result = flipCoin(Math.random);
     const winner = tossWinner(call, result, HUMAN_SIDE);
     const baseY = 330;
@@ -343,7 +402,7 @@ export class MatchScene extends Phaser.Scene {
     const shadow = this.add.ellipse(WIDTH / 2, baseY + 36, 40, 10, 0x000000, 0.35).setDepth(9994);
     // Heads ends after whole turns, tails after a half turn more.
     const angleEnd = (result === 'heads' ? 5 : 5.5) * Math.PI * 2;
-    sfx('select');
+    sfx('coinFlip');
     this.tweens.addCounter({
       from: 0,
       to: 1,
@@ -361,7 +420,7 @@ export class MatchScene extends Phaser.Scene {
       onComplete: () => {
         coin.setScale(1.15);
         this.tweens.add({ targets: coin, scale: 1, duration: 160, yoyo: false });
-        sfx('point');
+        sfx('coinLand');
         const word = result.toUpperCase();
         const you = winner === HUMAN_SIDE;
         this.say(`${word}! ${you ? 'You win the toss' : `${SIDE_NAME[winner]} wins the toss`} and serve${you ? '' : 's'} first.`);
@@ -1850,10 +1909,13 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
-  private endMatch(winner: SideIndex): void {
+  private endMatch(winner: SideIndex, walkover = false): void {
+    if (this.over) return;
+    this.over = true;
     this.clearMenu();
     this.setActive(null);
-    const reward = matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
+    // A forfeited match pays nothing (no XP and coins for giving up).
+    const reward = walkover ? { xp: 0, coins: 0 } : matchReward({ won: winner === 0, pointsWon: this.pointsWon[0], pointsLost: this.pointsWon[1], longestRally: this.longestRally });
     const levelBefore = levelOf(getSave().profile.xp);
     const out: { finished?: Finished; trophies: string[] } = { trophies: [] };
     // A quick match is a sparring: it changes nothing (no XP, coins, stats, records or achievements). Only career matches count.
@@ -1883,8 +1945,9 @@ export class MatchScene extends Phaser.Scene {
     });
     const levelAfter = levelOf(getSave().profile.xp);
     this.time.delayedCall(500, () => sfx(winner === 0 ? 'win' : 'lose'));
-    this.say(winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
+    if (this.exitButton) for (const part of this.exitButton.parts) (part as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(false);
+    this.say(walkover ? 'MATCH FORFEITED: WALKOVER FOR THE OPPONENTS' : winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
+    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, walkover, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches } : undefined }));
   }
 }
