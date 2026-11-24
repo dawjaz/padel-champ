@@ -871,6 +871,7 @@ export class MatchScene extends Phaser.Scene {
     onDone?: () => void,
     endPose: Record<string, PoseName> = {},
     endFacing: Record<string, Facing> = {},
+    chasers: string[] = Object.keys(endPose),
   ): void {
     const ids = Object.keys(targets);
     // Tired players run slower: the move takes longer (by up to 30%) when the slowest of them is on the bar's last legs.
@@ -881,7 +882,9 @@ export class MatchScene extends Phaser.Scene {
     const running = new Set(ids.filter((id) => Math.hypot(targets[id].x - starts[id].x, targets[id].z - starts[id].z) > 0.35));
     for (const id of running) {
       if (this.time.now >= this.views[id].busyUntil) {
-        this.setFacing(id, this.runFacing(targets[id].x - starts[id].x, targets[id].z - starts[id].z));
+        // Only a player running for the ball turns to run (sideways in profile); everybody else (a partner covering, a pair
+        // going back to its place, a player returning after a shot) shuffles with the face to the court and never turns his back on the ball.
+        this.setFacing(id, chasers.includes(id) ? this.runFacing(targets[id].x - starts[id].x, targets[id].z - starts[id].z) : this.defaultFacing(id));
       }
     }
     this.tweens.addCounter({
@@ -1653,6 +1656,15 @@ export class MatchScene extends Phaser.Scene {
         step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
       );
       this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
+      // Split step: the pair that is about to receive the ball hops a little as the opponent hits it (not during a serve, nobody moves then).
+      if (step.kind !== 'serve') {
+        for (const q of TEAMS[other(step.side)]) {
+          this.time.delayedCall(40, () => {
+            const w = this.views[q.id];
+            if (w.lift === 0 && this.time.now >= w.busyUntil) this.hop(q.id, 5);
+          });
+        }
+      }
       if (isPowerfulSmash(step)) this.powerSmashFx();
     }
     // Por Cuatro (and a strong Por Tres) leave a mark where the ball hits the court.
@@ -1790,7 +1802,7 @@ export class MatchScene extends Phaser.Scene {
       x: Math.max(-4.7, Math.min(4.7, lerp(from.x, ball.x, 0.9))),
       z: Math.max(zMin, Math.min(zMax, lerp(from.z, ball.z, 0.9))),
     };
-    this.movePlayers({ [id]: target }, Math.max(300, ms));
+    this.movePlayers({ [id]: target }, Math.max(300, ms), undefined, {}, {}, [id]);
   }
 
   /** What happened to a lost ball, for the log. */

@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.97)_
+_Last updated: 2026-11-23 (v0.98)_
+
+## v0.98: players keep their eyes on the ball; split step
+- **Facing while moving** (`movePlayers` in `MatchScene.ts`): only a *chaser* (a player with an end pose, i.e. the one who is going to hit, or the defender in `chaseBall`) turns to run (profile for sideways, front or back otherwise). Everyone else (partner covering, pair returning to its places, hitters following their shot, formation changes) shuffles in his team's view (face to the court and the ball) and never turns his back on it. New optional parameter `chasers: string[]` (default: the ids in `endPose`).
+- **Split step:** when a rally ball is hit, both opponents hop 5 units (`hop`) 40 ms later if they are idle.
+- Known limits: the head does not turn towards the ball (front and back views have a fixed head); a near-team player facing the net while the ball is behind him (a lob that bounces over him) still faces the net.
+- **Still to do for 3b:** braking and lunge when a chaser stops, squash and stretch, crossing hands in the run cycle, a 3/4 view for diagonal runs, a head that follows the ball.
 
 ## v0.97: less work per frame (lag on a phone, Motorola Edge 60 Pro)
 - **Measured** (headless Chrome, CPU profile and per-frame timers; the GPU of a phone cannot be measured here): per frame the match re-drew Phaser `Graphics` that are triangulated on the CPU (earcut): 4 player shadows, the ball shadow and ring, 14 trail circles, 4 rounded guts bars (3 to 4 shapes each); it redrew and re-uploaded the 96 px ball texture every frame; and pose textures were drawn lazily in the middle of a rally (about 2.5 ms each on a desktop, 3 views now).
