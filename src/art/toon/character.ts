@@ -15,10 +15,13 @@ export type ToonPose =
   | 'idle' | 'ready' | 'runA' | 'runB'
   | 'fhPrep' | 'fhHit' | 'fhFollow'
   | 'bhPrep' | 'bhHit' | 'bhFollow'
+  | 'fhvPrep' | 'fhvHit' | 'fhvFollow'
+  | 'bhvPrep' | 'bhvHit' | 'bhvFollow'
+  | 'ovPrep' | 'ovHit' | 'ovFollow'
   | 'smashPrep' | 'smashHit' | 'smashFollow';
 
 /** `idle` = the relaxed menu pose (arms down); `ready` = the athletic waiting stance of a match: wide, knees bent, racket in front. */
-export const TOON_POSES: ToonPose[] = ['idle', 'ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow'];
+export const TOON_POSES: ToonPose[] = ['idle', 'ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow', 'fhvPrep', 'fhvHit', 'fhvFollow', 'bhvPrep', 'bhvHit', 'bhvFollow', 'ovPrep', 'ovHit', 'ovFollow'];
 
 type Pt = [number, number];
 
@@ -61,6 +64,17 @@ export const POSES: Record<ToonPose, PoseSpec> = {
   smashPrep: { hand: [158, 40], racket: -12, elbow: [180, 98], off: [38, 40], lean: 4, crouch: 12, left: [62, GROUND], right: [138, GROUND] },
   smashHit: { hand: [142, 32], racket: 4, off: [84, 128], lean: -2, crouch: -28, left: [72, 282], right: [134, 294] },
   smashFollow: { hand: [82, 132], racket: -70, off: [40, 120], lean: -8, crouch: 10, left: [64, GROUND], right: [136, GROUND] },
+  // From above, downwards: the racket is raised in front of the head or shoulder and the stroke ends below the hand (volley, dejada, bajada).
+  fhvPrep: { hand: [166, 92], racket: 24, off: [30, 118], lean: 6, crouch: 16, left: [64, GROUND], right: [136, GROUND] },
+  fhvHit: { hand: [176, 100], racket: 88, off: [24, 112], lean: 2, crouch: 18, left: [60, GROUND], right: [140, GROUND] },
+  fhvFollow: { hand: [160, 148], racket: 132, off: [26, 130], lean: 0, crouch: 16, left: [62, GROUND], right: [138, GROUND] },
+  bhvPrep: { hand: [50, 96], racket: -26, off: 'grip', lean: -6, crouch: 16, left: [64, GROUND], right: [136, GROUND] },
+  bhvHit: { hand: [38, 104], racket: -88, off: 'grip', lean: 2, crouch: 18, left: [60, GROUND], right: [140, GROUND] },
+  bhvFollow: { hand: [52, 148], racket: -132, off: 'grip', lean: 0, crouch: 16, left: [62, GROUND], right: [138, GROUND] },
+  // Overhead with both feet on the ground (bandeja, vibora): the racket high, the stroke cuts down across the body, no jump.
+  ovPrep: { hand: [158, 50], racket: 14, elbow: [184, 102], off: [48, 66], lean: 4, crouch: 10, left: [62, GROUND], right: [138, GROUND] },
+  ovHit: { hand: [152, 44], racket: 52, elbow: [182, 98], off: [70, 98], lean: -2, crouch: 12, left: [62, GROUND], right: [138, GROUND] },
+  ovFollow: { hand: [124, 124], racket: 128, off: [52, 118], lean: -8, crouch: 12, left: [64, GROUND], right: [136, GROUND] },
 };
 
 /** Two-bone solver: the middle joint of a limb from `a` to `b`, bending towards `down` (true) or up. */

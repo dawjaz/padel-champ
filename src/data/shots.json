@@ -215,6 +215,7 @@
   },
   {
     "id": "vibora",
+    "downward": true,
     "name": "Vibora",
     "kind": "rally",
     "stat": "spin",
@@ -260,6 +261,7 @@
   },
   {
     "id": "bandeja",
+    "downward": true,
     "name": "Bandeja",
     "kind": "rally",
     "stat": "technique",
@@ -352,6 +354,7 @@
   },
   {
     "id": "volley",
+    "downward": true,
     "name": "Volley",
     "kind": "rally",
     "stat": "technique",
@@ -566,6 +569,7 @@
   },
   {
     "id": "smash_x3",
+    "downward": true,
     "name": "Por Tres",
     "kind": "rally",
     "stat": "technique",
@@ -621,6 +625,7 @@
   },
   {
     "id": "smash_x4",
+    "downward": true,
     "name": "Por Cuatro",
     "kind": "rally",
     "stat": "power",
@@ -672,6 +677,7 @@
   },
   {
     "id": "bajada_fast",
+    "downward": true,
     "name": "Bajada High Speed",
     "kind": "rally",
     "stat": "power",
@@ -721,6 +727,7 @@
   },
   {
     "id": "bajada_slow",
+    "downward": true,
     "name": "Bajada Low Speed",
     "kind": "rally",
     "stat": "power",
@@ -806,6 +813,7 @@
   },
   {
     "id": "dejada",
+    "downward": true,
     "name": "Dejada",
     "kind": "rally",
     "stat": "technique",

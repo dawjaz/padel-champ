@@ -1,11 +1,26 @@
 import { DIRECTIONS } from './catalog';
-import { aimDepth, aimX, defenderIndex, indexOfLane, serveLane } from './court';
+import { aimDepth, aimX, defenderIndex, indexOfLane, landingZ, REACH_LOB_MIN, reachFactor, reachGap, reachRadius, restPos, serveLane } from './court';
 import { fatigued } from './attributes';
 import { resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
+
+/**
+ * How much of his defence a defender keeps against a ball that comes down at (landX, depth m past the net): the nearer of the two
+ * defenders at their places counts (his reach grows with his speed). 1 = the ball is within his reach, down to REACH_MIN when it is far
+ * from both. A lob can be run down (never below REACH_LOB_MIN).
+ */
+export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number): number {
+  const z = landingZ(defSide, depth);
+  let best = 0;
+  for (let i = 0; i < 2; i++) {
+    const f = reachFactor(reachGap(restPos(defSide, i, formation), landX, z), reachRadius(defenders[i].stats.speed), isLob(shot) ? REACH_LOB_MIN : undefined);
+    best = Math.max(best, f);
+  }
+  return best;
+}
 /**
  * Shares of the three kinds of lob: deep (into the court, it bounces), medium (the back third, played out of the air with a
  * vibora or a bandeja) and weak (mid-court or close to the net, smash); the rest is weak.
@@ -457,6 +472,11 @@ export function stepHit(
       netVolley(shot, state.formation[defSide], undefined) || airTake(shot, state.formation[defSide], undefined, shot.landDepth) !== undefined,
     rallyLength: state.hits,
     landX,
+    // The ball comes down at the nominal depth (the real one is rolled later). A ball into a gap between the defenders, or too short or too long for where they stand, is hard to reach.
+    reach:
+      landX === undefined
+        ? 1
+        : reachAgainst([fatigued(teams[defSide][0], state.guts[teams[defSide][0].id]), fatigued(teams[defSide][1], state.guts[teams[defSide][1].id])], defSide, state.formation[defSide], shot, landX, prefer?.depth ?? shot.landDepth),
     rng,
   });
   const force = options?.force;
@@ -515,7 +535,8 @@ export function stepHit(
     const airDist = early ? EARLY_TAKE_DIST : netBlock ? undefined : airTake(shot, state.formation[defSide], next.lob, aimed.landDepth ?? shot.landDepth);
     const block = netBlock || airDist !== undefined;
     if (block) {
-      const height: Height = shot.flight.speed >= 15 ? 'mid' : 'low';
+      // A ball hit downwards comes down at his feet; a flat one is taken at the chest when it is fast.
+      const height: Height = shot.downward !== true && shot.flight.speed >= 15 ? 'mid' : 'low';
       next.ball = { height, pressure: res.pressure, glass: false, air: true, speed: shot.flight.speed };
       next.glass = false;
       next.arrival = height;

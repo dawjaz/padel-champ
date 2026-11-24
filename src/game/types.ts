@@ -131,6 +131,8 @@ export interface ShotDef {
   id: string;
   name: string;
   kind: ShotKind;
+  /** Hit from above and downwards (volley, dejada, bajada, bandeja, vibora, smash): the racket is up and the stroke goes down, the ball comes down steeply and is taken low. */
+  downward?: boolean;
   /** Which stat drives the attack. */
   stat: StatKey;
   /** Attack multiplier. */

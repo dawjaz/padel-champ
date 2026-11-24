@@ -711,3 +711,22 @@ describe('buildCoast: a ball that leaves over the fence drops just behind it', (
     }
   });
 });
+
+describe('shots hit from above are taken low', () => {
+  const block = (id: string, startH: number) => buildFlight({ from: { x: 1, z: 11.4 }, startH, hitterSide: 0, shot: shot(id), landX: -1.5, outcome: 'continue', block: true, airDist: 1.6 });
+
+  it('a volley, a vibora and a bandeja blocked at the net come down at his feet, not at belly height', () => {
+    for (const id of ['volley', 'vibora', 'bandeja']) {
+      for (const startH of [1.4, 1.8, 2.1]) {
+        const f = block(id, startH);
+        expect(f.hitH, `${id} from ${startH}`).toBeLessThan(0.65);
+        expect(f.hitH).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('a flat shot is not made steeper', () => {
+    const f = buildFlight({ from: { x: 1, z: 11.4 }, startH: 1.6, hitterSide: 0, shot: shot('bounce_shot'), landX: -1.5, outcome: 'continue', block: true, airDist: 1.6 });
+    expect(f.hitH).toBeGreaterThan(0.65);
+  });
+});

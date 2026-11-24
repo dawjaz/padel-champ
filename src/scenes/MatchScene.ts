@@ -16,9 +16,9 @@ import { applyHd } from '../hd';
 import { DISPLAY, BODY, drawCard, makeThemeButton, TC } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
-import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
+import { laneSign, landingX, landingZ, NET_Z, REACH_DEPTH_WEIGHT, REACH_FULL, reachRadius, restPos, serveSetup } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
-import { isPowerfulSmash, playableShots, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { isPowerfulSmash, playableShots, reachAgainst, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -863,11 +863,15 @@ export class MatchScene extends Phaser.Scene {
   /** The stroke: contact pose, follow-through, then back to ready. Overhead shots are played with a jump. */
   private swing(id: string, shot: ShotDef | null, aimDx = 0): void {
     const v = this.views[id];
-    const overhead = shot === null || shot.id.startsWith('smash_') || shot.id === 'bandeja' || shot.id === 'vibora' || shot.id === 'rulo';
+    const smashing = shot === null || shot.id.startsWith('smash_') || shot.id === 'rulo';
+    const grounded = shot !== null && (shot.id === 'bandeja' || shot.id === 'vibora');
     // The rulo is hit overhead with the body turned sideways, towards the fence it is played to.
     if (shot?.id === 'rulo') this.setFacing(id, aimDx >= 0 ? 'right' : 'left');
     const prep = this.stance[id];
-    const stance: Stance = overhead ? 'smash' : prep === undefined || prep === 'smash' ? 'fh' : prep;
+    // Which way the racket goes: a jumping smash, an overhead on the ground (bandeja, vibora), from above and downwards (volley, dejada, bajada;
+    // a high ball is taken overhead), or an ordinary forehand / backhand (the ball's side).
+    const side = prep === 'bh' || prep === 'bhv' ? 'bh' : 'fh';
+    const stance: Stance = smashing ? 'smash' : grounded ? 'ov' : shot?.downward === true ? (prep === 'smash' ? 'ov' : side === 'bh' ? 'bhv' : 'fhv') : prep === undefined || prep === 'smash' || prep === 'ov' ? 'fh' : side;
     v.busyUntil = this.time.now + 420;
     this.blendTo(id, poseOf(stance, 'Hit'), 70);
     if (stance === 'smash') this.hop(id, 13);
@@ -1596,13 +1600,53 @@ export class MatchScene extends Phaser.Scene {
     // Buttons in the order the ball goes on the screen: from the left-hand player parallel is on the left and cross on the right,
     // from the right-hand player the other way round.
     const order: Direction[] = st.hitterIdx === 0 ? ['parallel', 'middle', 'cross'] : ['cross', 'middle', 'parallel'];
+    // Where each way takes the ball and how far that is from the opponents (their reach): green = a gap, orange = right at them.
+    const aim = shot.overFence === true || shot.wall === 'fence' ? undefined : this.reachMap(shot, st.hitterIdx);
     const items: ButtonSpec[] = order.map((d) => ({
       label: `${DIRECTIONS[d].name.toUpperCase()}\n-> ${targetName[d]}`,
-      tone: 'normal' as Tone,
+      tone: (aim === undefined ? 'normal' : aim[d].factor < 0.75 ? 'good' : aim[d].factor >= 0.97 ? 'poor' : 'normal') as Tone,
       onPick: () => this.performHit(shot, d),
     }));
     items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
     this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items, 'directions');
+    if (aim !== undefined) this.drawReach(aim);
+  }
+
+  /** The landing point of each direction and how much of their defence the opponents keep against it (1 = the ball is within reach). */
+  private reachMap(shot: ShotDef, hitterIdx: number): Record<Direction, { x: number; z: number; factor: number }> {
+    const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
+    const formation = this.point.formation[1];
+    const out = {} as Record<Direction, { x: number; z: number; factor: number }>;
+    for (const d of DIRECTION_ORDER) {
+      const x = landingX(d, d === 'cross' ? 1 - hitterIdx : hitterIdx);
+      out[d] = { x, z: landingZ(1, shot.landDepth), factor: reachAgainst(defenders, 1, formation, shot, x, shot.landDepth) };
+    }
+    return out;
+  }
+
+  /** Draws the opponents' comfortable reach (soft red areas) and a marker where each direction lands (green = gap, yellow = stretched, orange = right at them). Removed with the menu. */
+  private drawReach(aim: Record<Direction, { x: number; z: number; factor: number }>): void {
+    const g = this.add.graphics().setDepth(2);
+    for (let i = 0; i < 2; i++) {
+      const spot = restPos(1, i, this.point.formation[1]);
+      const r = REACH_FULL * reachRadius(TEAMS[1][i].stats.speed);
+      const pts: Phaser.Math.Vector2[] = [];
+      for (let k = 0; k < 28; k++) {
+        const a = (k / 28) * Math.PI * 2;
+        const p = project(spot.x + Math.cos(a) * r, spot.z + (Math.sin(a) * r) / REACH_DEPTH_WEIGHT);
+        pts.push(new Phaser.Math.Vector2(p.x, p.y));
+      }
+      g.fillStyle(0xff5a5a, 0.14).fillPoints(pts, true);
+      g.lineStyle(1.5, 0xff8a8a, 0.55).strokePoints(pts, true);
+    }
+    for (const d of DIRECTION_ORDER) {
+      const a = aim[d];
+      const p = project(a.x, a.z);
+      const color = a.factor < 0.75 ? 0x4ade80 : a.factor >= 0.97 ? 0xff9f1c : 0xffe066;
+      g.fillStyle(color, 0.9).fillEllipse(p.x, p.y, p.scale * 0.9, p.scale * 0.36);
+      g.lineStyle(2, 0xffffff, 0.95).strokeEllipse(p.x, p.y, p.scale * 0.9, p.scale * 0.36);
+    }
+    this.menu.push(g);
   }
 
   private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number }): void {
@@ -1737,12 +1781,14 @@ export class MatchScene extends Phaser.Scene {
       Object.assign(targets, this.rallyTargets(next));
       // The player who has to play the ball picks a stance and stands beside the ball's landing spot.
       // A ball that comes off the back glass (bajada) is played with the back to the glass and the face to the net: the player
-      // stands a little behind the ball and hits it from the side (the ball at about one or two o'clock), never overhead.
+      // stands a little behind the ball and hits it from the side (the ball at about one or two o'clock), with the racket above the ball and the stroke going down.
       const offGlass = step.glass === true && step.kind !== 'serve';
       const stance = chooseStance(other(step.side), this.pos[defender.id].x, flight.hit.x, offGlass ? 0 : flight.hitH);
-      this.stance[defender.id] = stance;
+      // A player at the net (or one who takes the ball out of the air) waits with the racket up and plays his volley from above.
+      const prepStance: Stance = stance !== 'smash' && (step.block === true || next.formation[other(step.side)] === 'net') ? (stance === 'bh' ? 'bhv' : 'fhv') : stance;
+      this.stance[defender.id] = prepStance;
       targets[defender.id] = standingSpot(other(step.side), stance, flight.hit, offGlass ? REBOUND_BEHIND_BALL : 0);
-      endPose[defender.id] = poseOf(stance, step.block ? 'Hit' : 'Prep');
+      endPose[defender.id] = poseOf(prepStance, step.block ? 'Hit' : 'Prep');
       movePartner();
       shiftHitters();
     } else if (out === 'winner' || out === 'ace' || out === 'error') {

@@ -10,10 +10,10 @@ export type Facing = 'front' | 'back' | 'left' | 'right';
 /** Body poses of the match: the same names as `ToonPose` without the menu pose `idle`. */
 export type PoseName = Exclude<ToonPose, 'idle'>;
 
-export const POSE_NAMES: PoseName[] = ['ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow'];
+export const POSE_NAMES: PoseName[] = ['ready', 'runA', 'runB', 'fhPrep', 'fhHit', 'fhFollow', 'bhPrep', 'bhHit', 'bhFollow', 'smashPrep', 'smashHit', 'smashFollow', 'fhvPrep', 'fhvHit', 'fhvFollow', 'bhvPrep', 'bhvHit', 'bhvFollow', 'ovPrep', 'ovHit', 'ovFollow'];
 
-/** Forehand = ball on the racket side, backhand = on the other side, smash = overhead. */
-export type Stance = 'fh' | 'bh' | 'smash';
+/** Forehand = ball on the racket side, backhand = on the other side, smash = overhead (jumping), ov = overhead on the ground (bandeja, vibora), fhv / bhv = from above, downwards (volley). */
+export type Stance = 'fh' | 'bh' | 'smash' | 'ov' | 'fhv' | 'bhv';
 
 export function poseOf(stance: Stance, phase: 'Prep' | 'Hit' | 'Follow'): PoseName {
   return `${stance}${phase}` as PoseName;

@@ -99,6 +99,34 @@ export function restPos(side: SideIndex, idx: number, formation: Formation): Cou
   return { x: laneX(idx), z: formationZ(side, formation) };
 }
 
+/**
+ * Reach of a defender: the ball is played at his full strength within `REACH_FULL` of his radius; further away he is stretched
+ * (his defence falls evenly) down to `REACH_MIN` of it at `REACH_FAR` radii and beyond. The radius grows with his speed
+ * (2.9 m at speed 5). Distances in depth count a little less (`REACH_DEPTH_WEIGHT`): a step forward or back is quicker than a dive sideways.
+ */
+export const REACH_BASE = 2.2;
+export const REACH_PER_SPEED = 0.14;
+export const REACH_FULL = 0.5;
+export const REACH_FAR = 1.5;
+export const REACH_MIN = 0.55;
+export const REACH_DEPTH_WEIGHT = 0.6;
+/** A lob goes over the defenders: they turn and run, so the reach never takes more than this share of their defence. */
+export const REACH_LOB_MIN = 0.75;
+
+export const reachRadius = (speed: number): number => REACH_BASE + REACH_PER_SPEED * speed;
+
+/** Share (REACH_MIN to 1) of his defence a defender keeps when the ball comes down `gap` metres away (see `reachGap`). */
+export function reachFactor(gap: number, radius: number, floor = REACH_MIN): number {
+  const t = (gap / radius - REACH_FULL) / (REACH_FAR - REACH_FULL);
+  return Math.max(floor, Math.min(1, 1 - t * (1 - REACH_MIN)));
+}
+
+/** How far (m, depth weighted) from the defender at `spot` a ball that comes down at (landX, landZ) is. */
+export const reachGap = (spot: CourtPos, landX: number, landZ: number): number => Math.hypot(landX - spot.x, REACH_DEPTH_WEIGHT * (landZ - spot.z));
+
+/** The z (m) where a ball hit `depth` metres past the net comes down in the court of `defSide`. */
+export const landingZ = (defSide: SideIndex, depth: number): number => (defSide === 0 ? NET_Z + depth : NET_Z - depth);
+
 export interface ServeSetup {
   /** Lane the server stands in (serves cross to the opposite lane). */
   lane: LaneSign;

@@ -107,6 +107,8 @@ const DT = 1 / 90;
 const MAX_TIME = 6;
 /** The ball must pass the net at least this much above its top edge. */
 const NET_CLEARANCE = 0.15;
+/** How far (m) behind where the opponent takes it a downward ball comes down. */
+export const DOWNWARD_CARRY = 1.1;
 
 // Floor: vertical bounciness and how much horizontal speed is kept, before spin.
 const FLOOR_E = 0.76;
@@ -811,7 +813,11 @@ export function buildFlight(opts: FlightOpts): Flight {
   const toBack = (o.outcome === 'winner' || o.outcome === 'ace') && o.shot.overFence === true && o.shot.exitVia === 'back';
   // A winning shot may be hit differently (a winning Por Tres bounces further from the glass so that it has time to rise).
   const winShot = o.outcome === 'winner' || o.outcome === 'ace';
-  const depth = o.landDepth ?? (winShot ? o.shot.winLandDepth : undefined) ?? o.shot.landDepth;
+  const depth0 = o.landDepth ?? (winShot ? o.shot.winLandDepth : undefined) ?? o.shot.landDepth;
+  // A ball hit from above and downwards that the opponent takes out of the air near the net comes down steeply at his feet (it lands a
+  // metre or so behind the place where he takes it) instead of skimming on at belly height towards the back of the court.
+  const blockAt = o.block ? (o.airDist ?? Math.min(1.6, depth0 * 0.5)) : undefined;
+  const depth = o.shot.downward === true && blockAt !== undefined && (o.outcome === 'continue' || o.outcome === 'in') ? Math.min(depth0, blockAt + DOWNWARD_CARRY) : depth0;
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
   // A volley from right at the net is much faster than one from mid-court (full boost within 2 m, none from 4.5 m).
   const close = clamp((4.5 - Math.abs(o.from.z - NET_Z)) / 2.5, 0, 1);

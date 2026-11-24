@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.99.1)_
+_Last updated: 2026-11-23 (v0.100)_
+
+## v0.100: reach of the defenders and shots hit from above
+- **Reach (engine, `court.ts`, `point.ts`, `engine.ts`):** the defenders now have a reach. `reachRadius(speed)` = 2.2 + 0.14 x speed (about 2.9 m at speed 5). The ball comes down at (landX, nominal depth); `reachGap` is the distance to a defender at his rest place (`restPos`, depth counts 0.6), `reachFactor` keeps his whole defence within 0.5 radius and takes it down evenly to 0.55 at 1.5 radii (`REACH_*` constants). `reachAgainst` (in `point.ts`) takes the nearer defender; a lob never goes below 0.75; fixed-aim shots (smash x3/x4 over the fence, rulo) are 1. `resolveHit` multiplies the defence by `reach` (new optional `HitInput.reach`). Serves are not affected.
+- **Balance** (`scripts/simShots.ts`, CPU against CPU, 20k points): average rally after the serve 7.6 to 5.2 hits (default teams), 8.3 to 7.3 (even teams); the CPU aims at gaps, so it uses the reach too. Constants were tuned with a grid over base, per speed, full, far, min and depth weight; the rally got shorter by about a third. Step 2 (reach from the time of flight: speed x time) is still to do.
+- **Aiming UI** (`showDirectionMenu` in `MatchScene.ts`): `reachMap` / `drawReach`: the opponents' comfortable reach is shown as soft red areas on the court and each direction has a marker where it lands: green = a gap (the opponents keep under 75% of their defence), yellow, orange = right at them (97% or more); the direction buttons are tinted the same way (green / white / orange). Not drawn for fixed-aim shots.
+- **Shots from above:** `ShotDef.downward` (volley, dejada, bajada fast and slow, bandeja, vibora, smash x3 and x4). New poses `fhv*`, `bhv*` (racket raised before the shoulder, the stroke ends below the hand: volley, dejada, bajada) and `ov*` (overhead on the ground, no jump: bandeja, vibora); the smash jumps as before; the hop now only for smashes and serves. Players at the net wait in the volley poses. Bajada is now hit from above too (still from the side of the ball).
+- **Flight:** a downward ball that the opponent takes out of the air (net block or air take) lands `DOWNWARD_CARRY` = 1.1 m behind his place (`ballPath.ts`), so it comes down steeply at his feet: a volley from 1.6 m used to be taken at 0.86 m (belly height), now below 0.65 m; the ball's arrival height for such a block is 'low' (`point.ts`), a flat fast ball is still 'mid'.
+- Tests: reach (factor, speed, middle and short balls, lob floor), downward flights, block heights; the pair balance test is looser (0.38 to 0.62; the left player has always hit about 43%).
 
 ## v0.99.1: rest after a game
 - `GAME_BREAK_RECOVERY_MUL` = 2 (`engine.ts`): the recovery after the last point of a game (the "set" of the owner's talk; a match is first to 2 games) is doubled: 4 guts at stamina 5 instead of 2 (still scaled by stamina and by the hero's recovery bonus). Used in `endPoint` of `MatchScene.ts` when `awardPoint` reports `gameWon`.

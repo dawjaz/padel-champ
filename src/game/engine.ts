@@ -94,6 +94,8 @@ export interface HitInput {
   rallyLength: number;
   /** Where the ball is aimed across the court (m): near a side wall it is more likely to be lost. */
   landX?: number;
+  /** Share (0 to 1) of his defence the defender keeps because of how far from him the ball comes down (see `reachFactor`); default 1. */
+  reach?: number;
   rng: Rng;
 }
 
@@ -129,7 +131,7 @@ export function resolveHit(i: HitInput): HitResult {
     i.rng() * RANDOM_SPREAD;
   const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
-    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus + i.rng() * RANDOM_SPREAD;
+    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus * (i.reach ?? 1) + i.rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;
