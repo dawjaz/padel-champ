@@ -264,3 +264,14 @@ describe('rest after a game', () => {
     expect(GAME_BREAK_RECOVERY_MUL).toBe(2);
   });
 });
+
+describe('lob and reach', () => {
+  it('a lob that comes down within the reach of a defender is never a winner, one that lands clear of both can be', () => {
+    const strong = { attacker: player({ technique: 10 }), defender: player({ defense: 1 }), shot: shot('rally_lob') };
+    const weak = { ...strong, shot: { ...strong.shot, winnerMargin: 1 } };
+    const reachable = resolveHit(hit({ ...weak, reach: 1, rng: fixedRng(NO_ERROR_NO_SPREAD) }));
+    const clear = resolveHit(hit({ ...weak, reach: 0.75, rng: fixedRng(NO_ERROR_NO_SPREAD) }));
+    expect(reachable.outcome).toBe('continue');
+    expect(clear.outcome).toBe('winner');
+  });
+});

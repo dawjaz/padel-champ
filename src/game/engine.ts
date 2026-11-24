@@ -3,6 +3,9 @@ import type { BallState, DirectionDef, Formation, PlayerDef, ReceiveMode, Rng, S
 
 /** Default score lead needed to win the point outright (a shot can override it). */
 export const WINNER_MARGIN = 24;
+/** A shot that flies this high is a lob; it can win the point only when its reach factor is at or below `LOB_OUT_OF_REACH` (REACH_LOB_MIN is 0.75). */
+export const LOB_APEX = 3;
+export const LOB_OUT_OF_REACH = 0.76;
 /** An ace needs this much more than the receiver's defence. */
 export const ACE_MARGIN = 48;
 /**
@@ -136,7 +139,11 @@ export function resolveHit(i: HitInput): HitResult {
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;
   let outcome: HitOutcome = 'continue';
-  if (diff > margin) outcome = 'winner';
+  // A lob that a defender can run down (the ball comes down within his reach, see `reachFactor`) is never a winner by itself:
+  // he plays it, however well it was hit. Only a lob that lands clear of both defenders wins the point.
+  const lob = i.shot.flight.apex >= LOB_APEX;
+  const reachable = lob && (i.reach ?? 1) > LOB_OUT_OF_REACH;
+  if (diff > margin && !reachable) outcome = 'winner';
 
   const pressure = outcome === 'continue' ? clamp(diff / 200, 0, MAX_PRESSURE) : 0;
   return { outcome, attackScore, defenseScore, errorChance: chance, tired, fit, pressure };

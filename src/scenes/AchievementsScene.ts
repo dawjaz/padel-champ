@@ -8,6 +8,11 @@ const PER_PAGE = 6;
 
 export class AchievementsScene extends Phaser.Scene {
   private page = 0;
+  private from = 'TitleScene';
+
+  init(data: { from?: string }): void {
+    this.from = data?.from ?? 'TitleScene';
+  }
 
   constructor() {
     super('AchievementsScene');
@@ -23,7 +28,7 @@ export class AchievementsScene extends Phaser.Scene {
     applyLightScreen(this, first);
     const save = getSave();
     const prog = progressOf(save.stats, save.records, save.profile);
-    screenHeader(this, 'Achievements', { onBack: () => this.scene.start('CupsScene'), coins: save.profile.coins });
+    screenHeader(this, 'Achievements', { onBack: () => this.scene.start('CupsScene', { from: this.from }), coins: save.profile.coins });
     themeText(this, WIDTH / 2, 78, `${save.achievements.length} / ${ACHIEVEMENTS.length} UNLOCKED`, { size: 12, color: TC.sub, font: 'display' });
     const pages = Math.ceil(ACHIEVEMENTS.length / PER_PAGE);
     ACHIEVEMENTS.slice(this.page * PER_PAGE, (this.page + 1) * PER_PAGE).forEach((a, i) => {

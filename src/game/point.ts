@@ -1,11 +1,11 @@
 import { DIRECTIONS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane } from './court';
 import { fatigued } from './attributes';
-import { resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
+import { LOB_APEX, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
-export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
+export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= LOB_APEX;
 
 /** Where the players really stand (the scene knows, the engine otherwise assumes the places of their formation). */
 export interface ReachPositions {
@@ -24,7 +24,7 @@ export interface ReachPositions {
 export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number, at: ReachPositions = {}): number {
   const z = landingZ(defSide, depth);
   const dist = at.hitter ? Math.hypot(landX - at.hitter.x, z - at.hitter.z) : REACH_DEFAULT_RUN;
-  const time = reachTimeFactor(flightTime(shot.flight.speed, shot.flight.apex, dist));
+  const time = reachTimeFactor(flightTime(shot.flight.speed, shot.flight.apex, dist), isLob(shot) ? REACH_LOB_TIME_MAX : undefined);
   let best = 0;
   for (let i = 0; i < 2; i++) {
     const spot = at.defenders ? at.defenders[i] : restPos(defSide, i, formation);

@@ -93,6 +93,8 @@ export class CharacterScene extends Phaser.Scene {
       }, p.gender === g ? 'primary' : 'secondary', 10);
       this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
     });
+    const cups = makeThemeButton(this, 296, 147, 100, 18, 'TROPHIES', () => this.scene.start('CupsScene', { from: 'CharacterScene' }), 'blue', 10);
+    this.dyn.push(...(cups.parts as Phaser.GameObjects.GameObject[]));
     const xpIcon = this.add.graphics();
     drawXp(xpIcon, 106, 123, 8);
     this.dyn.push(xpIcon);

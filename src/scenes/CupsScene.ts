@@ -25,6 +25,12 @@ export class CupsScene extends Phaser.Scene {
     super('CupsScene');
   }
 
+  private from = 'TitleScene';
+
+  init(data: { from?: string }): void {
+    this.from = data?.from ?? 'TitleScene';
+  }
+
   create(): void {
     this.mode = 'cups';
     this.page = 0;
@@ -37,7 +43,7 @@ export class CupsScene extends Phaser.Scene {
     applyLightScreen(this, first);
     const save = getSave();
     const shelf = save.profile.cups;
-    screenHeader(this, 'Trophies', { onBack: () => this.scene.start('TitleScene'), coins: save.profile.coins });
+    screenHeader(this, 'Trophies', { onBack: () => this.scene.start(this.from), coins: save.profile.coins });
     const silvers = CUPS.filter((c) => (shelf[c.id]?.silver ?? 0) > 0 && !(shelf[c.id]?.gold > 0)).length;
     themeText(this, WIDTH / 2, 76, `${goldCount(shelf)} / ${CUPS.length} GOLD   ·   ${silvers} SILVER`, { size: 12, color: TC.sub, font: 'display' });
     if (this.mode === 'cups') this.renderCups();
@@ -47,7 +53,7 @@ export class CupsScene extends Phaser.Scene {
     themeText(this, 76, 614, `${this.page + 1}/${pages}`, { size: 12, color: TC.navy, font: 'display' });
     makeThemeButton(this, 116, 614, 40, 36, '>', () => { this.page = (this.page + 1) % pages; this.selected = null; this.render(); }, 'secondary', 16);
     makeThemeButton(this, 202, 614, 84, 36, this.mode === 'cups' ? 'SETS' : 'CUPS', () => { this.mode = this.mode === 'cups' ? 'sets' : 'cups'; this.page = 0; this.selected = null; this.render(); }, 'blue', 13);
-    makeThemeButton(this, 300, 614, 96, 36, 'ACHIEVEMENTS', () => this.scene.start('AchievementsScene'), 'secondary', 9);
+    makeThemeButton(this, 300, 614, 96, 36, 'ACHIEVEMENTS', () => this.scene.start('AchievementsScene', { from: this.from }), 'secondary', 9);
   }
 
   private pageCount(): number {

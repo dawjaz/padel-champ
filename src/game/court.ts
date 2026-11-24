@@ -131,7 +131,9 @@ export const REACH_DEFAULT_RUN = 16;
 export const flightTime = (speed: number, apex: number, dist: number): number => Math.max(dist / Math.max(speed, 1), apex > 0 ? 2 * Math.sqrt((2 * apex) / 9.81) : 0);
 
 /** Scale of the reach for a ball that is `seconds` in the air. */
-export const reachTimeFactor = (seconds: number): number => Math.max(REACH_TIME_MIN, Math.min(REACH_TIME_MAX, Math.pow(seconds / REACH_REF_TIME, REACH_TIME_EXP)));
+export const reachTimeFactor = (seconds: number, max = REACH_TIME_MAX): number => Math.max(REACH_TIME_MIN, Math.min(max, Math.pow(seconds / REACH_REF_TIME, REACH_TIME_EXP)));
+/** A lob hangs in the air for two seconds: the time can add more to the reach than for a flat ball. */
+export const REACH_LOB_TIME_MAX = 1.6;
 
 /** Share (REACH_MIN to 1) of his defence a defender keeps when the ball comes down `gap` metres away (see `reachGap`). */
 export function reachFactor(gap: number, radius: number, floor = REACH_MIN): number {
