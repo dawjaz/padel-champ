@@ -8,6 +8,7 @@ _Last updated: 2026-11-24 (v0.105)_
 - `CPU_DELAY` 56 -> 28 ms, partner/opponent next-hit delay halved (it was ~0.12 s in total already; ball flight speed is unchanged, ask the owner if they meant that).
 - Hero gender: `Profile.gender`, `heroLook`, `withGender`, `HERO_DEFAULTS` (players.json `heroDefaults`: Dani/Thunder male, Lena/Blaze female). MALE/FEMALE buttons on the HERO screen; a default name follows the gender, a custom name stays.
 - The dark band above the scoreboard is the letterbox of phones taller than 9:16 (FIT scaling). The page background now takes the colour of the arena's top edge and of the command panel during a match (`paintLetterbox`). A real taller logical height would need a layout pass (not done).
+- Por tres fix: a ball that meets a side wall almost along it (after the back glass) now leaves it with at least `SIDE_MIN_INWARD` 1.4 m/s inwards (`ballPath.ts`), so it no longer drops straight down along the glass and looks outside the court. Shot sim unchanged.
 - 385 tests.
 
 ## v0.105: reach step 2 (time of flight) and the real positions of the players

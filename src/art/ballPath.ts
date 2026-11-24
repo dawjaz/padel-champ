@@ -229,6 +229,9 @@ function arcPoint(from: Vec, a: Arc, t: number): Vec {
 }
 
 /** What is hit when the ball reaches a wall at this height: glass, mesh, or nothing (it flies out). */
+/** Least speed (m/s) a ball has away from a side wall after touching it. */
+const SIDE_MIN_INWARD = 1.4;
+
 function sideWallMaterial(z: number, h: number): 'glass' | 'mesh' | 'out' {
   if (isSideOpening(z, h)) return 'out';
   const zz = clamp(z, 0, 20);
@@ -414,7 +417,9 @@ function simulateAfterBounce(
         const glass = mat === 'glass';
         const vn = Math.abs(vx);
         const eN = glass ? glassNormalE(vn) : MESH_E;
-        vx = -vx * eN;
+        // A ball that meets the side wall almost along it (after the back glass, say) still leaves it inwards: otherwise it drops
+        // along the glass, which from the TV camera looks like a ball that fell outside the court.
+        vx = -sign * Math.max(Math.abs(vx) * eN, SIDE_MIN_INWARD);
         const along = (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
         vz *= along;
         vy = glass ? wallVertical(vy, vn, lift, eN) : vy * WALL_VERTICAL_KEEP * 0.7;
