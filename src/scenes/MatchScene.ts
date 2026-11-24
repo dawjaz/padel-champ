@@ -4,7 +4,7 @@ import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
-import { mixPose, POSES, runFrame, RUN_FRAMES, type PoseSpec } from '../art/toon/character';
+import { mixPose, POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
@@ -769,6 +769,28 @@ export class MatchScene extends Phaser.Scene {
     this.showSprite(id);
   }
 
+  /** Where a player who watches the ball turns his head: -1, 0 or 1 in screen terms (the ball is clearly to his left or right, or ahead). */
+  private lookToward(id: string): number {
+    const dx = this.ballFloor.x - this.pos[id].x;
+    return Math.abs(dx) < 1.3 ? 0 : dx > 0 ? 1 : -1;
+  }
+
+  /** The spec and cache key of one shuffle picture for a player in his team's view (the front view is mirrored, so sideways directions flip). */
+  private shufflePose(id: string, frame: number, screenDir: number, screenLook: number): { key: string; spec: PoseSpec } {
+    const flip = toonViewOf(this.views[id].facing, this.views[id].side) === 'front' ? -1 : 1;
+    const f = ((frame % SHUFFLE_FRAMES) + SHUFFLE_FRAMES) % SHUFFLE_FRAMES;
+    return { key: `shuf${f}:${flip * screenDir}:${flip * screenLook}`, spec: shuffleFrame(f, flip * screenDir, flip * screenLook) };
+  }
+
+  /** Shows one frame of the side-step shuffle (the player keeps his face to the court and his eyes on the ball). */
+  private setShuffleFrame(id: string, frame: number, screenDir: number): void {
+    const v = this.views[id];
+    const pose = this.shufflePose(id, frame, screenDir, this.lookToward(id));
+    if (v.custom?.key === pose.key) return;
+    v.custom = pose;
+    this.showSprite(id);
+  }
+
   /**
    * Draws the pictures a match needs (every pose in the team's view, the profile run cycle) a couple per frame while the coin is
    * tossed, so that none of them has to be drawn in the middle of a rally (a hitch on a phone).
@@ -783,6 +805,11 @@ export class MatchScene extends Phaser.Scene {
         jobs.push(() => ensureToonPoseTexture(this, ap, team, { key: `run${f}`, spec: runFrame(f) }));
       }
       for (const pose of Object.keys(POSES) as PoseName[]) jobs.push(() => ensureToonPoseTexture(this, ap, team, pose));
+      for (let f = 0; f < SHUFFLE_FRAMES; f++) {
+        for (const dir of [-1, 1]) {
+          for (const look of [-1, 0, 1]) jobs.push(() => ensureToonPoseTexture(this, ap, team, this.shufflePose(id, f, dir, look)));
+        }
+      }
     }
     const ev = this.time.addEvent({
       delay: 16,
@@ -899,7 +926,10 @@ export class MatchScene extends Phaser.Scene {
           this.pos[id] = { x: lerp(starts[id].x, targets[id].x, t), z: lerp(starts[id].z, targets[id].z, t) };
           const v = this.views[id];
           if (running.has(id) && t < 0.97 && this.time.now >= v.busyUntil) {
-            this.setRunFrame(id, stepFrame);
+            const mx = targets[id].x - starts[id].x;
+            const mz = targets[id].z - starts[id].z;
+            if (!chasers.includes(id) && Math.abs(mx) >= Math.abs(mz)) this.setShuffleFrame(id, Math.floor(this.time.now / 90), mx > 0 ? 1 : -1);
+            else this.setRunFrame(id, stepFrame);
             v.lift = 0;
           }
           this.placeView(id);

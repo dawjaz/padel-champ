@@ -41,6 +41,8 @@ export interface PoseSpec {
   /** Ankles of the viewer's left and right leg. */
   left: Pt;
   right: Pt;
+  /** Where the head looks, in the picture's own sideways direction: -1 to 1 (0 = straight ahead). The head turns and shifts a little. */
+  look?: number;
 }
 
 const GROUND = 304;
@@ -162,6 +164,13 @@ function racketOps(c: string, shape_: ToonLook['racketShape']): Op[] {
 /** How far (figure units) a racket held in front of the body is moved to the side in the back view, so that it shows beside the body. */
 const BACK_VIEW_SIDE_SHIFT = 22;
 const HEAD_SCALE = scaleAbout(1.13, 100, 94);
+/** The head (and the hair that hangs behind it) at the size of the character, turned a little towards where it looks. */
+function headGroup(ops: Op[], look = 0): Op {
+  const g: Op = { k: 'g', m: HEAD_SCALE, ops };
+  if (!look) return g;
+  const t = rotateAbout(look * 7, 100, 104);
+  return { k: 'g', m: [t[0], t[1], t[2], t[3], t[4] + look * 5, t[5]], ops: [g] };
+}
 const AFRO = 'M100 -6 C 142 -6 158 30 152 60 C 148 84 128 92 100 92 C 72 92 52 84 48 60 C 42 30 58 -6 100 -6 Z';
 const BUN = 'M100 -2 C 112 -2, 120 6, 120 14 C 120 24, 110 28, 100 28 C 90 28, 80 24, 80 14 C 80 6, 88 -2, 100 -2 Z';
 
@@ -241,9 +250,9 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
 
   // hair behind the head (front view)
   if (!back) {
-    if (L.style === 'long') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M64 44 C 58 90, 60 120, 70 134 L 90 118 L 110 118 L 130 134 C 140 120, 142 90, 136 44 Z', L.hair)] });
-    if (L.style === 'afro') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape(AFRO, L.hair)] });
-    if (L.style === 'ponytail') u.push({ k: 'g', m: HEAD_SCALE, ops: [shape('M126 36 C 156 36 168 70 160 112 C 154 124 146 120 148 108 C 150 84 140 62 124 56 Z', L.hair)] });
+    if (L.style === 'long') u.push(headGroup([shape('M64 44 C 58 90, 60 120, 70 134 L 90 118 L 110 118 L 130 134 C 140 120, 142 90, 136 44 Z', L.hair)] , P.look));
+    if (L.style === 'afro') u.push(headGroup([shape(AFRO, L.hair)] , P.look));
+    if (L.style === 'ponytail') u.push(headGroup([shape('M126 36 C 156 36 168 70 160 112 C 154 124 146 120 148 108 C 150 84 140 62 124 56 Z', L.hair)] , P.look));
   }
 
   // shorts or skirt
@@ -335,7 +344,7 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
     head.push(shape('M66 44 C 62 14, 138 14, 134 44 C 120 36, 80 36, 66 44 Z', L.cap));
     head.push(shape('M70 42 C 90 46, 124 46, 142 52 C 140 42, 120 38, 100 38 Z', shadeHex(L.cap, 0.7)));
   }
-  u.push({ k: 'g', m: HEAD_SCALE, ops: head });
+  u.push(headGroup(head , P.look));
   if (back && L.style === 'long') {
     u.push(shape('M62 70 C 56 100, 60 126, 74 136 L 96 124 L 104 124 L 126 136 C 140 126, 144 100, 138 70 C 130 84, 70 84, 62 70 Z', L.hair));
   }
@@ -500,6 +509,7 @@ export function mixPose(a: PoseSpec, b: PoseSpec, t: number): PoseSpec {
     crouch: lerpN(a.crouch, b.crouch, t),
     left: lerpP(a.left, b.left, t),
     right: lerpP(a.right, b.right, t),
+    look: lerpN(a.look ?? 0, b.look ?? 0, t),
   };
 }
 
@@ -523,5 +533,27 @@ export function runFrame(frame: number): PoseSpec {
     crouch: R(5 + 3 * Math.cos(2 * a + Math.PI)),
     left: leg(0, 76),
     right: leg(Math.PI, 124),
+  };
+}
+
+/** Frames of the side-step shuffle (a player who watches the ball and moves sideways: wide, low, feet apart then together, face to the court). */
+export const SHUFFLE_FRAMES = 4;
+
+/** One frame of the shuffle. `dir`: -1 or 1, the sideways direction in the picture's own space; `look`: where the head turns (-1, 0, 1). */
+export function shuffleFrame(frame: number, dir: number, look = 0): PoseSpec {
+  const a = (((frame % SHUFFLE_FRAMES) + SHUFFLE_FRAMES) % SHUFFLE_FRAMES / SHUFFLE_FRAMES) * Math.PI * 2;
+  const leg = (offset: number, base: number): Pt => {
+    const q = a + offset;
+    return [R(base + dir * 9 * Math.cos(q)), R(GROUND - 13 * Math.max(0, Math.sin(q)))];
+  };
+  return {
+    hand: [R(124 + dir * 3), 150],
+    racket: 10,
+    off: 'grip',
+    lean: dir * 4,
+    crouch: R(12 + 2 * Math.cos(2 * a)),
+    left: leg(0, 64),
+    right: leg(Math.PI, 136),
+    look,
   };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appearance, HairStyle } from '../../game/types';
-import { buildToon, lookOf, mixPose, POSES, RUN_FRAMES, runFrame, TOON_POSES } from './character';
+import { buildToon, lookOf, mixPose, POSES, RUN_FRAMES, runFrame, SHUFFLE_FRAMES, shuffleFrame, TOON_POSES } from './character';
 import { luma, shadeHex, toSvg, type Op } from './ops';
 
 const BASE: Appearance = {
@@ -21,6 +21,19 @@ function count(ops: Op[]): number {
 }
 
 describe('toon character', () => {
+  it('shuffles sideways: legs alternate, the head turns where it looks', () => {
+    const svg = (f: number, dir: number, look: number, view: 'front' | 'back' = 'back'): string => toSvg(buildToon(BASE, view, shuffleFrame(f, dir, look), false));
+    for (let f = 0; f < SHUFFLE_FRAMES; f++) for (const view of ['front', 'back'] as const) expect(svg(f, 1, 0, view)).not.toContain('NaN');
+    expect(svg(0, 1, 0)).not.toBe(svg(1, 1, 0));
+    expect(svg(0, 1, 0)).not.toBe(svg(0, -1, 0));
+    expect(svg(0, 1, 1)).not.toBe(svg(0, 1, 0));
+    expect(svg(0, 1, 1)).not.toBe(svg(0, 1, -1));
+    expect(svg(0, 1, 1)).toBe(svg(0, 1, 1));
+  });
+  it('mixes the look of two poses', () => {
+    const a = shuffleFrame(0, 1, 1);
+    expect(mixPose(a, POSES.ready, 0.5).look).toBeCloseTo(0.5);
+  });
   it('draws a profile that differs from the front and back views and mirrors nothing by itself', () => {
     const side = toSvg(buildToon(BASE, 'side'));
     expect(side).not.toBe(toSvg(buildToon(BASE, 'front')));

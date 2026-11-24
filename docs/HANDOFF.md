@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.98)_
+_Last updated: 2026-11-23 (v0.99)_
+
+## v0.99: side-step shuffle and a head that follows the ball
+- `PoseSpec.look` (-1..1, in the picture's own sideways direction): the head (and the hair behind it) turns up to 7 degrees and shifts 5 units (`headGroup` in `character.ts`; front and back views; `mixPose` blends it). Not in the profile view.
+- `shuffleFrame(frame, dir, look)` (`SHUFFLE_FRAMES` = 4): a low, wide stance, feet alternately lifting and moving in the direction, a small lean, racket in front. Used by `movePlayers` for every non-chaser who moves more sideways than forwards (`setShuffleFrame`, `shufflePose`: the front view is mirrored, so directions and look flip there); `lookToward(id)` turns the head towards the ball when it is more than 1.3 m to the side. Everybody else (and forward or backward moves of non-chasers) still uses the run cycle in the team view.
+- `prewarmPoses` also draws the shuffle pictures (4 frames x 2 directions x 3 looks per player).
+- Tests: shuffle frames differ by frame, direction and look; `mixPose` blends look.
+- **Still to do for 3b:** braking and lunge when a chaser stops, squash and stretch, crossing hands in the run cycle, a 3/4 view for diagonal runs, the head follows the ball also in a standing ready pose and in profile.
 
 ## v0.98: players keep their eyes on the ball; split step
 - **Facing while moving** (`movePlayers` in `MatchScene.ts`): only a *chaser* (a player with an end pose, i.e. the one who is going to hit, or the defender in `chaseBall`) turns to run (profile for sideways, front or back otherwise). Everyone else (partner covering, pair returning to its places, hitters following their shot, formation changes) shuffles in his team's view (face to the court and the ball) and never turns his back on it. New optional parameter `chasers: string[]` (default: the ids in `endPose`).
