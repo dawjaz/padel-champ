@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.99)_
+_Last updated: 2026-11-23 (v0.99.1)_
+
+## v0.99.1: rest after a game
+- `GAME_BREAK_RECOVERY_MUL` = 2 (`engine.ts`): the recovery after the last point of a game (the "set" of the owner's talk; a match is first to 2 games) is doubled: 4 guts at stamina 5 instead of 2 (still scaled by stamina and by the hero's recovery bonus). Used in `endPoint` of `MatchScene.ts` when `awardPoint` reports `gameWon`.
+- **Finding for the reach discussion (not changed):** the engine has no spatial reach. `resolveHit` compares the attack score with the defender's stat-based defence; the aimed landing point (`landX`, depth) only adds edge risk; the "gap in the set-up" is used by the CPU to choose an aim point but does not change the defence. So a ball aimed into an empty corner is defended exactly like one aimed at the defender. See the proposal in the chat of 2026-11-24 (reach by distance of the aim point from the defender).
 
 ## v0.99: side-step shuffle and a head that follows the ball
 - `PoseSpec.look` (-1..1, in the picture's own sideways direction): the head (and the hair behind it) turns up to 7 degrees and shifts 5 units (`headGroup` in `character.ts`; front and back views; `mixPose` blends it). Not in the profile view.

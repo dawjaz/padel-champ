@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DIRECTIONS, SHOTS, shotsOfKind } from './catalog';
 import {
   ACE_MARGIN,
+  GAME_BREAK_RECOVERY_MUL,
   DEFENSE_SCALE,
   defenseRating,
   errorChance,
@@ -255,5 +256,11 @@ describe('running down a bajada', () => {
     expect(defenseRating(runner(9, 3), dir, 'mid')).toBeGreaterThan(defenseRating(runner(3, 9), dir, 'mid'));
     expect(defenseRating(runner(5, 5), dir)).toBe((5 * 7 + 5 * 3) * DEFENSE_SCALE);
     expect(bajada.reboundChase).toBe(true);
+  });
+});
+
+describe('rest after a game', () => {
+  it('doubles the recovery: 4 guts instead of 2 at stamina 5', () => {
+    expect(GAME_BREAK_RECOVERY_MUL).toBe(2);
   });
 });

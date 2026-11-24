@@ -191,6 +191,9 @@ export function spendGuts(guts: number, cost: number): number {
   return Math.max(0, guts - cost);
 }
 
+/** The game that has just ended is a short rest: the guts recovered after its last point are this many times the usual amount (4 instead of 2 at stamina 5). */
+export const GAME_BREAK_RECOVERY_MUL = 2;
+
 /** Guts after recovering (never above max). */
 export function recoverGuts(guts: number, amount: number, maxGuts: number): number {
   return Math.min(maxGuts, guts + amount);

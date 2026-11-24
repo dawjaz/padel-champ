@@ -17,7 +17,7 @@ import { DISPLAY, BODY, drawCard, makeThemeButton, TC } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, NET_Z, restPos, serveSetup } from '../game/court';
-import { recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
+import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
 import { isPowerfulSmash, playableShots, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
@@ -1974,8 +1974,10 @@ export class MatchScene extends Phaser.Scene {
     const res = awardPoint(this.matchScore, winner);
     this.matchScore = res.score;
 
+    // The pause after a game is a rest: double recovery (4 guts at stamina 5 instead of 2 after a point).
+    const restMul = res.gameWon ? GAME_BREAK_RECOVERY_MUL : 1;
     for (const p of TEAMS.flat()) {
-      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina) * (p.id === TEAMS[0][0].id ? 1 + this.recoveryPct : 1), p.maxGuts);
+      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina) * restMul * (p.id === TEAMS[0][0].id ? 1 + this.recoveryPct : 1), p.maxGuts);
     }
     this.refreshScore();
     this.refreshGuts();
