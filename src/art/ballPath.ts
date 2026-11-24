@@ -264,6 +264,8 @@ interface SimOpts {
   backGlass?: boolean;
   /** Highest point of the rebound off the back glass (steers the rebound to low, medium or high). */
   reboundPeak?: number;
+  /** Scales the speed the ball leaves the back wall with (1 = normal): a bajada winner dies off the glass instead of coming back. */
+  backDamp?: number;
   /** Extra carry of the first bounce so that the ball really reaches the back glass. */
   carry?: number;
 }
@@ -446,7 +448,7 @@ function simulateAfterBounce(
       const vn = Math.abs(vz);
       const vzIn = vz;
       const eN = glass ? glassNormalE(vn) : MESH_E;
-      vz = -vz * eN;
+      vz = -vz * eN * (o.backDamp ?? 1);
       vx *= (glass ? GLASS_KEEP : MESH_KEEP) * (kicked ? 1 : kick);
       if (glass) {
         // Side spin kicks the ball along the glass, against the way the spin bends it in the air (as topspin kicks up off the glass).
@@ -879,9 +881,10 @@ export function buildFlight(opts: FlightOpts): Flight {
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
   // Only a smash can leave the court over the fence. A rulo that comes off the mesh stays in the court.
   const exits = winning && o.shot.wall !== 'fence' && o.shot.overFence === true;
-  const run = (boost: number, carry = 1): ReturnType<typeof simulateAfterBounce> =>
+  const run = (boost: number, carry = 1, backDamp = 1): ReturnType<typeof simulateAfterBounce> =>
     simulateAfterBounce(touch, arc.T, {
       shot: o.shot,
+      backDamp,
       hitHeight,
       needWall,
       exitOverFence: exits,
@@ -900,6 +903,18 @@ export function buildFlight(opts: FlightOpts): Flight {
       const r = run(1, carry);
       sim = r;
       if (r.backContact >= 0) break;
+    }
+  }
+  // A winner that must not come back (the bajada): the ball dies on the opponent's side. If it would rebound over the net, the
+  // kick off the glass is damped until it stays there.
+  if (winning && !exits && o.shot.noReboundBack === true) {
+    const comesBack = (r: typeof sim): boolean => r.samples.slice(0, r.end + 1).some((q) => (o.hitterSide === 0 ? q.z > NET_Z - 1.5 : q.z < NET_Z + 1.5));
+    if (comesBack(sim)) {
+      for (const damp of [0.7, 0.5, 0.35, 0.25, 0.15, 0.08]) {
+        const r = run(1, backGlass && sim.backContact >= 0 ? 1.25 : 1, damp);
+        sim = r;
+        if (!comesBack(r)) break;
+      }
     }
   }
   // A winning smash is hit hard enough to leave the court: spin it up until it really flies out, preferably the

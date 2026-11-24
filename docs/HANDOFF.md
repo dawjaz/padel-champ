@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-24 (v0.101)_
+_Last updated: 2026-11-24 (v0.102)_
+
+## v0.102: bajada fixes, tournament bracket as a tree
+- **Bajada winners** (`noReboundBack` on bajada_fast and bajada_slow): the ball no longer comes off the back glass and returns over the net. `buildFlight` damps the back-wall rebound (`backDamp` in `simulateAfterBounce`, tried 0.7 down to 0.08) until the ball stays at least 1.5 m beyond the net on the receiving side. A rare exit through a side opening near the net remains (still on the opponent's side).
+- **Bajada balance**: high speed `winnerMargin` 32 to 56, low speed 24 to 30. Vs players at the net (hero at the back, `ignoreRequires`): fast was 67/75/80% winners (parallel/cross/middle), now 65/20/39%; vs mid-court players 64/16/55 now 12/0/1; errors unchanged (33/25/20%). Slow vs net 68/8/38 now 43/0/19. Parallel stays high against net players (reach floor). Test: cross vs net below 40%.
+- **Bracket view** (`BracketScene.drawTree`): the list of pairs is replaced by a tree, one column per round, winners move right, the hero's path and slots are orange, unplayed rounds are empty boxes; names are shortened (`Orte/Duar`) so 16 pairs fit 360 px.
 
 ## v0.101: por tres / contrapared fixes, dejada balance, GEAR stats, coins open the shop
 - **Contrapared** is only played off the glass: `requires.formations` is `["back"]` and `buildContrapared` clamps the wall hit to `CONTRAPARED_GLASS_END` (16.4 m), so never off the mesh.

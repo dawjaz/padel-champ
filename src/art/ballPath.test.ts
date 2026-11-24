@@ -581,6 +581,21 @@ describe('rebound back over the net', () => {
   });
 });
 
+describe('bajada winners', () => {
+  it('die on the opponent side: the ball never comes back over the net', () => {
+    for (const id of ['bajada_fast', 'bajada_slow']) {
+      const s = SHOTS.find((x) => x.id === id)!;
+      for (const hs of [0, 1] as const)
+        for (const hx of [-3, 0, 3])
+          for (const lx of [-3, -1, 2, 3.5]) {
+            const f = buildFlight({ from: { x: hx, z: hs === 0 ? 17 : 3 }, startH: 2.2, hitterSide: hs, shot: s, landX: lx, outcome: 'winner', glass: true, seed: 2 });
+            const end = f.path[f.path.length - 1];
+            expect(hs === 0 ? end.z < 10 : end.z > 10, `${id} ${hs} ${hx} ${lx}`).toBe(true);
+          }
+    }
+  });
+});
+
 describe('serve faults that are out', () => {
   it('a long serve bounces beyond the service line', () => {
     const f = fly('t_serve', { outcome: 'fault', errorKind: 'long' });

@@ -825,6 +825,18 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
     expect(rate('mid')).toBeLessThan(0.3);
   });
 
+  it('bajada high speed is not a point every time, also cross-court against players at the net', () => {
+    let n = 0;
+    let all = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const st = rallyState({ formation: ['back', 'net'], ball: { height: 'mid', pressure: 0, glass: true, zone: 'back' } });
+      all++;
+      if (stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(seed), undefined, { ignoreRequires: true }).step.outcome === 'winner') n++;
+    }
+    expect(n / all).toBeLessThan(0.4);
+    expect(n / all).toBeGreaterThan(0.05);
+  });
+
   it('contrapared: not at the net, after the bounce, low or mid, with a ball that comes down by a side wall', () => {
     const ball = { height: 'mid' as const, pressure: 0, zone: 'mid' as const, nearWall: true };
     expect(ids(rallyState({ formation: ['back', 'back'], ball }))).toContain('contrapared');

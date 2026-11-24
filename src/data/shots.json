@@ -678,6 +678,7 @@
   {
     "id": "bajada_fast",
     "downward": true,
+    "noReboundBack": true,
     "name": "Bajada High Speed",
     "kind": "rally",
     "stat": "power",
@@ -693,7 +694,7 @@
     "advance": "stay",
     "landDepth": 7.4,
     "wall": "back",
-    "winnerMargin": 32,
+    "winnerMargin": 56,
     "glassChance": 0.3,
     "requires": {
       "glass": true,
@@ -728,6 +729,7 @@
   {
     "id": "bajada_slow",
     "downward": true,
+    "noReboundBack": true,
     "name": "Bajada Low Speed",
     "kind": "rally",
     "stat": "power",
@@ -743,7 +745,7 @@
     "advance": "stay",
     "landDepth": 6.2,
     "wall": "back",
-    "winnerMargin": 24,
+    "winnerMargin": 30,
     "glassChance": 1.0,
     "requires": {
       "glass": true,
