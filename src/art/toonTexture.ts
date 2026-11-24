@@ -52,10 +52,14 @@ export function addToonHead(scene: Phaser.Scene, cx: number, top: number, width:
 /** Pixels per character unit of the match textures (many are kept: 4 players x 12 poses x 2 views). */
 const MATCH_UNIT = 0.55;
 
+/** The texture key of a pose (see `ensureToonPoseTexture`): lets the caller check whether the picture exists without drawing it. */
+export function toonPoseKey(appearance: Appearance, view: ToonView, pose: ToonPose | { key: string; spec: PoseSpec }): string {
+  return `toonm:${view}:${typeof pose === 'string' ? pose : pose.key}:${JSON.stringify(appearance)}`;
+}
+
 /** Texture of one pose of a player in the match (no shadow: the scene draws it under the feet). */
 export function ensureToonPoseTexture(scene: Phaser.Scene, appearance: Appearance, view: ToonView, pose: ToonPose | { key: string; spec: PoseSpec }): string {
-  const name = typeof pose === 'string' ? pose : pose.key;
-  const key = `toonm:${view}:${name}:${JSON.stringify(appearance)}`;
+  const key = toonPoseKey(appearance, view, pose);
   if (scene.textures.exists(key)) return key;
   scene.textures.addCanvas(key, renderOpsCanvas(buildToon(appearance, view, typeof pose === 'string' ? pose : pose.spec, false), MATCH_UNIT));
   return key;

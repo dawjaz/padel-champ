@@ -1,4 +1,16 @@
 {
+  "heroDefaults": {
+    "male": {
+      "name": "Dani",
+      "nick": "Thunder",
+      "hairStyle": "short"
+    },
+    "female": {
+      "name": "Lena",
+      "nick": "Blaze",
+      "hairStyle": "long"
+    }
+  },
   "you": [
     {
       "id": "toro",

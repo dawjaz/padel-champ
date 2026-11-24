@@ -8,7 +8,7 @@ import packsData from '../data/packs.json';
 import { newCareer, sanitizeCareer, type Career } from './season';
 import { applyLook, gearBonus, legacyRefund, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
-import type { PlayerDef, StatKey } from '../game/types';
+import type { Appearance, Gender, PlayerDef, StatKey } from '../game/types';
 
 export type Alloc = Record<StatKey, number>;
 
@@ -16,6 +16,8 @@ export interface Profile {
   /** The hero's name and nickname (the player can change both). */
   name: string;
   nick: string;
+  /** Male or female hero: the look and the default name (see `HERO_DEFAULTS`). */
+  gender: Gender;
   xp: number;
   coins: number;
   /** Skill points put into each attribute (on top of `levels.startStat`). */
@@ -46,7 +48,21 @@ const BASE_HERO = playersData.you[0];
 export const DEFAULT_NAME = BASE_HERO.name;
 export const DEFAULT_NICK = BASE_HERO.nick;
 
-export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
+export const HERO_DEFAULTS = playersData.heroDefaults as Record<Gender, { name: string; nick: string; hairStyle: Appearance['hairStyle'] }>;
+
+/** The hero's look: the base look of the hero in the chosen gender, with the colours of the equipped gear. */
+export const heroLook = (p: Pick<Profile, 'gender' | 'inventory'>, base: Appearance = BASE_HERO.appearance as Appearance): Appearance =>
+  applyLook({ ...base, gender: p.gender, hairStyle: HERO_DEFAULTS[p.gender].hairStyle }, p.inventory);
+
+/** Switches the hero's gender; a name or nickname that is still the default of the other gender becomes the default of the new one. */
+export function withGender(p: Profile, gender: Gender): Profile {
+  if (p.gender === gender) return p;
+  const from = HERO_DEFAULTS[p.gender];
+  const to = HERO_DEFAULTS[gender];
+  return { ...p, gender, name: p.name === from.name ? to.name : p.name, nick: p.nick === from.nick ? to.nick : p.nick };
+}
+
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -130,7 +146,8 @@ export function sanitizeProfile(raw: unknown): Profile {
     alloc[k] = Math.max(0, v);
     left -= alloc[k];
   }
-  return { name: cleanName(o.name, MAX_NAME, DEFAULT_NAME), nick: cleanName(o.nick, MAX_NICK, DEFAULT_NICK), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  const gender: Gender = o.gender === 'female' ? 'female' : 'male';
+  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */
@@ -139,5 +156,5 @@ export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef 
   const stats = Object.fromEntries(
     STAT_KEYS.map((k) => [k, Math.min(levels.statMax, statValue(p, k) + gear[k] + (boost?.stats[k] ?? 0))]),
   ) as Record<StatKey, number>;
-  return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: applyLook(base.appearance, p.inventory) };
+  return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: heroLook(p, base.appearance) };
 }

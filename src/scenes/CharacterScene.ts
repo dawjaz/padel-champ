@@ -2,17 +2,15 @@ import Phaser from 'phaser';
 import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
-import { applyLook, gearBonus } from '../career/gear';
-import { canSpend, canUnspend, freePoints, levelOf, levelProgress, respec, spend, statCap, statValue, unspend, xpToReach } from '../career/profile';
+import { gearBonus } from '../career/gear';
+import { withGender, canSpend, canUnspend, freePoints, heroLook, levelOf, levelProgress, respec, spend, statCap, statValue, unspend, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
-import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
-import type { PlayerDef, StatKey } from '../game/types';
+import type { StatKey } from '../game/types';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawBar, drawCard, drawXp, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
-const HERO = (playersData.you as unknown as PlayerDef[])[0];
 
 const LABEL: Record<StatKey, string> = {
   power: 'POWER',
@@ -73,7 +71,7 @@ export class CharacterScene extends Phaser.Scene {
     const top = this.add.graphics().setPosition(12, 66);
     drawCard(top, WIDTH - 24, 92);
     this.dyn.push(top);
-    this.dyn.push(addToon(this, 52, 150, 76, applyLook(HERO.appearance, p.inventory), 'front'));
+    this.dyn.push(addToon(this, 52, 150, 76, heroLook(p), 'front'));
     const name = this.text(100, 85, p.name.toUpperCase(), 22, TC.navy, 0, true);
     this.text(100, 103, `"${p.nick.toUpperCase()}"`, 11, TC.orange, 0);
     const bx = 100 + name.width + 8;
@@ -86,6 +84,15 @@ export class CharacterScene extends Phaser.Scene {
     this.text(bx + 28, 85, `LVL ${level}`, 12, TC.navy);
     const edit = makeThemeButton(this, 306, 105, 52, 20, 'EDIT', () => this.scene.start('NameEditScene', { back: 'CharacterScene' }), 'secondary', 11);
     this.dyn.push(...(edit.parts as Phaser.GameObjects.GameObject[]));
+    (['male', 'female'] as const).forEach((g, i) => {
+      const b = makeThemeButton(this, 132 + i * 66, 147, 62, 18, g === 'male' ? 'MALE' : 'FEMALE', () => {
+        if (p.gender !== g) {
+          updateSave((d) => ({ ...d, profile: withGender(d.profile, g) }));
+          this.redraw();
+        }
+      }, p.gender === g ? 'primary' : 'secondary', 10);
+      this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
+    });
     const xpIcon = this.add.graphics();
     drawXp(xpIcon, 106, 123, 8);
     this.dyn.push(xpIcon);

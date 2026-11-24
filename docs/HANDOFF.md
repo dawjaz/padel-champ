@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.106: lag at the coin toss, CPU pause, hero gender, letterbox colour
+- Coin toss: the coin is two pre-rendered textures (`ensureCoinTexture`), not shapes tessellated every frame.
+- Pose warm-up is a queue (`warmQueue`, `runWarmQueue` from `update`): about 4 ms of drawing per frame, essential poses first. `blendTo` no longer draws in-between pictures during a rally (it queues them and skips the step). `toonPoseKey` tells whether a pose texture exists.
+- `CPU_DELAY` 56 -> 28 ms, partner/opponent next-hit delay halved (it was ~0.12 s in total already; ball flight speed is unchanged, ask the owner if they meant that).
+- Hero gender: `Profile.gender`, `heroLook`, `withGender`, `HERO_DEFAULTS` (players.json `heroDefaults`: Dani/Thunder male, Lena/Blaze female). MALE/FEMALE buttons on the HERO screen; a default name follows the gender, a custom name stays.
+- The dark band above the scoreboard is the letterbox of phones taller than 9:16 (FIT scaling). The page background now takes the colour of the arena's top edge and of the command panel during a match (`paintLetterbox`). A real taller logical height would need a layout pass (not done).
+- 388 tests.
+
 ## v0.105: reach step 2 (time of flight) and the real positions of the players
 - **Real positions**: `HitOptions.positions` (`ReachPositions`: both defenders and the hitter). `reachAgainst(..., at)` measures the reach from where the players really stand; without `at` (CPU simulation, tests) it still uses the places of the formation (`restPos`). `MatchScene.reachPositions()` passes `this.pos` into every `stepHit` and into the reach hints, so the engine and the screen no longer disagree about who is "in reach" (the suspected cause of "the opponent seemed to have it and did not play it").
 - **Time of flight** (`court.ts`): `flightTime(speed, apex, dist)` (an arc counts at least its free-fall time) and `reachTimeFactor` = (t / 0.8)^0.35 kept in 0.8..1.3 scale the defender's radius: a slow or high ball can be run down, a hard flat one cannot. Without a hitter position the run is assumed `REACH_DEFAULT_RUN` 16 m. First tries (exponent 0.6, 0.7..1.5) shifted shots too much (volley winners 8% to 15%, bajada_slow 19% to 9%, dejada 7% to 2%).

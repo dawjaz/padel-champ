@@ -3,11 +3,11 @@ import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT
 import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
-import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
+import { ensureToonPoseTexture, placeToonSprite, toonPoseKey } from '../art/toonTexture';
 import { mixPose, POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
-import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
+import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureCoinTexture, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
@@ -52,7 +52,7 @@ export interface CareerMatch {
 const HUMAN_SIDE: SideIndex = 0;
 const HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
-const CPU_DELAY = 56;
+const CPU_DELAY = 28;
 const NEXT_HIT_DELAY = 88;
 /** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
 const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
@@ -306,7 +306,10 @@ export class MatchScene extends Phaser.Scene {
 
     this.makeExitButton();
     this.events.on('retire-confirmed', () => this.retire());
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('retire-confirmed'));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off('retire-confirmed');
+      document.body.style.background = '';
+    });
 
     this.refreshScore();
     this.refreshGuts();
@@ -381,6 +384,8 @@ export class MatchScene extends Phaser.Scene {
   // ---------- coin toss: the side that wins it serves first ----------
 
   private coinToss(): void {
+    ensureCoinTexture(this, 'H');
+    ensureCoinTexture(this, 'T');
     this.setActive(null);
     this.say('COIN TOSS: call it!');
     this.showButtons('Coin toss', [
@@ -407,14 +412,9 @@ export class MatchScene extends Phaser.Scene {
     const result = flipCoin(Math.random);
     const winner = tossWinner(call, result, HUMAN_SIDE);
     const baseY = 330;
-    const coin = this.add.container(WIDTH / 2, baseY).setDepth(9996);
-    const rim = this.add.ellipse(0, 0, 54, 54, 0xb8860b).setStrokeStyle(3, 0x5a3d00);
-    const face = this.add.ellipse(0, 0, 44, 44, 0xffd447).setStrokeStyle(2, 0xfff2a8);
-    const mark = this.add
-      .text(0, 0, 'H', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '28px', color: '#7a5200' })
-      .setOrigin(0.5);
-    coin.add([rim, face, mark]);
-    const shadow = this.add.ellipse(WIDTH / 2, baseY + 36, 40, 10, 0x000000, 0.35).setDepth(9994);
+    const coin = this.add.image(WIDTH / 2, baseY, ensureCoinTexture(this, 'H')).setDepth(9996).setDisplaySize(60, 60);
+    const coinKeys = { H: ensureCoinTexture(this, 'H'), T: ensureCoinTexture(this, 'T') };
+    const shadow = this.add.image(WIDTH / 2, baseY + 36, SHADOW_KEY).setDisplaySize(40, 10).setAlpha(0.5).setDepth(9994);
     // Heads ends after whole turns, tails after a half turn more.
     const angleEnd = (result === 'heads' ? 5 : 5.5) * Math.PI * 2;
     sfx('coinFlip');
@@ -427,14 +427,15 @@ export class MatchScene extends Phaser.Scene {
         const t = tween.getValue() ?? 0;
         const a = angleEnd * t;
         const c = Math.cos(a);
+        const grow = 1 + 0.25 * Math.sin(Math.PI * t);
         coin.setY(baseY - Math.sin(Math.PI * t) * 130);
-        coin.setScale(1 + 0.25 * Math.sin(Math.PI * t), Math.max(0.04, Math.abs(c)) * (1 + 0.25 * Math.sin(Math.PI * t)));
-        mark.setText(c >= 0 ? 'H' : 'T');
-        shadow.setScale(1 - 0.5 * Math.sin(Math.PI * t));
+        coin.setDisplaySize(60 * grow, 60 * Math.max(0.04, Math.abs(c)) * grow);
+        coin.setTexture(c >= 0 ? coinKeys.H : coinKeys.T);
+        shadow.setDisplaySize(40 * (1 - 0.5 * Math.sin(Math.PI * t)), 10 * (1 - 0.5 * Math.sin(Math.PI * t)));
       },
       onComplete: () => {
-        coin.setScale(1.15);
-        this.tweens.add({ targets: coin, scale: 1, duration: 160, yoyo: false });
+        coin.setDisplaySize(69, 69);
+        this.tweens.add({ targets: coin, displayWidth: 60, displayHeight: 60, duration: 160 });
         sfx('coinLand');
         const word = result.toUpperCase();
         const you = winner === HUMAN_SIDE;
@@ -456,9 +457,29 @@ export class MatchScene extends Phaser.Scene {
   private drawArenaHd(): void {
     const { netY, backKey } = ensureArenaTextures(this, themeIdOfCity(this.career?.city));
     this.add.image(0, 0, backKey).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
+    this.paintLetterbox(backKey);
     // The net is its own strip, sorted with the players: far players stand behind it, near players in front.
     const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
     net.setDisplaySize(WIDTH, net.height / HD_SCALE);
+  }
+
+  /**
+   * On a phone taller than 9:16 the canvas is centred with bars above and below. The page behind it takes the colour of the
+   * picture's top edge (crowd) above and of the command panel below, so the match looks like it fills the whole screen.
+   */
+  private paintLetterbox(backKey: string): void {
+    try {
+      const img = this.textures.get(backKey).getSourceImage() as HTMLCanvasElement;
+      const g = img.getContext?.('2d');
+      if (!g) return;
+      const row = g.getImageData(0, 0, img.width, 2).data;
+      let r = 0, gr = 0, b = 0, n = 0;
+      for (let i = 0; i < row.length; i += 4) { r += row[i]; gr += row[i + 1]; b += row[i + 2]; n++; }
+      const top = `rgb(${Math.round(r / n)},${Math.round(gr / n)},${Math.round(b / n)})`;
+      document.body.style.background = `linear-gradient(to bottom, ${top} 50%, #0b2a5b 50%)`;
+    } catch {
+      /* the plain page colour stays */
+    }
   }
 
   // ---------- players and ball ----------
@@ -798,30 +819,42 @@ export class MatchScene extends Phaser.Scene {
    * Draws the pictures a match needs (every pose in the team's view, the profile run cycle) a couple per frame while the coin is
    * tossed, so that none of them has to be drawn in the middle of a rally (a hitch on a phone).
    */
+  update(): void {
+    this.runWarmQueue();
+  }
+
   private prewarmPoses(): void {
-    const jobs: Array<() => void> = [];
+    // Most needed first: the ready and stroke poses, then the run cycle, then the rest.
+    const first: Array<() => void> = [];
+    const later: Array<() => void> = [];
+    const essential = new Set<string>(['ready', 'fhPrep', 'fhHit', 'bhPrep', 'bhHit', 'smashPrep', 'smashHit', 'fhvPrep', 'fhvHit', 'bhvPrep', 'bhvHit']);
     for (const [id, v] of Object.entries(this.views)) {
       const ap = v.player.appearance;
       const team = toonViewOf(this.defaultFacing(id), v.side);
+      for (const pose of Object.keys(POSES) as PoseName[]) (essential.has(pose) ? first : later).push(() => ensureToonPoseTexture(this, ap, team, pose));
       for (let f = 0; f < RUN_FRAMES; f++) {
-        jobs.push(() => ensureToonPoseTexture(this, ap, 'side', { key: `run${f}`, spec: runFrame(f) }));
-        jobs.push(() => ensureToonPoseTexture(this, ap, team, { key: `run${f}`, spec: runFrame(f) }));
+        first.push(() => ensureToonPoseTexture(this, ap, 'side', { key: `run${f}`, spec: runFrame(f) }));
+        later.push(() => ensureToonPoseTexture(this, ap, team, { key: `run${f}`, spec: runFrame(f) }));
       }
-      for (const pose of Object.keys(POSES) as PoseName[]) jobs.push(() => ensureToonPoseTexture(this, ap, team, pose));
       for (let f = 0; f < SHUFFLE_FRAMES; f++) {
         for (const dir of [-1, 1]) {
-          for (const look of [-1, 0, 1]) jobs.push(() => ensureToonPoseTexture(this, ap, team, this.shufflePose(id, f, dir, look)));
+          for (const look of [-1, 0, 1]) later.push(() => ensureToonPoseTexture(this, ap, team, this.shufflePose(id, f, dir, look)));
         }
       }
     }
-    const ev = this.time.addEvent({
-      delay: 16,
-      loop: true,
-      callback: () => {
-        for (let i = 0; i < 2; i++) jobs.shift()?.();
-        if (jobs.length === 0) ev.remove();
-      },
-    });
+    this.warmQueue.push(...first, ...later);
+  }
+
+  /** Pictures still to be drawn, a few milliseconds of work per frame (a picture takes a few ms on a phone: never a hitch). */
+  private warmQueue: Array<() => void> = [];
+
+  /** Draws queued pictures until the frame's budget (ms) is used (at least one while the queue is not empty). */
+  private runWarmQueue(budget = 4): void {
+    const t0 = performance.now();
+    while (this.warmQueue.length > 0) {
+      this.warmQueue.shift()?.();
+      if (performance.now() - t0 >= budget) break;
+    }
   }
 
   /** Glides from the current pose to `pose` in `ms`, through a few in-between pictures; a newer pose cancels it. */
@@ -834,7 +867,15 @@ export class MatchScene extends Phaser.Scene {
     for (let i = 1; i <= steps; i++) {
       this.time.delayedCall((ms * i) / (steps + 1), () => {
         if (v.blend !== token) return;
-        v.custom = { key: `b:${fromKey}>${pose}:${i}`, spec: mixPose(from, POSES[pose], i / (steps + 1)) };
+        const custom = { key: `b:${fromKey}>${pose}:${i}`, spec: mixPose(from, POSES[pose], i / (steps + 1)) };
+        // An in-between picture that has not been drawn yet is not drawn now (a hitch in the middle of a rally): it is queued for the
+        // next free frames and this step is skipped, the next ones show the pose that was asked for.
+        const view = toonViewOf(v.facing, v.side);
+        if (!this.textures.exists(toonPoseKey(v.player.appearance, view, custom))) {
+          this.warmQueue.push(() => ensureToonPoseTexture(this, v.player.appearance, view, custom));
+          return;
+        }
+        v.custom = custom;
         this.showSprite(id);
       });
     }

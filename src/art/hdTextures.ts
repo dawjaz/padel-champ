@@ -83,3 +83,36 @@ export function ensureFlatTextures(scene: Phaser.Scene): void {
     g.fill();
   });
 }
+
+/** A coin face for the coin toss ('H' or 'T'), painted once: a shape drawn every frame is triangulated every frame. */
+export function ensureCoinTexture(scene: Phaser.Scene, face: 'H' | 'T'): string {
+  const key = `hd:coin:${face}`;
+  if (scene.textures.exists(key)) return key;
+  const S = HD_SCALE * 2;
+  const size = 60;
+  const canvas = document.createElement('canvas');
+  canvas.width = size * S;
+  canvas.height = size * S;
+  const g = canvas.getContext('2d');
+  if (g) {
+    g.scale(S, S);
+    const disc = (r: number, fill: string, stroke: string, line: number): void => {
+      g.beginPath();
+      g.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+      g.fillStyle = fill;
+      g.fill();
+      g.lineWidth = line;
+      g.strokeStyle = stroke;
+      g.stroke();
+    };
+    disc(26, '#b8860b', '#5a3d00', 3);
+    disc(21, '#ffd447', '#fff2a8', 2);
+    g.fillStyle = '#7a5200';
+    g.font = '800 28px "Baloo 2", "Trebuchet MS", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(face, size / 2, size / 2 + 2);
+  }
+  scene.textures.addCanvas(key, canvas);
+  return key;
+}

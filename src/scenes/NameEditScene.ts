@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
-import { DEFAULT_NAME, DEFAULT_NICK } from '../career/profile';
+import { HERO_DEFAULTS } from '../career/profile';
 import { cleanName, MAX_NAME, MAX_NICK } from '../game/names';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -108,9 +108,12 @@ export class NameEditScene extends Phaser.Scene {
   }
 
   private save(): void {
-    const name = cleanName(this.values.name, MAX_NAME, DEFAULT_NAME);
-    const nick = cleanName(this.values.nick, MAX_NICK, DEFAULT_NICK);
-    updateSave((d) => ({ ...d, profile: { ...d.profile, name, nick } }));
+    updateSave((d) => {
+      const def = HERO_DEFAULTS[d.profile.gender];
+      const name = cleanName(this.values.name, MAX_NAME, def.name);
+      const nick = cleanName(this.values.nick, MAX_NICK, def.nick);
+      return { ...d, profile: { ...d.profile, name, nick } };
+    });
     this.scene.start(this.back);
   }
 }

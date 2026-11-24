@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, statCap, statValue, unspend, xpToReach } from './profile';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -97,5 +97,20 @@ describe('storage safety', () => {
     expect(hero.stats.power).toBe(levels.startStat);
     expect(hero.maxGuts).toBe(Math.round(6 + 0.8 * hero.stats.stamina));
     expect(hero.id).toBe('toro');
+  });
+});
+
+describe('hero gender', () => {
+  it('switches the default name and look, keeps a custom name', () => {
+    const f = withGender(newProfile(), 'female');
+    expect(f.name).toBe(HERO_DEFAULTS.female.name);
+    expect(heroLook(f).gender).toBe('female');
+    const custom = withGender({ ...newProfile(), name: 'Kasia' }, 'female');
+    expect(custom.name).toBe('Kasia');
+    expect(withGender(f, 'male').name).toBe(HERO_DEFAULTS.male.name);
+  });
+  it('sanitizes the stored gender and falls back to the default name of it', () => {
+    expect(sanitizeProfile({ gender: 'female', name: '' }).name).toBe(HERO_DEFAULTS.female.name);
+    expect(sanitizeProfile({ gender: 'x' }).gender).toBe('male');
   });
 });
