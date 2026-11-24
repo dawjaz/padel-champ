@@ -8,7 +8,7 @@ _Last updated: 2026-11-24 (v0.105)_
 - `CPU_DELAY` 56 -> 28 ms, partner/opponent next-hit delay halved (it was ~0.12 s in total already; ball flight speed is unchanged, ask the owner if they meant that).
 - Hero gender: `Profile.gender`, `heroLook`, `withGender`, `HERO_DEFAULTS` (players.json `heroDefaults`: Dani/Thunder male, Lena/Blaze female). MALE/FEMALE buttons on the HERO screen; a default name follows the gender, a custom name stays.
 - The dark band above the scoreboard is the letterbox of phones taller than 9:16 (FIT scaling). The page background now takes the colour of the arena's top edge and of the command panel during a match (`paintLetterbox`). A real taller logical height would need a layout pass (not done).
-- 388 tests.
+- 385 tests.
 
 ## v0.105: reach step 2 (time of flight) and the real positions of the players
 - **Real positions**: `HitOptions.positions` (`ReachPositions`: both defenders and the hitter). `reachAgainst(..., at)` measures the reach from where the players really stand; without `at` (CPU simulation, tests) it still uses the places of the formation (`restPos`). `MatchScene.reachPositions()` passes `this.pos` into every `stepHit` and into the reach hints, so the engine and the screen no longer disagree about who is "in reach" (the suspected cause of "the opponent seemed to have it and did not play it").
