@@ -2,13 +2,13 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
-## v0.108: lobs in reach, TROPHIES on HERO (on top of v0.107 trophy cabinet)
+## v0.109: lobs never win by themselves, TROPHIES on HERO (on top of v0.107 trophy cabinet)
 - One cup per city + division of the calendar (35, `CUPS` in `career/cups.ts`): gold for a title, silver for losing the final (not for a withdrawal before it). Stored in `Profile.cups` (`CupShelf`: gold/silver counts, last season) and `Profile.cupClaims`; filled in `careerFlow.finish`, which returns `cup` and `cupBonuses` (also in the ResultScene payload).
 - Challenges (`src/data/cups.json`): golds of a whole division, of a region (cities) or a number of different golden cups (10 / 25 / 35); **only gold counts** (owner's choice). Each pays coins + gear/premium packs once.
 - Art: `src/art/cupArt.ts` draws a cup procedurally (shape by division tier, gold/silver/locked metal, ribbon in the city's court colour, emblem per city from `cups.json` `symbols`); paint it inside `bakedShape`.
 - `CupsScene` (title menu TROPHIES): 3x4 grid per page, grey until won, tap for details, SETS view with progress, button to ACHIEVEMENTS (the old trophies screen, now titled Achievements). ResultScene shows the cup and the first set bonus.
 - HERO screen has a TROPHIES button (the cabinet and achievements go back to HERO when opened from there).
-- Lobs: a lob that comes down within a defender's reach (`reach` above `LOB_OUT_OF_REACH` 0.76) is never a winner (`resolveHit`); lob flight time adds up to `REACH_LOB_TIME_MAX` 1.6 to the reach (was 1.3). The CPU-vs-CPU sim (formation positions) barely moves (rally_lob winners 4.7% -> 4.1%): the owner's cases come from real positions.
+- Lobs (v0.108 first tried "never a winner when in reach", `LOB_OUT_OF_REACH`; replaced in v0.109): **a lob is never a winner by itself** (`resolveHit`, `LOB_APEX` 3). The reach is measured from where the defenders stood when the ball was hit, but a lob (plus bounce and glass) takes 2-4 s and they are running meanwhile, so the owner saw lobs into a corner score while the opponent was already there. A good lob still builds pressure (`pressure` of the next hit); points come from the answering mistakes. Lob flight time adds up to `REACH_LOB_TIME_MAX` 1.6 to the reach (heat map). CPU sim: rally_lob winners 4.7% -> 0%, average rally 6.3 -> 6.7 hits, 13% -> 16% rallies of 12+.
 - Cups of tournaments won before this version are not recorded.
 - Ball leaves a side wall inwards (por tres fix from v0.106.1).
 
