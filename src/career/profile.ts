@@ -11,6 +11,9 @@ import { emptyShelf, sanitizeClaims, sanitizeShelf, type CupShelf } from './cups
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { Appearance, Gender, PlayerDef, StatKey } from '../game/types';
 
+/** The side of the court the hero plays on, as the TV camera sees it: left (lane 0) or right (lane 1). */
+export type HeroSide = 'left' | 'right';
+
 export type Alloc = Record<StatKey, number>;
 
 export interface Profile {
@@ -19,6 +22,8 @@ export interface Profile {
   nick: string;
   /** Male or female hero: the look and the default name (see `HERO_DEFAULTS`). */
   gender: Gender;
+  /** The preferred side of the court (can be changed before every match). */
+  heroSide: HeroSide;
   xp: number;
   coins: number;
   /** Skill points put into each attribute (on top of `levels.startStat`). */
@@ -58,6 +63,9 @@ export const HERO_DEFAULTS = playersData.heroDefaults as Record<Gender, { name: 
 export const heroLook = (p: Pick<Profile, 'gender' | 'inventory'>, base: Appearance = BASE_HERO.appearance as Appearance): Appearance =>
   applyLook({ ...base, gender: p.gender, hairStyle: HERO_DEFAULTS[p.gender].hairStyle }, p.inventory);
 
+/** The lane (player index in the team, 0 = left, 1 = right) the hero plays in. */
+export const heroLane = (p: Pick<Profile, 'heroSide'>): number => (p.heroSide === 'right' ? 1 : 0);
+
 /** Switches the hero's gender; a name or nickname that is still the default of the other gender becomes the default of the new one. */
 export function withGender(p: Profile, gender: Gender): Profile {
   if (p.gender === gender) return p;
@@ -66,7 +74,7 @@ export function withGender(p: Profile, gender: Gender): Profile {
   return { ...p, gender, name: p.name === from.name ? to.name : p.name, nick: p.nick === from.nick ? to.nick : p.nick };
 }
 
-export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', cups: emptyShelf(), cupClaims: [], xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', heroSide: 'left', cups: emptyShelf(), cupClaims: [], xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -151,7 +159,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     left -= alloc[k];
   }
   const gender: Gender = o.gender === 'female' ? 'female' : 'male';
-  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, heroSide: o.heroSide === 'right' ? 'right' : 'left', cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */

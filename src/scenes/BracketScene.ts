@@ -12,7 +12,7 @@ import playersData from '../data/players.json';
 import type { PlayerDef } from '../game/types';
 import { getSave, updateSave } from '../save';
 import { HERO_ID, type Bracket } from '../career/tournament';
-import { applyLightScreen, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { applyLightScreen, makeSideSwitch, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const BASE_HERO = (playersData.you as unknown as PlayerDef[])[0];
 
@@ -49,6 +49,13 @@ export class BracketScene extends Phaser.Scene {
     const y0 = treeBottom + 12;
     text(WIDTH / 2, y0 + 8, `NEXT: ${opp.name.toUpperCase()}`, 16, TC.navy, true);
     text(WIDTH / 2, y0 + 30, `OPPONENT ${opp.rating.toFixed(1)}   YOU ${heroAvg.toFixed(1)}`, 12, opp.rating > heroAvg + 0.5 ? 0xc62828 : opp.rating < heroAvg - 0.5 ? TC.green : TC.orange, true);
+
+    // The side of the court for this match (the default is set on the HERO screen).
+    text(86, y0 + 62, 'I PLAY ON THE', 12, TC.navy, true, 0);
+    makeSideSwitch(this, 244, y0 + 62, profile.heroSide, (side) => {
+      updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
+      this.scene.restart();
+    }, 66, 26);
 
     // One boost from the bag can be used in this match (bought in the shop between tournaments).
     const inv = profile.inventory;

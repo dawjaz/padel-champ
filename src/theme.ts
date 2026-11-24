@@ -311,3 +311,10 @@ export function iconChip(g: Phaser.GameObjects.Graphics, x: number, y: number, s
   g.strokeRoundedRect(x, y, size, size, 12);
   drawIcon(g, icon, x + size / 2, y + size / 2, size * 0.58, TC.white);
 }
+
+/** A LEFT / RIGHT switch (the side of the court the hero plays on) centred on (cx, y); `onPick` gets the new side. */
+export function makeSideSwitch(scene: Phaser.Scene, cx: number, y: number, current: 'left' | 'right', onPick: (side: 'left' | 'right') => void, w = 70, h = 24): ButtonParts[] {
+  return (['left', 'right'] as const).map((side, i) =>
+    makeThemeButton(scene, cx + (i === 0 ? -(w / 2 + 3) : w / 2 + 3), y, w, h, side.toUpperCase(), () => { if (side !== current) onPick(side); }, current === side ? 'primary' : 'secondary', 12),
+  );
+}

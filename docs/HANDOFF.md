@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.110: the hero's side of the court
+- `Profile.heroSide` ('left' | 'right', default left), `heroLane`, tested. Default is set on the HERO screen (row "I PLAY ON THE", the stat rows are 4 px tighter to make room); `makeSideSwitch` in `theme.ts` is the shared switch.
+- Before every match: the tournament pre-match screen (BracketScene) has the switch; a quick match has it on the coin-toss panel (it restarts the scene; not offered in tournament matches because the match's boost is consumed when the scene is created).
+- MatchScene: `HUMAN_IDX` is now a variable set from the profile; `TEAMS[0]` is `[partner, hero]` when the hero plays on the right; the team label, the first server (`serverIdx`) and the guts boost use it. The hero still walks to the serving lane for his serve (first serve from the left lane) and back.
+- Free practice (hidden) uses the same side.
+
 ## v0.109: lobs never win by themselves, TROPHIES on HERO (on top of v0.107 trophy cabinet)
 - One cup per city + division of the calendar (35, `CUPS` in `career/cups.ts`): gold for a title, silver for losing the final (not for a withdrawal before it). Stored in `Profile.cups` (`CupShelf`: gold/silver counts, last season) and `Profile.cupClaims`; filled in `careerFlow.finish`, which returns `cup` and `cupBonuses` (also in the ResultScene payload).
 - Challenges (`src/data/cups.json`): golds of a whole division, of a region (cities) or a number of different golden cups (10 / 25 / 35); **only gold counts** (owner's choice). Each pays coins + gear/premium packs once.

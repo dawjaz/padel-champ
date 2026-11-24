@@ -9,7 +9,7 @@ import { STAT_KEYS } from '../game/attributes';
 import type { StatKey } from '../game/types';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
-import { applyLightScreen, drawBar, drawCard, drawXp, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { applyLightScreen, drawBar, drawCard, drawXp, makeSideSwitch, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 
 const LABEL: Record<StatKey, string> = {
@@ -116,10 +116,10 @@ export class CharacterScene extends Phaser.Scene {
     const gear = gearBonus(p.inventory);
     const max = levels.statMax;
     STAT_KEYS.forEach((k, i) => {
-      const y = 192 + i * 54;
+      const y = 192 + i * 50;
       const v = statValue(p, k);
       const row = this.add.graphics().setPosition(12, y);
-      drawCard(row, WIDTH - 24, 50, { radius: 14 });
+      drawCard(row, WIDTH - 24, 46, { radius: 14 });
       this.dyn.push(row);
       const ic = this.add.graphics();
       ic.fillStyle(TC.blue, 1);
@@ -166,6 +166,11 @@ export class CharacterScene extends Phaser.Scene {
       if (!can) m.bg.disableInteractive();
       this.dyn.push(...m.parts);
     });
-    this.text(WIDTH / 2, 580, `SHADED PART OF THE BAR UNLOCKS WITH LEVEL (CAP NOW ${cap})`, 10, TC.sub);
+    this.text(86, 576, 'I PLAY ON THE', 11, TC.navy, 0, true);
+    for (const b of makeSideSwitch(this, 238, 576, p.heroSide, (side) => {
+      updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
+      this.redraw();
+    })) this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
+    this.text(WIDTH / 2, 552, `SHADED PART OF THE BAR UNLOCKS WITH LEVEL (CAP NOW ${cap})`, 10, TC.sub);
   }
 }

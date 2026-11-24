@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach } from './profile';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -112,5 +112,15 @@ describe('hero gender', () => {
   it('sanitizes the stored gender and falls back to the default name of it', () => {
     expect(sanitizeProfile({ gender: 'female', name: '' }).name).toBe(HERO_DEFAULTS.female.name);
     expect(sanitizeProfile({ gender: 'x' }).gender).toBe('male');
+  });
+});
+
+describe('hero side', () => {
+  it('defaults to the left lane and is sanitized', () => {
+    expect(newProfile().heroSide).toBe('left');
+    expect(heroLane(newProfile())).toBe(0);
+    expect(sanitizeProfile({ heroSide: 'right' }).heroSide).toBe('right');
+    expect(heroLane(sanitizeProfile({ heroSide: 'right' }))).toBe(1);
+    expect(sanitizeProfile({ heroSide: 'up' }).heroSide).toBe('left');
   });
 });

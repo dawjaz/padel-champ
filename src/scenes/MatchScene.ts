@@ -13,7 +13,7 @@ import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
-import { DISPLAY, BODY, bakedShape, drawCard, makeThemeButton, TC } from '../theme';
+import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup } from '../game/court';
@@ -28,7 +28,7 @@ import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul 
 import { reportMatch, type Finished } from '../career/careerFlow';
 import { partnerById } from '../career/season';
 import { boostOf, consumeQueued } from '../career/gear';
-import { heroFrom, levelOf, matchReward, type Profile } from '../career/profile';
+import { heroFrom, heroLane, levelOf, matchReward, type Profile } from '../career/profile';
 import { claim, newlyEarned, progressOf, recordMatch } from '../career/achievements';
 import { addFacts, dayKey } from '../career/daily';
 import { addWeeklyFacts, weekKey } from '../career/weekly';
@@ -50,7 +50,8 @@ export interface CareerMatch {
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
 const HUMAN_SIDE: SideIndex = 0;
-const HUMAN_IDX = 0;
+/** The lane (player index) the hero plays in: 0 = left, 1 = right (the profile's side, see `heroLane`). */
+let HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
 const CPU_DELAY = 28;
 const NEXT_HIT_DELAY = 88;
@@ -215,7 +216,9 @@ export class MatchScene extends Phaser.Scene {
     const boost = this.career ? boostOf(profile.inventory) : undefined;
     this.recoveryPct = boost?.recoveryPct ?? 0;
     const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
-    TEAMS = [[heroFrom(BASE_YOU[0], profile, boost), partner], this.career ? this.career.opponents : DEFAULT_CPU];
+    HUMAN_IDX = heroLane(profile);
+    const hero = heroFrom(BASE_YOU[0], profile, boost);
+    TEAMS = [HUMAN_IDX === 0 ? [hero, partner] : [partner, hero], this.career ? this.career.opponents : DEFAULT_CPU];
     if (boost && profile.inventory.queued.length > 0) {
       updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: consumeQueued(d.profile.inventory) } }));
     }
@@ -224,7 +227,7 @@ export class MatchScene extends Phaser.Scene {
     this.dailyWins = { smash: 0, dejada: 0, viboraBandeja: 0, bajada: 0, ace: 0 };
     this.matchScore = newScore(2);
     this.server = 0;
-    this.serverIdx = [0, 0];
+    this.serverIdx = [HUMAN_IDX, 0];
     this.busy = false;
     this.menu = [];
     this.views = {};
@@ -392,6 +395,16 @@ export class MatchScene extends Phaser.Scene {
       { label: 'HEADS', tone: 'normal', onPick: () => this.flipCoinAnimation('heads') },
       { label: 'TAILS', tone: 'normal', onPick: () => this.flipCoinAnimation('tails') },
     ]);
+    if (!this.career) {
+      // A quick match: the side can still be changed here (a tournament match has it on the screen before; the boost of a match must not be used twice).
+      const prof = getSave().profile;
+      const label = themeText(this, 70, 582, 'I PLAY ON THE', { size: 11, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(9996);
+      this.menu.push(label);
+      for (const b of makeSideSwitch(this, 258, 582, prof.heroSide, (side) => {
+        updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
+        this.scene.restart({ practice: this.practice, career: this.career });
+      }, 62, 24)) for (const o of b.parts as Phaser.GameObjects.GameObject[]) this.menu.push((o as Phaser.GameObjects.Graphics).setDepth(9996));
+    }
     const hint = this.add
       .text(WIDTH / 2, 205, 'TOSS A COIN', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '34px', color: '#ffe066' })
       .setOrigin(0.5)
@@ -1025,7 +1038,7 @@ export class MatchScene extends Phaser.Scene {
   /** "Bruno/Ines" for the opponents, "YOU/Lucy" for your pair (the hero is "YOU"). */
   private teamLabel(side: SideIndex): string {
     const [a, b] = TEAMS[side];
-    return `${side === HUMAN_SIDE ? 'YOU' : a.name}/${b.name}`;
+    return side === HUMAN_SIDE ? `YOU/${TEAMS[side][1 - HUMAN_IDX].name}` : `${a.name}/${b.name}`;
   }
 
   /** Shrinks a text that is wider than `max` so that it keeps its place on the scoreboard. */
@@ -2091,7 +2104,7 @@ export class MatchScene extends Phaser.Scene {
     // The pause after a game is a rest: double recovery (4 guts at stamina 5 instead of 2 after a point).
     const restMul = res.gameWon ? GAME_BREAK_RECOVERY_MUL : 1;
     for (const p of TEAMS.flat()) {
-      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina) * restMul * (p.id === TEAMS[0][0].id ? 1 + this.recoveryPct : 1), p.maxGuts);
+      this.guts[p.id] = recoverGuts(this.guts[p.id], gutsRecovery(p.stats.stamina) * restMul * (p.id === TEAMS[0][HUMAN_IDX].id ? 1 + this.recoveryPct : 1), p.maxGuts);
     }
     this.refreshScore();
     this.refreshGuts();
