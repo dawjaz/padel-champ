@@ -50,6 +50,8 @@ export interface TextOpts {
   weight?: string;
   origin?: [number, number];
   align?: 'left' | 'center' | 'right';
+  /** Wrap width in px (centred text keeps its alignment). */
+  wrap?: number;
 }
 
 export function themeText(scene: Phaser.Scene, x: number, y: number, str: string, o: TextOpts = {}): Phaser.GameObjects.Text {
@@ -59,7 +61,8 @@ export function themeText(scene: Phaser.Scene, x: number, y: number, str: string
     fontSize: `${o.size ?? 14}px`,
     fontStyle: o.weight ?? '800',
     color: tcss(o.color ?? TC.navy),
-    align: o.align ?? 'left',
+    align: o.align ?? (o.wrap ? 'center' : 'left'),
+    ...(o.wrap ? { wordWrap: { width: o.wrap } } : {}),
   });
   const [ox, oy] = o.origin ?? [0.5, 0.5];
   return t.setOrigin(ox, oy);

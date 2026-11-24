@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.107: trophy cabinet
+- One cup per city + division of the calendar (35, `CUPS` in `career/cups.ts`): gold for a title, silver for losing the final (not for a withdrawal before it). Stored in `Profile.cups` (`CupShelf`: gold/silver counts, last season) and `Profile.cupClaims`; filled in `careerFlow.finish`, which returns `cup` and `cupBonuses` (also in the ResultScene payload).
+- Challenges (`src/data/cups.json`): golds of a whole division, of a region (cities) or a number of different golden cups (10 / 25 / 35); **only gold counts** (owner's choice). Each pays coins + gear/premium packs once.
+- Art: `src/art/cupArt.ts` draws a cup procedurally (shape by division tier, gold/silver/locked metal, ribbon in the city's court colour, emblem per city from `cups.json` `symbols`); paint it inside `bakedShape`.
+- `CupsScene` (title menu TROPHIES): 3x4 grid per page, grey until won, tap for details, SETS view with progress, button to ACHIEVEMENTS (the old trophies screen, now titled Achievements). ResultScene shows the cup and the first set bonus.
+- Cups of tournaments won before this version are not recorded.
+- Ball leaves a side wall inwards (por tres fix from v0.106.1).
+
 ## v0.106: lag at the coin toss, CPU pause, hero gender, letterbox colour
 - Coin toss: the coin is two pre-rendered textures (`ensureCoinTexture`), not shapes tessellated every frame.
 - Pose warm-up is a queue (`warmQueue`, `runWarmQueue` from `update`): about 4 ms of drawing per frame, essential poses first. `blendTo` no longer draws in-between pictures during a rally (it queues them and skips the step). `toonPoseKey` tells whether a pose texture exists.

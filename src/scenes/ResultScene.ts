@@ -8,7 +8,9 @@ import { rivalTalk } from '../speech';
 import type { Appearance } from '../game/types';
 import { levelOf, levelProgress, type Reward } from '../career/profile';
 import { sfx } from '../audio';
-import { applyLightScreen, drawBar, drawCard, makeThemeButton, rewardRow, tcss, TC, themeText } from '../theme';
+import { cupById as cupOf } from '../career/cups';
+import { cityAccent, drawCup } from '../art/cupArt';
+import { applyLightScreen, bakedShape, drawBar, drawCard, makeThemeButton, rewardRow, tcss, TC, themeText } from '../theme';
 
 export interface ResultData {
   winner: SideIndex;
@@ -26,7 +28,7 @@ export interface ResultData {
   rival?: { name: string; nick?: string; appearance: Appearance };
   /** Achievements unlocked by this match: "Name +coins". */
   trophies?: string[];
-  finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string }; matches: Reward };
+  finished?: { event: string; roundsWon: number; champion: boolean; prize: { coins: number; xp: number; rank: number; pack?: string }; matches: Reward; cup?: { id: string; city: string; division: string; kind: 'gold' | 'silver' }; cupBonuses?: Array<{ name: string; coins: number; packs: Record<string, number> }> };
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -59,6 +61,12 @@ export class ResultScene extends Phaser.Scene {
     else text(256, 'THE OPPONENTS WIN BY RETIREMENT', 13, 0xc62828, true);
 
     const fin = this.outcome.finished;
+    // The cup of the tournament: gold for the title, silver for the lost final (it is also kept in the TROPHIES cabinet).
+    if (fin?.cup) {
+      const cup = fin.cup;
+      bakedShape(this, 262, 156, 86, 76, (g) => drawCup(g, 43, 42, 66, cup.division, cup.kind, cityAccent(cup.city), cupOf(cup.id)?.symbol ?? 'star'));
+      themeText(this, 305, 238, `${cup.kind.toUpperCase()} CUP`, { size: 10, color: cup.kind === 'gold' ? TC.goldDark : TC.sub, font: 'display' });
+    }
     const summary = fin
       ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}`
       : this.outcome.career
@@ -107,6 +115,12 @@ export class ResultScene extends Phaser.Scene {
       const r = this.outcome.rival;
       const line = rivalLine(won ? 'afterYouWin' : 'afterYouLose', r.name, `${this.outcome.games[0]}-${this.outcome.games[1]}`);
       rivalTalk(this, { appearance: r.appearance, name: r.name, nick: r.nick, line, layout: 'side', x: 22, y: 330, headWidth: 62, bubbleWidth: 252, textSize: 13 });
+    }
+    const bonuses = fin?.cupBonuses ?? [];
+    if (bonuses.length > 0) {
+      const b = bonuses[0];
+      const packs = Object.entries(b.packs).map(([id, n]) => `${n} ${id.toUpperCase()} PACK${n > 1 ? 'S' : ''}`).join(' + ');
+      text(257, `CUP SET: ${b.name.toUpperCase()}  +${b.coins} COINS + ${packs}${bonuses.length > 1 ? ` (+${bonuses.length - 1} MORE)` : ''}`, 10, TC.orange);
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {

@@ -1,0 +1,27 @@
+{
+  "symbols": {
+    "Doha": "drop", "Malaga": "sun", "Rome": "column", "Brussels": "star", "Sao Paulo": "wave", "Madrid": "crown",
+    "Bordeaux": "grape", "Gdansk": "anchor", "Barcelona": "tower", "Warsaw": "mermaid", "Stockholm": "crown", "Riyadh": "palm",
+    "Paris": "tower", "Milan": "spire", "Athens": "column", "Amsterdam": "tulip", "Vienna": "note", "Valencia": "orange",
+    "Lisbon": "wave", "Dubai": "spire", "Sevilla": "orange", "Mexico City": "sun", "Buenos Aires": "star", "Berlin": "gate"
+  },
+  "challenges": [
+    { "id": "set_club", "name": "Club Champion", "divisions": ["club"], "coins": 300, "packs": { "gear": 1 } },
+    { "id": "set_regional", "name": "Regional Champion", "divisions": ["regional"], "coins": 300, "packs": { "gear": 1 } },
+    { "id": "set_rise", "name": "Rising Star", "divisions": ["rise"], "coins": 500, "packs": { "gear": 2 } },
+    { "id": "set_bronze", "name": "Bronze Pair", "divisions": ["bronze"], "coins": 300, "packs": { "gear": 1 } },
+    { "id": "set_silver", "name": "Silver Pair", "divisions": ["silver"], "coins": 400, "packs": { "gear": 1 } },
+    { "id": "set_gold", "name": "Gold Standard", "divisions": ["gold"], "coins": 800, "packs": { "premium": 1 } },
+    { "id": "set_major", "name": "Major Winner", "divisions": ["major"], "coins": 1000, "packs": { "premium": 1 } },
+    { "id": "set_elite", "name": "Elite Four", "divisions": ["platinum", "p2", "p1", "finals"], "coins": 1500, "packs": { "premium": 2 } },
+    { "id": "region_spain", "name": "King of Spain", "cities": ["Barcelona", "Madrid", "Malaga", "Sevilla", "Valencia"], "coins": 800, "packs": { "premium": 1 } },
+    { "id": "region_poland", "name": "Pride of Poland", "cities": ["Warsaw", "Gdansk"], "coins": 400, "packs": { "gear": 1 } },
+    { "id": "region_gulf", "name": "Gulf Master", "cities": ["Doha", "Riyadh", "Dubai"], "coins": 700, "packs": { "premium": 1 } },
+    { "id": "region_northwest", "name": "Northwest Tour", "cities": ["Brussels", "Amsterdam", "Paris"], "coins": 400, "packs": { "gear": 1 } },
+    { "id": "region_americas", "name": "Americas Tour", "cities": ["Sao Paulo", "Mexico City", "Buenos Aires"], "coins": 500, "packs": { "gear": 2 } },
+    { "id": "region_centre", "name": "Heart of Europe", "cities": ["Vienna", "Berlin", "Milan", "Rome"], "coins": 800, "packs": { "premium": 1 } },
+    { "id": "golds_10", "name": "10 Golden Cups", "golds": 10, "coins": 400, "packs": { "gear": 2 } },
+    { "id": "golds_25", "name": "25 Golden Cups", "golds": 25, "coins": 1000, "packs": { "premium": 2 } },
+    { "id": "golds_all", "name": "Grand Slam of Cups", "golds": 35, "coins": 3000, "packs": { "premium": 4 } }
+  ]
+}

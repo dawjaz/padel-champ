@@ -7,6 +7,7 @@ import { cleanName, MAX_NAME, MAX_NICK } from '../game/names';
 import packsData from '../data/packs.json';
 import { newCareer, sanitizeCareer, type Career } from './season';
 import { applyLook, gearBonus, legacyRefund, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
+import { emptyShelf, sanitizeClaims, sanitizeShelf, type CupShelf } from './cups';
 import { gutsFor, STAT_KEYS } from '../game/attributes';
 import type { Appearance, Gender, PlayerDef, StatKey } from '../game/types';
 
@@ -24,6 +25,9 @@ export interface Profile {
   alloc: Alloc;
   /** Gear, consumables (see gear.ts). */
   inventory: Inventory;
+  /** The cup cabinet and the cup challenges already paid (see cups.ts). */
+  cups: CupShelf;
+  cupClaims: string[];
   /** Calendar, ranking, the tournament in progress and the partner (see season.ts). */
   career: Career;
 }
@@ -62,7 +66,7 @@ export function withGender(p: Profile, gender: Gender): Profile {
   return { ...p, gender, name: p.name === from.name ? to.name : p.name, nick: p.nick === from.nick ? to.nick : p.nick };
 }
 
-export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', cups: emptyShelf(), cupClaims: [], xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -147,7 +151,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     left -= alloc[k];
   }
   const gender: Gender = o.gender === 'female' ? 'female' : 'male';
-  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */

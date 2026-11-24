@@ -2,6 +2,7 @@
 
 import { award, levelOf, type Profile, type Reward } from './profile';
 import { advanceWeek, entryProblem, eventById, eventName, HISTORY_LIMIT, partnerById, type CalendarEvent } from './season';
+import { cupOfEvent, recordCup, unclaimed, type CupKind } from './cups';
 import { buildBracket, divisionById, prizeFor, type Bracket, type Prize } from './tournament';
 
 /** The bracket of the tournament in progress, or null. */
@@ -32,6 +33,10 @@ export interface Finished {
   prize: Prize;
   /** XP and coins of the matches of this tournament, paid out now together with the prize. */
   matches: Reward;
+  /** The cup won (gold) or lost in the final (silver), if the event has one. */
+  cup?: { id: string; city: string; division: string; kind: CupKind };
+  /** Cup challenges completed by this cup, paid out already. */
+  cupBonuses: Array<{ id: string; name: string; coins: number; packs: Record<string, number> }>;
 }
 
 /** Ends the tournament: prizes, ranking points, history, and the week moves on. */
@@ -46,10 +51,25 @@ function finish(p: Profile, bracket: Bracket): Finished {
   if (prize.pack) {
     next = { ...next, inventory: { ...next.inventory, packs: { ...next.inventory.packs, [prize.pack]: (next.inventory.packs[prize.pack] ?? 0) + 1 } } };
   }
+  // The cup: gold for the title, silver for the lost final (not for a withdrawal before it). Sets of golds pay a bonus once.
+  const reachedFinal = a.results.length === bracket.roundNames.length;
+  const kind: CupKind | null = champion ? 'gold' : bracket.status === 'lost' && reachedFinal ? 'silver' : null;
+  const cupDef = cupOfEvent(event.city, event.division);
+  const cup = cupDef && kind ? { id: cupDef.id, city: cupDef.city, division: cupDef.division, kind } : undefined;
+  const cupBonuses: Finished['cupBonuses'] = [];
+  if (cup) {
+    next = { ...next, cups: recordCup(next.cups, cup.id, cup.kind, next.career.season) };
+    for (const ch of unclaimed(next.cups, next.cupClaims)) {
+      const packs = { ...next.inventory.packs };
+      for (const [id, n] of Object.entries(ch.packs)) packs[id] = (packs[id] ?? 0) + n;
+      next = { ...next, coins: next.coins + ch.coins, cupClaims: [...next.cupClaims, ch.id], inventory: { ...next.inventory, packs } };
+      cupBonuses.push({ id: ch.id, name: ch.name, coins: ch.coins, packs: ch.packs });
+    }
+  }
   next = { ...next, inventory: { ...next.inventory, queued: [] } }; // a boost picked for a match that was never played stays in the bag
   const history = [...next.career.history, { season: next.career.season, event: eventName(event), division: event.division, roundsWon: bracket.roundsWon, champion }].slice(-HISTORY_LIMIT);
   const career = advanceWeek({ ...next.career, active: null, rankPoints: next.career.rankPoints + prize.rank, titles: next.career.titles + (champion ? 1 : 0), history });
-  return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches };
+  return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches, cup, cupBonuses };
 }
 
 export interface Reported {

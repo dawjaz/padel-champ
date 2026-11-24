@@ -82,7 +82,7 @@ export class TitleScene extends Phaser.Scene {
       },
       { label: 'HERO', icon: 'top', color: TC.orange, lock: true, go: () => this.scene.start('CharacterScene') },
       { label: 'SHOP', icon: 'coin', color: TC.blue, lock: true, go: () => this.scene.start('ShopScene') },
-      { label: 'TROPHIES', icon: 'trophy', color: TC.orange, go: () => this.scene.start('AchievementsScene') },
+      { label: 'TROPHIES', icon: 'trophy', color: TC.orange, go: () => this.scene.start('CupsScene') },
     ];
     entries.forEach((e, i) => {
       const x = 16 + (i % 2) * 174;
