@@ -181,7 +181,7 @@ export function resolveServe(
   const defenseScore = defenseRating(receiver, cross) * receiveMod + rng() * RANDOM_SPREAD;
 
   const diff = attackScore - defenseScore;
-  if (diff > ACE_MARGIN) return { outcome: 'ace', attackScore, defenseScore, tired, pressure: 0 };
+  if (diff > (shot.aceMargin ?? ACE_MARGIN)) return { outcome: 'ace', attackScore, defenseScore, tired, pressure: 0 };
 
   const relief = walled && receive === 'bounce' ? BOUNCE_PRESSURE_RELIEF : 1;
   const pressure = clamp(clamp(diff / 200, 0, MAX_PRESSURE) * (shot.pressureMult ?? 1) * relief * (second ? SECOND_SERVE_PRESSURE : 1), 0, MAX_SERVE_PRESSURE);

@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-24 (v0.103)_
+_Last updated: 2026-11-24 (v0.104)_
+
+## v0.104: Hard Glass serve, weekly dot on the Daily screen, reach heat map
+- **Hard Glass**: new `ShotDef.aceMargin` (default `ACE_MARGIN` 48), `aceMargin 56` and `pressureMult 0.8` for hard_glass. Aces when the receiver bounces: 20% to 3% (with the CPU's receive choice 5% to 1%); the hero wins 67% to 65% of in-serves and 28% to 23% of those points end within 2 hits (the other serves are 22-25%).
+- **Daily screen**: the WEEKLY CHALLENGES button gets the same pulsing red dot as the main menu when `weeklyWaiting`.
+- **Reach hints** (`drawReach(shot, aim)`): the red circles around the opponents are replaced by a heat map of their half, baked once into a texture (`bakedShape`, 0.34 m cells, alpha 0.42): green = a gap, yellow = stretched, red = within reach (`reachAgainst` per cell). The landing markers stay.
 
 ## v0.103: harder opponents each round, vibora, CPU shot choice, one tournament summary, less CPU work per frame
 - **Tournament difficulty** (`toughen` in `tournament.ts`, `roundBonus 0.45` in `divisions.json`): the hero's opponent in round r gets +0.45 x r attribute levels (whole part to every stat, the rest to a fixed share of them); the field's own ratings spread +-0.8 (was +-0.5). Average opponent rating by round, regional: 4.4, 4.9, 5.5, 6.0 (it was flat); the top divisions saturate near 10.

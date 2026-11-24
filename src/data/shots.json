@@ -1,6 +1,8 @@
 [
   {
     "id": "hard_glass",
+    "aceMargin": 56,
+    "pressureMult": 0.8,
     "name": "Hard glass",
     "kind": "serve",
     "stat": "power",

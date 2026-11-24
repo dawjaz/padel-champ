@@ -16,7 +16,7 @@ import { applyHd } from '../hd';
 import { DISPLAY, BODY, bakedShape, drawCard, makeThemeButton, TC } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
-import { laneSign, landingX, landingZ, NET_Z, REACH_DEPTH_WEIGHT, REACH_FULL, reachRadius, restPos, serveSetup } from '../game/court';
+import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
 import { isPowerfulSmash, playableShots, reachAgainst, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
@@ -1611,7 +1611,7 @@ export class MatchScene extends Phaser.Scene {
     }));
     items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
     this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items, 'directions');
-    if (aim !== undefined) this.drawReach(aim);
+    if (aim !== undefined) this.drawReach(shot, aim);
   }
 
   /** The landing point of each direction and how much of their defence the opponents keep against it (1 = the ball is within reach). */
@@ -1626,26 +1626,42 @@ export class MatchScene extends Phaser.Scene {
     return out;
   }
 
-  /** Draws the opponents' comfortable reach (soft red areas) and a marker where each direction lands (green = gap, yellow = stretched, orange = right at them). Removed with the menu. */
-  private drawReach(aim: Record<Direction, { x: number; z: number; factor: number }>): void {
-    const g = this.add.graphics().setDepth(2);
-    for (let i = 0; i < 2; i++) {
-      const spot = restPos(1, i, this.point.formation[1]);
-      const r = REACH_FULL * reachRadius(TEAMS[1][i].stats.speed);
-      const pts: Phaser.Math.Vector2[] = [];
-      for (let k = 0; k < 28; k++) {
-        const a = (k / 28) * Math.PI * 2;
-        const p = project(spot.x + Math.cos(a) * r, spot.z + (Math.sin(a) * r) / REACH_DEPTH_WEIGHT);
-        pts.push(new Phaser.Math.Vector2(p.x, p.y));
+  /**
+   * Draws a heat map of the opponents' half while the direction menu is open: every spot is coloured by how much of their defence
+   * the opponents keep against a ball that comes down there (green = a gap, yellow = stretched, red = right at them), with a marker
+   * where each direction lands. It is painted once into a texture and removed with the menu.
+   */
+  private drawReach(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>): void {
+    const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
+    const formation = this.point.formation[1];
+    const lerp = (a: number, b: number, t: number): number => Math.round(a + (b - a) * t);
+    const ramp = (f: number): number => {
+      // 0.6 (a gap) green, 0.82 yellow, 1 (within reach) red
+      const t = Math.max(0, Math.min(1, (f - 0.6) / 0.4));
+      const [c0, c1, u] = t < 0.5 ? [[0x3d, 0xd6, 0x7a], [0xff, 0xe0, 0x66], t * 2] : [[0xff, 0xe0, 0x66], [0xff, 0x4d, 0x4d], (t - 0.5) * 2];
+      return (lerp(c0[0], c1[0], u) << 16) | (lerp(c0[1], c1[1], u) << 8) | lerp(c0[2], c1[2], u);
+    };
+    const step = 0.34;
+    const heat = bakedShape(this, 0, 0, WIDTH, 392, (g) => {
+      for (let x = -5; x < 5 - 1e-6; x += step) {
+        for (let d = 0.2; d < 9.8; d += step) {
+          const f = reachAgainst(defenders, 1, formation, shot, x + step / 2, d + step / 2);
+          const z0 = landingZ(1, d);
+          const z1 = landingZ(1, d + step);
+          const q = [project(x, z0), project(x + step, z0), project(x + step, z1), project(x, z1)];
+          g.fillStyle(ramp(f), 1);
+          g.fillPoints(q.map((p) => new Phaser.Math.Vector2(p.x, p.y)).concat(), true);
+        }
       }
-      g.fillStyle(0xff5a5a, 0.14).fillPoints(pts, true);
-      g.lineStyle(1.5, 0xff8a8a, 0.55).strokePoints(pts, true);
-    }
+    }, 0);
+    heat.rt.setDepth(2).setAlpha(0.42);
+    this.menu.push(heat.rt);
+    const g = this.add.graphics().setDepth(3);
     for (const d of DIRECTION_ORDER) {
       const a = aim[d];
       const p = project(a.x, a.z);
       const color = a.factor < 0.75 ? 0x4ade80 : a.factor >= 0.97 ? 0xff9f1c : 0xffe066;
-      g.fillStyle(color, 0.9).fillEllipse(p.x, p.y, p.scale * 0.9, p.scale * 0.36);
+      g.fillStyle(color, 0.95).fillEllipse(p.x, p.y, p.scale * 0.9, p.scale * 0.36);
       g.lineStyle(2, 0xffffff, 0.95).strokeEllipse(p.x, p.y, p.scale * 0.9, p.scale * 0.36);
     }
     this.menu.push(g);

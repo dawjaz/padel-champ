@@ -163,6 +163,8 @@ export interface ShotDef {
   reboundWin?: number;
   /** True: this shot never flies back over the net off the glass, however hard it is hit (the flat shot: it would look unnatural). */
   noReboundBack?: boolean;
+  /** A serve that beats the receiver by more than this is an ace (default `ACE_MARGIN`). */
+  aceMargin?: number;
   /** Smash/rulo: a winning ball flies out over the glass or the fence instead of staying in play. */
   overFence?: boolean;
   /** Rulo: the ball lands this far from the centre line (just beside the side fence); the side comes from the direction. */

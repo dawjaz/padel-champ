@@ -1045,3 +1045,15 @@ describe('por tres never comes back over the net', () => {
     for (let seed = 1; seed <= 100; seed++) expect(stepHit(TEAMS, { ...st, ball: { height: 'high', pressure: 0, air: true, lob: 'weak' } }, shot('smash_x3'), 'cross', seededRng(seed)).step.reboundBack).toBeUndefined();
   });
 });
+
+describe('hard glass serve', () => {
+  it('is an ace only rarely, even when the receiver lets it bounce', () => {
+    let aces = 0;
+    const n = 1000;
+    for (let seed = 1; seed <= n; seed++) {
+      const st = startPoint(freshGuts(), 0, 0, 0);
+      if (stepServe(TEAMS, st, shot('hard_glass'), seededRng(seed), 'bounce').step.outcome === 'ace') aces++;
+    }
+    expect(aces / n).toBeLessThan(0.08);
+  });
+});

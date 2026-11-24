@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { BONUS_COINS, bonusReady, claimBonus, claimLogin, claimTask, dayKey, loginReward, loginStatus, STREAK_LENGTH, TASK_COINS, taskViews } from '../career/daily';
+import { weekKey, weeklyWaiting } from '../career/weekly';
 import { getSave, updateSave } from '../save';
 import { sfx } from '../audio';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -103,5 +104,14 @@ export class DailyScene extends Phaser.Scene {
     } else themeText(this, WIDTH - 62, by + 31, `+${BONUS_COINS}`, { size: 16, color: TC.sub, font: 'display' });
 
     makeThemeButton(this, WIDTH / 2, 606, 270, 38, 'WEEKLY CHALLENGES', () => this.scene.start('WeeklyScene'), 'blue', 14);
+    // The same pulsing dot as on the main menu: something of the weekly challenges is waiting to be claimed.
+    if (weeklyWaiting(save.weekly, weekKey(new Date()))) {
+      const dot = this.add.graphics().setPosition(WIDTH / 2 + 128, 589).setDepth(8);
+      dot.fillStyle(0xe53935, 1);
+      dot.fillCircle(0, 0, 7);
+      dot.lineStyle(2, TC.navy, 1);
+      dot.strokeCircle(0, 0, 7);
+      this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1 });
+    }
   }
 }
