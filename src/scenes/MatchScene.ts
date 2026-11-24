@@ -13,7 +13,7 @@ import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
-import { DISPLAY, BODY, drawCard, makeThemeButton, TC } from '../theme';
+import { DISPLAY, BODY, bakedShape, drawCard, makeThemeButton, TC } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, REACH_DEPTH_WEIGHT, REACH_FULL, reachRadius, restPos, serveSetup } from '../game/court';
@@ -88,7 +88,9 @@ interface PlayerView {
   sprite: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
   /** Rounded guts bar next to the name (see `drawGutsBar`). */
-  bar: Phaser.GameObjects.Graphics;
+  bar: Phaser.GameObjects.RenderTexture;
+  /** Paints the bar again (it is a texture, see `drawGutsBar`). */
+  barRepaint: (paint: (g: Phaser.GameObjects.Graphics) => void) => void;
   player: PlayerDef;
   side: SideIndex;
   /** Jump height in pixels (animated by the hit "hop"). */
@@ -178,7 +180,7 @@ export class MatchScene extends Phaser.Scene {
   /** Recent screen positions of the ball, for its fading trail. */
   private trail: Array<{ x: number; y: number; d: number }> = [];
   /** TV scoreboard: team names, games, points per row, the serve dot and the deuce note. */
-  private sb!: { names: Phaser.GameObjects.Text[]; games: Phaser.GameObjects.Text[]; pts: Phaser.GameObjects.Text[]; dot: Phaser.GameObjects.Graphics; note: Phaser.GameObjects.Text; title: Phaser.GameObjects.Text; boxes: Phaser.GameObjects.Graphics };
+  private sb!: { names: Phaser.GameObjects.Text[]; games: Phaser.GameObjects.Text[]; pts: Phaser.GameObjects.Text[]; dot: Phaser.GameObjects.Graphics; note: Phaser.GameObjects.Text; title: Phaser.GameObjects.Text; boxes: Phaser.GameObjects.RenderTexture };
   private logText!: Phaser.GameObjects.Text;
 
   /** Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you. */
@@ -247,24 +249,25 @@ export class MatchScene extends Phaser.Scene {
     this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000).setVisible(false);
 
     // Control sheet under the court: the status line and the buttons sit on it.
-    const sheet = this.add.graphics().setDepth(8000);
-    sheet.fillStyle(TC.navy, 1);
-    sheet.fillRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
-    sheet.lineStyle(3, TC.navyDark, 1);
-    sheet.strokeRoundedRect(-4, 392, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
+    bakedShape(this, -4, 392, WIDTH + 8, 280, (g) => {
+      g.fillStyle(TC.navy, 1);
+      g.fillRoundedRect(0, 0, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
+      g.lineStyle(3, TC.navyDark, 1);
+      g.strokeRoundedRect(0, 0, WIDTH + 8, 280, { tl: 20, tr: 20, bl: 0, br: 0 });
+    }).rt.setDepth(8000);
 
     // Scoreboard, TV style: navy bar, a row per side, games in a white box, points in gold, an orange dot by the server.
     const bx = WIDTH / 2 - 100;
-    const board = this.add.graphics().setPosition(bx, 5).setDepth(9990);
-    drawCard(board, 200, 46, { fill: TC.navy, stroke: TC.navyDark, radius: 12, shadow: 3 });
+    bakedShape(this, bx, 5, 200, 46, (g) => drawCard(g, 200, 46, { fill: TC.navy, stroke: TC.navyDark, radius: 12, shadow: 3 }), 6).rt.setDepth(9990);
     const rowY = [18, 38];
     const sbText = (x: number, y: number, str: string, size: number, color: string, ox: number): Phaser.GameObjects.Text =>
       this.add.text(x, y, str, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color }).setOrigin(ox, 0.5).setDepth(10000);
-    const gamesBoxes = this.add.graphics().setDepth(9995);
-    for (const y of rowY) {
-      gamesBoxes.fillStyle(TC.white, 1);
-      gamesBoxes.fillRoundedRect(bx + 118, y - 9, 30, 18, 6);
-    }
+    const gamesBoxes = bakedShape(this, bx + 118, rowY[0] - 9, 30, rowY[1] - rowY[0] + 18, (g) => {
+      for (const y of rowY) {
+        g.fillStyle(TC.white, 1);
+        g.fillRoundedRect(0, y - rowY[0], 30, 18, 6);
+      }
+    }).rt.setDepth(9995);
     this.sb = {
       names: rowY.map((y, i) => this.fitName(sbText(bx + 24, y, this.teamLabel(i === 0 ? 1 : 0), 14, '#ffffff', 0), 92)),
       games: rowY.map((y) => sbText(bx + 133, y, '0', 15, NAVY_CSS, 0.5)),
@@ -471,8 +474,9 @@ export class MatchScene extends Phaser.Scene {
           .setOrigin(0.5, side === 0 ? 0 : 1)
           .setStroke(NAVY_CSS, 4)
           .setDepth(9000);
-        const bar = this.add.graphics().setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1 };
+        const baked = bakedShape(this, 0, 0, GUTS_BAR_W, GUTS_BAR_H, () => undefined, 3);
+        const bar = baked.rt.setDepth(9000);
+        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1 };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -495,21 +499,20 @@ export class MatchScene extends Phaser.Scene {
 
   /** A rounded bar: the fill shrinks with the guts and changes colour from green to red. It is drawn around its own origin and only re-drawn when the guts change; moving it is just a position. */
   private drawGutsBar(v: PlayerView, cx: number, y: number): void {
-    const g = v.bar;
-    g.setPosition(cx, y);
+    v.bar.setPosition(cx - GUTS_BAR_W / 2 - 3, y - 3);
     const ratio = Math.max(0, Math.min(1, (this.guts[v.player.id] ?? v.player.maxGuts) / v.player.maxGuts));
     const shown = Math.round(ratio * GUTS_BAR_W);
     if (v.barShown === shown) return;
     v.barShown = shown;
-    const x = -GUTS_BAR_W / 2;
-    g.clear();
-    g.fillStyle(TC.navy, 0.92).fillRoundedRect(x - 1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
-    if (ratio > 0) {
-      const w = Math.max(GUTS_BAR_H, Math.round(GUTS_BAR_W * ratio));
-      g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(x, 0, w, GUTS_BAR_H, GUTS_BAR_H / 2);
-      g.fillStyle(0xffffff, 0.35).fillRoundedRect(x + 2, 1, Math.max(2, w - 4), 2, 1);
-    }
-    g.lineStyle(1.2, 0xffffff, 0.9).strokeRoundedRect(x - 1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
+    v.barRepaint((g) => {
+      g.fillStyle(TC.navy, 0.92).fillRoundedRect(-1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
+      if (ratio > 0) {
+        const w = Math.max(GUTS_BAR_H, Math.round(GUTS_BAR_W * ratio));
+        g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(0, 0, w, GUTS_BAR_H, GUTS_BAR_H / 2);
+        g.fillStyle(0xffffff, 0.35).fillRoundedRect(2, 1, Math.max(2, w - 4), 2, 1);
+      }
+      g.lineStyle(1.2, 0xffffff, 0.9).strokeRoundedRect(-1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
+    });
   }
 
   /** Shadows under players and ball, and the ring under the player who has to act. */
@@ -1046,12 +1049,11 @@ export class MatchScene extends Phaser.Scene {
     items.forEach((item, i) => {
       const x = dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
       const y = dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
-      const gfx = this.add.graphics().setPosition(x - w / 2, y - h / 2).setDepth(9100);
-      const redraw = (hover: boolean, pressed = false): void => {
-        gfx.clear();
-        drawCard(gfx, w, h, { fill: TONE_FILL[item.tone], stroke: TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
-      };
-      redraw(false);
+      const paint = (hover: boolean, pressed: boolean) => (g: Phaser.GameObjects.Graphics): void =>
+        drawCard(g, w, h, { fill: TONE_FILL[item.tone], stroke: TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
+      const baked = bakedShape(this, x - w / 2, y - h / 2, w, h, paint(false, false));
+      const gfx = baked.rt.setDepth(9100);
+      const redraw = (hover: boolean, pressed = false): void => baked.repaint(paint(hover, pressed));
       const bg = this.add.zone(x, y, w, h).setDepth(9101);
       const text = this.add
         .text(x, y, item.label, {

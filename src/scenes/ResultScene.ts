@@ -66,14 +66,27 @@ export class ResultScene extends Phaser.Scene {
         : '';
     // A quick match is a sparring: no summary line at all.
     if (summary !== '') text(retired ? 290 : 280, summary, 15, TC.navy, true).setLineSpacing(2);
-    // The prize of the tournament, with icons: coins, XP, ranking points and the pack.
+    // The end of a tournament as one summary: the prize for the placing, what the matches paid, and the total that went to the hero.
     if (fin) {
-      rewardRow(this, WIDTH / 2, 316, [
+      const total = { coins: fin.prize.coins + fin.matches.coins, xp: fin.prize.xp + fin.matches.xp };
+      const matchesPlayed = fin.roundsWon + (fin.champion ? 0 : 1);
+      const rowLabel = (y: number, s: string, color: number = TC.sub, size = 11): void => void themeText(this, 24, y, s, { size, color, font: 'display', origin: [0, 0.5] });
+      const card = this.add.graphics().setPosition(14, 306);
+      drawCard(card, WIDTH - 28, 102, { radius: 14, shadow: 2 });
+      rowLabel(325, fin.champion ? 'TITLE PRIZE' : 'PRIZE');
+      rewardRow(this, 118, 325, [
         { kind: 'coin', text: `+${fin.prize.coins}` },
         { kind: 'xp', text: `+${fin.prize.xp}` },
         { kind: null, text: `+${fin.prize.rank} RANK` },
         ...(fin.prize.pack ? [{ kind: null, text: '+PACK' }] : []),
-      ]);
+      ], { size: 13, left: true, gap: 9 });
+      rowLabel(349, `MATCHES (${matchesPlayed})`);
+      rewardRow(this, 118, 349, [{ kind: 'coin', text: `+${fin.matches.coins}` }, { kind: 'xp', text: `+${fin.matches.xp}` }], { size: 13, left: true, gap: 9 });
+      const line = this.add.graphics();
+      line.lineStyle(2, TC.track, 1);
+      line.lineBetween(24, 365, WIDTH - 24, 365);
+      rowLabel(387, 'TOTAL', TC.navy, 15);
+      rewardRow(this, 118, 387, [{ kind: 'coin', text: `+${total.coins}` }, { kind: 'xp', text: `+${total.xp}` }], { size: 17, left: true, gap: 12, color: TC.orange });
     }
 
     const prof = getSave().profile;
@@ -85,10 +98,9 @@ export class ResultScene extends Phaser.Scene {
     const rw = this.outcome.reward;
     if (!hideProgress) {
       // What the matches of the tournament paid (the XP also goes into the bar below).
-      const matches = fin?.matches ?? rw;
-      if (matches) rewardRow(this, WIDTH / 2, 342, [{ kind: null, text: 'MATCHES' }, { kind: 'xp', text: `+${matches.xp}` }, { kind: 'coin', text: `+${matches.coins}` }], { size: 14, color: TC.orange });
-      this.xpBar(prof.xp, (fin ? fin.prize.xp + fin.matches.xp : (rw?.xp ?? 0)));
-      if (this.outcome.packs) text(412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
+      if (!fin && rw) rewardRow(this, WIDTH / 2, 342, [{ kind: null, text: 'MATCHES' }, { kind: 'xp', text: `+${rw.xp}` }, { kind: 'coin', text: `+${rw.coins}` }], { size: 14, color: TC.orange });
+      this.xpBar(prof.xp, (fin ? fin.prize.xp + fin.matches.xp : (rw?.xp ?? 0)), fin ? 428 : 368);
+      if (this.outcome.packs) text(fin ? 466 : 412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
     }
     // The rival's line (between rounds of a tournament, where the progress block above is empty): his head and a bubble, typed letter by letter.
     if (this.outcome.rival && this.outcome.career && hideProgress && !retired) {
@@ -98,13 +110,13 @@ export class ResultScene extends Phaser.Scene {
     }
     const trophies = this.outcome.trophies ?? [];
     if (trophies.length > 0) {
-      const t = text(594, `ACHIEVEMENT!\n${trophies.slice(0, 2).join('\n')}${trophies.length > 2 ? `\n+${trophies.length - 2} MORE` : ''}`, 11, TC.orange);
-      t.setOrigin(0.5, 0);
+      if (fin) text(626, `ACHIEVEMENT: ${trophies[0]}${trophies.length > 1 ? ` (+${trophies.length - 1} MORE)` : ''}`, 11, TC.orange);
+      else text(594, `ACHIEVEMENT!\n${trophies.slice(0, 2).join('\n')}${trophies.length > 2 ? `\n+${trophies.length - 2} MORE` : ''}`, 11, TC.orange).setOrigin(0.5, 0);
     }
 
     const small = (x: number, y: number, w: number, h: number, label: string, to: string): void => void makeThemeButton(this, x, y, w, h, label, () => this.scene.start(to), 'blue', 15);
     if (this.outcome.career) {
-      makeThemeButton(this, WIDTH / 2, 448, 250, 50, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'), 'primary', 22);
+      makeThemeButton(this, WIDTH / 2, fin ? 500 : 448, 250, fin ? 44 : 50, 'CONTINUE', () => this.scene.start(fin ? 'CalendarScene' : 'BracketScene'), 'primary', 22);
     } else {
       makeThemeButton(this, WIDTH / 2, 448, 250, 50, 'REMATCH', () => this.scene.start('MatchScene', { practice: null, career: null }), 'primary', 22);
     }
@@ -113,9 +125,9 @@ export class ResultScene extends Phaser.Scene {
       makeThemeButton(this, WIDTH / 2, 510, 250, 48, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 18);
     } else if (fin) {
       // The tournament is over: now the hero can be upgraded and the shop is open.
-      small(WIDTH / 2 - 64, 508, 120, 44, 'HERO', 'CharacterScene');
-      small(WIDTH / 2 + 64, 508, 120, 44, 'GO TO SHOP', 'ShopScene');
-      makeThemeButton(this, WIDTH / 2, 558, 250, 40, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 16);
+      small(WIDTH / 2 - 64, 550, 120, 40, 'HERO', 'CharacterScene');
+      small(WIDTH / 2 + 64, 550, 120, 40, 'GO TO SHOP', 'ShopScene');
+      makeThemeButton(this, WIDTH / 2, 598, 250, 36, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 16);
     } else {
       small(WIDTH / 2 - 64, 510, 120, 48, 'HERO', 'CharacterScene');
       makeThemeButton(this, WIDTH / 2 + 64, 510, 120, 48, 'MAIN MENU', () => this.scene.start('TitleScene'), 'secondary', 15);
@@ -123,16 +135,16 @@ export class ResultScene extends Phaser.Scene {
   }
 
   /** The level and XP bar: it starts where the hero was before the tournament and fills up to where he is now (over a level-up it fills, flashes and starts again). */
-  private xpBar(xpAfter: number, gain: number): void {
+  private xpBar(xpAfter: number, gain: number, y: number): void {
     const xpBefore = Math.max(0, xpAfter - gain);
     const barX = WIDTH / 2 - 100;
     const levelNow = levelOf(xpAfter);
     const label = (level: number, up: boolean): string => (up ? `LEVEL UP!  LEVEL ${level}` : `LEVEL ${level}`);
-    const lvlText = themeText(this, WIDTH / 2, 368, label(levelOf(xpBefore), false), { size: 14, font: 'display' });
+    const lvlText = themeText(this, WIDTH / 2, y, label(levelOf(xpBefore), false), { size: 14, font: 'display' });
     const bar = this.add.graphics();
     const paint = (xp: number): void => {
       bar.clear();
-      drawBar(bar, barX, 384, 200, 12, levelProgress(xp), TC.orange);
+      drawBar(bar, barX, y + 16, 200, 12, levelProgress(xp), TC.orange);
     };
     paint(xpBefore);
     if (gain <= 0) {

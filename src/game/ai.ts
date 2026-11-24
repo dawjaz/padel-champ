@@ -7,6 +7,8 @@ import type { AimPreference, CourtPos, Direction, PlayerDef, ReceiveMode, Rng, S
 /** Shots that are only available now and then; the CPU favours them when it can play them. */
 const NICHE_SHOTS = ['vibora', 'bandeja', 'contrapared'];
 const NICHE_WEIGHT = 3;
+const RISK_AVERSION = 2;
+const RISK_FLOOR = 0.35;
 const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 
 function weightedPick<T>(items: T[], weights: number[], rng: Rng): T {
@@ -79,6 +81,8 @@ export function pickHit(
     else if (atBack) tactic = s.id.includes('chiquita') || s.id === 'dejada' ? 2.2 : isLob(s) ? 0.5 : 1;
     // The niche shots (vibora, bandeja, contrapared) almost never came up in CPU play (0.1% of hits): a pair that can play them should.
     if (NICHE_SHOTS.includes(s.id)) tactic *= NICHE_WEIGHT;
+    // A pair does not throw away points: the riskiest shots (the fast bajada ends in the net or the glass about a third of the time) are chosen less often.
+    tactic *= Math.max(RISK_FLOOR, 1 - s.risk * RISK_AVERSION);
     return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);
   });
   const shot = weightedPick(options, weights, rng);

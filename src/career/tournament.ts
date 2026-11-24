@@ -93,6 +93,26 @@ export function makePair(rng: Rng, rating: number, id: string): Entry {
   return { id, name: `${last1} / ${last2}`, rating: (averageStat(players[0]) + averageStat(players[1])) / 2, players };
 }
 
+/**
+ * The opponent in round `round` (0 = first) is stronger the further the tournament goes: `roundBonus` attribute levels per round.
+ * The whole part goes to every attribute, the rest to a share of them (a fixed pattern, so the draw stays deterministic).
+ */
+export function toughen(entry: Entry, round: number): Entry {
+  const bonus = divisionsData.roundBonus * round;
+  if (bonus <= 0 || entry.players.length === 0) return entry;
+  const whole = Math.floor(bonus);
+  const frac = bonus - whole;
+  const players = entry.players.map((p, pi) => {
+    const stats = { ...p.stats };
+    STAT_KEYS.forEach((k, i) => {
+      const extra = (i * 0.618 + pi * 0.37) % 1 < frac ? 1 : 0;
+      stats[k] = clamp(stats[k] + whole + extra, 1, 10);
+    });
+    return { ...p, stats, maxGuts: gutsFor(stats.stamina) };
+  });
+  return { ...entry, players, rating: (averageStat(players[0]) + averageStat(players[1])) / 2 };
+}
+
 export const roundNamesFor = (draw: number): string[] => (draw === 8 ? ['Quarterfinal', 'Semifinal', 'Final'] : ['Round of 16', 'Quarterfinal', 'Semifinal', 'Final']);
 
 /** Builds the bracket from the seed and what the hero has done so far (`results[r]` = won round r). */
@@ -101,7 +121,7 @@ export function buildBracket(divisionId: string, seed: number, results: boolean[
   if (!division) throw new Error(`unknown division ${divisionId}`);
   const rng = seededRng(seed);
   const entries: Entry[] = [{ id: HERO_ID, name: 'You', rating: 0, players: [] }];
-  for (let i = 1; i < division.draw; i++) entries.push(makePair(rng, clamp(division.rating + (rng() - 0.5), 1, 10), `p${i}`));
+  for (let i = 1; i < division.draw; i++) entries.push(makePair(rng, clamp(division.rating + (rng() - 0.5) * 1.6, 1, 10), `p${i}`));
   const byId = new Map(entries.map((e) => [e.id, e]));
   // Shuffle the draw
   const order = entries.map((e) => e.id);
@@ -132,7 +152,7 @@ export function buildBracket(divisionId: string, seed: number, results: boolean[
     if (!heroMatch) throw new Error('the hero is missing from the draw');
     const other = heroMatch.a === HERO_ID ? heroMatch.b : heroMatch.a;
     const result = results[r];
-    if (result === undefined) return { division, entries, rounds, roundNames, status: 'active', roundsWon, opponent: byId.get(other) };
+    if (result === undefined) return { division, entries, rounds, roundNames, status: 'active', roundsWon, opponent: toughen(byId.get(other)!, r) };
     heroMatch.winner = result ? HERO_ID : other;
     if (!result) return { division, entries, rounds, roundNames, status: 'lost', roundsWon };
     roundsWon++;

@@ -106,18 +106,47 @@ function drawFaceButton(g: Phaser.GameObjects.Graphics, w: number, h: number, to
   g.strokeRoundedRect(0, dy, w, h, r);
 }
 
+export interface BakedShape {
+  rt: Phaser.GameObjects.RenderTexture;
+  /** Clears the texture and paints again (shape coordinates start at 0,0 in the top-left corner). */
+  repaint: (paint: (g: Phaser.GameObjects.Graphics) => void) => void;
+}
+
+/**
+ * A Graphics shape painted once into a texture. A Graphics object is triangulated again on every frame (rounded corners are
+ * expensive), a texture is a single quad: use this for everything that stays still or changes rarely (buttons, cards, bars).
+ * The texture has HD_SCALE times the pixels, so it stays sharp. `(x, y)` is the top-left corner of the shape, `pad` leaves room
+ * for strokes and shadows outside it.
+ */
+export function bakedShape(scene: Phaser.Scene, x: number, y: number, w: number, h: number, paint: (g: Phaser.GameObjects.Graphics) => void, pad = 4): BakedShape {
+  const S = HD_SCALE;
+  const rt = scene.add.renderTexture(x - pad, y - pad, Math.ceil((w + pad * 2) * S), Math.ceil((h + pad * 2) * S)).setOrigin(0, 0).setScale(1 / S);
+  const tmp = scene.make.graphics({}, false);
+  rt.once(Phaser.GameObjects.Events.DESTROY, () => tmp.destroy());
+  const repaint = (fn: (g: Phaser.GameObjects.Graphics) => void): void => {
+    rt.clear();
+    tmp.clear();
+    tmp.setScale(S).setPosition(pad * S, pad * S);
+    fn(tmp);
+    rt.draw(tmp);
+  };
+  repaint(paint);
+  return { rt, repaint };
+}
+
 export type ThemeButtonKind = 'primary' | 'secondary' | 'blue';
 
 /** Rounded button centred on (x, y): primary (orange), blue, or secondary (white card). Plays the select beep. */
 export function makeThemeButton(scene: Phaser.Scene, x: number, y: number, w: number, h: number, label: string, onClick: () => void, kind: ThemeButtonKind = 'primary', size = 20): ButtonParts {
-  const gfx = scene.add.graphics().setPosition(x - w / 2, y - h / 2);
   let pressed = false;
-  const draw = (): void => {
-    if (kind === 'primary') drawFaceButton(gfx, w, h, TC.orangeLight, TC.orange, pressed);
-    else if (kind === 'blue') drawFaceButton(gfx, w, h, TC.blueLight, TC.blue, pressed);
-    else drawCard(gfx, w, h, { radius: 14, pressed });
+  const paint = (g: Phaser.GameObjects.Graphics): void => {
+    if (kind === 'primary') drawFaceButton(g, w, h, TC.orangeLight, TC.orange, pressed);
+    else if (kind === 'blue') drawFaceButton(g, w, h, TC.blueLight, TC.blue, pressed);
+    else drawCard(g, w, h, { radius: 14, pressed });
   };
-  draw();
+  const baked = bakedShape(scene, x - w / 2, y - h / 2, w, h, paint);
+  const gfx = baked.rt;
+  const draw = (): void => baked.repaint(paint);
   const text = themeText(scene, x, y + 2, label, { size, color: kind === 'secondary' ? TC.navy : TC.white, font: 'display' });
   const zone = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
   zone.on('pointerdown', () => {
@@ -178,16 +207,16 @@ export function drawXp(g: Phaser.GameObjects.Graphics, x: number, y: number, r: 
 
 export type RewardKind = 'xp' | 'coin';
 
-/** A row of rewards, each an icon and an amount (for example "(star) +120   (coin) +40"), centred on `cx` at height `y`. */
-export function rewardRow(scene: Phaser.Scene, cx: number, y: number, items: { kind: RewardKind | null; text: string }[], o: { size?: number; color?: number } = {}): Phaser.GameObjects.GameObject[] {
+/** A row of rewards, each an icon and an amount (for example "(star) +120   (coin) +40"), centred on `cx` at height `y` (`left`: starting at `cx`). */
+export function rewardRow(scene: Phaser.Scene, cx: number, y: number, items: { kind: RewardKind | null; text: string }[], o: { size?: number; color?: number; left?: boolean; gap?: number } = {}): Phaser.GameObjects.GameObject[] {
   const size = o.size ?? 15;
   const r = size * 0.62;
-  const gap = 16;
+  const gap = o.gap ?? 16;
   const labels = items.map((it) => themeText(scene, 0, y + 1, it.text, { size, color: o.color ?? TC.navy, font: 'display', origin: [0, 0.5] }));
   const widths = items.map((it, i) => (it.kind ? r * 2 + 5 : 0) + labels[i].width);
   const total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1);
   const g = scene.add.graphics();
-  let x = cx - total / 2;
+  let x = o.left ? cx : cx - total / 2;
   items.forEach((it, i) => {
     if (it.kind === 'xp') drawXp(g, x + r, y, r);
     else if (it.kind === 'coin') drawCoin(g, x + r, y, r);

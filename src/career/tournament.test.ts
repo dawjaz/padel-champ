@@ -109,3 +109,24 @@ describe('prizes', () => {
     expect(prizeFor(divisionById('club')!, 3).coins).toBe(divisionById('club')!.title.coins);
   });
 });
+
+describe('difficulty grows with every round', () => {
+  it('the hero meets a stronger opponent on average in each round (below the top divisions)', () => {
+    for (const id of ['club', 'regional', 'silver']) {
+      const n = divisionById(id)!.draw === 8 ? 3 : 4;
+      const avg = new Array<number>(n).fill(0);
+      for (let seed = 1; seed <= 100; seed++) {
+        const res: boolean[] = [];
+        for (let r = 0; r < n; r++) {
+          const b = buildBracket(id, seed, res);
+          avg[r] += b.opponent!.rating;
+          res.push(true);
+        }
+      }
+      for (let r = 1; r < n; r++) expect(avg[r], `${id} round ${r}`).toBeGreaterThan(avg[r - 1] + 100 * 0.3);
+    }
+  });
+  it('is deterministic for a seed', () => {
+    expect(buildBracket('regional', 5, [true]).opponent!.rating).toBe(buildBracket('regional', 5, [true]).opponent!.rating);
+  });
+});

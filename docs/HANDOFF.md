@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-24 (v0.102)_
+_Last updated: 2026-11-24 (v0.103)_
+
+## v0.103: harder opponents each round, vibora, CPU shot choice, one tournament summary, less CPU work per frame
+- **Tournament difficulty** (`toughen` in `tournament.ts`, `roundBonus 0.45` in `divisions.json`): the hero's opponent in round r gets +0.45 x r attribute levels (whole part to every stat, the rest to a fixed share of them); the field's own ratings spread +-0.8 (was +-0.5). Average opponent rating by round, regional: 4.4, 4.9, 5.5, 6.0 (it was flat); the top divisions saturate near 10.
+- **Vibora**: flight speed 27 to 22, side spin 1.3 to 1.9.
+- **Lob cross check**: a lob is never a winner by itself (0% in all formations); points after it come from the CPU's reply. The CPU used to pick the fast bajada (30% error) as often as safe shots, so replies to lobs ended in errors ~9%. `pickHit` now scales shot weights by `max(0.35, 1 - risk x 2)` (`RISK_AVERSION`), ~6-7% now. The case "the defender seemed in reach but did not play it" could not be reproduced in the logic; the engine takes the defender's position from the formation spots (`restPos`), not from the real positions on screen, which can differ (see reach step 2).
+- **Result screen** after a tournament: one card with PRIZE (placing), MATCHES (n) and TOTAL (coins, XP), then the level bar. `rewardRow` got `left` and `gap` options.
+- **Lag** (coin toss, shots): Phaser triangulates every Graphics again on every frame (earcut was ~4 ms/frame on desktop). `bakedShape` in `theme.ts` paints a shape once into a RenderTexture (HD_SCALE x pixels, `repaint` for changes). Used for themed buttons, the match control sheet, scoreboard, games boxes, guts bars and the match menu buttons. Headless software-GL run: frames in 9 s 95 to 155, earcut and Graphics renderer time ~240 ms to ~16 ms. Other scenes still use plain Graphics cards (not time critical); texture uploads (texImage2D, ~2 ms/frame) remain.
 
 ## v0.102: bajada fixes, tournament bracket as a tree
 - **Bajada winners** (`noReboundBack` on bajada_fast and bajada_slow): the ball no longer comes off the back glass and returns over the net. `buildFlight` damps the back-wall rebound (`backDamp` in `simulateAfterBounce`, tried 0.7 down to 0.08) until the ball stays at least 1.5 m beyond the net on the receiving side. A rare exit through a side opening near the net remains (still on the opponent's side).
