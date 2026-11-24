@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.96)_
+_Last updated: 2026-11-23 (v0.97)_
+
+## v0.97: less work per frame (lag on a phone, Motorola Edge 60 Pro)
+- **Measured** (headless Chrome, CPU profile and per-frame timers; the GPU of a phone cannot be measured here): per frame the match re-drew Phaser `Graphics` that are triangulated on the CPU (earcut): 4 player shadows, the ball shadow and ring, 14 trail circles, 4 rounded guts bars (3 to 4 shapes each); it redrew and re-uploaded the 96 px ball texture every frame; and pose textures were drawn lazily in the middle of a rally (about 2.5 ms each on a desktop, 3 views now).
+- **Fixed:** shadows, ring and trail are pooled images of tiny flat textures (`ensureFlatTextures`, `SHADOW_KEY`, `RING_KEY`, `DOT_KEY` in `hdTextures.ts`); the guts bar is drawn around its own origin and only redrawn when the width changes (`barShown`); the ball picture is redrawn at most every 50 ms; `prewarmPoses` draws all poses of the team view and the run cycle (team view and profile) two per 16 ms tick during the coin toss; `powerPreference: 'high-performance'`.
+- **Result:** logic time per frame in a match about 3.2 ms down to 0.9 ms (after the prewarm), no vector shapes triangulated per frame. Render submit time (about 5 ms headless) is unchanged.
+- **If it still lags:** next suspects are GPU fill rate (the 720x1280 canvas, full-screen alpha layers, the additive ball glow), text objects, and the number of textures (about 180 in a match); try `HD_SCALE` 1.5 for a test, and look at `chrome://inspect` remote profiling on the phone.
 
 ## v0.96: profile view for sideways running
 - `ToonView` now has `'side'` (profile, facing right): `buildSide` in `src/art/toon/character.ts`, built from the same `PoseSpec`s as front/back (stride from the ankle offsets x2, knees bend forward, near arm with the racket, far arm and leg shaded, racket narrowed and tilted up when held in front so it does not cover the face, all hair styles, band, cap, wristband, skirt).

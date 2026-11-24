@@ -7,7 +7,7 @@ import { ensureToonPoseTexture, placeToonSprite } from '../art/toonTexture';
 import { mixPose, POSES, runFrame, RUN_FRAMES, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
-import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, GLOW_KEY } from '../art/hdTextures';
+import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
@@ -100,6 +100,8 @@ interface PlayerView {
   busyUntil: number;
   /** An in-between or run-cycle pose that replaces `pose` while set (key names the picture in the texture cache). */
   custom: { key: string; spec: PoseSpec } | null;
+  /** Width in pixels of the guts bar as last drawn (-1: not drawn yet). */
+  barShown: number;
   /** Counts blends; a newer pose cancels an older blend. */
   blend: number;
 }
@@ -165,10 +167,14 @@ export class MatchScene extends Phaser.Scene {
   private ballOmega: Vec3 = [0, 0, 0];
   private ballTurnedAt = 0;
   private redrawBall: (m: Mat3) => void = () => undefined;
-  private overlay!: Phaser.GameObjects.Graphics;
+  /** Shadows under the players and the ball and the ring under the active player: pooled images (a Graphics redrawn every frame costs a polygon triangulation per ellipse). */
+  private shadows: Record<string, Phaser.GameObjects.Image> = {};
+  private ballShadow!: Phaser.GameObjects.Image;
+  private ring!: Phaser.GameObjects.Image;
+  private trailDots: Phaser.GameObjects.Image[] = [];
+  private ballDrawnAt = 0;
   private ball!: Phaser.GameObjects.Image;
   private ballGlow!: Phaser.GameObjects.Image;
-  private trailGfx!: Phaser.GameObjects.Graphics;
   /** Recent screen positions of the ball, for its fading trail. */
   private trail: Array<{ x: number; y: number; d: number }> = [];
   /** TV scoreboard: team names, games, points per row, the serve dot and the deuce note. */
@@ -227,10 +233,15 @@ export class MatchScene extends Phaser.Scene {
 
     this.trail = [];
     this.drawArenaHd();
-    this.overlay = this.add.graphics().setDepth(1);
+    ensureFlatTextures(this);
+    this.shadows = {};
+    this.trailDots = [];
+    this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setDepth(1).setAlpha(0.4).setVisible(false);
+    this.ring = this.add.image(0, 0, RING_KEY).setDepth(1).setVisible(false);
     this.createViews();
+    this.prewarmPoses();
     this.redrawBall = ensureBallTextures(this).redrawBall;
-    this.trailGfx = this.add.graphics().setDepth(4990);
+    for (let i = 0; i < 14; i++) this.trailDots.push(this.add.image(0, 0, DOT_KEY).setDepth(4990).setVisible(false));
     this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8).setVisible(false);
     // Hidden until the first serve puts it down: before that it would show at its full texture size in the corner (coin toss).
     this.ball = this.add.image(0, 0, BALL_KEY).setDepth(5000).setVisible(false);
@@ -461,7 +472,7 @@ export class MatchScene extends Phaser.Scene {
           .setStroke(NAVY_CSS, 4)
           .setDepth(9000);
         const bar = this.add.graphics().setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0 };
+        this.views[player.id] = { sprite, label, bar, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1 };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -482,37 +493,40 @@ export class MatchScene extends Phaser.Scene {
     this.drawGutsBar(v, p.x, v.side === 0 ? p.y + 6 + 18 : top - GUTS_BAR_H);
   }
 
-  /** A rounded bar: the fill shrinks with the guts and changes colour from green to red. */
+  /** A rounded bar: the fill shrinks with the guts and changes colour from green to red. It is drawn around its own origin and only re-drawn when the guts change; moving it is just a position. */
   private drawGutsBar(v: PlayerView, cx: number, y: number): void {
     const g = v.bar;
+    g.setPosition(cx, y);
     const ratio = Math.max(0, Math.min(1, (this.guts[v.player.id] ?? v.player.maxGuts) / v.player.maxGuts));
-    const x = cx - GUTS_BAR_W / 2;
+    const shown = Math.round(ratio * GUTS_BAR_W);
+    if (v.barShown === shown) return;
+    v.barShown = shown;
+    const x = -GUTS_BAR_W / 2;
     g.clear();
-    g.fillStyle(TC.navy, 0.92).fillRoundedRect(x - 1.5, y - 1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
+    g.fillStyle(TC.navy, 0.92).fillRoundedRect(x - 1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
     if (ratio > 0) {
       const w = Math.max(GUTS_BAR_H, Math.round(GUTS_BAR_W * ratio));
-      g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(x, y, w, GUTS_BAR_H, GUTS_BAR_H / 2);
-      g.fillStyle(0xffffff, 0.35).fillRoundedRect(x + 2, y + 1, Math.max(2, w - 4), 2, 1);
+      g.fillStyle(gutsBarColor(ratio), 1).fillRoundedRect(x, 0, w, GUTS_BAR_H, GUTS_BAR_H / 2);
+      g.fillStyle(0xffffff, 0.35).fillRoundedRect(x + 2, 1, Math.max(2, w - 4), 2, 1);
     }
-    g.lineStyle(1.2, 0xffffff, 0.9).strokeRoundedRect(x - 1.5, y - 1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
+    g.lineStyle(1.2, 0xffffff, 0.9).strokeRoundedRect(x - 1.5, -1.5, GUTS_BAR_W + 3, GUTS_BAR_H + 3, (GUTS_BAR_H + 3) / 2);
   }
 
   /** Shadows under players and ball, and the ring under the player who has to act. */
   private redrawOverlay(): void {
-    const g = this.overlay;
-    g.clear();
-    g.fillStyle(0x000000, 0.35);
     for (const id of Object.keys(this.views)) {
       const p = project(this.pos[id].x, this.pos[id].z);
-      g.fillEllipse(p.x, p.y, p.scale * 1.1, p.scale * 0.4);
+      let sh = this.shadows[id];
+      if (!sh) sh = this.shadows[id] = this.add.image(0, 0, SHADOW_KEY).setDepth(1).setAlpha(0.35);
+      sh.setPosition(p.x, p.y).setDisplaySize(p.scale * 1.1, p.scale * 0.4);
     }
     const b = project(this.ballFloor.x, this.ballFloor.z);
-    g.fillStyle(0x000000, 0.4);
-    g.fillEllipse(b.x, b.y, Math.max(5, b.scale * 0.35), Math.max(2, b.scale * 0.12));
+    this.ballShadow.setPosition(b.x, b.y).setDisplaySize(Math.max(5, b.scale * 0.35), Math.max(2, b.scale * 0.12)).setVisible(true);
     if (this.activeId) {
       const p = project(this.pos[this.activeId].x, this.pos[this.activeId].z);
-      g.lineStyle(2, 0xffe066, 1);
-      g.strokeEllipse(p.x, p.y, p.scale * 1.5, p.scale * 0.6);
+      this.ring.setPosition(p.x, p.y).setDisplaySize(p.scale * 1.5 + 4, p.scale * 0.6 + 4).setVisible(true);
+    } else {
+      this.ring.setVisible(false);
     }
   }
 
@@ -544,7 +558,11 @@ export class MatchScene extends Phaser.Scene {
         const rollSpeed = Math.hypot(x - prev.x, z - prev.z) / dt;
         const k = h < 0.06 ? Math.min(1, rollSpeed / 2.5) : 1;
         this.ballR = rotate(this.ballR, [this.ballOmega[0] * k, this.ballOmega[1] * k, this.ballOmega[2] * k], dt);
-        this.redrawBall(this.ballR);
+        // The picture of the ball is re-drawn and uploaded to the GPU: at most about 20 times a second is enough for a spinning ball.
+        if (now - this.ballDrawnAt >= 50) {
+          this.ballDrawnAt = now;
+          this.redrawBall(this.ballR);
+        }
       }
     }
     this.ballTurnedAt = now;
@@ -566,13 +584,16 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private drawTrail(): void {
-    const g = this.trailGfx;
-    g.clear();
     const n = this.trail.length;
-    this.trail.forEach((t, i) => {
+    this.trailDots.forEach((img, i) => {
+      const t = this.trail[i];
+      if (!t) {
+        img.setVisible(false);
+        return;
+      }
       const k = (i + 1) / n;
-      g.fillStyle(0xfff4a0, 0.3 * k);
-      g.fillCircle(t.x, t.y, t.d * 0.5 * (0.35 + 0.65 * k));
+      const d = t.d * (0.35 + 0.65 * k);
+      img.setPosition(t.x, t.y).setDisplaySize(d, d).setAlpha(0.3 * k).setVisible(true);
     });
   }
 
@@ -746,6 +767,31 @@ export class MatchScene extends Phaser.Scene {
     if (v.custom?.key === `run${f}`) return;
     v.custom = { key: `run${f}`, spec: runFrame(f) };
     this.showSprite(id);
+  }
+
+  /**
+   * Draws the pictures a match needs (every pose in the team's view, the profile run cycle) a couple per frame while the coin is
+   * tossed, so that none of them has to be drawn in the middle of a rally (a hitch on a phone).
+   */
+  private prewarmPoses(): void {
+    const jobs: Array<() => void> = [];
+    for (const [id, v] of Object.entries(this.views)) {
+      const ap = v.player.appearance;
+      const team = toonViewOf(this.defaultFacing(id), v.side);
+      for (let f = 0; f < RUN_FRAMES; f++) {
+        jobs.push(() => ensureToonPoseTexture(this, ap, 'side', { key: `run${f}`, spec: runFrame(f) }));
+        jobs.push(() => ensureToonPoseTexture(this, ap, team, { key: `run${f}`, spec: runFrame(f) }));
+      }
+      for (const pose of Object.keys(POSES) as PoseName[]) jobs.push(() => ensureToonPoseTexture(this, ap, team, pose));
+    }
+    const ev = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        for (let i = 0; i < 2; i++) jobs.shift()?.();
+        if (jobs.length === 0) ev.remove();
+      },
+    });
   }
 
   /** Glides from the current pose to `pose` in `ms`, through a few in-between pictures; a newer pose cancels it. */

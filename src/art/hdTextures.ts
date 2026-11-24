@@ -47,3 +47,39 @@ export function ensureArenaTextures(scene: Phaser.Scene, themeId = 'blue'): { ne
   }
   return { netY: netTopY, backKey };
 }
+
+export const SHADOW_KEY = 'flat:shadow';
+export const RING_KEY = 'flat:ring';
+export const DOT_KEY = 'flat:dot';
+
+/** Flat white-on-clear pictures (a filled ellipse, an ellipse outline, a dot) that the match tints and scales instead of redrawing vector shapes every frame. */
+export function ensureFlatTextures(scene: Phaser.Scene): void {
+  const make = (key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): void => {
+    if (scene.textures.exists(key)) return;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    if (g) draw(g);
+    scene.textures.addCanvas(key, c);
+  };
+  make(SHADOW_KEY, 64, 24, (g) => {
+    g.fillStyle = '#000000';
+    g.beginPath();
+    g.ellipse(32, 12, 32, 12, 0, 0, Math.PI * 2);
+    g.fill();
+  });
+  make(RING_KEY, 96, 40, (g) => {
+    g.strokeStyle = '#ffe066';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.ellipse(48, 20, 45, 17, 0, 0, Math.PI * 2);
+    g.stroke();
+  });
+  make(DOT_KEY, 32, 32, (g) => {
+    g.fillStyle = '#fff4a0';
+    g.beginPath();
+    g.arc(16, 16, 16, 0, Math.PI * 2);
+    g.fill();
+  });
+}

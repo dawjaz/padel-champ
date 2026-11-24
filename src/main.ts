@@ -37,6 +37,7 @@ const game = new Phaser.Game({
   // Smooth rendering (the 128-bit look): no pixel-art mode.
   pixelArt: false,
   antialias: true,
+  render: { powerPreference: 'high-performance' },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
