@@ -20,8 +20,15 @@ export class ShopScene extends Phaser.Scene {
   /** The brand a bought pack is limited to (null = any brand), a surcharge applies. */
   private brand: string | null = null;
 
+  /** The scene the shop was opened from (by tapping the coins); the back button returns there. */
+  private backTo = 'TitleScene';
+
   constructor() {
     super('ShopScene');
+  }
+
+  init(data: { from?: string }): void {
+    this.backTo = data?.from ?? 'TitleScene';
   }
 
   create(): void {
@@ -56,7 +63,7 @@ export class ShopScene extends Phaser.Scene {
     const p = getSave().profile;
     // The header shows the coin count, so it is rebuilt with the rest.
     const before = this.children.length;
-    screenHeader(this, 'Shop', { onBack: () => this.scene.start('TitleScene'), coins: p.coins });
+    screenHeader(this, 'Shop', { onBack: () => this.scene.start(this.backTo), coins: p.coins });
     this.dyn.push(...this.children.list.slice(before));
 
     // Free packs (one per level up)

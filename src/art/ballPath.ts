@@ -636,6 +636,8 @@ function scriptedSideExit(o: FlightOpts): Flight | null {
 
 /** Where on the side wall (metres past the hitter towards the net) and how high the contrapared is hit into the wall. */
 export const CONTRAPARED_WALL_AHEAD = 3.2;
+/** Nearest z (m from the hitter's own back wall: 20 - this) where the side wall still has glass 1.1 m high: the glass reaches 4 m from the back wall. */
+export const CONTRAPARED_GLASS_END = 16.4;
 export const CONTRAPARED_WALL_H = 1.1;
 
 /**
@@ -649,7 +651,8 @@ function buildContrapared(o: FlightOpts): Flight {
   const wallX = (o.from.x >= 0 ? 1 : -1) * 4.98;
   // Hit from the back it goes into the wall about 3 m ahead; from further up the court the wall point is closer, still behind the net.
   const ahead = clamp(Math.abs(o.from.z - NET_Z) - 2.5, 1.5, CONTRAPARED_WALL_AHEAD);
-  const wallZ = clamp(o.from.z + away * ahead, 0.5, 19.5);
+  // The wall is hit where there is GLASS (the first 4 m from the back wall); further towards the net the side wall is only mesh and a contrapared is never played off it.
+  const wallZ = o.hitterSide === 0 ? clamp(o.from.z + away * ahead, CONTRAPARED_GLASS_END, 19.5) : clamp(o.from.z + away * ahead, 0.5, 20 - CONTRAPARED_GLASS_END);
   const dist = Math.hypot(wallX - o.from.x, wallZ - o.from.z);
   const T = Math.max(0.2, dist / Math.max(6, o.shot.flight.speed));
   const g = GRAVITY;
@@ -685,7 +688,7 @@ export function buildFlight(opts: FlightOpts): Flight {
       ? opts
       : { ...opts, spinMul: 1, shot: { ...opts.shot, flight: { ...opts.shot.flight, spin: opts.shot.flight.spin * opts.spinMul, side: opts.shot.flight.side * opts.spinMul } } };
   if (o.shot.ownWall === true) return buildContrapared(o);
-  if ((o.outcome === 'winner' || o.outcome === 'ace') && o.shot.exitVia === 'side' && o.landDepth === undefined) {
+  if ((o.outcome === 'winner' || o.outcome === 'ace') && o.shot.exitVia === 'side') {
     const f = scriptedSideExit(o);
     if (f) return f;
   }
@@ -985,6 +988,11 @@ const ROLL_DECEL = 1.6;
 const OUTSIDE_ROLL_DECEL = 2.8;
 /** A ball that leaves over the fence is checked by the fence and the air outside, so it drops just behind it (not into the stands). */
 const OVER_FENCE_KEEP = 0.45;
+/**
+ * Outside the court the ball is stopped by the hoardings and the people behind them: it never flies on into the stands (they are only a
+ * picture). Metres beyond the side fence, beyond the far back wall (the stands start right behind the boards) and beyond the near one.
+ */
+export const OUTSIDE_LIMIT = { side: 3.2, back: 1.8, nearBack: 3 } as const;
 const OUTSIDE_AIR_DRAG = 2.2;
 /** Below this vertical speed after a bounce the ball stops bouncing and rolls. */
 const ROLL_VY = 1.2;
@@ -1032,6 +1040,11 @@ export function buildCoast(flight: Flight, spin: number): Coast {
   let vz = v0.z;
   let vy = v0.h;
   let inside = Math.abs(x) <= 5 + 1e-6 && z >= -1e-6 && z <= 20 + 1e-6 && flight.events.every((e) => e.kind !== 'out');
+  // A flight that ended by leaving the court carries on with the speed the fence and the air outside leave it.
+  if (!inside) {
+    vx *= OVER_FENCE_KEEP;
+    vz *= OVER_FENCE_KEEP;
+  }
   let rolling = false;
   const e = clamp(0.62 + 0.04 * spin, 0.5, 0.7);
   const keep = clamp(0.62 + 0.14 * spin, 0.35, 0.9);
@@ -1058,6 +1071,22 @@ export function buildCoast(flight: Flight, spin: number): Coast {
     }
     x += vx * DT;
     z += vz * DT;
+
+    if (!inside) {
+      // the hoardings: the ball bounces off them and drops (see OUTSIDE_LIMIT)
+      const xLim = 5 + OUTSIDE_LIMIT.side;
+      if (Math.abs(x) > xLim) {
+        x = Math.sign(x) * xLim;
+        vx *= -0.25;
+      }
+      if (z < -OUTSIDE_LIMIT.back) {
+        z = -OUTSIDE_LIMIT.back;
+        vz *= -0.25;
+      } else if (z > 20 + OUTSIDE_LIMIT.nearBack) {
+        z = 20 + OUTSIDE_LIMIT.nearBack;
+        vz *= -0.25;
+      }
+    }
 
     if (inside) {
       // The net stops a low ball.

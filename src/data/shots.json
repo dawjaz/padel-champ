@@ -499,7 +499,6 @@
     "ownWall": true,
     "requires": {
       "formations": [
-        "mid",
         "back"
       ],
       "heights": [
@@ -509,9 +508,9 @@
       "glass": false,
       "air": false,
       "nearWall": true,
-      "hint": "contrapared: not at the net, after the bounce, a ball by the side wall"
+      "hint": "contrapared: from the back, after the bounce, a ball by the side wall (off the glass)"
     },
-    "desc": "Into your own side wall, with spin: it comes off and crosses to the other side. Not at the net, only to a ball by the side wall.",
+    "desc": "Into the glass of your own side wall, with spin: it comes off and crosses to the other side. Only from the back, only to a ball by the side wall.",
     "flight": {
       "speed": 17,
       "apex": 0,
@@ -585,7 +584,8 @@
     "advance": "net",
     "landDepth": 8.5,
     "wall": "back",
-    "winnerMargin": 16,
+    "winnerMargin": 8,
+    "noReboundBack": true,
     "overFence": true,
     "requires": {
       "formations": [
@@ -832,7 +832,7 @@
     "glassChance": 0.0,
     "drop": true,
     "depthSpread": 0.4,
-    "winnerMargin": 8,
+    "winnerMargin": 30,
     "requires": {
       "formations": [
         "net",

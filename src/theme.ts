@@ -3,6 +3,8 @@ import { drawIcon, type IconKind } from './art/icons';
 import { sfx } from './audio';
 import { HD_SCALE, HEIGHT, WIDTH } from './config';
 import { applyHd } from './hd';
+import { tournamentActive } from './career/careerFlow';
+import { getSave } from './save';
 import type { ButtonParts } from './ui';
 
 /**
@@ -212,7 +214,18 @@ export function coinPill(scene: Phaser.Scene, right: number, y: number, amount: 
   g.strokeCircle(x0 + 17, y, 10);
   g.strokeCircle(x0 + 17, y, 6);
   scene.children.bringToTop(label);
-  return [g, label];
+  // Tapping the coins opens the shop (not in the shop itself, and not while a tournament is going on: the shop is closed then).
+  const out: Phaser.GameObjects.GameObject[] = [g, label];
+  if (scene.scene.key !== 'ShopScene') {
+    const z = scene.add.zone(x0 + w / 2, y, w + 8, 44).setInteractive({ useHandCursor: true }).setDepth(7);
+    z.on('pointerdown', () => {
+      if (tournamentActive(getSave().profile)) return;
+      sfx('select');
+      scene.scene.start('ShopScene', { from: scene.scene.key });
+    });
+    out.push(z);
+  }
+  return out;
 }
 
 /** Navy title bar across the top (58 px). Returns the bottom edge. */

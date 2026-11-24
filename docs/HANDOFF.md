@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-23 (v0.100)_
+_Last updated: 2026-11-24 (v0.101)_
+
+## v0.101: por tres / contrapared fixes, dejada balance, GEAR stats, coins open the shop
+- **Contrapared** is only played off the glass: `requires.formations` is `["back"]` and `buildContrapared` clamps the wall hit to `CONTRAPARED_GLASS_END` (16.4 m), so never off the mesh.
+- **Por tres** (smash_x3): `winnerMargin 8`, `noReboundBack`. Every winning por tres uses `scriptedSideExit` (bounce, back glass with spin, out over the side glass). Strongly level dependent (5v5 ~69% winners, 5 vs 7 ~0%).
+- **Nothing lands on the crowd**: `OUTSIDE_LIMIT` in `ballPath.ts`; `buildCoast` keeps the ball within ~3 m outside the court (`OVER_FENCE_KEEP`). Leftover: smash_x4 ~12% side exits, ~1.5% own-half exits.
+- **Dejada**: the reach model had pushed it to 83-91% winners vs back defenders; `winnerMargin 30` now gives ~49% vs back and 6-14% vs mid.
+- **GEAR**: stats table (real totals incl. gear) next to the hero; tapping a model previews the change (green/orange deltas), WEAR/REMOVE button on the row wears it. The set text moved above the sheet (no longer hidden).
+- **Coins**: tapping the coin pill on any screen opens the shop (`coinPill` in `theme.ts`; not in the shop, not during a tournament). The shop's back button returns to the screen it was opened from.
 
 ## v0.100: reach of the defenders and shots hit from above
 - **Reach (engine, `court.ts`, `point.ts`, `engine.ts`):** the defenders now have a reach. `reachRadius(speed)` = 2.2 + 0.14 x speed (about 2.9 m at speed 5). The ball comes down at (landX, nominal depth); `reachGap` is the distance to a defender at his rest place (`restPos`, depth counts 0.6), `reachFactor` keeps his whole defence within 0.5 radius and takes it down evenly to 0.55 at 1.5 radii (`REACH_*` constants). `reachAgainst` (in `point.ts`) takes the nearer defender; a lob never goes below 0.75; fixed-aim shots (smash x3/x4 over the fence, rulo) are 1. `resolveHit` multiplies the defence by `reach` (new optional `HitInput.reach`). Serves are not affected.

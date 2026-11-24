@@ -797,18 +797,39 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
       let n = 0;
       for (let seed = 1; seed <= 400; seed++) {
         const st = rallyState({ formation: ['net', def], ball: { height: 'mid', pressure: 0, zone: 'mid', air: true } });
-        const r = stepHit(TEAMS, st, shot('dejada'), 'cross', seededRng(seed), undefined, { ignoreRequires: true });
-        if (r.step.outcome === 'winner') n++;
+        for (const direction of ['parallel', 'cross', 'middle'] as const) {
+          const r = stepHit(TEAMS, st, shot('dejada'), direction, seededRng(seed), undefined, { ignoreRequires: true });
+          if (r.step.outcome === 'winner') n++;
+        }
       }
       return n;
     };
     expect(wins('back')).toBeGreaterThan(wins('net'));
   });
 
+  it('dejada is not a point every time: against defenders at the back about half the balls are won, against mid-court ones few', () => {
+    const rate = (def: Formation): number => {
+      let n = 0;
+      let all = 0;
+      for (let seed = 1; seed <= 300; seed++) {
+        const st = rallyState({ formation: ['net', def], ball: { height: 'mid', pressure: 0, zone: 'mid', air: true } });
+        for (const direction of ['parallel', 'cross', 'middle'] as const) {
+          all++;
+          if (stepHit(TEAMS, st, shot('dejada'), direction, seededRng(seed), undefined, { ignoreRequires: true }).step.outcome === 'winner') n++;
+        }
+      }
+      return n / all;
+    };
+    expect(rate('back')).toBeLessThan(0.65);
+    expect(rate('back')).toBeGreaterThanOrEqual(rate('mid'));
+    expect(rate('mid')).toBeLessThan(0.3);
+  });
+
   it('contrapared: not at the net, after the bounce, low or mid, with a ball that comes down by a side wall', () => {
     const ball = { height: 'mid' as const, pressure: 0, zone: 'mid' as const, nearWall: true };
     expect(ids(rallyState({ formation: ['back', 'back'], ball }))).toContain('contrapared');
-    expect(ids(rallyState({ formation: ['mid', 'back'], ball }))).toContain('contrapared');
+    // only from the back (the side wall is glass only there; nearer the net it is mesh)
+    expect(ids(rallyState({ formation: ['mid', 'back'], ball }))).not.toContain('contrapared');
     expect(ids(rallyState({ formation: ['net', 'back'], ball }))).not.toContain('contrapared');
     expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, nearWall: undefined } }))).not.toContain('contrapared');
     expect(ids(rallyState({ formation: ['back', 'back'], ball: { ...ball, air: true } }))).not.toContain('contrapared');
@@ -1002,5 +1023,13 @@ describe('the reach of the defenders', () => {
     const slow: [PlayerDef, PlayerDef] = [mk('s0', 2), mk('s1', 2)];
     const fast: [PlayerDef, PlayerDef] = [mk('f0', 9), mk('f1', 9)];
     expect(reachAgainst(fast, 1, 'back', shot('dejada'), 0, 2.5)).toBeGreaterThan(reachAgainst(slow, 1, 'back', shot('dejada'), 0, 2.5));
+  });
+});
+
+describe('por tres never comes back over the net', () => {
+  it('has no rebound back, whatever the levels', () => {
+    expect(shot('smash_x3').noReboundBack).toBe(true);
+    const st = rallyState({ formation: ['net', 'back'] });
+    for (let seed = 1; seed <= 100; seed++) expect(stepHit(TEAMS, { ...st, ball: { height: 'high', pressure: 0, air: true, lob: 'weak' } }, shot('smash_x3'), 'cross', seededRng(seed)).step.reboundBack).toBeUndefined();
   });
 });

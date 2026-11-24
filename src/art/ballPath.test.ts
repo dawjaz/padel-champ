@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SHOTS } from '../game/catalog';
 import { landingX } from '../game/court';
 import type { ShotDef } from '../game/types';
-import { SIDE_OPENINGS } from './walls';
-import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, type FlightOutcome } from './ballPath';
+import { SIDE_OPENINGS, sideWallSegments } from './walls';
+import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, OUTSIDE_LIMIT, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'continue'];
@@ -730,3 +730,53 @@ describe('shots hit from above are taken low', () => {
     expect(f.hitH).toBeGreaterThan(0.65);
   });
 });
+
+describe('contrapared is played off the glass', () => {
+  it('hits the side wall only where it is glass, from either end and any spot at the back', () => {
+    for (const hitterSide of [0, 1] as const) {
+      for (const zBack of [1.5, 2.5, 3.5, 16.5, 17.5, 18.5]) {
+        for (const x of [-4, -2.5, 2.5, 4]) {
+          const z = hitterSide === 0 ? Math.max(zBack, 16.5) : Math.min(zBack, 3.5);
+          const f = buildFlight({ from: { x, z }, startH: 1, hitterSide, shot: shot('contrapared'), landX: -Math.sign(x) * 2.5, outcome: 'continue' });
+          const wall = f.events.find((e) => e.kind === 'glass');
+          expect(wall).toBeDefined();
+          const seg = sideWallSegments().find((s) => wall!.z >= s.z0 && wall!.z <= s.z1)!;
+          expect(seg.glass, `z ${wall!.z.toFixed(1)}`).toBeGreaterThanOrEqual(wall!.h);
+        }
+      }
+    }
+  });
+});
+
+describe('por tres and por cuatro leave the court only where the stands are not', () => {
+  it('a winning por tres always goes off the back glass and out over the side wall, on the receiving half', () => {
+    for (let i = 0; i < 80; i++) {
+      for (const hitterSide of [0, 1] as const) {
+        const from = { x: ((i % 7) - 3) * 0.9, z: hitterSide === 0 ? 12 + (i % 5) * 0.6 : 8 - (i % 5) * 0.6 };
+        const f = buildFlight({ from, startH: 2 + (i % 4) * 0.1, hitterSide, shot: shot('smash_x3'), landX: (i % 2 ? 1 : -1) * 2.5, outcome: 'winner', landDepth: 6.8, glass: true, seed: i });
+        const out = f.events.find((e) => e.kind === 'out');
+        expect(out, `flight ${i}`).toBeDefined();
+        expect(Math.abs(out!.x)).toBeGreaterThanOrEqual(5);
+        expect(hitterSide === 0 ? out!.z < NET_ZZ : out!.z > NET_ZZ).toBe(true);
+        expect(f.events.some((e) => e.kind === 'glass')).toBe(true);
+      }
+    }
+  });
+
+  it('after leaving the court the ball is stopped by the hoardings within a few metres', () => {
+    for (const id of ['smash_x3', 'smash_x4']) {
+      for (let i = 0; i < 60; i++) {
+        const hitterSide = (i % 2) as 0 | 1;
+        const from = { x: ((i % 5) - 2) * 1.2, z: hitterSide === 0 ? 12.5 : 7.5 };
+        const f = buildFlight({ from, startH: 2.1, hitterSide, shot: shot(id), landX: (i % 3 - 1) * 2, outcome: 'winner', landDepth: 5, glass: true, seed: i });
+        const c = buildCoast(f, shot(id).flight.spin);
+        for (const p of c.path) {
+          expect(Math.abs(p.x)).toBeLessThanOrEqual(5 + OUTSIDE_LIMIT.side + 1e-6);
+          expect(p.z).toBeGreaterThanOrEqual(-OUTSIDE_LIMIT.back - 1e-6);
+          expect(p.z).toBeLessThanOrEqual(20 + OUTSIDE_LIMIT.nearBack + 1e-6);
+        }
+      }
+    }
+  });
+});
+const NET_ZZ = 10;
