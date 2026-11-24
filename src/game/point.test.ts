@@ -5,7 +5,7 @@ import { netVolley, reachAgainst } from './point';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
 import { isPowerfulSmash, nextFormation, POWERFUL_SMASH, shotLabel, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
-import { aimDepth, aimX, reachFactor, reachRadius, REACH_MIN } from './court';
+import { aimDepth, aimX, flightTime, reachFactor, reachRadius, reachTimeFactor, REACH_MIN } from './court';
 import { fixedRng, seededRng } from './rng';
 import type { Formation, PlayerDef, ShotDef } from './types';
 
@@ -1035,6 +1035,28 @@ describe('the reach of the defenders', () => {
     const slow: [PlayerDef, PlayerDef] = [mk('s0', 2), mk('s1', 2)];
     const fast: [PlayerDef, PlayerDef] = [mk('f0', 9), mk('f1', 9)];
     expect(reachAgainst(fast, 1, 'back', shot('dejada'), 0, 2.5)).toBeGreaterThan(reachAgainst(slow, 1, 'back', shot('dejada'), 0, 2.5));
+  });
+});
+
+describe('reach from the real positions and the time of flight', () => {
+  const pair: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
+  it('a slow ball can be run down more easily than a fast one', () => {
+    expect(reachTimeFactor(flightTime(12, 0, 16))).toBeGreaterThan(reachTimeFactor(flightTime(33, 0, 16)));
+    // a ball with an arc is in the air for the time of the arc, whatever its speed
+    expect(flightTime(30, 5, 16)).toBeGreaterThan(flightTime(30, 0, 16));
+  });
+  it('the same ball is harder to defend against when a defender is not where his formation says', () => {
+    const v = shot('bounce_shot');
+    const home = reachAgainst(pair, 1, 'back', v, -2.5, 7.5);
+    const away = reachAgainst(pair, 1, 'back', v, -2.5, 7.5, { defenders: [{ x: 4.5, z: 2 }, { x: 4.5, z: 2 }], hitter: { x: 2, z: 16 } });
+    expect(away).toBeLessThan(home);
+  });
+  it('a hitter who is further away gives the defenders more time', () => {
+    const v = shot('bounce_shot');
+    const spots: [{ x: number; z: number }, { x: number; z: number }] = [{ x: 3, z: 2 }, { x: 3.5, z: 2 }];
+    const near = reachAgainst(pair, 1, 'back', v, -3, 6, { defenders: spots, hitter: { x: 0, z: 9 } });
+    const far = reachAgainst(pair, 1, 'back', v, -3, 6, { defenders: spots, hitter: { x: 0, z: 20 } });
+    expect(far).toBeGreaterThanOrEqual(near);
   });
 });
 

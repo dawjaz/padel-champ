@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-24 (v0.104)_
+_Last updated: 2026-11-24 (v0.105)_
+
+## v0.105: reach step 2 (time of flight) and the real positions of the players
+- **Real positions**: `HitOptions.positions` (`ReachPositions`: both defenders and the hitter). `reachAgainst(..., at)` measures the reach from where the players really stand; without `at` (CPU simulation, tests) it still uses the places of the formation (`restPos`). `MatchScene.reachPositions()` passes `this.pos` into every `stepHit` and into the reach hints, so the engine and the screen no longer disagree about who is "in reach" (the suspected cause of "the opponent seemed to have it and did not play it").
+- **Time of flight** (`court.ts`): `flightTime(speed, apex, dist)` (an arc counts at least its free-fall time) and `reachTimeFactor` = (t / 0.8)^0.35 kept in 0.8..1.3 scale the defender's radius: a slow or high ball can be run down, a hard flat one cannot. Without a hitter position the run is assumed `REACH_DEFAULT_RUN` 16 m. First tries (exponent 0.6, 0.7..1.5) shifted shots too much (volley winners 8% to 15%, bajada_slow 19% to 9%, dejada 7% to 2%).
+- **Retuned `winnerMargin`** so the winner rates are back near the old ones (CPU sim, default teams): volley 28 (8.3%), bounce_shot 26 (12.3%), bandeja 22 (20%), bajada_slow 26 (20.7%), dejada 24 (6.9%), bajada_fast 62 (11% winners, 25% errors, cross vs net still below 40%). Vibora 47% winners (was 41%). Average rally after the serve 6.3 (default teams), 8.0 (even 4v4).
+- Tests: time factor, a defender away from his formation spot, a far hitter gives more time.
 
 ## v0.104: Hard Glass serve, weekly dot on the Daily screen, reach heat map
 - **Hard Glass**: new `ShotDef.aceMargin` (default `ACE_MARGIN` 48), `aceMargin 56` and `pressureMult 0.8` for hard_glass. Aces when the receiver bounces: 20% to 3% (with the CPU's receive choice 5% to 1%); the hero wins 67% to 65% of in-serves and 28% to 23% of those points end within 2 hits (the other serves are 22-25%).

@@ -115,6 +115,24 @@ export const REACH_LOB_MIN = 0.75;
 
 export const reachRadius = (speed: number): number => REACH_BASE + REACH_PER_SPEED * speed;
 
+/**
+ * Time of flight: a defender can run further against a slow ball, and less against a fast one. The reach is scaled by
+ * (flight time / REACH_REF_TIME) ^ REACH_TIME_EXP, kept between REACH_TIME_MIN and REACH_TIME_MAX. A ball with an arc (a lob) is in the
+ * air for at least the time of a free fall from its apex up and down.
+ */
+export const REACH_REF_TIME = 0.8;
+export const REACH_TIME_EXP = 0.35;
+export const REACH_TIME_MIN = 0.8;
+export const REACH_TIME_MAX = 1.3;
+/** Distance (m) from the hitter to the landing spot that is assumed when his position is not known. */
+export const REACH_DEFAULT_RUN = 16;
+
+/** Seconds the ball is in the air for a shot of speed `speed` (m/s) and arc height `apex` (m) over `dist` metres. */
+export const flightTime = (speed: number, apex: number, dist: number): number => Math.max(dist / Math.max(speed, 1), apex > 0 ? 2 * Math.sqrt((2 * apex) / 9.81) : 0);
+
+/** Scale of the reach for a ball that is `seconds` in the air. */
+export const reachTimeFactor = (seconds: number): number => Math.max(REACH_TIME_MIN, Math.min(REACH_TIME_MAX, Math.pow(seconds / REACH_REF_TIME, REACH_TIME_EXP)));
+
 /** Share (REACH_MIN to 1) of his defence a defender keeps when the ball comes down `gap` metres away (see `reachGap`). */
 export function reachFactor(gap: number, radius: number, floor = REACH_MIN): number {
   const t = (gap / radius - REACH_FULL) / (REACH_FAR - REACH_FULL);

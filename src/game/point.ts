@@ -1,22 +1,34 @@
 import { DIRECTIONS } from './catalog';
-import { aimDepth, aimX, defenderIndex, indexOfLane, landingZ, REACH_LOB_MIN, reachFactor, reachGap, reachRadius, restPos, serveLane } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane } from './court';
 import { fatigued } from './attributes';
 import { resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
-import type { AimPreference, BallState, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
+import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
 export const isLob = (shot: ShotDef): boolean => shot.flight.apex >= 3;
 
+/** Where the players really stand (the scene knows, the engine otherwise assumes the places of their formation). */
+export interface ReachPositions {
+  /** The two defenders. */
+  defenders?: [CourtPos, CourtPos];
+  /** The hitter: how far the ball has to fly decides how much time the defenders have. */
+  hitter?: CourtPos;
+}
+
 /**
  * How much of his defence a defender keeps against a ball that comes down at (landX, depth m past the net): the nearer of the two
- * defenders at their places counts (his reach grows with his speed). 1 = the ball is within his reach, down to REACH_MIN when it is far
- * from both. A lob can be run down (never below REACH_LOB_MIN).
+ * defenders counts. His reach grows with his speed and with the time the ball is in the air (a slow or high ball can be run down, a
+ * hard flat one cannot). 1 = the ball is within his reach, down to REACH_MIN when it is far from both. A lob can be run down (never
+ * below REACH_LOB_MIN). Without `at` the defenders are at the places of their formation and the hitter is assumed REACH_DEFAULT_RUN away.
  */
-export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number): number {
+export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number, at: ReachPositions = {}): number {
   const z = landingZ(defSide, depth);
+  const dist = at.hitter ? Math.hypot(landX - at.hitter.x, z - at.hitter.z) : REACH_DEFAULT_RUN;
+  const time = reachTimeFactor(flightTime(shot.flight.speed, shot.flight.apex, dist));
   let best = 0;
   for (let i = 0; i < 2; i++) {
-    const f = reachFactor(reachGap(restPos(defSide, i, formation), landX, z), reachRadius(defenders[i].stats.speed), isLob(shot) ? REACH_LOB_MIN : undefined);
+    const spot = at.defenders ? at.defenders[i] : restPos(defSide, i, formation);
+    const f = reachFactor(reachGap(spot, landX, z), reachRadius(defenders[i].stats.speed) * time, isLob(shot) ? REACH_LOB_MIN : undefined);
     best = Math.max(best, f);
   }
   return best;
@@ -428,6 +440,8 @@ export interface HitOptions {
   force?: HitOutcome | 'rebound';
   /** Play the shot even if the ball does not meet the shot's requirements. */
   ignoreRequires?: boolean;
+  /** The real positions of the players (see `ReachPositions`): the reach of the defenders is measured from where they stand. */
+  positions?: ReachPositions;
 }
 
 export function stepHit(
@@ -476,7 +490,7 @@ export function stepHit(
     reach:
       landX === undefined
         ? 1
-        : reachAgainst([fatigued(teams[defSide][0], state.guts[teams[defSide][0].id]), fatigued(teams[defSide][1], state.guts[teams[defSide][1].id])], defSide, state.formation[defSide], shot, landX, prefer?.depth ?? shot.landDepth),
+        : reachAgainst([fatigued(teams[defSide][0], state.guts[teams[defSide][0].id]), fatigued(teams[defSide][1], state.guts[teams[defSide][1].id])], defSide, state.formation[defSide], shot, landX, prefer?.depth ?? shot.landDepth, options?.positions),
     rng,
   });
   const force = options?.force;

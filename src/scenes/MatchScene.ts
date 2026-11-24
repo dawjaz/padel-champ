@@ -18,7 +18,7 @@ import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
-import { isPowerfulSmash, playableShots, reachAgainst, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -1614,6 +1614,14 @@ export class MatchScene extends Phaser.Scene {
     if (aim !== undefined) this.drawReach(shot, aim);
   }
 
+  /** Where the defenders and the hitter really stand now: the reach is measured from there (copies, the players move on). */
+  private reachPositions(): ReachPositions {
+    const st = this.point;
+    const def = other(st.holder);
+    const at = (id: string): CourtPos => ({ x: this.pos[id].x, z: this.pos[id].z });
+    return { defenders: [at(TEAMS[def][0].id), at(TEAMS[def][1].id)], hitter: at(TEAMS[st.holder][st.hitterIdx].id) };
+  }
+
   /** The landing point of each direction and how much of their defence the opponents keep against it (1 = the ball is within reach). */
   private reachMap(shot: ShotDef, hitterIdx: number): Record<Direction, { x: number; z: number; factor: number }> {
     const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
@@ -1621,7 +1629,7 @@ export class MatchScene extends Phaser.Scene {
     const out = {} as Record<Direction, { x: number; z: number; factor: number }>;
     for (const d of DIRECTION_ORDER) {
       const x = landingX(d, d === 'cross' ? 1 - hitterIdx : hitterIdx);
-      out[d] = { x, z: landingZ(1, shot.landDepth), factor: reachAgainst(defenders, 1, formation, shot, x, shot.landDepth) };
+      out[d] = { x, z: landingZ(1, shot.landDepth), factor: reachAgainst(defenders, 1, formation, shot, x, shot.landDepth, this.reachPositions()) };
     }
     return out;
   }
@@ -1641,11 +1649,12 @@ export class MatchScene extends Phaser.Scene {
       const [c0, c1, u] = t < 0.5 ? [[0x3d, 0xd6, 0x7a], [0xff, 0xe0, 0x66], t * 2] : [[0xff, 0xe0, 0x66], [0xff, 0x4d, 0x4d], (t - 0.5) * 2];
       return (lerp(c0[0], c1[0], u) << 16) | (lerp(c0[1], c1[1], u) << 8) | lerp(c0[2], c1[2], u);
     };
+    const at = this.reachPositions();
     const step = 0.34;
     const heat = bakedShape(this, 0, 0, WIDTH, 392, (g) => {
       for (let x = -5; x < 5 - 1e-6; x += step) {
         for (let d = 0.2; d < 9.8; d += step) {
-          const f = reachAgainst(defenders, 1, formation, shot, x + step / 2, d + step / 2);
+          const f = reachAgainst(defenders, 1, formation, shot, x + step / 2, d + step / 2, at);
           const z0 = landingZ(1, d);
           const z1 = landingZ(1, d + step);
           const q = [project(x, z0), project(x + step, z0), project(x + step, z1), project(x, z1)];
@@ -1675,7 +1684,7 @@ export class MatchScene extends Phaser.Scene {
 
   private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions): void {
     this.hideHeight();
-    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random, prefer, options);
+    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random, prefer, { ...options, positions: this.reachPositions() });
     this.playStep(step, state);
   }
 

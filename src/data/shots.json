@@ -263,6 +263,7 @@
   },
   {
     "id": "bandeja",
+    "winnerMargin": 22,
     "downward": true,
     "name": "Bandeja",
     "kind": "rally",
@@ -356,6 +357,7 @@
   },
   {
     "id": "volley",
+    "winnerMargin": 28,
     "downward": true,
     "name": "Volley",
     "kind": "rally",
@@ -444,6 +446,7 @@
   },
   {
     "id": "bounce_shot",
+    "winnerMargin": 26,
     "name": "Flat shot",
     "kind": "rally",
     "stat": "power",
@@ -696,7 +699,7 @@
     "advance": "stay",
     "landDepth": 7.4,
     "wall": "back",
-    "winnerMargin": 56,
+    "winnerMargin": 62,
     "glassChance": 0.3,
     "requires": {
       "glass": true,
@@ -747,7 +750,7 @@
     "advance": "stay",
     "landDepth": 6.2,
     "wall": "back",
-    "winnerMargin": 30,
+    "winnerMargin": 26,
     "glassChance": 1.0,
     "requires": {
       "glass": true,
@@ -817,6 +820,7 @@
   },
   {
     "id": "dejada",
+    "winnerMargin": 24,
     "downward": true,
     "name": "Dejada",
     "kind": "rally",
@@ -836,7 +840,7 @@
     "glassChance": 0.0,
     "drop": true,
     "depthSpread": 0.4,
-    "winnerMargin": 30,
+    "winnerMargin": 24,
     "requires": {
       "formations": [
         "net",
