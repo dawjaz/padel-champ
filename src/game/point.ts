@@ -1,5 +1,5 @@
 import { DIRECTIONS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetRisk } from './court';
 import { fatigued } from './attributes';
 import { LOB_APEX, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
@@ -442,6 +442,8 @@ export interface HitOptions {
   ignoreRequires?: boolean;
   /** The real positions of the players (see `ReachPositions`): the reach of the defenders is measured from where they stand. */
   positions?: ReachPositions;
+  /** A point the human player chose (x across, depth m past the net): the ball comes down around it (`targetLanding`) instead of one of the aim points of the direction. */
+  target?: { x: number; depth: number };
 }
 
 export function stepHit(
@@ -468,7 +470,9 @@ export function stepHit(
   const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
-  const landX = fixedAim ? undefined : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
+  const tgt = !fixedAim && options?.target ? targetLanding(options.target, rng, attacker.stats.accuracy) : undefined;
+  const fixDepth = tgt?.depth;
+  const landX = fixedAim ? undefined : tgt ? tgt.x : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
   // A ball exactly on the centre line goes to the player it was aimed at (random for a middle ball), not always to the right-hand one.
   const defIdx = landX === undefined || Math.abs(landX) < 1e-6 ? targetIdx : landX < 0 ? 0 : 1;
   const defender = fatigued(teams[defSide][defIdx], state.guts[teams[defSide][defIdx].id]);
@@ -477,7 +481,7 @@ export function stepHit(
     attacker,
     attackerGuts: state.guts[attacker.id],
     shot,
-    direction: DIRECTIONS[direction],
+    direction: tgt ? { ...DIRECTIONS[direction], risk: DIRECTIONS[direction].risk + targetRisk(options!.target!.depth) } : DIRECTIONS[direction],
     incoming: state.ball,
     defender,
     defenderFormation: state.formation[defSide],
@@ -490,7 +494,7 @@ export function stepHit(
     reach:
       landX === undefined
         ? 1
-        : reachAgainst([fatigued(teams[defSide][0], state.guts[teams[defSide][0].id]), fatigued(teams[defSide][1], state.guts[teams[defSide][1].id])], defSide, state.formation[defSide], shot, landX, prefer?.depth ?? shot.landDepth, options?.positions),
+        : reachAgainst([fatigued(teams[defSide][0], state.guts[teams[defSide][0].id]), fatigued(teams[defSide][1], state.guts[teams[defSide][1].id])], defSide, state.formation[defSide], shot, landX, fixDepth ?? prefer?.depth ?? shot.landDepth, options?.positions),
     rng,
   });
   const force = options?.force;
@@ -529,12 +533,12 @@ export function stepHit(
     ) {
       return {
         state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },
-        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, shot.reboundWin !== undefined ? REBOUND_WIN_DEPTH : undefined, prefer?.depth, attacker.stats.accuracy) },
+        step: { ...step, outcome: 'winner', pointWinner: side, reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, shot.reboundWin !== undefined ? REBOUND_WIN_DEPTH : fixDepth, prefer?.depth, attacker.stats.accuracy) },
       };
     }
     // A defender at the net volleys: the ball never bounces, he plays it in front of the net (chest height for a fast ball, lower
     // for a soft one) and stays at the net.
-    const aimed = aimDepthFor(shot, rng, landX, next.landDepth, prefer?.depth, attacker.stats.accuracy);
+    const aimed = aimDepthFor(shot, rng, landX, next.landDepth ?? fixDepth, prefer?.depth, attacker.stats.accuracy);
     // A Por Cuatro that is not hit well comes back off the glass: the defender runs to the net and plays it back (a volley).
     // The defender judges the ball: he takes it early (before the glass), which is risky, or waits for the glass and runs to the net.
     const early = shot.reboundWin !== undefined && next.lob === undefined && rng() < EARLY_TAKE;
@@ -590,7 +594,7 @@ export function stepHit(
       // Por Cuatro winners: the nail into the front of the court (flies out over the 4 m glass) or, deeper, off the back glass.
       ...(res.outcome === 'winner' && shot.reboundWin !== undefined && rng() < shot.reboundWin
         ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth, attacker.stats.accuracy) }
-        : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth : undefined, prefer?.depth, attacker.stats.accuracy)),
+        : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth ?? fixDepth : fixDepth, prefer?.depth, attacker.stats.accuracy)),
       errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng, landX) : undefined,
     },
   };

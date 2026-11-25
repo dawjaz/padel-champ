@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { project } from './camera';
+import { project, unproject } from './camera';
 
 describe('project', () => {
   it('puts the near baseline at the bottom and the far baseline higher up', () => {
@@ -24,5 +24,16 @@ describe('project', () => {
 
   it('moves higher points up the screen', () => {
     expect(project(0, 10, 2).y).toBeLessThan(project(0, 10, 0).y);
+  });
+});
+
+describe('unproject', () => {
+  it('is the inverse of project on the floor', () => {
+    for (const [x, z] of [[0, 0], [-4, 3], [3.5, 9], [2, 17]]) {
+      const p = project(x, z);
+      const q = unproject(p.x, p.y);
+      expect(q.x).toBeCloseTo(x, 6);
+      expect(q.z).toBeCloseTo(z, 6);
+    }
   });
 });

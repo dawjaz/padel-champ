@@ -1079,3 +1079,28 @@ describe('hard glass serve', () => {
     expect(aces / n).toBeLessThan(0.08);
   });
 });
+
+describe('aiming at a chosen point', () => {
+  it('lands around the point, the defender nearer to it plays the ball', () => {
+    const rng = seededRng(3);
+    let sumX = 0;
+    let sumD = 0;
+    let n = 0;
+    for (let i = 0; i < 300; i++) {
+      const r = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('rally_lob'), 'cross', rng, undefined, { target: { x: 2.8, depth: 7 } });
+      if (r.step.landX === undefined || r.step.landDepth === undefined) continue;
+      expect(Math.abs(r.step.landX - 2.8)).toBeLessThan(1.3);
+      if (r.step.outcome === 'continue') expect(r.step.defenderIdx).toBe(1);
+      sumX += r.step.landX;
+      sumD += r.step.landDepth;
+      n++;
+    }
+    expect(sumX / n).toBeGreaterThan(2.5);
+    expect(sumX / n).toBeLessThan(3.1);
+    expect(Math.abs(sumD / n - 7)).toBeLessThan(0.8);
+  });
+  it('a smash over the fence keeps its fixed target', () => {
+    const r = stepHit(TEAMS, rallyState({ hitterIdx: 0, ball: { height: 'high', pressure: 0, glass: false } as never }), shot('smash_x3'), 'cross', seededRng(1), undefined, { target: { x: -4, depth: 2 }, ignoreRequires: true });
+    expect(r.step.landX).toBeUndefined();
+  });
+});

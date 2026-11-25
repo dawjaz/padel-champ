@@ -18,10 +18,17 @@ export class SettingsScene extends Phaser.Scene {
       sound.text.setText(soundLabel());
     }, 'blue', 20);
 
-    makeThemeButton(this, WIDTH / 2, 200, 260, 54, 'HOW TO PLAY', () => this.scene.start('TutorialScene', { next: 'SettingsScene' }), 'blue', 20);
+    const aimLabel = (): string => `AIM: ${getSave().settings.aim === 'point' ? 'TAP THE SPOT' : 'DIRECTIONS'}`;
+    const aim = makeThemeButton(this, WIDTH / 2, 200, 260, 54, aimLabel(), () => {
+      updateSave((d) => ({ ...d, settings: { ...d.settings, aim: d.settings.aim === 'point' ? 'directions' : 'point' } }));
+      aim.text.setText(aimLabel());
+    }, 'blue', 20);
+    themeText(this, WIDTH / 2, 236, 'Directions: Parallel / Middle / Cross.\nTap the spot: choose where the ball lands.', { size: 11, color: TC.sub, align: 'center' });
+
+    makeThemeButton(this, WIDTH / 2, 290, 260, 54, 'HOW TO PLAY', () => this.scene.start('TutorialScene', { next: 'SettingsScene' }), 'blue', 20);
 
     let armed = false;
-    const reset = makeThemeButton(this, WIDTH / 2, 300, 260, 54, 'RESET SAVE', () => {
+    const reset = makeThemeButton(this, WIDTH / 2, 370, 260, 54, 'RESET SAVE', () => {
       if (!armed) {
         armed = true;
         reset.text.setText('SURE? TAP AGAIN');
@@ -34,6 +41,6 @@ export class SettingsScene extends Phaser.Scene {
       reset.text.setColor('#0b2a5b');
     }, 'secondary', 20);
 
-    themeText(this, WIDTH / 2, 358, 'Reset clears your progress,\nmatch stats and settings.', { size: 12, color: TC.sub, align: 'center' });
+    themeText(this, WIDTH / 2, 428, 'Reset clears your progress,\nmatch stats and settings.', { size: 12, color: TC.sub, align: 'center' });
   }
 }

@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.116: aiming at a spot (test mode, switchable)
+- **Settings > AIM:** `settings.aim` 'directions' (default, as before) or 'point' (testing). Switch any time; the owner tests 'point' and decides later which one stays.
+- **Point mode** (`MatchScene.showTargetMenu`): after choosing the shot the heat map of the opponents' reach is shown (without the three direction markers); touching the opponents' half shows a ring and an ellipse of the likely spread (colour = reach there), dragging moves it, letting go hits. Shots with a fixed target (smash x3/x4, rulo) keep the old menu. The direction passed to the engine (attack, risk, hesitation) is the one whose usual landing point is nearest to the spot.
+- **Engine:** `HitOptions.target` {x, depth}: `targetLanding` (court.ts) rolls the real landing point around it (triangular, `TARGET_SPREAD_X` 0.6 m, `TARGET_SPREAD_DEPTH` 0.9 m at accuracy 5, scaled by `aimSpreadMul`, tiredness included); `targetRisk` adds error risk for a spot right behind the net or at the back glass (side walls already have `edgeRisk`); reach is measured at the rolled point; the defender nearer to it plays the ball. Without `target` nothing changes (CPU, directions mode, tests).
+- `unproject` in `camera.ts` (screen -> floor), tested.
+
 ## v0.115: Por Cuatro always leaves over the back glass
 - A winning Por Cuatro (`exitVia: 'back'`, not `reboundBack`) went out sideways in ~7% of cases (low, through a side opening, after a sharp diagonal from a corner) and over the hitter's own half in ~4% (the fallback "any exit" in `buildFlight`). Its aim is now straightened so that the ball's line meets the back wall within `X4_BACK_X` 3 m of the middle (`buildFlight`, after the ±2.6 m clamp). Checked over 1404 flights (both sides, hitter x -4..4, 3 depths, landX -4.5..4.5): 100% over the back glass, `reboundBack` unchanged. Visual only (the engine's result does not depend on the path).
 

@@ -61,6 +61,28 @@ export function aimX(direction: Direction, defenderIdx: number, rng: Rng, prefer
   }
   return point(k);
 }
+/** Spread (m, either way at accuracy 5) of a ball aimed at a point the player chose: across and in depth. */
+export const TARGET_SPREAD_X = 0.6;
+export const TARGET_SPREAD_DEPTH = 0.9;
+
+/**
+ * A ball aimed at a point the player tapped (x across, depth past the net): it comes down around it, a triangular spread that grows
+ * for a less accurate (or tired) hitter. Kept on the court (|x| <= 4.6, depth 1..9.4).
+ */
+export function targetLanding(target: { x: number; depth: number }, rng: Rng, accuracy = 5): { x: number; depth: number } {
+  const k = aimSpreadMul(accuracy);
+  const tri = (): number => rng() + rng() - 1;
+  return {
+    x: Math.max(-4.6, Math.min(4.6, target.x + tri() * TARGET_SPREAD_X * k)),
+    depth: Math.max(1, Math.min(9.4, target.depth + tri() * TARGET_SPREAD_DEPTH * k)),
+  };
+}
+
+/** Extra error risk of a chosen target right behind the net (into the net) or at the back glass (straight into it). Side walls: `edgeRisk`. */
+export function targetRisk(depth: number): number {
+  return Math.max(0, 1.6 - depth) * 0.08 + Math.max(0, depth - 8.6) * 0.1;
+}
+
 /** How often a CPU hitter really hits the aim point he wants (otherwise the point is random, he misses his spot a little). */
 export const AIM_SKILL = 0.75;
 

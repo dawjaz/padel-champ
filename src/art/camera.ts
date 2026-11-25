@@ -30,3 +30,10 @@ export function project(xm: number, zm: number, hm = 0): Projected {
   const scale = PX_PER_M_AT_ONE / dist;
   return { x: CENTER_X + xm * scale, y: Y_HORIZON + K / dist - hm * scale, scale };
 }
+
+/** The court point (on the floor) under a screen point: the inverse of `project` at height 0. */
+export function unproject(sx: number, sy: number): { x: number; z: number } {
+  const dist = K / Math.max(1e-6, sy - Y_HORIZON);
+  const scale = PX_PER_M_AT_ONE / dist;
+  return { x: (sx - CENTER_X) / scale, z: COURT_LENGTH_M + DIST_NEAR - dist };
+}

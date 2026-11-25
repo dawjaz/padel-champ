@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
-import { project } from '../art/camera';
+import { project, unproject } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { placeToonSprite } from '../art/toonTexture';
@@ -20,7 +20,8 @@ import { applyHd } from '../hd';
 import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
-import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup } from '../game/court';
+import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, TARGET_SPREAD_DEPTH, TARGET_SPREAD_X } from '../game/court';
+import { aimSpreadMul, fatigued } from '../game/attributes';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
 import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
@@ -1830,6 +1831,11 @@ export class MatchScene extends Phaser.Scene {
     const order: Direction[] = st.hitterIdx === 0 ? ['parallel', 'middle', 'cross'] : ['cross', 'middle', 'parallel'];
     // Where each way takes the ball and how far that is from the opponents (their reach): green = a gap, orange = right at them.
     const aim = shot.overFence === true || shot.wall === 'fence' ? undefined : this.reachMap(shot, st.hitterIdx);
+    // Settings > AIM: TAP THE SPOT: the player chooses the landing point on the heat map instead of a direction (shots with a fixed target excepted).
+    if (aim !== undefined && getSave().settings.aim === 'point') {
+      this.showTargetMenu(shot, aim);
+      return;
+    }
     const items: ButtonSpec[] = order.map((d) => ({
       label: `${DIRECTIONS[d].name.toUpperCase()}\n-> ${targetName[d]}`,
       tone: (aim === undefined ? 'normal' : aim[d].factor < 0.75 ? 'good' : aim[d].factor >= 0.97 ? 'poor' : 'normal') as Tone,
@@ -1838,6 +1844,80 @@ export class MatchScene extends Phaser.Scene {
     items.push({ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() });
     this.showButtons(`${hitter.name}: ${shot.name}, which way?`, items, 'directions');
     if (aim !== undefined) this.drawReach(shot, aim);
+  }
+
+  /**
+   * Aiming at a spot: the heat map of the opponents' reach is shown and the player touches (and may drag) the point where the ball
+   * should land; letting go hits. A ring shows the spot, an ellipse how far the ball may stray from it (accuracy, tiredness).
+   * The direction (attack, risk, who plays the ball) is the one of the three whose usual landing point is nearest.
+   */
+  private showTargetMenu(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>): void {
+    const st = this.point;
+    const hitter = TEAMS[0][st.hitterIdx];
+    this.showButtons(`${hitter.name}: ${shot.name}\nTOUCH WHERE THE BALL SHOULD LAND`, [{ label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() }], 'directions');
+    this.drawReach(shot, aim, false);
+    const hint = this.add
+      .text(WIDTH * 0.68, 490, 'TOUCH THE COURT\nWHERE THE BALL\nSHOULD LAND', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '13px', color: '#ffe066', align: 'center' })
+      .setOrigin(0.5)
+      .setDepth(9996);
+    this.menu.push(hint);
+    const far = project(0, 0.2).y;
+    const net = project(0, NET_Z - 0.6).y;
+    const marker = this.add.graphics().setDepth(9993);
+    this.menu.push(marker);
+    const tired = fatigued(hitter, this.guts[hitter.id] ?? hitter.maxGuts);
+    const spread = aimSpreadMul(tired.stats.accuracy);
+    const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
+    const target = (px: number, py: number): { x: number; depth: number } => {
+      const c = unproject(px, Math.max(far, Math.min(net, py)));
+      return { x: Math.max(-4.6, Math.min(4.6, c.x)), depth: Math.max(1, Math.min(9.4, NET_Z - c.z)) };
+    };
+    const show = (t: { x: number; depth: number }): void => {
+      const z = NET_Z - t.depth;
+      const p = project(t.x, z);
+      const f = reachAgainst(defenders, 1, st.formation[1], shot, t.x, t.depth, this.reachPositions());
+      const color = f < 0.75 ? 0x4ade80 : f >= 0.97 ? 0xff9f1c : 0xffe066;
+      const a = project(t.x - TARGET_SPREAD_X * spread, z);
+      const b = project(t.x + TARGET_SPREAD_X * spread, z);
+      const n = project(t.x, z + TARGET_SPREAD_DEPTH * spread);
+      const fz = project(t.x, z - TARGET_SPREAD_DEPTH * spread);
+      marker.clear();
+      marker.fillStyle(color, 0.25).fillEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
+      marker.lineStyle(2, color, 0.9).strokeEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
+      marker.lineStyle(3, 0xffffff, 1).strokeCircle(p.x, p.y, Math.max(5, p.scale * 0.22));
+      marker.fillStyle(0xffffff, 1).fillCircle(p.x, p.y, 2.5);
+    };
+    let current: { x: number; depth: number } | null = null;
+    const zone = this.add.zone(0, far - 24, WIDTH, net - far + 40).setOrigin(0, 0).setDepth(9992).setInteractive();
+    this.menu.push(zone);
+    zone.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
+      current = target(ptr.x, ptr.y);
+      show(current);
+    });
+    zone.on('pointermove', (ptr: Phaser.Input.Pointer) => {
+      if (!ptr.isDown || !current) return;
+      current = target(ptr.x, ptr.y);
+      show(current);
+    });
+    zone.on('pointerup', () => {
+      if (!current) return;
+      const t = current;
+      current = null;
+      // one hit per menu: the zone goes at once (a second tap must not play the ball again)
+      zone.disableInteractive();
+      marker.clear();
+      this.clearMenu();
+      let best: Direction = 'middle';
+      let bestD = Infinity;
+      for (const d of DIRECTION_ORDER) {
+        const dx = Math.abs(landingX(d, d === 'cross' ? 1 - st.hitterIdx : st.hitterIdx) - t.x);
+        if (dx < bestD) {
+          bestD = dx;
+          best = d;
+        }
+      }
+      this.performHit(shot, best, undefined, { target: t });
+    });
   }
 
   /** Where the defenders and the hitter really stand now: the reach is measured from there (copies, the players move on). */
@@ -1865,7 +1945,7 @@ export class MatchScene extends Phaser.Scene {
    * the opponents keep against a ball that comes down there (green = a gap, yellow = stretched, red = right at them), with a marker
    * where each direction lands. It is painted once into a texture and removed with the menu.
    */
-  private drawReach(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>): void {
+  private drawReach(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>, markers = true): void {
     const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
     const formation = this.point.formation[1];
     const lerp = (a: number, b: number, t: number): number => Math.round(a + (b - a) * t);
@@ -1891,6 +1971,7 @@ export class MatchScene extends Phaser.Scene {
     }, 0);
     heat.rt.setDepth(2).setAlpha(0.42);
     this.menu.push(heat.rt);
+    if (!markers) return;
     const g = this.add.graphics().setDepth(3);
     for (const d of DIRECTION_ORDER) {
       const a = aim[d];
