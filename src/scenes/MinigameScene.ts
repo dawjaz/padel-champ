@@ -2,14 +2,14 @@ import Phaser from 'phaser';
 import playersData from '../data/players.json';
 import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { project, unproject } from '../art/camera';
-import { ballPoint, flightDuration, type Flight } from '../art/ballPath';
+import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ballPath';
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
-import { addToon } from '../art/toonTexture';
 import {
-  campGame, GLASS_SHOT_IDS, glassClassPoints, glassFlight, glassRebound, glassRound, landShot, serveLanding, serveZone, targetZone, timingPoints, timingRound,
-  zoneAt, zonePoints, type CampGameId, type GlassRound, type Rebound, type TimingRound, type Zone,
+  campGame, landShot, serveLanding, serveZone, SMASH_SHOT, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
+  type CampGameId, type SmashKind, type SmashRound, type TimingRound, type Zone,
 } from '../career/camp';
+import { CampHero } from './campHero';
 import { heroFrom, heroLook } from '../career/profile';
 import { SHOTS } from '../game/catalog';
 import { NET_Z } from '../game/court';
@@ -43,8 +43,10 @@ export class MinigameScene extends Phaser.Scene {
   private hud!: Phaser.GameObjects.Text;
   private ball!: Phaser.GameObjects.Image;
   private ballShadow!: Phaser.GameObjects.Image;
-  private heroSprite!: Phaser.GameObjects.Image;
+  private heroView!: CampHero;
   private busy = false;
+  /** Scene time when the ball of a timing or smash round is due (for automated checks). */
+  hitDueAt = 0;
 
   constructor() {
     super('MinigameScene');
@@ -76,10 +78,16 @@ export class MinigameScene extends Phaser.Scene {
     for (const o of quit.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
     const pos = this.heroSpot();
     const pp = project(pos.x, pos.z);
-    this.heroSprite = addToon(this, pp.x, pp.y, pp.scale * 1.75, heroLook(p), 'back').setDepth(pp.y).setData('scale', pp.scale);
+    void pp;
+    this.heroView = new CampHero(this, heroLook(p), pos.x, pos.z);
     this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setAlpha(0.35).setVisible(false).setDepth(5);
     this.ball = this.add.image(0, 0, BALL_KEY).setVisible(false).setDepth(9100);
     this.nextRound();
+  }
+
+  update(time: number, delta: number): void {
+    this.heroView.watch = this.ball.visible ? this.ball.x : null;
+    this.heroView.update(time, delta);
   }
 
   private get total(): number {
@@ -88,6 +96,7 @@ export class MinigameScene extends Phaser.Scene {
 
   private heroSpot(): { x: number; z: number } {
     if (this.gameId === 'serve') return { x: this.lane() * 2.4, z: 19.6 };
+    if (this.gameId === 'smash') return { x: 0.3, z: 12.6 };
     return { x: 0.6, z: 17.2 };
   }
 
@@ -115,14 +124,13 @@ export class MinigameScene extends Phaser.Scene {
       return;
     }
     this.updateHud();
-    if (this.gameId === 'serve') {
+    if (this.gameId === 'serve' || this.gameId === 'targets' || this.gameId === 'smash') {
       const pos = this.heroSpot();
-      const pp = project(pos.x, pos.z);
-      this.heroSprite.setPosition(pp.x, pp.y);
+      this.heroView.runTo(pos.x, pos.z, 520);
     }
     if (this.gameId === 'targets') this.zoneRound(targetZone(Math.random, this.round), false);
     else if (this.gameId === 'serve') this.zoneRound(serveZone(Math.random, this.round, this.lane()), true);
-    else if (this.gameId === 'glass') this.glassRound(glassRound(Math.random, GLASS_SHOT_IDS.map(shot)));
+    else if (this.gameId === 'smash') this.smashRound(smashRound(this.round, Math.random));
     else this.timingRound(timingRound(this.hero, this.round, Math.random));
   }
 
@@ -202,7 +210,7 @@ export class MinigameScene extends Phaser.Scene {
       this.layer.push(g);
       this.hint('THE ZONE MOVES: TOUCH WHERE THE SERVE\nSHOULD LAND (outside the box is a fault)');
     } else {
-      this.hint('TOUCH THE ZONE (DRAG TO ADJUST, LET GO TO HIT)');
+      this.hint('THE ZONE MOVES: TOUCH TO AIM,\nLET GO TO HIT (IT KEEPS MOVING!)');
     }
     const far = project(0, 0.2).y;
     const netY = project(0, NET_Z - 0.3).y;
@@ -223,6 +231,7 @@ export class MinigameScene extends Phaser.Scene {
       if (this.busy) return;
       aim = aimAt(ptr.worldX, ptr.worldY);
       show(aim);
+      this.heroView.prep('fhPrep', serve ? 0.6 : 0.9);
       // a serve goes at the touch (the zone is moving: no time to drag)
       if (serve) fire();
     });
@@ -238,6 +247,7 @@ export class MinigameScene extends Phaser.Scene {
       const s = shot(serve ? SERVE_SHOT : TARGET_SHOT);
       const landing: Landing = landShot(this.hero, s, aim, Math.random);
       const counted = serve ? serveLanding(this.lane(), landing) : landing;
+      this.heroView.stroke('fh', serve ? 0.6 : 0.9);
       this.shootTo(landing, s, () => {
         // a moving zone is judged where it is when the ball comes down
         const at = zoneAt(zone, (this.time.now - t0) / 1000);
@@ -247,6 +257,7 @@ export class MinigameScene extends Phaser.Scene {
         const end = project(landing.x, NET_Z - Math.min(landing.depth, 9.8));
         this.popup(end.x, end.y - 20, pts > 0 ? `+${pts}` : serve && !counted && !landing.miss ? 'FAULT' : landing.miss ? 'OUT' : 'MISS', pts > 0);
         sfx(pts > 0 ? 'point' : 'select');
+        if (pts >= 80) this.heroView.cheer();
         this.round++;
         this.time.delayedCall(850, () => this.nextRound());
       });
@@ -260,8 +271,7 @@ export class MinigameScene extends Phaser.Scene {
   /** The hero's ball to its landing point (a miss goes into the glass, the side wall or the net). */
   private shootTo(l: Landing, s: ShotDef, done: () => void): void {
     sfx('hit');
-    this.tweens.add({ targets: this.heroSprite, scaleY: this.heroSprite.scaleY * 0.94, yoyo: true, duration: 90 });
-    const from = { ...this.heroSpot(), h: s.kind === 'serve' ? 0.8 : 1 };
+    const from = this.heroView.contact(s.kind === 'serve' ? 0.8 : 1);
     let to = { x: l.x, z: NET_Z - l.depth, h: 0 };
     if (l.miss === 'glass') to = { x: l.x, z: 0, h: 1.4 };
     else if (l.miss === 'side') to = { x: Math.sign(l.x) * 5, z: NET_Z - l.depth, h: 1.2 };
@@ -269,82 +279,26 @@ export class MinigameScene extends Phaser.Scene {
     this.flyArc(from, to, Math.max(1.2, s.flight.apex), done);
   }
 
-  // ---------- read the glass ----------
-  /** The ball flies in slow motion to its bounce; the player says how it will come off the glass; then it goes on. */
-  private glassRound(r: GlassRound): void {
-    const answer = glassRebound(r);
-    const flight: Flight = glassFlight(r);
-    const total = flightDuration(flight) * 2.2; // slow motion
-    const bounceT = flight.events.find((e) => e.kind === 'bounce')?.t ?? flight.duration * 0.5;
-    const stopAt = Math.min(1, bounceT / Math.max(1e-6, flight.duration));
-    const spin = r.shot.flight.spin * r.spinMul;
-    const spinTxt = spin > 0.15 ? `TOPSPIN ${spin > 0.9 ? 'HEAVY' : 'LIGHT'}` : spin < -0.15 ? `SLICE ${spin < -0.9 ? 'HEAVY' : 'LIGHT'}` : 'FLAT';
-    this.hint(`${r.shot.name.toUpperCase()}  ·  ${spinTxt}\nHOW WILL IT COME OFF YOUR BACK GLASS?`);
-    sfx('hit');
-    this.ball.setVisible(true);
-    this.ballShadow.setVisible(true);
-    // the spin shows as the ball's turning: fast for heavy spin, the other way for slice
-    const spinRate = spin * 0.02;
-    this.tweens.addCounter({
-      from: 0,
-      to: stopAt,
-      duration: total * stopAt,
-      onUpdate: (tw) => {
-        const p = ballPoint(flight.path, tw.getValue() ?? 0);
-        this.placeBall(p.x, p.z, p.h);
-        this.ball.rotation += spinRate * 16;
-      },
-      onComplete: () => this.askGlass(flight, stopAt, total, answer),
-    });
-  }
-
-  private askGlass(flight: Flight, stopAt: number, total: number, answer: Rebound): void {
-    const labels: Array<[Rebound, string]> = [['low', 'LOW'], ['mid', 'MEDIUM'], ['high', 'HIGH']];
-    labels.forEach(([k, label], i) => {
-      const b = makeThemeButton(this, 64 + i * 116, 486, 108, 44, label, () => {
-        if (this.busy) return;
-        this.busy = true;
-        const pts = glassClassPoints(k, answer);
-        this.tweens.addCounter({
-          from: stopAt,
-          to: 1,
-          duration: total * (1 - stopAt),
-          onUpdate: (tw) => {
-            const p = ballPoint(flight.path, tw.getValue() ?? 0);
-            this.placeBall(p.x, p.z, p.h);
-          },
-          onComplete: () => {
-            this.score += pts;
-            this.updateHud();
-            const end = flight.path[flight.path.length - 1];
-            const ep = project(end.x, end.z, end.h);
-            this.popup(ep.x, ep.y - 24, pts === 100 ? `RIGHT! +100` : pts > 0 ? `CLOSE +${pts}` : 'WRONG', pts > 0);
-            this.layer.push(themeText(this, WIDTH / 2, 540, `IT CAME OFF ${answer === 'mid' ? 'MEDIUM' : answer.toUpperCase()}`, { size: 13, color: TC.orange, font: 'display' }).setDepth(9300));
-            sfx(pts > 0 ? 'point' : 'select');
-            this.round++;
-            this.time.delayedCall(1300, () => this.nextRound());
-          },
-        });
-      }, 'primary', 14);
-      for (const o of b.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
-      this.layer.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-    });
-  }
-
   // ---------- timing ----------
   private timingRound(r: TimingRound): void {
     this.hint(`${r.kind === 'lob' ? 'A LOB' : r.kind === 'spin' ? 'A CURLING BALL' : 'A FLAT, FAST BALL'}\nTOUCH WHEN THE RING CLOSES ON THE BALL`);
-    // the hero stands somewhere else every round
-    const hp = project(r.hero.x, r.hero.z);
-    this.heroSprite.setPosition(hp.x, hp.y).setDisplaySize(this.heroSprite.displayWidth * (hp.scale / (this.heroSprite.getData('scale') ?? hp.scale)), this.heroSprite.displayHeight * (hp.scale / (this.heroSprite.getData('scale') ?? hp.scale))).setDepth(hp.y);
-    this.heroSprite.setData('scale', hp.scale);
-    const to = { x: r.hero.x + 0.5, z: r.hero.z - 0.4, h: 1 };
+    // the hero moves to his new spot first, then the ball comes
+    this.heroView.runTo(r.hero.x, r.hero.z, 560, () => this.time.delayedCall(180, () => this.timingBall(r)));
+  }
+
+  private timingBall(r: TimingRound): void {
+    // a ball on his left side is a backhand
+    const bh = r.from.x + r.curve < r.hero.x - 0.6;
+    const to = bh ? { x: r.hero.x - 0.55, z: r.hero.z - 0.35, h: 1 } : this.heroView.contact(1);
     const ring = this.add.graphics().setDepth(9200);
     this.layer.push(ring);
     const t0 = this.time.now;
     let done = false;
+    let prepped = false;
     this.ball.setVisible(true);
     this.ballShadow.setVisible(true);
+    sfx('hit');
+    this.time.delayedCall(Math.min(260, r.closeMs * 0.25), () => this.heroView.split());
     const end = (tapMs: number | null): void => {
       if (done) return;
       done = true;
@@ -354,15 +308,23 @@ export class MinigameScene extends Phaser.Scene {
       const p = project(to.x, to.z, to.h);
       this.popup(p.x, p.y - 40, res.points > 0 ? `${res.grade.toUpperCase()} +${res.points}` : 'MISS', res.points > 0);
       sfx(res.points > 0 ? 'hit' : 'select');
-      if (res.points > 0) this.flyArc({ ...to }, { x: -1.5 + Math.random() * 3, z: 4, h: 0 }, 1.6, () => undefined);
+      if (tapMs !== null) this.heroView.stroke(bh ? 'bh' : 'fh', 1);
+      if (res.points > 0) {
+        this.flyArc({ ...to }, { x: -1.5 + Math.random() * 3, z: 4, h: 0 }, 1.6, () => undefined);
+        if (res.points >= 90) this.time.delayedCall(450, () => this.heroView.cheer());
+      }
       this.round++;
-      this.time.delayedCall(950, () => this.nextRound());
+      this.time.delayedCall(1100, () => this.nextRound());
     };
     const tick = this.time.addEvent({
       delay: 16,
       loop: true,
       callback: () => {
         const ms = this.time.now - t0;
+        if (!prepped && ms > r.closeMs - 420) {
+          prepped = true;
+          this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', 1);
+        }
         const u = Math.min(1.25, ms / r.closeMs);
         const uu = Math.min(1, u);
         const x = r.from.x + (to.x - r.from.x) * u + r.curve * Math.sin(Math.PI * uu);
@@ -389,5 +351,178 @@ export class MinigameScene extends Phaser.Scene {
       end(this.time.now - t0);
     });
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
+  }
+
+  // ---------- smash show ----------
+  /** The lob's landing spot is shown first; the player picks the smash, then the lob comes and he hits as the ring closes. */
+  private smashRound(r: SmashRound): void {
+    const lobName = r.lob === 'short' ? 'A SHORT LOB, NEAR THE NET' : r.lob === 'mid' ? 'A LOB TO MID-COURT' : 'A DEEP LOB';
+    this.hint(`${lobName}\nPICK YOUR SMASH`);
+    // where the hero will meet it: a pulsing ring on the floor
+    const mark = this.add.graphics().setDepth(4);
+    this.layer.push(mark);
+    const fp = project(r.contact.x, r.contact.z);
+    mark.lineStyle(3, 0xffe066, 0.95).strokeEllipse(fp.x, fp.y, fp.scale * 0.9, fp.scale * 0.3);
+    this.tweens.add({ targets: mark, alpha: 0.35, yoyo: true, repeat: -1, duration: 420 });
+    const opts: Array<[SmashKind, string, string]> = [
+      ['x3', 'POR TRES', r.lob === 'deep' ? 'RISKY' : 'GOOD'],
+      ['x4', 'POR CUATRO', r.lob === 'short' ? 'GOOD' : r.lob === 'mid' ? 'RISKY' : 'VERY HARD'],
+      ['vibora', 'VIBORA', r.lob === 'short' ? 'OK' : 'SAFE'],
+    ];
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    opts.forEach(([kind, label, tag], i) => {
+      const x = 64 + i * 116;
+      const b = makeThemeButton(this, x, 486, 108, 44, label, () => {
+        if (this.busy) return;
+        this.busy = true;
+        for (const o of parts) o.destroy();
+        this.smashLob(r, kind);
+      }, kind === 'x4' ? 'primary' : 'secondary', 13);
+      for (const o of b.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
+      const t = themeText(this, x, 518, tag, { size: 11, color: tag === 'GOOD' || tag === 'SAFE' ? TC.white : TC.orange, font: 'display' }).setDepth(9300);
+      parts.push(...(b.parts as Phaser.GameObjects.GameObject[]), t);
+    });
+    this.layer.push(...parts);
+  }
+
+  private smashLob(r: SmashRound, kind: SmashKind): void {
+    const c = r.contact;
+    const ring = this.add.graphics().setDepth(9200);
+    this.layer.push(ring);
+    const t0 = this.time.now;
+    let done = false;
+    let prepped = false;
+    this.hitDueAt = t0 + r.closeMs;
+    const apex = 6.5;
+    this.ball.setVisible(true);
+    this.ballShadow.setVisible(true);
+    sfx('hit');
+    // he runs under it (the ball a little in front of his racket shoulder), then loads the smash
+    this.heroView.runTo(c.x - 0.45, c.z + 0.3, Math.min(900, r.closeMs * 0.45));
+    const ballAt = (ms: number): { x: number; z: number; h: number } => {
+      const u = ms / r.closeMs;
+      return { x: r.from.x + (c.x - r.from.x) * u, z: r.from.z + (c.z - r.from.z) * u, h: 1 + (c.h - 1) * u + 4 * apex * u * (1 - u) * (u <= 1 ? 1 : 1) };
+    };
+    const end = (tapMs: number | null): void => {
+      if (done) return;
+      done = true;
+      ring.clear();
+      const res = smashResult(this.hero, r, kind, tapMs);
+      const from = tapMs === null ? ballAt(Math.min(this.time.now - t0, r.closeMs * 1.15)) : ballAt(Math.max(0, Math.min(tapMs, r.closeMs * 1.15)));
+      if (kind === 'vibora') this.heroView.stroke('ov');
+      else this.heroView.smash(340);
+      if (tapMs === null) {
+        // no swing: it drops behind him
+        this.flyArc(from, { x: c.x, z: Math.min(19.5, c.z + 2.5), h: 0 }, 0.4, () => this.smashDone(res.points, 'MISSED', false));
+        return;
+      }
+      sfx('hit');
+      if (res.outcome === 'out' || res.outcome === 'winner') this.cameras.main.shake(140, 0.006);
+      const s = shot(SMASH_SHOT[kind]);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const flight = buildFlight({
+        from: { x: from.x, z: from.z }, startH: Math.max(2, from.h), hitterSide: 0, shot: s,
+        landX: kind === 'vibora' ? side * 3.5 : side * 1.5,
+        outcome: res.outcome === 'net' ? 'error' : res.outcome === 'glass' ? 'continue' : 'winner',
+        netReturn: kind === 'x4' && res.outcome === 'glass' ? true : undefined,
+      });
+      this.playFlight(flight, (e) => {
+        if (e === 'out') this.bigCall(kind === 'x3' ? 'POR TRES!' : 'POR CUATRO!');
+      }, () => {
+        const label = res.outcome === 'out' ? `+${res.points}` : res.outcome === 'winner' ? `WINNER +${res.points}` : res.outcome === 'glass' ? `BACK IN PLAY +${res.points}` : 'NET';
+        this.smashDone(res.points, label, res.outcome === 'out' || res.outcome === 'winner');
+      });
+    };
+    const tick = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const ms = this.time.now - t0;
+        if (!prepped && ms > r.closeMs - 520) {
+          prepped = true;
+          this.heroView.prep(kind === 'vibora' ? 'ovPrep' : 'smashPrep');
+        }
+        if (done) return;
+        const b = ballAt(Math.min(ms, r.closeMs * 1.3));
+        this.placeBall(b.x, b.z, b.h);
+        const u = Math.min(1, ms / r.closeMs);
+        const p = project(c.x, c.z, c.h);
+        const rad = Math.max(6, 80 * (1 - u) + 8);
+        const w = Math.abs(ms - r.closeMs);
+        ring.clear().lineStyle(3, w < 60 ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, rad);
+        ring.fillStyle(0xffe066, 0.9).fillCircle(p.x, p.y, 3);
+        if (ms > r.closeMs * 1.3) {
+          tick.remove();
+          end(null);
+        }
+      },
+    });
+    const tap = this.add.zone(0, 0, WIDTH, 392).setOrigin(0, 0).setDepth(9020).setInteractive();
+    this.layer.push(tap);
+    tap.on('pointerdown', () => {
+      if (done) return;
+      tick.remove();
+      end(this.time.now - t0);
+    });
+    this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
+  }
+
+  /** Plays a real ball flight at its own pace; `onEvent` hears every bounce, glass and exit. The ball fades when it leaves the court. */
+  private playFlight(f: Flight, onEvent: (kind: string) => void, done: () => void): void {
+    const ms = flightDuration(f);
+    const seen = new Set<number>();
+    this.ball.setVisible(true).setAlpha(1);
+    this.ballShadow.setVisible(true);
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: ms,
+      onUpdate: (tw) => {
+        const u = tw.getValue() ?? 0;
+        const p = ballPoint(f.path, u);
+        this.placeBall(p.x, p.z, p.h);
+        const t = u * f.duration;
+        f.events.forEach((e, i) => {
+          if (e.t <= t && !seen.has(i)) {
+            seen.add(i);
+            onEvent(e.kind);
+            if (e.kind === 'glass') sfx('select');
+          }
+        });
+      },
+      onComplete: () => {
+        const out = f.events.some((e) => e.kind === 'out');
+        if (out) {
+          this.ballShadow.setVisible(false);
+          this.tweens.add({ targets: this.ball, alpha: 0, scale: this.ball.scale * 0.5, y: this.ball.y - 30, duration: 300, onComplete: () => this.ball.setVisible(false).setAlpha(1) });
+        }
+        done();
+      },
+    });
+  }
+
+  /** A big call across the court for a ball sent out of it. */
+  private bigCall(text: string): void {
+    this.cameras.main.flash(160, 255, 240, 170);
+    sfx('point');
+    const t = this.add
+      .text(WIDTH / 2, 170, text, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '38px', color: '#ffe066' })
+      .setOrigin(0.5)
+      .setStroke('#ff7a3d', 8)
+      .setDepth(9600)
+      .setScale(0.3);
+    this.tweens.add({ targets: t, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, y: 140, delay: 900, duration: 350, onComplete: () => t.destroy() });
+  }
+
+  private smashDone(points: number, label: string, great: boolean): void {
+    this.score += points;
+    this.updateHud();
+    const p = project(this.heroView.x, this.heroView.z - 3);
+    this.popup(p.x, p.y - 30, label, points > 0);
+    if (!great) sfx(points > 0 ? 'point' : 'select');
+    if (great) this.time.delayedCall(300, () => this.heroView.cheer());
+    this.round++;
+    this.time.delayedCall(great ? 1500 : 1100, () => this.nextRound());
   }
 }

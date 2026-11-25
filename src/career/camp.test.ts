@@ -4,7 +4,7 @@ import { SHOTS } from '../game/catalog';
 import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
-  CAMP, CAMP_GAMES, campNow, canTry, finishTry, GLASS_SHOT_IDS, glassClassPoints, glassFlight, glassRebound, glassRound, zoneAt, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
+  CAMP, CAMP_GAMES, campNow, canTry, finishTry, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
   serveLanding, serveZone, starsFor, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
@@ -111,17 +111,35 @@ describe('camp minigames', () => {
     expect(serveLanding(-1, { x: -1, depth: 4 })).toBeNull();
     expect(serveLanding(-1, { x: 2, depth: 4 })).not.toBeNull();
   });
-  it('read the glass: about a third of each rebound class; the flight has that class; points for close guesses', () => {
-    const shots = GLASS_SHOT_IDS.map(shot);
-    const rng = seededRng(3);
-    const n = { low: 0, mid: 0, high: 0 };
-    for (let i = 0; i < 300; i++) n[glassRebound(glassRound(rng, shots))]++;
-    for (const k of ['low', 'mid', 'high'] as const) expect(n[k]).toBeGreaterThan(60);
-    const r = glassRound(seededRng(5), shots);
-    expect(glassFlight(r).events.some((e) => e.kind === 'glass')).toBe(true);
-    expect(glassClassPoints('mid', 'mid')).toBe(100);
-    expect(glassClassPoints('low', 'mid')).toBe(40);
-    expect(glassClassPoints('low', 'high')).toBe(0);
+  it('target zones move at a steady speed and stay on the court', () => {
+    const rng = seededRng(6);
+    for (let i = 0; i < 40; i++) {
+      const z = targetZone(rng, i % 6);
+      expect(z.move).toBeDefined();
+      let last = zoneAt(z, 0);
+      for (let t = 0.05; t < 6; t += 0.05) {
+        const at = zoneAt(z, t);
+        expect(Math.abs(at.x) + at.r).toBeLessThanOrEqual(4.7);
+        expect(at.depth - at.r).toBeGreaterThanOrEqual(0.9);
+        expect(at.depth + at.r).toBeLessThanOrEqual(9.4);
+        // steady: never faster than its speed (it slows only where it turns)
+        expect(Math.hypot(at.x - last.x, at.depth - last.depth)).toBeLessThanOrEqual(z.move!.speed * 0.05 + 1e-6);
+        last = at;
+      }
+    }
+  });
+  it('smash: on time it flies out, a little off back off the glass, late into the net; a Por Cuatro off a deep lob is hard', () => {
+    const r = smashRound(0, seededRng(2));
+    expect(smashResult(hero, r, 'x3', r.closeMs).outcome).toBe('out');
+    expect(smashResult(hero, r, 'vibora', r.closeMs).outcome).toBe('winner');
+    const w = smashWindow(hero, r, 'x3');
+    expect(smashResult(hero, r, 'x3', r.closeMs + w * 0.7).outcome).toBe('glass');
+    expect(smashResult(hero, r, 'x3', r.closeMs + w * 1.2).points).toBe(0);
+    expect(smashResult(hero, r, 'x3', null).outcome).toBe('net');
+    const deep = { ...r, lob: 'deep' as const };
+    expect(smashWindow(hero, deep, 'x4')).toBeLessThan(smashWindow(hero, deep, 'vibora') / 3);
+    const short = { ...r, lob: 'short' as const };
+    expect(smashResult(hero, short, 'x4', short.closeMs).points).toBeGreaterThan(smashResult(hero, short, 'x3', short.closeMs).points);
   });
   it('serve zones move inside the service box', () => {
     const z = serveZone(seededRng(8), 3, 1);

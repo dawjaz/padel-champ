@@ -39,34 +39,23 @@
     {
       "id": "targets",
       "name": "Target Practice",
-      "desc": "Land the ball in the zones.",
+      "desc": "The zone moves: land the ball in it.",
       "rounds": 6,
       "stars": [
-        200,
-        330,
-        430
-      ]
-    },
-    {
-      "id": "glass",
-      "name": "Read the Glass",
-      "desc": "Watch the ball to its bounce: will it come off the glass low, medium or high?",
-      "rounds": 6,
-      "stars": [
-        330,
-        450,
-        560
+        220,
+        340,
+        440
       ]
     },
     {
       "id": "serve",
       "name": "Serve Zones",
-      "desc": "Serve into the moving zone of the service box.",
+      "desc": "Serve into the zone gliding across the service box.",
       "rounds": 6,
       "stars": [
-        150,
-        260,
-        360
+        200,
+        320,
+        420
       ]
     },
     {
@@ -78,6 +67,17 @@
         380,
         540,
         680
+      ]
+    },
+    {
+      "id": "smash",
+      "name": "Smash Show",
+      "desc": "Pick the smash, hit the lob on time: out of the court!",
+      "rounds": 6,
+      "stars": [
+        300,
+        520,
+        720
       ]
     }
   ]
