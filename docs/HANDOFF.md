@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.111: characters stage A, weight and momentum
+- `src/art/bodyDynamics.ts` (pure, tested): per player springs for lean (into the run, back when braking: `LEAN_PER_SPEED`, `LEAN_PER_ACCEL`, max 0.24 rad), squash and stretch (volume kept), step bob, breathing when idle; `runEase` is the run's position curve (trapezium speed: 18% accelerating, 30% braking) replacing `Sine.easeInOut` in `movePlayers` (same durations, so the engine timing is unchanged).
+- MatchScene `update` -> `stepBodies` measures each player's feet on the screen (metres via `p.scale`), steps the body and re-places the sprite (`placeView` applies rotation about the feet, scale and bob). Kicks: crouch before a chaser starts, stretch on a hit, take-off/landing on the smash hop. `brakeDust`: two sand puffs when a fast run stops.
+- Measured in a rally: lean up to 0.25 rad, scaleY 0.95..1.07, ~14 hard stops.
+- Stage B (a part rig instead of whole-body pictures) is being prototyped on a separate page first (see `docs/` / owner's decision).
+
 ## v0.110: the hero's side of the court
 - `Profile.heroSide` ('left' | 'right', default left), `heroLane`, tested. Default is set on the HERO screen (row "I PLAY ON THE", the stat rows are 4 px tighter to make room); `makeSideSwitch` in `theme.ts` is the shared switch.
 - Before every match: the tournament pre-match screen (BracketScene) has the switch; a quick match has it on the coin-toss panel (it restarts the scene; not offered in tournament matches because the match's boost is consumed when the scene is created).

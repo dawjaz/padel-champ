@@ -4,6 +4,7 @@ import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { ensureToonPoseTexture, placeToonSprite, toonPoseKey } from '../art/toonTexture';
+import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } from '../art/bodyDynamics';
 import { mixPose, POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame, type PoseSpec } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
@@ -107,6 +108,11 @@ interface PlayerView {
   barShown: number;
   /** Counts blends; a newer pose cancels an older blend. */
   blend: number;
+  /** Lean, squash, step bob and breathing (see bodyDynamics.ts), stepped every frame in `update`. */
+  body: BodyState;
+  look: BodyPose;
+  /** Feet on the screen in the last frame (null: not measured yet). */
+  lastFeet: { x: number; y: number } | null;
 }
 
 interface ButtonSpec {
@@ -510,7 +516,7 @@ export class MatchScene extends Phaser.Scene {
           .setDepth(9000);
         const baked = bakedShape(this, 0, 0, GUTS_BAR_W, GUTS_BAR_H, () => undefined, 3);
         const bar = baked.rt.setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1 };
+        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1, body: newBody(Object.keys(this.views).length * 1.7), look: { rotation: 0, scaleX: 1, scaleY: 1, bob: 0, braked: false }, lastFeet: null };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -523,7 +529,9 @@ export class MatchScene extends Phaser.Scene {
     const pos = this.pos[id];
     const p = project(pos.x, pos.z);
     const spriteHeight = p.scale * VISUAL_HEIGHT_M;
-    placeToonSprite(v.sprite, p.x, p.y - v.lift, spriteHeight);
+    const bob = v.look.bob * p.scale;
+    placeToonSprite(v.sprite, p.x, p.y - v.lift - bob, spriteHeight);
+    v.sprite.setScale(v.sprite.scaleX * v.look.scaleX, v.sprite.scaleY * v.look.scaleY).setRotation(v.look.rotation);
     v.sprite.setDepth(p.y);
     // Hero: name below the feet, bar under the name. Opponents: bar right over the head, name above it.
     const top = p.y - spriteHeight - 2 - v.lift;
@@ -766,7 +774,9 @@ export class MatchScene extends Phaser.Scene {
       duration: height > 10 ? 150 : 110,
       yoyo: true,
       ease: 'Quad.easeOut',
+      onStart: () => kickBody(v.body, 1.4),
       onUpdate: () => this.placeView(id),
+      onComplete: () => kickBody(v.body, -1.8),
     });
   }
 
@@ -832,8 +842,34 @@ export class MatchScene extends Phaser.Scene {
    * Draws the pictures a match needs (every pose in the team's view, the profile run cycle) a couple per frame while the coin is
    * tossed, so that none of them has to be drawn in the middle of a rally (a hitch on a phone).
    */
-  update(): void {
+  update(time: number, delta: number): void {
     this.runWarmQueue();
+    this.stepBodies(time / 1000, delta / 1000);
+  }
+
+  /** Weight and momentum: every player's picture leans, squashes, bobs and breathes with the way his feet move (bodyDynamics.ts). */
+  private stepBodies(time: number, dt: number): void {
+    if (dt <= 0) return;
+    for (const [id, v] of Object.entries(this.views)) {
+      const pos = this.pos[id];
+      if (!pos) continue;
+      const p = project(pos.x, pos.z);
+      const last = v.lastFeet ?? p;
+      v.lastFeet = { x: p.x, y: p.y };
+      const ppm = Math.max(1, p.scale);
+      v.look = stepBody(v.body, (p.x - last.x) / ppm, (p.y - last.y) / ppm, dt, time, this.time.now >= v.busyUntil);
+      if (v.look.braked) this.brakeDust(p.x, p.y, p.scale, v.body.vx);
+      this.placeView(id);
+    }
+  }
+
+  /** Two small puffs of sand behind the feet of a player who stops hard. */
+  private brakeDust(x: number, y: number, scale: number, vx: number): void {
+    for (let i = 0; i < 2; i++) {
+      const dir = vx >= 0 ? -1 : 1;
+      const puff = this.add.ellipse(x + dir * scale * (0.12 + i * 0.12), y - 1, Math.max(4, scale * 0.2), Math.max(2, scale * 0.08), 0xf3e6c8, 0.7).setDepth(y - 1);
+      this.tweens.add({ targets: puff, x: puff.x + dir * scale * 0.25, scaleX: 2.6, scaleY: 1.8, alpha: 0, delay: i * 40, duration: 380, ease: 'Quad.easeOut', onComplete: () => puff.destroy() });
+    }
   }
 
   private prewarmPoses(): void {
@@ -930,6 +966,7 @@ export class MatchScene extends Phaser.Scene {
     const side = prep === 'bh' || prep === 'bhv' ? 'bh' : 'fh';
     const stance: Stance = smashing ? 'smash' : grounded ? 'ov' : shot?.downward === true ? (prep === 'smash' ? 'ov' : side === 'bh' ? 'bhv' : 'fhv') : prep === undefined || prep === 'smash' || prep === 'ov' ? 'fh' : side;
     v.busyUntil = this.time.now + 420;
+    kickBody(v.body, stance === 'smash' ? 0.6 : 1);
     this.blendTo(id, poseOf(stance, 'Hit'), 70);
     if (stance === 'smash') this.hop(id, 13);
     this.time.delayedCall(80, () => {
@@ -975,11 +1012,12 @@ export class MatchScene extends Phaser.Scene {
         this.setFacing(id, chasers.includes(id) ? this.runFacing(targets[id].x - starts[id].x, targets[id].z - starts[id].z) : this.defaultFacing(id));
       }
     }
+    for (const id of running) if (chasers.includes(id)) kickBody(this.views[id].body, -0.9);
     this.tweens.addCounter({
       from: 0,
       to: 1,
       duration,
-      ease: 'Sine.easeInOut',
+      ease: (t: number) => runEase(t),
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const t = tween.getValue() ?? 0;
         const stepFrame = Math.floor(this.time.now / 62);
