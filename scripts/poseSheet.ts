@@ -13,7 +13,7 @@ let html = '<body style="margin:0;background:#eaf1fa;font:12px sans-serif">';
 for (const view of views) {
   html += `<h3 style="margin:4px 8px">${pl.name} ${view}</h3><div style="display:flex;flex-wrap:wrap">`;
   for (const pose of TOON_POSES) html += `<div style="width:190px;text-align:center">${toSvg(buildToon(pl.appearance, view, pose), 190)}<br>${pose}</div>`;
-  for (let f = 0; f < RUN_FRAMES; f++) html += `<div style="width:190px;text-align:center">${toSvg(buildToon(pl.appearance, view, runFrame(f)), 190)}<br>run ${f}</div>`;
+  for (let f = 0; f < RUN_FRAMES; f++) html += `<div style="width:190px;text-align:center">${toSvg(buildToon(pl.appearance, view, runFrame(f, view === "side")), 190)}<br>run ${f}</div>`;
   html += '</div>';
 }
 writeFileSync(process.argv[4] ?? '/tmp/poses.html', html);

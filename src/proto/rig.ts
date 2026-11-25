@@ -8,6 +8,7 @@ import type { Appearance } from '../game/types';
 import { FIG, POSES, buildToon, mixPose, runFrame, type PoseSpec, type ToonView } from '../art/toon/character';
 import { drawOps } from '../art/toon/ops';
 import { kickBody, newBody, runEase, stepBody, type BodyPose } from '../art/bodyDynamics';
+import { loadPose, smashSteps, strokeSteps, type Step } from '../art/rig';
 
 type Pt = [number, number];
 const AP = (playersData.you as unknown as Array<{ appearance: Appearance }>)[0].appearance;
@@ -47,15 +48,6 @@ function sample(keys: Key[], t: number): PoseSpec {
   }
   return keys[keys.length - 1][1];
 }
-const tweak = (p: PoseSpec, d: Partial<PoseSpec> & { dRacket?: number; dCrouch?: number; dLean?: number; dHand?: Pt }): PoseSpec => ({
-  ...p,
-  ...d,
-  racket: (d.racket ?? p.racket) + (d.dRacket ?? 0),
-  crouch: (d.crouch ?? p.crouch) + (d.dCrouch ?? 0),
-  lean: (d.lean ?? p.lean) + (d.dLean ?? 0),
-  hand: d.dHand ? [p.hand[0] + d.dHand[0], p.hand[1] + d.dHand[1]] : d.hand ?? p.hand,
-});
-
 /** Today's `blendTo`: three in-between pictures, then the pose (steps, not a glide). */
 function stepBlend(from: PoseSpec, to: PoseSpec, ms: number, elapsed: number): PoseSpec {
   const step = Math.min(4, Math.floor(elapsed / (ms / 4)) + 1);
@@ -195,21 +187,20 @@ let wasAir = false;
 let hitKicked = false;
 let lastBrakeT = -1;
 
-function strokeKeys(prep: PoseSpec, hit: PoseSpec, follow: PoseSpec, tHit: number, sign: number): Key[] {
-  const R = POSES.ready;
-  const load = tweak(prep, { dCrouch: 6, dRacket: 14 * sign, dLean: 3 * sign, dHand: [8 * sign, -4] });
-  const over = tweak(follow, { dRacket: -22 * sign, dHand: [-10 * sign, -8], dLean: -3 * sign });
-  return [
-    [0, R, lin],
-    [tHit - 0.5, R, lin],
-    [tHit - 0.14, load, inOut], // anticipation: wind up further than the pose
-    [tHit - 0.07, load, lin], // a tiny hold before the snap
-    [tHit, hit, easeIn], // the racket accelerates into the ball
-    [tHit + 0.05, hit, lin], // hit-stop
-    [tHit + 0.2, over, easeOut], // follow-through overshoots
-    [tHit + 0.34, follow, inOut],
-    [tHit + 0.75, R, inOut],
+/** The game's own sequences (rig.ts) laid out on this clip's clock: the wind-up, then the steps from the moment of contact. */
+function gameKeys(prepName: 'fhPrep' | 'bhPrep' | 'smashPrep', tHit: number, steps: Step[]): Key[] {
+  const keys: Key[] = [
+    [0, POSES.ready, lin],
+    [tHit - 0.7, POSES.ready, lin],
+    [tHit - 0.48, loadPose(prepName), inOut],
   ];
+  let at = tHit - steps[0][0] / 1000;
+  keys.push([at, loadPose(prepName), lin]);
+  for (const [ms, pose, ease] of steps) {
+    at += ms / 1000;
+    keys.push([at, pose, ease]);
+  }
+  return keys;
 }
 
 function nowStroke(prep: PoseSpec, hit: PoseSpec, follow: PoseSpec, tHit: number, t: number): PoseSpec {
@@ -263,8 +254,8 @@ function frame(nowMs: number): void {
   lastT = t;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawCourt(0, 'NOW (in the game today)');
-  drawCourt(PANEL, 'RIG (prototype)');
+  drawCourt(0, 'BEFORE (up to v0.111)');
+  drawCourt(PANEL, 'RIG (in the game from v0.112)');
 
   const front = view === 'front';
   const mirror = front; // the game mirrors the front view (right-handed players)
@@ -292,7 +283,7 @@ function frame(nowMs: number): void {
     const rx = from + (to - from) * runEase(u);
     const cycle = (body.stride / 1.7) * 8;
     const brake: PoseSpec = { ...POSES.ready, lean: -9, crouch: 18, left: [58, 304], right: [142, 304], hand: [132, 146], racket: 18, off: [44, 150] };
-    let pose: PoseSpec = runFrame(cycle);
+    let pose: PoseSpec = runFrame(cycle, true);
     if (u > 0.72 && u < 1) pose = mixPose(pose, brake, clamp((u - 0.72) / 0.22, 0, 1));
     const rRunning = u > 0 && u < 1;
     const settle = t - (leg * 1.6 + 1.0);
@@ -327,28 +318,14 @@ function frame(nowMs: number): void {
     }
     now = { x: W / 2, lift: nLift, pose: nowStroke(prep, hit, follow, tHit, t), view, mirror };
     // RIG
-    let keys = strokeKeys(prep, hit, follow, tHit, sign);
+    const AIR = 0.33;
+    const keys = sm ? gameKeys('smashPrep', tHit, smashSteps(AIR * 1000)) : gameKeys(fh ? 'fhPrep' : 'bhPrep', tHit, strokeSteps(fh ? 'fh' : 'bh'));
     let lift = 0;
     if (sm) {
-      const crouchLoad = tweak(prep, { dCrouch: 14, dRacket: -16, hand: [166, 52] });
-      const air = tweak(prep, { crouch: -16, dRacket: -30 });
-      keys = [
-        [0, POSES.ready, lin],
-        [tHit - 0.7, POSES.ready, lin],
-        [tHit - 0.32, crouchLoad, inOut],
-        [tHit - 0.18, air, easeOut],
-        [tHit, hit, easeIn],
-        [tHit + 0.05, hit, lin],
-        [tHit + 0.22, tweak(follow, { dRacket: -20, crouch: -6 }), easeOut],
-        [tHit + 0.36, tweak(follow, { dCrouch: 16 }), easeIn], // landing: knees give
-        [tHit + 0.8, POSES.ready, inOut],
-      ];
-      const a = tHit - 0.2;
-      const b = tHit + 0.33;
-      if (t > a && t < b) {
-        const k = (t - a) / (b - a);
-        lift = 0.42 * 4 * k * (1 - k);
-      }
+      // the game's jump: 42% of the time going up (ease out), the rest falling (ease in), 24 px at the game's scale ~ 0.42 m here
+      const a0 = tHit - 0.06;
+      const u = (t - a0) / AIR;
+      if (u > 0 && u < 1) lift = 0.42 * (u < 0.42 ? easeOut(u / 0.42) : 1 - (easeIn((u - 0.42) / 0.58)));
     }
     let pose = sample(keys, t);
     // head: trails the body a little and looks towards the ball side
@@ -381,7 +358,7 @@ function frame(nowMs: number): void {
     // ball (both panels): through the racket face of the hit pose
     const contactFig = racketPoint(hit, 0, -70);
     const cN = screenOf({ ...now, lift: sm ? 13 / PPM : 0 }, contactFig);
-    const cR = screenOf({ ...rig, lift: sm ? 0.42 * 4 * (0.2 / 0.53) * (1 - 0.2 / 0.53) : 0 }, contactFig);
+    const cR = screenOf({ ...rig, lift: sm ? 0.3 : 0 }, contactFig);
     const fromX = (fh ? W + 20 : -20) * (front ? 1 : 1);
     const toX = fh ? -20 : W + 20;
     ballPt = ball(t, tHit, cN, mirror ? W - fromX : fromX, mirror ? W - toX : toX, 0, sm);

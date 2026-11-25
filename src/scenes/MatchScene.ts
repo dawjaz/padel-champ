@@ -3,9 +3,12 @@ import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT
 import { project } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
-import { ensureToonPoseTexture, placeToonSprite, toonPoseKey } from '../art/toonTexture';
+import { placeToonSprite } from '../art/toonTexture';
+import { buildToon } from '../art/toon/character';
+import { drawOps, VIEW } from '../art/toon/ops';
+import { inOut, loadPose, poseSignature, racketEnds, Rig, smashSteps, strokeSteps } from '../art/rig';
 import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } from '../art/bodyDynamics';
-import { mixPose, POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame, type PoseSpec } from '../art/toon/character';
+import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureCoinTexture, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
@@ -55,6 +58,14 @@ const HUMAN_SIDE: SideIndex = 0;
 let HUMAN_IDX = 0;
 /** Pauses in milliseconds: relaxed, like the rallies at a real tournament. */
 const CPU_DELAY = 28;
+/** Pixels per figure unit of a player's own picture: near pair, far pair (smaller on the screen). */
+const RIG_UNIT_NEAR = 0.55;
+const RIG_UNIT_FAR = 0.42;
+/** Milliseconds of picture drawing per frame; a player whose pose changed waits a frame when it is used up. */
+const RIG_BUDGET_MS = 6;
+/** Run and side-step cycles: metres per cycle (two steps). */
+const RUN_CYCLE_M = 1.7;
+const SHUFFLE_CYCLE_M = 0.9;
 const NEXT_HIT_DELAY = 88;
 /** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
 const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
@@ -102,12 +113,16 @@ interface PlayerView {
   facing: Facing;
   /** The player is playing a stroke (swing animation) until this time (ms), so running must not overwrite it. */
   busyUntil: number;
-  /** An in-between or run-cycle pose that replaces `pose` while set (key names the picture in the texture cache). */
-  custom: { key: string; spec: PoseSpec } | null;
+  /** The rig: the pose drawn every frame (rig.ts). */
+  rig: Rig;
+  /** The player's own picture, drawn again whenever the pose or the view changes (`drawRig`). */
+  canvas: Phaser.Textures.CanvasTexture;
+  unit: number;
+  drawn: string;
+  /** Recent racket positions for the smear (figure units), newest last. */
+  trail: Array<[[number, number], [number, number]]>;
   /** Width in pixels of the guts bar as last drawn (-1: not drawn yet). */
   barShown: number;
-  /** Counts blends; a newer pose cancels an older blend. */
-  blend: number;
   /** Lean, squash, step bob and breathing (see bodyDynamics.ts), stepped every frame in `update`. */
   body: BodyState;
   look: BodyPose;
@@ -250,7 +265,6 @@ export class MatchScene extends Phaser.Scene {
     this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setDepth(1).setAlpha(0.4).setVisible(false);
     this.ring = this.add.image(0, 0, RING_KEY).setDepth(1).setVisible(false);
     this.createViews();
-    this.prewarmPoses();
     this.redrawBall = ensureBallTextures(this).redrawBall;
     for (let i = 0; i < 14; i++) this.trailDots.push(this.add.image(0, 0, DOT_KEY).setDepth(4990).setVisible(false));
     this.ballGlow = this.add.image(0, 0, GLOW_KEY).setDepth(4999).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.8).setVisible(false);
@@ -508,7 +522,12 @@ export class MatchScene extends Phaser.Scene {
       TEAMS[side].forEach((player, idx) => {
         this.pos[player.id] = restPos(side, idx, 'back');
         const facing: Facing = side === 0 ? 'back' : 'front';
-        const sprite = this.add.image(0, 0, ensureToonPoseTexture(this, player.appearance, toonViewOf(facing, side), 'ready'));
+        // Each player has one picture of his own, drawn again from the rig whenever the pose changes (far players at a lower resolution).
+        const unit = side === 0 ? RIG_UNIT_NEAR : RIG_UNIT_FAR;
+        const texKey = `rig:${player.id}`;
+        if (this.textures.exists(texKey)) this.textures.remove(texKey);
+        const canvas = this.textures.createCanvas(texKey, Math.round(VIEW.w * unit), Math.round(VIEW.h * unit))!;
+        const sprite = this.add.image(0, 0, texKey);
         const label = this.add
           .text(0, 0, '', { fontFamily: BODY, resolution: HD_SCALE, fontSize: '10px', fontStyle: '800', color: '#ffffff', align: 'center' })
           .setOrigin(0.5, side === 0 ? 0 : 1)
@@ -516,7 +535,7 @@ export class MatchScene extends Phaser.Scene {
           .setDepth(9000);
         const baked = bakedShape(this, 0, 0, GUTS_BAR_W, GUTS_BAR_H, () => undefined, 3);
         const bar = baked.rt.setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, custom: null, blend: 0, barShown: -1, body: newBody(Object.keys(this.views).length * 1.7), look: { rotation: 0, scaleX: 1, scaleY: 1, bob: 0, braked: false }, lastFeet: null };
+        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, rig: new Rig(), canvas, unit, drawn: '', trail: [], barShown: -1, body: newBody(Object.keys(this.views).length * 1.7), look: { rotation: 0, scaleX: 1, scaleY: 1, bob: 0, braked: false }, lastFeet: null };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -786,34 +805,86 @@ export class MatchScene extends Phaser.Scene {
   private showSprite(id: string): void {
     const v = this.views[id];
     const view = toonViewOf(v.facing, v.side);
-    v.sprite.setTexture(ensureToonPoseTexture(this, v.player.appearance, view, v.custom ?? v.pose));
     // The front view is mirrored (the racket is on the picture's right and everybody is right-handed); the profile faces right and is mirrored for a runner going left.
     v.sprite.setFlipX(view === 'front' || (view === 'side' && v.facing === 'left'));
+    this.drawRig(id, true);
   }
 
-  /** Shows the player in a pose (a picture drawn once per look, facing and pose). */
+  /**
+   * Draws the player's picture from his rig when it changed (a new pose or view). `force`: now, even beyond the frame's budget.
+   * Returns whether it drew. While the racket moves fast a smear of its last positions is drawn behind it.
+   */
+  private drawRig(id: string, force = false): boolean {
+    const v = this.views[id];
+    const view = toonViewOf(v.facing, v.side);
+    const pose = v.rig.pose;
+    const sig = `${view}|${v.trail.length}|${poseSignature(pose)}`;
+    if (!force && sig === v.drawn) return false;
+    v.drawn = sig;
+    const ctx = v.canvas.getContext();
+    const u = v.unit;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, v.canvas.width, v.canvas.height);
+    ctx.setTransform(u, 0, 0, u, -VIEW.x * u, -VIEW.y * u);
+    if (view !== 'side' && v.trail.length > 1) {
+      for (let i = 1; i < v.trail.length; i++) {
+        const [a1, b1] = v.trail[i - 1];
+        const [a2, b2] = v.trail[i];
+        ctx.globalAlpha = (i / v.trail.length) * 0.45;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(a1[0], a1[1]);
+        ctx.lineTo(b1[0], b1[1]);
+        ctx.lineTo(b2[0], b2[1]);
+        ctx.lineTo(a2[0], a2[1]);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    drawOps(ctx, buildToon(v.player.appearance, view, pose, false));
+    v.canvas.refresh();
+    return true;
+  }
+
+  /** Moves every rig on and draws the pictures that changed, within a budget of milliseconds per frame (the rest wait a frame, in turn). */
+  private stepRigs(now: number, dt: number): void {
+    const ids = Object.keys(this.views);
+    const t0 = performance.now();
+    this.rigTurn = (this.rigTurn + 1) % Math.max(1, ids.length);
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[(this.rigTurn + i) % ids.length];
+      const v = this.views[id];
+      const before = v.rig.pose;
+      const pose = v.rig.update(now, dt);
+      // the smear: racket ends while the racket moves fast during a stroke
+      if (this.time.now < v.busyUntil && pose !== before) {
+        const [n1, f1] = racketEnds(before);
+        const [n2, f2] = racketEnds(pose);
+        const speed = Math.hypot(f2[0] - f1[0], f2[1] - f1[1]) / Math.max(1, dt);
+        if (speed > 0.9) v.trail.push([n2, f2]);
+        else if (v.trail.length) v.trail.shift();
+        if (v.trail.length > 6) v.trail.shift();
+        void n1;
+      } else if (v.trail.length) v.trail.shift();
+      if (performance.now() - t0 > RIG_BUDGET_MS && i > 0) continue;
+      this.drawRig(id);
+    }
+  }
+
+  private rigTurn = 0;
+
+  /** Shows the player in a pose (glides into it; a stroke's preparation is wound up a little further, see `loadPose`). */
   private setPose(id: string, pose: PoseName): void {
     const v = this.views[id];
-    v.blend++;
-    if (v.pose === pose && !v.custom) return;
     v.pose = pose;
-    v.custom = null;
-    this.showSprite(id);
+    v.rig.to(this.time.now, pose.endsWith('Prep') ? loadPose(pose) : POSES[pose], pose.endsWith('Prep') ? 220 : 150, inOut);
   }
 
-  /** The spec the player's sprite shows now. */
-  private currentSpec(id: string): PoseSpec {
-    const v = this.views[id];
-    return v.custom?.spec ?? POSES[v.pose];
-  }
-
-  /** Shows one frame of the run cycle. */
+  /** Shows the run cycle at `frame` (fractional: the in-betweens); seen from the side in profile, else running towards or away. */
   private setRunFrame(id: string, frame: number): void {
     const v = this.views[id];
-    const f = ((frame % RUN_FRAMES) + RUN_FRAMES) % RUN_FRAMES;
-    if (v.custom?.key === `run${f}`) return;
-    v.custom = { key: `run${f}`, spec: runFrame(f) };
-    this.showSprite(id);
+    v.rig.drive(runFrame(frame, toonViewOf(v.facing, v.side) === 'side'));
   }
 
   /** Where a player who watches the ball turns his head: -1, 0 or 1 in screen terms (the ball is clearly to his left or right, or ahead). */
@@ -822,29 +893,16 @@ export class MatchScene extends Phaser.Scene {
     return Math.abs(dx) < 1.3 ? 0 : dx > 0 ? 1 : -1;
   }
 
-  /** The spec and cache key of one shuffle picture for a player in his team's view (the front view is mirrored, so sideways directions flip). */
-  private shufflePose(id: string, frame: number, screenDir: number, screenLook: number): { key: string; spec: PoseSpec } {
-    const flip = toonViewOf(this.views[id].facing, this.views[id].side) === 'front' ? -1 : 1;
-    const f = ((frame % SHUFFLE_FRAMES) + SHUFFLE_FRAMES) % SHUFFLE_FRAMES;
-    return { key: `shuf${f}:${flip * screenDir}:${flip * screenLook}`, spec: shuffleFrame(f, flip * screenDir, flip * screenLook) };
-  }
-
-  /** Shows one frame of the side-step shuffle (the player keeps his face to the court and his eyes on the ball). */
+  /** Shows the side-step shuffle at `frame` (fractional); the player keeps his face to the court and his eyes on the ball. */
   private setShuffleFrame(id: string, frame: number, screenDir: number): void {
     const v = this.views[id];
-    const pose = this.shufflePose(id, frame, screenDir, this.lookToward(id));
-    if (v.custom?.key === pose.key) return;
-    v.custom = pose;
-    this.showSprite(id);
+    const flip = toonViewOf(v.facing, v.side) === 'front' ? -1 : 1;
+    v.rig.drive(shuffleFrame(frame, flip * screenDir, flip * this.lookToward(id)));
   }
 
-  /**
-   * Draws the pictures a match needs (every pose in the team's view, the profile run cycle) a couple per frame while the coin is
-   * tossed, so that none of them has to be drawn in the middle of a rally (a hitch on a phone).
-   */
   update(time: number, delta: number): void {
-    this.runWarmQueue();
     this.stepBodies(time / 1000, delta / 1000);
+    this.stepRigs(this.time.now, delta);
   }
 
   /** Weight and momentum: every player's picture leans, squashes, bobs and breathes with the way his feet move (bodyDynamics.ts). */
@@ -870,70 +928,6 @@ export class MatchScene extends Phaser.Scene {
       const puff = this.add.ellipse(x + dir * scale * (0.12 + i * 0.12), y - 1, Math.max(4, scale * 0.2), Math.max(2, scale * 0.08), 0xf3e6c8, 0.7).setDepth(y - 1);
       this.tweens.add({ targets: puff, x: puff.x + dir * scale * 0.25, scaleX: 2.6, scaleY: 1.8, alpha: 0, delay: i * 40, duration: 380, ease: 'Quad.easeOut', onComplete: () => puff.destroy() });
     }
-  }
-
-  private prewarmPoses(): void {
-    // Most needed first: the ready and stroke poses, then the run cycle, then the rest.
-    const first: Array<() => void> = [];
-    const later: Array<() => void> = [];
-    const essential = new Set<string>(['ready', 'fhPrep', 'fhHit', 'bhPrep', 'bhHit', 'smashPrep', 'smashHit', 'fhvPrep', 'fhvHit', 'bhvPrep', 'bhvHit']);
-    for (const [id, v] of Object.entries(this.views)) {
-      const ap = v.player.appearance;
-      const team = toonViewOf(this.defaultFacing(id), v.side);
-      for (const pose of Object.keys(POSES) as PoseName[]) (essential.has(pose) ? first : later).push(() => ensureToonPoseTexture(this, ap, team, pose));
-      for (let f = 0; f < RUN_FRAMES; f++) {
-        first.push(() => ensureToonPoseTexture(this, ap, 'side', { key: `run${f}`, spec: runFrame(f) }));
-        later.push(() => ensureToonPoseTexture(this, ap, team, { key: `run${f}`, spec: runFrame(f) }));
-      }
-      for (let f = 0; f < SHUFFLE_FRAMES; f++) {
-        for (const dir of [-1, 1]) {
-          for (const look of [-1, 0, 1]) later.push(() => ensureToonPoseTexture(this, ap, team, this.shufflePose(id, f, dir, look)));
-        }
-      }
-    }
-    this.warmQueue.push(...first, ...later);
-  }
-
-  /** Pictures still to be drawn, a few milliseconds of work per frame (a picture takes a few ms on a phone: never a hitch). */
-  private warmQueue: Array<() => void> = [];
-
-  /** Draws queued pictures until the frame's budget (ms) is used (at least one while the queue is not empty). */
-  private runWarmQueue(budget = 4): void {
-    const t0 = performance.now();
-    while (this.warmQueue.length > 0) {
-      this.warmQueue.shift()?.();
-      if (performance.now() - t0 >= budget) break;
-    }
-  }
-
-  /** Glides from the current pose to `pose` in `ms`, through a few in-between pictures; a newer pose cancels it. */
-  private blendTo(id: string, pose: PoseName, ms: number): void {
-    const v = this.views[id];
-    const token = ++v.blend;
-    const from = this.currentSpec(id);
-    const fromKey = v.custom?.key ?? v.pose;
-    const steps = 3;
-    for (let i = 1; i <= steps; i++) {
-      this.time.delayedCall((ms * i) / (steps + 1), () => {
-        if (v.blend !== token) return;
-        const custom = { key: `b:${fromKey}>${pose}:${i}`, spec: mixPose(from, POSES[pose], i / (steps + 1)) };
-        // An in-between picture that has not been drawn yet is not drawn now (a hitch in the middle of a rally): it is queued for the
-        // next free frames and this step is skipped, the next ones show the pose that was asked for.
-        const view = toonViewOf(v.facing, v.side);
-        if (!this.textures.exists(toonPoseKey(v.player.appearance, view, custom))) {
-          this.warmQueue.push(() => ensureToonPoseTexture(this, v.player.appearance, view, custom));
-          return;
-        }
-        v.custom = custom;
-        this.showSprite(id);
-      });
-    }
-    this.time.delayedCall(ms, () => {
-      if (v.blend !== token) return;
-      v.pose = pose;
-      v.custom = null;
-      this.showSprite(id);
-    });
   }
 
   private defaultFacing(id: string): Facing {
@@ -965,22 +959,33 @@ export class MatchScene extends Phaser.Scene {
     // a high ball is taken overhead), or an ordinary forehand / backhand (the ball's side).
     const side = prep === 'bh' || prep === 'bhv' ? 'bh' : 'fh';
     const stance: Stance = smashing ? 'smash' : grounded ? 'ov' : shot?.downward === true ? (prep === 'smash' ? 'ov' : side === 'bh' ? 'bhv' : 'fhv') : prep === undefined || prep === 'smash' || prep === 'ov' ? 'fh' : side;
-    v.busyUntil = this.time.now + 420;
+    v.busyUntil = this.time.now + 520;
     kickBody(v.body, stance === 'smash' ? 0.6 : 1);
-    this.blendTo(id, poseOf(stance, 'Hit'), 70);
-    if (stance === 'smash') this.hop(id, 13);
-    this.time.delayedCall(80, () => {
-      if (v.busyUntil > this.time.now + 300) this.blendTo(id, poseOf(stance, 'Follow'), 110);
+    v.trail = [];
+    if (shot === null) {
+      // The serve: hit low after a bounce, like a forehand, no jump.
+      v.rig.play(this.time.now, strokeSteps('fh'));
+    } else if (stance === 'smash') {
+      // A jump off the left leg: up quickly, the racket meets the ball on the way up, a longer fall, the landing squashes the body.
+      const air = 330;
+      v.rig.play(this.time.now, smashSteps(air));
+      this.jump(id, 24, air);
+      this.cameras.main.shake(90, 0.0035);
+    } else {
+      v.rig.play(this.time.now, strokeSteps(stance as 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv'));
+    }
+    v.pose = 'ready';
+    this.time.delayedCall(520, () => {
+      if (this.views[id].busyUntil <= this.time.now) this.setFacing(id, this.defaultFacing(id));
     });
-    this.time.delayedCall(220, () => {
-      if (v.busyUntil > this.time.now) this.blendTo(id, 'ready', 200);
-    });
-    this.time.delayedCall(420, () => {
-      if (this.views[id].busyUntil <= this.time.now) {
-        this.setFacing(id, this.defaultFacing(id));
-        this.setPose(id, 'ready');
-      }
-    });
+  }
+
+  /** A jump of `height` px lasting `ms`: a quick take-off, a slower fall (a parabola eased a little). */
+  private jump(id: string, height: number, ms: number): void {
+    const v = this.views[id];
+    kickBody(v.body, 1.4);
+    this.tweens.add({ targets: v, lift: height, duration: ms * 0.42, ease: 'Quad.easeOut', onUpdate: () => this.placeView(id) });
+    this.tweens.add({ targets: v, lift: 0, delay: ms * 0.42, duration: ms * 0.58, ease: 'Quad.easeIn', onUpdate: () => this.placeView(id), onComplete: () => kickBody(v.body, -2) });
   }
 
   /** 1 for a fresh player, down to 0.7 on an empty guts bar (see `fatigueFactor`). */
@@ -1020,15 +1025,14 @@ export class MatchScene extends Phaser.Scene {
       ease: (t: number) => runEase(t),
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const t = tween.getValue() ?? 0;
-        const stepFrame = Math.floor(this.time.now / 62);
         for (const id of ids) {
           this.pos[id] = { x: lerp(starts[id].x, targets[id].x, t), z: lerp(starts[id].z, targets[id].z, t) };
           const v = this.views[id];
           if (running.has(id) && t < 0.97 && this.time.now >= v.busyUntil) {
             const mx = targets[id].x - starts[id].x;
             const mz = targets[id].z - starts[id].z;
-            if (!chasers.includes(id) && Math.abs(mx) >= Math.abs(mz)) this.setShuffleFrame(id, Math.floor(this.time.now / 90), mx > 0 ? 1 : -1);
-            else this.setRunFrame(id, stepFrame);
+            if (!chasers.includes(id) && Math.abs(mx) >= Math.abs(mz)) this.setShuffleFrame(id, (v.body.stride / SHUFFLE_CYCLE_M) * SHUFFLE_FRAMES, mx > 0 ? 1 : -1);
+            else this.setRunFrame(id, (v.body.stride / RUN_CYCLE_M) * RUN_FRAMES);
             v.lift = 0;
           }
           this.placeView(id);
@@ -1042,8 +1046,7 @@ export class MatchScene extends Phaser.Scene {
           if (this.time.now >= v.busyUntil) {
             if (running.has(id) || endPose[id] || endFacing[id]) {
               this.setFacing(id, endFacing[id] ?? this.defaultFacing(id));
-              if (v.custom && !endPose[id]) this.blendTo(id, 'ready', 140);
-              else this.setPose(id, endPose[id] ?? 'ready');
+              this.setPose(id, endPose[id] ?? 'ready');
             }
             v.lift = 0;
           }
