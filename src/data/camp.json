@@ -1,0 +1,84 @@
+{
+  "triesPerWeek": 3,
+  "extraTriesPerWeek": 1,
+  "baseCoins": 70,
+  "coinShare": [
+    0,
+    0.15,
+    0.2,
+    0.25
+  ],
+  "boostOnThreeStars": 0.5,
+  "boostPool": [
+    "isotonic",
+    "gel"
+  ],
+  "fragmentsPerPack": 10,
+  "fragmentPack": "gear",
+  "milestones": [
+    {
+      "stars": 3,
+      "fragments": 2
+    },
+    {
+      "stars": 8,
+      "fragments": 3
+    },
+    {
+      "stars": 15,
+      "fragments": 5
+    },
+    {
+      "stars": 25,
+      "fragments": 5
+    }
+  ],
+  "repeatEvery": 10,
+  "repeatFragments": 5,
+  "games": [
+    {
+      "id": "targets",
+      "name": "Target Practice",
+      "desc": "Choose the shot and the spot: land the ball in the zones.",
+      "rounds": 6,
+      "stars": [
+        200,
+        330,
+        430
+      ]
+    },
+    {
+      "id": "glass",
+      "name": "Read the Glass",
+      "desc": "Where will the ball come off the glass? Tap the spot.",
+      "rounds": 5,
+      "stars": [
+        200,
+        300,
+        400
+      ]
+    },
+    {
+      "id": "serve",
+      "name": "Serve Zones",
+      "desc": "Serve into the marked zones of the service box.",
+      "rounds": 6,
+      "stars": [
+        170,
+        280,
+        380
+      ]
+    },
+    {
+      "id": "timing",
+      "name": "Timing",
+      "desc": "Hit when the ring closes on the ball.",
+      "rounds": 8,
+      "stars": [
+        400,
+        560,
+        700
+      ]
+    }
+  ]
+}

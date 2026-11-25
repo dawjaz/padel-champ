@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.121: training camp logic (no screens yet)
+- Owner (25.11): the 3D look of `/proto/three.html` is dropped (a later realistic version would be Unreal or Unity, a separate stage after the 2D release); the 2D game is finished and released first. Minigame logic now, the screens later.
+- `src/career/camp.ts` + `src/data/camp.json` (pure, `camp.test.ts`): `Profile.camp` (`CampState`: tries of the career week "season:week", extra tries from a rewarded ad, best stars per game, total stars, fragments, paid milestones; `sanitizeCamp`).
+  - Tries: 3 per week (`campNow` refills on a new week), +1 per week for an ad (`grantExtraTry`); open only with no tournament in progress (`campOpen`, `canTry`, `startTry` uses a try at the start).
+  - Rewards (`finishTry`, free pool only): coins = 70 x share by stars (0 / 15 / 20 / 25%, x2 with the ad), on 3 stars a 50% chance of a basic boost (isotonic or gel) if the bag has room, fragments from star milestones (3, 8, 15, 25 stars, then 5 every 10 stars), 10 fragments = a Gear Pack (added to `inventory.packs`).
+  - Games: `targets` (zones shrinking towards the lines, `targetZone`, `zonePoints`, the ball lands through the match's spot-aim spread `landShot`), `serve` (zones in the service box, `serveZone`, a ball outside the box is a fault, `serveLanding`), `glass` (a hard ball into the near back glass, the player taps where it will be played, `glassRound` / `glassAnswer` via `buildFlight`, `glassPoints`), `timing` (a closing ring, window from technique and accuracy, faster each round, `timingRound`, `timingPoints`). Star thresholds in `camp.json`; targets and serve checked with perfect centre aim: accuracy 5 gives 3 stars in about 20-25%, accuracy 9 in nearly all. Glass and timing to be tuned when the screens exist.
+- Next: `CampScene` (week view, tries, best stars, fragments), the four minigame screens, `MinigameResult` (stars, reward, ad buttons through a `RewardedAd` stub), the career entry (a week without a tournament: CAMP next to SKIP WEEK), daily / weekly facts.
+
 ## 3D prototype page (proto/three.html), not part of the game yet
 - Owner (25.11) is considering 3D characters and match, plus short 3D cut-ins between events. Decision gate: this prototype, published at `/proto/three.html` (third Vite input; `three` 0.170 added as a dependency, only this page imports it).
 - `src/proto/three/arena.ts`: court and arena from the game's own measurements (`walls.ts`: back walls glass 3 + mesh 1, side wall segments, the two openings, net), court colours from the city theme, stands with an instanced crowd that can cheer, ad boards, light towers. Court metres map to three.js as `P(x, z, h) = (x, h, z - 10)`.
