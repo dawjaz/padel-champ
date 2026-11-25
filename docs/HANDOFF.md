@@ -2,6 +2,10 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.117: aiming at a spot hits the spot
+- Bug in v0.116: the tap used `pointer.x/y`, which are in the canvas's resolution (`HD_SCALE` 2, the camera zooms it), so every point was read twice as far from the top-left corner (a tap left of the middle could land on the right, a tap deep in the court near the net). Now `pointer.worldX/worldY`. Checked in the browser: a tap deep on the left gives target (-4.6, 8.2 m) and the ball lands there (with the accuracy spread). Note for other scenes: use world coordinates for pointer positions.
+- Kept as before: a weak lob (forced by pressure, `nextBall` sets `landDepth`) still falls short of the chosen depth; the x is kept.
+
 ## v0.116: aiming at a spot (test mode, switchable)
 - **Settings > AIM:** `settings.aim` 'directions' (default, as before) or 'point' (testing). Switch any time; the owner tests 'point' and decides later which one stays.
 - **Point mode** (`MatchScene.showTargetMenu`): after choosing the shot the heat map of the opponents' reach is shown (without the three direction markers); touching the opponents' half shows a ring and an ellipse of the likely spread (colour = reach there), dragging moves it, letting go hits. Shots with a fixed target (smash x3/x4, rulo) keep the old menu. The direction passed to the engine (attack, risk, hesitation) is the one whose usual landing point is nearest to the spot.

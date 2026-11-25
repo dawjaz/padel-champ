@@ -1891,12 +1891,13 @@ export class MatchScene extends Phaser.Scene {
     const zone = this.add.zone(0, far - 24, WIDTH, net - far + 40).setOrigin(0, 0).setDepth(9992).setInteractive();
     this.menu.push(zone);
     zone.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
-      current = target(ptr.x, ptr.y);
+      current = target(ptr.worldX, ptr.worldY);
       show(current);
     });
     zone.on('pointermove', (ptr: Phaser.Input.Pointer) => {
       if (!ptr.isDown || !current) return;
-      current = target(ptr.x, ptr.y);
+      // world coordinates: the game canvas is drawn at a higher resolution and the camera zooms it (ptr.x would be twice too big)
+      current = target(ptr.worldX, ptr.worldY);
       show(current);
     });
     zone.on('pointerup', () => {
