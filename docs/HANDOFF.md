@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.118: no jump when a ball comes off the glass towards the net
+- A hard ball (bajada fast and others, after the back glass with a high/mid rebound) could fly back past the receivers towards and even over the net before the point where it was played; `clampHit` then moved the hit point back to 0.5 m from the net, so the last step of the path jumped 1 to 2.7 m (it looked like a drop of half a metre or a metre in the TV view). `SimOpts.playZ` (from `buildFlight`): the hit window of `simulateAfterBounce` ends before the ball leaves the receivers' half on the net side, so the player (at the net) takes it out of the air there. Checked over 16,200 rally flights (both sides, all rally shots, positions, glass on/off, rebound classes): 77 jumps before, 0 after; no hit point above 2.7 m.
+
 ## v0.117: aiming at a spot hits the spot
 - Bug in v0.116: the tap used `pointer.x/y`, which are in the canvas's resolution (`HD_SCALE` 2, the camera zooms it), so every point was read twice as far from the top-left corner (a tap left of the middle could land on the right, a tap deep in the court near the net). Now `pointer.worldX/worldY`. Checked in the browser: a tap deep on the left gives target (-4.6, 8.2 m) and the ball lands there (with the accuracy spread). Note for other scenes: use world coordinates for pointer positions.
 - Kept as before: a weak lob (forced by pressure, `nextBall` sets `landDepth`) still falls short of the chosen depth; the x is kept.

@@ -251,6 +251,8 @@ function backWallMaterial(h: number): 'glass' | 'mesh' | 'out' {
 }
 
 interface SimOpts {
+  /** The receivers' half (z range, with a margin from the net): the ball is played while it is still there, never after it has flown back towards or over the net. */
+  playZ?: [number, number];
   shot: ShotDef;
   /** Hitting height the player meets the ball at. */
   hitHeight: number;
@@ -507,6 +509,19 @@ function simulateAfterBounce(
   }
   // After a side wall the ball is taken before it reaches the back glass: the receiver waits for the side glass only.
   if (o.needWall && !o.backGlass && backContact > from) to = Math.max(from, Math.min(to, backContact - 1));
+  // A ball that comes off the glass so hard that it flies back towards the net is played before it leaves the receivers' half
+  // (by the player at the net, out of the air): never at a point it has already passed (that made it jump back to the clamped spot).
+  if (o.playZ) {
+    // only the net side counts (at the back glass the ball touches z = 0 or 20, that is its normal way)
+    const [z0, z1] = o.playZ;
+    const netSideLow = z0 > NET_Z - 1;
+    for (let i = from; i <= to; i++) {
+      if (netSideLow ? samples[i].z < z0 : samples[i].z > z1) {
+        to = Math.max(from, i - 1);
+        break;
+      }
+    }
+  }
   let hitIndex = -1;
   for (const c of crossings) {
     if (c >= from && c <= to) {
@@ -909,6 +924,7 @@ export function buildFlight(opts: FlightOpts): Flight {
       rulo,
       zRange: rulo ? (o.hitterSide === 0 ? [0.4, NET_Z - 0.8] : [NET_Z + 0.8, 19.6]) : undefined,
       backGlass,
+      playZ: rulo ? undefined : o.hitterSide === 0 ? [WALL_MARGIN, NET_Z - 0.5] : [NET_Z + 0.5, 20 - WALL_MARGIN],
       reboundPeak: backGlass ? REBOUND_PEAK[arrival] * (o.shot.flight.reboundMul ?? 1) : undefined,
       carry,
     });
