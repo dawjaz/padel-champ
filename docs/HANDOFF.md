@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.122: training camp screens
+- Career (Calendar) in a week without a tournament: TRAINING CAMP (tries left) next to SKIP THIS WEEK.
+- `CampScene`: week and tries, Gear Pack fragments bar, total stars, the four minigames (description, rounds, star thresholds, best stars, PLAY; PLAY uses a try via `startTry`); with no tries left: "+1 TRY: WATCH AN AD" (once a week) or "come back next week".
+- `MinigameScene` (`{ game }`), on the match's court art and camera (`applyHd`, arena texture, net strip, toon hero from the back): target practice (shot buttons: flat shot, lob, dejada; drag a ring on the far half, release to hit; the ball lands with the hero's real spread `landShot`; a miss goes into the glass, side wall or net), serve zones (lanes alternate, the service box outlined, outside it a FAULT), read the glass (a far hitter's real flight into the near back glass stops at the glass, the player taps on the near half, the flight goes on, the real spot and the distance are shown), timing (the ball comes in, the ring closes, green inside the perfect window, a tap anywhere). Popups with points, QUIT ends the try with the score so far. Pointer positions use world coordinates.
+- `CampResultScene`: stars, score, thresholds; COLLECT or "x2 COINS: WATCH AN AD" (`finishTry`), then the reward (coins, boost, fragments, a completed pack with OPEN PACKS) and BACK TO CAMP.
+- `src/ads.ts`: `RewardedAd` interface, `stubRewardedAd` (grants after 350 ms), `setRewardedAd` for the release SDK.
+- Not yet: daily / weekly facts for the camp, star thresholds of glass and timing tuned on the owner's play, sounds of their own.
+
 ## v0.121: training camp logic (no screens yet)
 - Owner (25.11): the 3D look of `/proto/three.html` is dropped (a later realistic version would be Unreal or Unity, a separate stage after the 2D release); the 2D game is finished and released first. Minigame logic now, the screens later.
 - `src/career/camp.ts` + `src/data/camp.json` (pure, `camp.test.ts`): `Profile.camp` (`CampState`: tries of the career week "season:week", extra tries from a rewarded ad, best stars per game, total stars, fragments, paid milestones; `sanitizeCamp`).

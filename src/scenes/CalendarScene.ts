@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { activeBracket, enterEvent, entryCheck, skipWeek, tournamentActive } from '../career/careerFlow';
 import { levelOf } from '../career/profile';
+import { campNow } from '../career/camp';
 import { eventName, eventsOfWeek, partnerById, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
 import { getSave, updateSave } from '../save';
@@ -103,7 +104,10 @@ export class CalendarScene extends Phaser.Scene {
         this.feeRow(y + 40, div.draw, div.fee, problem ? problem.toUpperCase() : 'TAP TO ENTER', problem ? TC.navy : TC.white, problem ? 0.5 : 1);
         y += 64;
       }
-      this.button(WIDTH / 2, y + 20, 336, 36, 'SKIP THIS WEEK', 13, 'secondary', () => {
+      // A week without a tournament: the training camp (minigames) or skip it.
+      const tries = campNow(p).triesLeft;
+      this.button(WIDTH / 2 - 86, y + 20, 164, 36, `TRAINING CAMP (${tries})`, 12, 'blue', () => this.scene.start('CampScene'));
+      this.button(WIDTH / 2 + 86, y + 20, 164, 36, 'SKIP THIS WEEK', 12, 'secondary', () => {
         updateSave((d) => ({ ...d, profile: skipWeek(d.profile) }));
         this.redraw();
       });
