@@ -77,3 +77,11 @@ describe('storage', () => {
     expect(s.stats.lost).toBe(1);
   });
 });
+
+describe('aim setting', () => {
+  it('tap the spot is the default; old saves move to it unless the player chose directions in Settings', () => {
+    expect(parseSave(null).settings.aim).toBe('point');
+    expect(parseSave(JSON.stringify({ settings: { aim: 'directions' } })).settings.aim).toBe('point');
+    expect(parseSave(JSON.stringify({ settings: { aim: 'directions', aimPicked: true } })).settings.aim).toBe('directions');
+  });
+});

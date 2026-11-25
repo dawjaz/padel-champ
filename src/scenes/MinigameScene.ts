@@ -82,7 +82,35 @@ export class MinigameScene extends Phaser.Scene {
     this.heroView = new CampHero(this, heroLook(p), pos.x, pos.z);
     this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setAlpha(0.35).setVisible(false).setDepth(5);
     this.ball = this.add.image(0, 0, BALL_KEY).setVisible(false).setDepth(9100);
-    this.nextRound();
+    this.updateHud();
+    this.countdown(() => this.nextRound());
+  }
+
+  /** 3, 2, 1, GO! before the first round, so the player is ready. */
+  private countdown(done: () => void): void {
+    this.busy = true;
+    const help = themeText(this, WIDTH / 2, 440, campGame(this.gameId).desc, { size: 13, color: TC.white, font: 'display', align: 'center', wrap: WIDTH - 48 }).setDepth(9100);
+    const steps = ['3', '2', '1', 'GO!'];
+    steps.forEach((label, i) => {
+      this.time.delayedCall(i * 700, () => {
+        const go = i === steps.length - 1;
+        const t = this.add
+          .text(WIDTH / 2, 200, label, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: go ? '64px' : '80px', color: go ? '#4ade80' : '#ffe066' })
+          .setOrigin(0.5)
+          .setStroke(NAVY_CSS, 10)
+          .setDepth(9700)
+          .setScale(1.8)
+          .setAlpha(0);
+        this.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: t, scale: 0.7, alpha: 0, delay: go ? 480 : 520, duration: 160, onComplete: () => t.destroy() });
+        sfx(go ? 'point' : 'select');
+      });
+    });
+    this.time.delayedCall(steps.length * 700 - 120, () => {
+      help.destroy();
+      this.busy = false;
+      done();
+    });
   }
 
   update(time: number, delta: number): void {

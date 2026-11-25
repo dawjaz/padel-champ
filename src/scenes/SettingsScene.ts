@@ -20,7 +20,7 @@ export class SettingsScene extends Phaser.Scene {
 
     const aimLabel = (): string => `AIM: ${getSave().settings.aim === 'point' ? 'TAP THE SPOT' : 'DIRECTIONS'}`;
     const aim = makeThemeButton(this, WIDTH / 2, 200, 260, 54, aimLabel(), () => {
-      updateSave((d) => ({ ...d, settings: { ...d.settings, aim: d.settings.aim === 'point' ? 'directions' : 'point' } }));
+      updateSave((d) => ({ ...d, settings: { ...d.settings, aim: d.settings.aim === 'point' ? 'directions' : 'point', aimPicked: true } }));
       aim.text.setText(aimLabel());
     }, 'blue', 20);
     themeText(this, WIDTH / 2, 236, 'Directions: Parallel / Middle / Cross.\nTap the spot: choose where the ball lands.', { size: 11, color: TC.sub, align: 'center' });

@@ -2,6 +2,11 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.125: week map on the Career screen, minigame countdown, tap-the-spot aim by default
+- **Career screen (CalendarScene):** the week's tournaments on a compact map card (touch: the full Map screen with the other weeks); the map is shared code now (`src/scenes/weekMap.ts`: `drawWeekMap(scene, events, card, compact)`, `courtColour`), MapScene uses it too. Event rows are slimmer (44 px) with a dot in the court colour, matching the map; RANKS and the partner (`WITH <NAME>`) moved into the season card; LAST RESULTS shows as many as fit (a 6-event week fits on 640 px).
+- **Minigames:** a 3, 2, 1, GO! countdown (with the game's description) before the first round.
+- **Aim:** tap-the-spot (`settings.aim = 'point'`) is the default now. Saves from before v0.125 move to it, unless the player chose in Settings (`settings.aimPicked`, set by the AIM toggle). The directions mode stays in Settings.
+
 ## v0.124: camp after the owner's second test: Smash Show, moving targets, animated hero
 - **Read the Glass is gone** (owner: "na razie" - maybe later in another form; the v0.123 logic is in git history).
 - **Target Practice:** the zone moves across, in depth or on a slant at a **steady speed** of its own each round (`Zone.move = { dir, amp, speed, phase }`, `zoneAt` is a triangle wave: constant speed, turning at the ends), faster and smaller as the rounds go; judged where it is when the ball lands. Stars 220 / 340 / 440.
