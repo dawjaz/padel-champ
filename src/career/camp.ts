@@ -3,7 +3,10 @@
 // fragments of a Gear Pack), never premium packs or epic / legendary items. Every random roll goes through an injected `rng`.
 
 import campData from '../data/camp.json';
-import { buildFlight } from '../art/ballPath';
+import { buildFlight, speedAt } from '../art/ballPath';
+
+const GLASS_CUE_LOW = 0.95;
+const GLASS_CUE_HIGH = 1.73;
 import { NET_Z, targetLanding, targetSpread } from '../game/court';
 import type { PlayerDef, Rng, ShotDef } from '../game/types';
 import { MAX_BOOSTS } from './gear';
@@ -169,6 +172,15 @@ export interface Zone {
   x: number;
   depth: number;
   r: number;
+  /** A moving zone (serve zones): it swings `amp` metres across (or in depth) with angular speed `omega` (rad/s). */
+  move?: { axis: 'x' | 'depth'; amp: number; omega: number; phase: number };
+}
+
+/** Where a moving zone is `t` seconds after the round starts (a still zone stays put). */
+export function zoneAt(z: Zone, t: number): Zone {
+  if (!z.move) return z;
+  const d = z.move.amp * Math.sin(z.move.phase + z.move.omega * t);
+  return z.move.axis === 'x' ? { ...z, x: z.x + d } : { ...z, depth: z.depth + d };
 }
 
 /** Points of one ball for a zone: 100 in the middle down to 50 at the edge, 20 near it (within two radii), 0 out or a miss. */
@@ -201,9 +213,12 @@ export const SERVICE_DEPTH = 6.95;
 export function serveZone(rng: Rng, round: number, lane: -1 | 1): Zone {
   const k = round / Math.max(1, campGame('serve').rounds - 1);
   // the box is on the other side of the centre line from the server: x between 0 and -lane * 5
-  const kind = Math.floor(rng() * 3); // 0 = T (centre), 1 = body, 2 = wide (to the glass)
-  const xs = [0.5, 2.3, 4.2];
-  return { x: -lane * xs[kind], depth: 4.2 + rng() * 2.2, r: 1.2 - 0.45 * k };
+  // it moves across the box (or in depth), faster round by round: the serve has to be timed and aimed ahead of it
+  const r = 1.0 - 0.35 * k;
+  const axis: 'x' | 'depth' = rng() < 0.65 ? 'x' : 'depth';
+  const centre = axis === 'x' ? { x: -lane * 2.5, depth: 4 + rng() * 2.4 } : { x: -lane * (0.8 + rng() * 3.4), depth: 4.6 };
+  const amp = axis === 'x' ? 2.5 - r : 2.1 - r * 0.8;
+  return { ...centre, r, move: { axis, amp: Math.max(0.4, amp), omega: 1.6 + 2.2 * k + rng() * 0.6, phase: rng() * Math.PI * 2 } };
 }
 /** A serve that lands outside the service box is a fault: no points. */
 export function serveLanding(lane: -1 | 1, landing: { x: number; depth: number; miss?: string }): { x: number; depth: number; miss?: string } | null {
@@ -211,40 +226,89 @@ export function serveLanding(lane: -1 | 1, landing: { x: number; depth: number; 
   return inBox ? landing : null;
 }
 
-/** Read the glass: a ball hit into the near back glass; the player taps where it will be played after the glass. */
+/**
+ * Read the glass: the opponent's ball flies (slowly) into the hero's half; at its bounce on the court the player says how it will come
+ * off the back glass: low, medium or high. What decides it can be seen before: the pace, how steeply it comes down, and its spin
+ * (topspin kicks up off the glass, slice dies low). `spinMul` varies the shot's own spin (0.4 to 1.7).
+ */
+export type Rebound = 'low' | 'mid' | 'high';
 export interface GlassRound {
   shot: ShotDef;
   from: { x: number; z: number };
   landX: number;
-  arrival: 'low' | 'mid' | 'high';
+  spinMul: number;
+  /** Where it bounces, metres past the net (deep enough to reach the glass). */
+  depth: number;
 }
+export const GLASS_SHOT_IDS = ['bounce_shot', 'bajada_fast', 'vibora', 'bandeja', 'rally_lob'];
 export function glassRound(rng: Rng, shots: ShotDef[]): GlassRound {
   const shot = shots[Math.floor(rng() * shots.length)];
-  const arrival = (['low', 'mid', 'high'] as const)[Math.floor(rng() * 3)];
-  return { shot, from: { x: -3 + rng() * 6, z: NET_Z - 3 - rng() * 5 }, landX: -3.8 + rng() * 7.6, arrival };
+  return { shot, from: { x: -3 + rng() * 6, z: NET_Z - 3 - rng() * 5 }, landX: -3.2 + rng() * 6.4, spinMul: 0.4 + rng() * 1.3, depth: 6.8 + rng() * 2 };
 }
-/** Where a glass round's ball is really played (after the glass), on the hero's (near) half. */
-export function glassAnswer(r: GlassRound): { x: number; z: number } {
-  const f = buildFlight({ from: r.from, hitterSide: 1, shot: r.shot, landX: r.landX, outcome: 'continue', glass: true, arrival: r.arrival, startH: 1 });
-  return f.hit;
-}
-/** Points for a guess: 100 on the spot, nothing from 2.5 m away. */
-export const glassPoints = (guess: { x: number; z: number }, answer: { x: number; z: number }): number =>
-  Math.max(0, Math.round(100 * (1 - Math.hypot(guess.x - answer.x, guess.z - answer.z) / 2.5)));
+const glassFlightOf = (r: GlassRound, arrival: Rebound) =>
+  buildFlight({ from: r.from, hitterSide: 1, shot: r.shot, landX: r.landX, outcome: 'continue', glass: true, arrival, startH: 1, spinMul: r.spinMul, landDepth: r.depth });
 
-/** Timing: the ring closes on the ball in `closeMs`; a tap within `window` ms of the moment counts (perfect within a third of it). */
+/** The visible cues of a round as one number: pace and steepness at the bounce, plus the spin. */
+export function glassCue(r: GlassRound): number {
+  const f = glassFlightOf(r, 'mid');
+  const bounce = f.events.find((e) => e.kind === 'bounce');
+  const t = bounce ? bounce.t - 0.02 : f.duration / 2;
+  const { v, vy } = speedAt(f.path, t);
+  return 0.05 * v + 0.12 * Math.abs(vy) + 0.8 * r.shot.flight.spin * r.spinMul;
+}
+/** Cue limits between low / medium / high (about a third of the rounds each, see the test). */
+export const GLASS_CUE_LIMITS: [number, number] = [GLASS_CUE_LOW, GLASS_CUE_HIGH];
+export function glassRebound(r: GlassRound): Rebound {
+  const c = glassCue(r);
+  return c < GLASS_CUE_LIMITS[0] ? 'low' : c < GLASS_CUE_LIMITS[1] ? 'mid' : 'high';
+}
+/** The round's real flight: the same up to the glass, then the rebound of its class. */
+export const glassFlight = (r: GlassRound) => glassFlightOf(r, glassRebound(r));
+/** 100 for the right class, 40 for the neighbouring one, 0 for low against high. */
+export function glassClassPoints(guess: Rebound, answer: Rebound): number {
+  const i = (x: Rebound): number => (x === 'low' ? 0 : x === 'mid' ? 1 : 2);
+  const d = Math.abs(i(guess) - i(answer));
+  return d === 0 ? 100 : d === 1 ? 40 : 0;
+}
+
+/**
+ * Timing: the ring closes on the ball in `closeMs`; the tap is scored by how far off it is. Each round is a different ball: from another
+ * place, faster or slower, flat, lobbed or curling with spin, and the hero stands somewhere else.
+ */
 export interface TimingRound {
   closeMs: number;
+  /** Taps within this many ms of the moment score; within a fifth of it, perfect. */
   window: number;
+  from: { x: number; z: number; h: number };
+  hero: { x: number; z: number };
+  /** Height of the arc (m) and the sideways curl of spin (m, + to the right). */
+  apex: number;
+  curve: number;
+  kind: 'flat' | 'lob' | 'spin';
 }
-export function timingRound(hero: PlayerDef, round: number): TimingRound {
+export function timingRound(hero: PlayerDef, round: number, rng: Rng): TimingRound {
   const k = round / Math.max(1, campGame('timing').rounds - 1);
-  return { closeMs: Math.round(1300 - 550 * k), window: Math.round((70 + 8 * hero.stats.technique + 4 * hero.stats.accuracy) * (1 - 0.35 * k)) };
+  const kind = (['flat', 'lob', 'spin'] as const)[Math.floor(rng() * 3)];
+  const closeMs = Math.round((kind === 'lob' ? 1500 : kind === 'flat' ? 950 : 1200) * (1 - 0.35 * k) * (0.85 + rng() * 0.3));
+  const base = (60 + 7 * hero.stats.technique + 4 * hero.stats.accuracy) * (closeMs / 1200);
+  return {
+    closeMs,
+    window: Math.round(base * (1 - 0.3 * k)),
+    from: { x: -3.5 + rng() * 7, z: 1 + rng() * 4, h: 1 },
+    hero: { x: -3 + rng() * 6, z: 14.5 + rng() * 4 },
+    apex: kind === 'lob' ? 4 + rng() * 1.5 : kind === 'flat' ? 0.6 + rng() * 0.5 : 1.6 + rng() * 0.8,
+    curve: kind === 'spin' ? (rng() < 0.5 ? -1 : 1) * (1 + rng() * 1.5) : 0,
+    kind,
+  };
 }
-export function timingPoints(r: TimingRound, tapMs: number | null): { points: number; grade: 'perfect' | 'good' | 'miss' } {
+export type TimingGrade = 'perfect' | 'great' | 'good' | 'ok' | 'miss';
+/** 100 within a fifth of the window, then down from 90 to 10 at its edge, 0 beyond. */
+export function timingPoints(r: TimingRound, tapMs: number | null): { points: number; grade: TimingGrade } {
   if (tapMs === null) return { points: 0, grade: 'miss' };
   const off = Math.abs(tapMs - r.closeMs);
-  if (off <= r.window / 3) return { points: 100, grade: 'perfect' };
-  if (off <= r.window) return { points: 60, grade: 'good' };
-  return { points: 0, grade: 'miss' };
+  const core = r.window / 5;
+  if (off <= core) return { points: 100, grade: 'perfect' };
+  if (off > r.window) return { points: 0, grade: 'miss' };
+  const points = Math.round(90 - (80 * (off - core)) / (r.window - core));
+  return { points, grade: points >= 70 ? 'great' : points >= 40 ? 'good' : 'ok' };
 }

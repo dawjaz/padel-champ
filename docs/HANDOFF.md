@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.123: camp minigames reworked after the owner's test
+- **Read the Glass** is now a call: the ball flies in slow motion (x2.2) to its bounce in the hero's half, the shot and its spin are shown (FLAT SHOT / VIBORA ... · TOPSPIN LIGHT / HEAVY, SLICE, FLAT; the ball turns with the spin), the player picks LOW / MEDIUM / HIGH for the rebound off the back glass, the flight goes on and shows it. The class follows visible cues (`glassCue`: pace and steepness at the bounce plus spin; limits 0.95 / 1.73 give about a third each), the flight is built with that rebound class (`glassFlight`). 100 right, 40 the neighbouring class, 0 low vs high; 6 rounds, stars 330 / 450 / 560. Shots: flat shot, bajada fast, vibora, bandeja, lob, bouncing deep (6.8-8.8 m) so they reach the glass; spin x0.4-1.7.
+- **Serve Zones:** the zone moves across the box (or in depth), faster each round (`Zone.move`, `zoneAt`); the serve goes at the touch and is judged where the zone is when the ball lands. Stars 150 / 260 / 360. Bug fixed: the ball of the last round stayed on the court (hidden at every new round now).
+- **Timing:** every ball differs (`timingRound(hero, round, rng)`): flat and fast, a lob, or a curling ball with spin, from another place, the hero somewhere else; the window scales with the ball's time. Finer scale (`timingPoints`): 100 within a fifth of the window, then 90 down to 10 at its edge (GREAT / GOOD / OK), 0 beyond. Stars 380 / 540 / 680.
+- **Target Practice:** the shot choice is gone (it changed nothing); a redesign is proposed to the owner (see the reply of 25.11 and the plan).
+
 ## v0.122: training camp screens
 - Career (Calendar) in a week without a tournament: TRAINING CAMP (tries left) next to SKIP THIS WEEK.
 - `CampScene`: week and tries, Gear Pack fragments bar, total stars, the four minigames (description, rounds, star thresholds, best stars, PLAY; PLAY uses a try via `startTry`); with no tries left: "+1 TRY: WATCH AN AD" (once a week) or "come back next week".

@@ -4,7 +4,7 @@ import { SHOTS } from '../game/catalog';
 import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
-  CAMP, CAMP_GAMES, campNow, canTry, finishTry, glassAnswer, glassPoints, glassRound, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
+  CAMP, CAMP_GAMES, campNow, canTry, finishTry, GLASS_SHOT_IDS, glassClassPoints, glassFlight, glassRebound, glassRound, zoneAt, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
   serveLanding, serveZone, starsFor, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
@@ -111,22 +111,37 @@ describe('camp minigames', () => {
     expect(serveLanding(-1, { x: -1, depth: 4 })).toBeNull();
     expect(serveLanding(-1, { x: 2, depth: 4 })).not.toBeNull();
   });
-  it('read the glass: the answer is on the near half, a perfect guess scores 100', () => {
-    const glassShots = SHOTS.filter((s) => s.kind === 'rally' && !s.overFence && s.wall !== 'fence' && !s.ownWall && s.flight.speed >= 15);
-    const r = glassRound(seededRng(3), glassShots);
-    const a = glassAnswer(r);
-    expect(a.z).toBeGreaterThan(10);
-    expect(glassPoints(a, a)).toBe(100);
-    expect(glassPoints({ x: a.x + 3, z: a.z }, a)).toBe(0);
+  it('read the glass: about a third of each rebound class; the flight has that class; points for close guesses', () => {
+    const shots = GLASS_SHOT_IDS.map(shot);
+    const rng = seededRng(3);
+    const n = { low: 0, mid: 0, high: 0 };
+    for (let i = 0; i < 300; i++) n[glassRebound(glassRound(rng, shots))]++;
+    for (const k of ['low', 'mid', 'high'] as const) expect(n[k]).toBeGreaterThan(60);
+    const r = glassRound(seededRng(5), shots);
+    expect(glassFlight(r).events.some((e) => e.kind === 'glass')).toBe(true);
+    expect(glassClassPoints('mid', 'mid')).toBe(100);
+    expect(glassClassPoints('low', 'mid')).toBe(40);
+    expect(glassClassPoints('low', 'high')).toBe(0);
   });
-  it('timing: perfect, good, miss; later rounds are faster with a narrower window', () => {
-    const r = timingRound(hero, 0);
+  it('serve zones move inside the service box', () => {
+    const z = serveZone(seededRng(8), 3, 1);
+    expect(z.move).toBeDefined();
+    for (let t = 0; t < 5; t += 0.1) {
+      const at = zoneAt(z, t);
+      expect(at.x).toBeLessThanOrEqual(0.2);
+      expect(at.x).toBeGreaterThanOrEqual(-5.2);
+      expect(at.depth).toBeLessThan(6.95 + 0.6);
+    }
+  });
+  it('timing: a finer scale (100 perfect, 90..10 inside the window, 0 out); every ball differs', () => {
+    const r = timingRound(hero, 0, seededRng(1));
     expect(timingPoints(r, r.closeMs).grade).toBe('perfect');
-    expect(timingPoints(r, r.closeMs + r.window * 0.8).grade).toBe('good');
+    expect(timingPoints(r, r.closeMs + r.window * 0.3).points).toBeGreaterThan(70);
+    expect(timingPoints(r, r.closeMs + r.window * 0.9).points).toBeLessThan(30);
     expect(timingPoints(r, r.closeMs + r.window * 2).points).toBe(0);
     expect(timingPoints(r, null).grade).toBe('miss');
-    const last = timingRound(hero, 7);
-    expect(last.closeMs).toBeLessThan(r.closeMs);
-    expect(last.window).toBeLessThan(r.window);
+    const rng = seededRng(2);
+    const kinds = new Set(Array.from({ length: 20 }, (_, i) => timingRound(hero, i % 8, rng).kind));
+    expect(kinds.size).toBe(3);
   });
 });

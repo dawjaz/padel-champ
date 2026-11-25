@@ -39,7 +39,7 @@
     {
       "id": "targets",
       "name": "Target Practice",
-      "desc": "Choose the shot and the spot: land the ball in the zones.",
+      "desc": "Land the ball in the zones.",
       "rounds": 6,
       "stars": [
         200,
@@ -50,34 +50,34 @@
     {
       "id": "glass",
       "name": "Read the Glass",
-      "desc": "Where will the ball come off the glass? Tap the spot.",
-      "rounds": 5,
+      "desc": "Watch the ball to its bounce: will it come off the glass low, medium or high?",
+      "rounds": 6,
       "stars": [
-        200,
-        300,
-        400
+        330,
+        450,
+        560
       ]
     },
     {
       "id": "serve",
       "name": "Serve Zones",
-      "desc": "Serve into the marked zones of the service box.",
+      "desc": "Serve into the moving zone of the service box.",
       "rounds": 6,
       "stars": [
-        170,
-        280,
-        380
+        150,
+        260,
+        360
       ]
     },
     {
       "id": "timing",
       "name": "Timing",
-      "desc": "Hit when the ring closes on the ball.",
+      "desc": "Hit when the ring closes on the ball: every ball is different.",
       "rounds": 8,
       "stars": [
-        400,
-        560,
-        700
+        380,
+        540,
+        680
       ]
     }
   ]

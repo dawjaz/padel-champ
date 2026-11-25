@@ -2,13 +2,13 @@ import Phaser from 'phaser';
 import playersData from '../data/players.json';
 import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { project, unproject } from '../art/camera';
-import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ballPath';
+import { ballPoint, flightDuration, type Flight } from '../art/ballPath';
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
 import { addToon } from '../art/toonTexture';
 import {
-  campGame, glassAnswer, glassPoints, glassRound, landShot, serveLanding, serveZone, targetZone, timingPoints, timingRound, zonePoints,
-  type CampGameId, type GlassRound, type TimingRound, type Zone,
+  campGame, GLASS_SHOT_IDS, glassClassPoints, glassFlight, glassRebound, glassRound, landShot, serveLanding, serveZone, targetZone, timingPoints, timingRound,
+  zoneAt, zonePoints, type CampGameId, type GlassRound, type Rebound, type TimingRound, type Zone,
 } from '../career/camp';
 import { heroFrom, heroLook } from '../career/profile';
 import { SHOTS } from '../game/catalog';
@@ -22,9 +22,8 @@ import { DISPLAY, makeThemeButton, TC, themeText } from '../theme';
 const NAVY_CSS = '#0b2a5b';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
-const TARGET_SHOTS = ['bounce_shot', 'rally_lob', 'dejada'];
+const TARGET_SHOT = 'bounce_shot';
 const SERVE_SHOT = 't_serve';
-const GLASS_SHOTS = ['bounce_shot', 'volley', 'bajada_fast', 'vibora'];
 /** Seconds of ball flight per screen of the parabola animation (the camp is quicker than a match). */
 const FLIGHT_MS_PER_M = 55;
 
@@ -45,7 +44,6 @@ export class MinigameScene extends Phaser.Scene {
   private ball!: Phaser.GameObjects.Image;
   private ballShadow!: Phaser.GameObjects.Image;
   private heroSprite!: Phaser.GameObjects.Image;
-  private shotId = TARGET_SHOTS[0];
   private busy = false;
 
   constructor() {
@@ -58,7 +56,6 @@ export class MinigameScene extends Phaser.Scene {
     this.score = 0;
     this.busy = false;
     this.layer = [];
-    this.shotId = TARGET_SHOTS[0];
   }
 
   create(): void {
@@ -79,7 +76,7 @@ export class MinigameScene extends Phaser.Scene {
     for (const o of quit.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
     const pos = this.heroSpot();
     const pp = project(pos.x, pos.z);
-    this.heroSprite = addToon(this, pp.x, pp.y, pp.scale * 1.75, heroLook(p), 'back').setDepth(pp.y);
+    this.heroSprite = addToon(this, pp.x, pp.y, pp.scale * 1.75, heroLook(p), 'back').setDepth(pp.y).setData('scale', pp.scale);
     this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setAlpha(0.35).setVisible(false).setDepth(5);
     this.ball = this.add.image(0, 0, BALL_KEY).setVisible(false).setDepth(9100);
     this.nextRound();
@@ -111,6 +108,8 @@ export class MinigameScene extends Phaser.Scene {
   private nextRound(): void {
     this.clearLayer();
     this.busy = false;
+    this.ball.setVisible(false).setRotation(0);
+    this.ballShadow.setVisible(false);
     if (this.round >= this.total) {
       this.time.delayedCall(400, () => this.finish());
       return;
@@ -123,8 +122,8 @@ export class MinigameScene extends Phaser.Scene {
     }
     if (this.gameId === 'targets') this.zoneRound(targetZone(Math.random, this.round), false);
     else if (this.gameId === 'serve') this.zoneRound(serveZone(Math.random, this.round, this.lane()), true);
-    else if (this.gameId === 'glass') this.glassRound(glassRound(Math.random, GLASS_SHOTS.map(shot)));
-    else this.timingRound(timingRound(this.hero, this.round));
+    else if (this.gameId === 'glass') this.glassRound(glassRound(Math.random, GLASS_SHOT_IDS.map(shot)));
+    else this.timingRound(timingRound(this.hero, this.round, Math.random));
   }
 
   private finish(): void {
@@ -142,21 +141,6 @@ export class MinigameScene extends Phaser.Scene {
       .setStroke(NAVY_CSS, 6)
       .setDepth(9400);
     this.tweens.add({ targets: t, y: y - 30, alpha: 0, delay: 500, duration: 500, onComplete: () => t.destroy() });
-  }
-
-  /** A zone (an ellipse on the floor) drawn in court metres. */
-  private drawZone(z: Zone, color: number): void {
-    const g = this.add.graphics().setDepth(4);
-    const zz = NET_Z - z.depth;
-    const c = project(z.x, zz);
-    const a = project(z.x - z.r, zz);
-    const b = project(z.x + z.r, zz);
-    const n = project(z.x, zz + z.r);
-    const f = project(z.x, zz - z.r);
-    g.fillStyle(color, 0.35).fillEllipse(c.x, (n.y + f.y) / 2, b.x - a.x, n.y - f.y);
-    g.lineStyle(3, 0xffffff, 0.95).strokeEllipse(c.x, (n.y + f.y) / 2, b.x - a.x, n.y - f.y);
-    g.fillStyle(0xffffff, 1).fillCircle(c.x, c.y, 3);
-    this.layer.push(g);
   }
 
   /** Animates a ball along a parabola from `from` to `to` (court metres, heights), then calls `done`. */
@@ -189,7 +173,26 @@ export class MinigameScene extends Phaser.Scene {
 
   // ---------- target practice and serve zones ----------
   private zoneRound(zone: Zone, serve: boolean): void {
-    this.drawZone(zone, 0x4ade80);
+    const t0 = this.time.now;
+    const zoneG = this.add.graphics().setDepth(4);
+    this.layer.push(zoneG);
+    const paintZone = (z: Zone): void => {
+      zoneG.clear();
+      const zz = NET_Z - z.depth;
+      const c = project(z.x, zz);
+      const a = project(z.x - z.r, zz);
+      const b = project(z.x + z.r, zz);
+      const n = project(z.x, zz + z.r);
+      const f = project(z.x, zz - z.r);
+      zoneG.fillStyle(0x4ade80, 0.35).fillEllipse(c.x, (n.y + f.y) / 2, b.x - a.x, n.y - f.y);
+      zoneG.lineStyle(3, 0xffffff, 0.95).strokeEllipse(c.x, (n.y + f.y) / 2, b.x - a.x, n.y - f.y);
+      zoneG.fillStyle(0xffffff, 1).fillCircle(c.x, c.y, 3);
+    };
+    paintZone(zone);
+    if (zone.move) {
+      const ev = this.time.addEvent({ delay: 16, loop: true, callback: () => paintZone(zoneAt(zone, (this.time.now - t0) / 1000)) });
+      this.layer.push({ destroy: () => ev.remove() } as unknown as Phaser.GameObjects.GameObject);
+    }
     if (serve) {
       // the service box the serve must land in
       const g = this.add.graphics().setDepth(3);
@@ -197,18 +200,9 @@ export class MinigameScene extends Phaser.Scene {
       const pts = [project(0, NET_Z), project(s * 5, NET_Z), project(s * 5, NET_Z - 6.95), project(0, NET_Z - 6.95)];
       g.lineStyle(2, 0xffe066, 0.9).strokePoints(pts as unknown as Phaser.Geom.Point[], true);
       this.layer.push(g);
-      this.hint('TOUCH THE ZONE TO SERVE\n(outside the service box is a fault)');
+      this.hint('THE ZONE MOVES: TOUCH WHERE THE SERVE\nSHOULD LAND (outside the box is a fault)');
     } else {
-      this.hint('PICK A SHOT, THEN TOUCH THE ZONE');
-      TARGET_SHOTS.forEach((id, i) => {
-        const b = makeThemeButton(this, 64 + i * 116, 480, 108, 40, shot(id).name.toUpperCase(), () => {
-          this.shotId = id;
-          this.clearLayer();
-          this.zoneRound(zone, serve);
-        }, this.shotId === id ? 'primary' : 'secondary', 11);
-        for (const o of b.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
-        this.layer.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-      });
+      this.hint('TOUCH THE ZONE (DRAG TO ADJUST, LET GO TO HIT)');
     }
     const far = project(0, 0.2).y;
     const netY = project(0, NET_Z - 0.3).y;
@@ -229,22 +223,27 @@ export class MinigameScene extends Phaser.Scene {
       if (this.busy) return;
       aim = aimAt(ptr.worldX, ptr.worldY);
       show(aim);
+      // a serve goes at the touch (the zone is moving: no time to drag)
+      if (serve) fire();
     });
     zoneObj.on('pointermove', (ptr: Phaser.Input.Pointer) => {
       if (!ptr.isDown || !aim || this.busy) return;
       aim = aimAt(ptr.worldX, ptr.worldY);
       show(aim);
     });
-    zoneObj.on('pointerup', () => {
+    const fire = (): void => {
       if (!aim || this.busy) return;
       this.busy = true;
       zoneObj.disableInteractive();
-      const s = shot(serve ? SERVE_SHOT : this.shotId);
+      const s = shot(serve ? SERVE_SHOT : TARGET_SHOT);
       const landing: Landing = landShot(this.hero, s, aim, Math.random);
       const counted = serve ? serveLanding(this.lane(), landing) : landing;
-      const pts = zonePoints(zone, counted);
       this.shootTo(landing, s, () => {
+        // a moving zone is judged where it is when the ball comes down
+        const at = zoneAt(zone, (this.time.now - t0) / 1000);
+        const pts = zonePoints(at, counted);
         this.score += pts;
+        this.updateHud();
         const end = project(landing.x, NET_Z - Math.min(landing.depth, 9.8));
         this.popup(end.x, end.y - 20, pts > 0 ? `+${pts}` : serve && !counted && !landing.miss ? 'FAULT' : landing.miss ? 'OUT' : 'MISS', pts > 0);
         sfx(pts > 0 ? 'point' : 'select');
@@ -252,6 +251,9 @@ export class MinigameScene extends Phaser.Scene {
         this.time.delayedCall(850, () => this.nextRound());
       });
       aim = null;
+    };
+    zoneObj.on('pointerup', () => {
+      if (!serve) fire();
     });
   }
 
@@ -268,16 +270,21 @@ export class MinigameScene extends Phaser.Scene {
   }
 
   // ---------- read the glass ----------
+  /** The ball flies in slow motion to its bounce; the player says how it will come off the glass; then it goes on. */
   private glassRound(r: GlassRound): void {
-    const answer = glassAnswer(r);
-    const flight: Flight = buildFlight({ from: r.from, hitterSide: 1, shot: r.shot, landX: r.landX, outcome: 'continue', glass: true, arrival: r.arrival, startH: 1 });
-    const total = flightDuration(flight) * 0.9;
-    const glassT = flight.events.find((e) => e.kind === 'glass')?.t ?? flight.duration * 0.6;
-    const stopAt = Math.min(1, glassT / Math.max(1e-6, flight.duration));
-    this.hint(`${r.shot.name.toUpperCase()} INTO YOUR BACK GLASS\nWATCH, THEN TOUCH WHERE YOU WILL PLAY IT`);
+    const answer = glassRebound(r);
+    const flight: Flight = glassFlight(r);
+    const total = flightDuration(flight) * 2.2; // slow motion
+    const bounceT = flight.events.find((e) => e.kind === 'bounce')?.t ?? flight.duration * 0.5;
+    const stopAt = Math.min(1, bounceT / Math.max(1e-6, flight.duration));
+    const spin = r.shot.flight.spin * r.spinMul;
+    const spinTxt = spin > 0.15 ? `TOPSPIN ${spin > 0.9 ? 'HEAVY' : 'LIGHT'}` : spin < -0.15 ? `SLICE ${spin < -0.9 ? 'HEAVY' : 'LIGHT'}` : 'FLAT';
+    this.hint(`${r.shot.name.toUpperCase()}  ·  ${spinTxt}\nHOW WILL IT COME OFF YOUR BACK GLASS?`);
     sfx('hit');
     this.ball.setVisible(true);
     this.ballShadow.setVisible(true);
+    // the spin shows as the ball's turning: fast for heavy spin, the other way for slice
+    const spinRate = spin * 0.02;
     this.tweens.addCounter({
       from: 0,
       to: stopAt,
@@ -285,57 +292,53 @@ export class MinigameScene extends Phaser.Scene {
       onUpdate: (tw) => {
         const p = ballPoint(flight.path, tw.getValue() ?? 0);
         this.placeBall(p.x, p.z, p.h);
+        this.ball.rotation += spinRate * 16;
       },
       onComplete: () => this.askGlass(flight, stopAt, total, answer),
     });
   }
 
-  private askGlass(flight: Flight, stopAt: number, total: number, answer: { x: number; z: number }): void {
-    const top = project(0, NET_Z + 0.5).y;
-    const bottom = project(0, 19.8).y;
-    const marker = this.add.graphics().setDepth(9050);
-    this.layer.push(marker);
-    const zoneObj = this.add.zone(0, top - 10, WIDTH, Math.min(392, bottom + 20) - top + 10).setOrigin(0, 0).setDepth(9020).setInteractive();
-    this.layer.push(zoneObj);
-    const guessAt = (wx: number, wy: number): { x: number; z: number } => {
-      const c = unproject(wx, Math.max(top, Math.min(bottom, wy)));
-      return { x: Math.max(-4.8, Math.min(4.8, c.x)), z: Math.max(NET_Z + 0.5, Math.min(19.8, c.z)) };
-    };
-    zoneObj.on('pointerup', (ptr: Phaser.Input.Pointer) => {
-      if (this.busy) return;
-      this.busy = true;
-      zoneObj.disableInteractive();
-      const guess = guessAt(ptr.worldX, ptr.worldY);
-      const gp = project(guess.x, guess.z);
-      marker.lineStyle(3, 0xffffff, 1).strokeCircle(gp.x, gp.y, Math.max(5, gp.scale * 0.22));
-      this.tweens.addCounter({
-        from: stopAt,
-        to: 1,
-        duration: total * (1 - stopAt),
-        onUpdate: (tw) => {
-          const p = ballPoint(flight.path, tw.getValue() ?? 0);
-          this.placeBall(p.x, p.z, p.h);
-        },
-        onComplete: () => {
-          const pts = glassPoints(guess, answer);
-          const ap = project(answer.x, answer.z);
-          marker.fillStyle(0x4ade80, 0.9).fillCircle(ap.x, ap.y, Math.max(4, ap.scale * 0.15));
-          marker.lineStyle(2, 0xffe066, 0.9).lineBetween(gp.x, gp.y, ap.x, ap.y);
-          this.score += pts;
-          this.popup(ap.x, ap.y - 24, pts > 0 ? `+${pts}` : 'MISS', pts > 0);
-          sfx(pts > 0 ? 'point' : 'select');
-          this.round++;
-          this.time.delayedCall(1200, () => this.nextRound());
-        },
-      });
+  private askGlass(flight: Flight, stopAt: number, total: number, answer: Rebound): void {
+    const labels: Array<[Rebound, string]> = [['low', 'LOW'], ['mid', 'MEDIUM'], ['high', 'HIGH']];
+    labels.forEach(([k, label], i) => {
+      const b = makeThemeButton(this, 64 + i * 116, 486, 108, 44, label, () => {
+        if (this.busy) return;
+        this.busy = true;
+        const pts = glassClassPoints(k, answer);
+        this.tweens.addCounter({
+          from: stopAt,
+          to: 1,
+          duration: total * (1 - stopAt),
+          onUpdate: (tw) => {
+            const p = ballPoint(flight.path, tw.getValue() ?? 0);
+            this.placeBall(p.x, p.z, p.h);
+          },
+          onComplete: () => {
+            this.score += pts;
+            this.updateHud();
+            const end = flight.path[flight.path.length - 1];
+            const ep = project(end.x, end.z, end.h);
+            this.popup(ep.x, ep.y - 24, pts === 100 ? `RIGHT! +100` : pts > 0 ? `CLOSE +${pts}` : 'WRONG', pts > 0);
+            this.layer.push(themeText(this, WIDTH / 2, 540, `IT CAME OFF ${answer === 'mid' ? 'MEDIUM' : answer.toUpperCase()}`, { size: 13, color: TC.orange, font: 'display' }).setDepth(9300));
+            sfx(pts > 0 ? 'point' : 'select');
+            this.round++;
+            this.time.delayedCall(1300, () => this.nextRound());
+          },
+        });
+      }, 'primary', 14);
+      for (const o of b.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
+      this.layer.push(...(b.parts as Phaser.GameObjects.GameObject[]));
     });
   }
 
   // ---------- timing ----------
   private timingRound(r: TimingRound): void {
-    this.hint('TOUCH WHEN THE RING CLOSES ON THE BALL');
-    const from = { x: -1 + Math.random() * 2, z: 3, h: 1.6 };
-    const to = { x: this.heroSpot().x + 0.5, z: this.heroSpot().z - 0.4, h: 1 };
+    this.hint(`${r.kind === 'lob' ? 'A LOB' : r.kind === 'spin' ? 'A CURLING BALL' : 'A FLAT, FAST BALL'}\nTOUCH WHEN THE RING CLOSES ON THE BALL`);
+    // the hero stands somewhere else every round
+    const hp = project(r.hero.x, r.hero.z);
+    this.heroSprite.setPosition(hp.x, hp.y).setDisplaySize(this.heroSprite.displayWidth * (hp.scale / (this.heroSprite.getData('scale') ?? hp.scale)), this.heroSprite.displayHeight * (hp.scale / (this.heroSprite.getData('scale') ?? hp.scale))).setDepth(hp.y);
+    this.heroSprite.setData('scale', hp.scale);
+    const to = { x: r.hero.x + 0.5, z: r.hero.z - 0.4, h: 1 };
     const ring = this.add.graphics().setDepth(9200);
     this.layer.push(ring);
     const t0 = this.time.now;
@@ -347,12 +350,13 @@ export class MinigameScene extends Phaser.Scene {
       done = true;
       const res = timingPoints(r, tapMs);
       this.score += res.points;
+      this.updateHud();
       const p = project(to.x, to.z, to.h);
-      this.popup(p.x, p.y - 40, res.grade === 'perfect' ? 'PERFECT +100' : res.grade === 'good' ? 'GOOD +60' : 'MISS', res.points > 0);
+      this.popup(p.x, p.y - 40, res.points > 0 ? `${res.grade.toUpperCase()} +${res.points}` : 'MISS', res.points > 0);
       sfx(res.points > 0 ? 'hit' : 'select');
       if (res.points > 0) this.flyArc({ ...to }, { x: -1.5 + Math.random() * 3, z: 4, h: 0 }, 1.6, () => undefined);
       this.round++;
-      this.time.delayedCall(900, () => this.nextRound());
+      this.time.delayedCall(950, () => this.nextRound());
     };
     const tick = this.time.addEvent({
       delay: 16,
@@ -360,14 +364,16 @@ export class MinigameScene extends Phaser.Scene {
       callback: () => {
         const ms = this.time.now - t0;
         const u = Math.min(1.25, ms / r.closeMs);
-        const x = from.x + (to.x - from.x) * u;
-        const z = from.z + (to.z - from.z) * u;
-        const h = from.h + (to.h - from.h) * u + 2.2 * Math.min(1, u) * (1 - Math.min(1, u));
+        const uu = Math.min(1, u);
+        const x = r.from.x + (to.x - r.from.x) * u + r.curve * Math.sin(Math.PI * uu);
+        const z = r.from.z + (to.z - r.from.z) * u;
+        const h = r.from.h + (to.h - r.from.h) * u + 4 * r.apex * uu * (1 - uu);
         if (!done) this.placeBall(x, z, h);
         const p = project(x, z, h);
-        const rad = Math.max(6, 70 * (1 - Math.min(1, u)) + 8);
+        const rad = Math.max(6, 70 * (1 - uu) + 8);
+        const inCore = Math.abs(ms - r.closeMs) <= r.window / 5;
         ring.clear();
-        if (!done) ring.lineStyle(3, u >= 1 - r.window / r.closeMs / 3 && u <= 1 + r.window / r.closeMs / 3 ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, rad);
+        if (!done) ring.lineStyle(3, inCore ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, rad);
         if (ms > r.closeMs + r.window + 250) {
           tick.remove();
           end(null);
