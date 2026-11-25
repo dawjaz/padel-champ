@@ -54,7 +54,7 @@ export function kickBody(s: BodyState, amount: number): void {
  * Advances the body by `dt` seconds after its feet moved (dx, dy) metres on the screen plane. `idle` is true when the player stands
  * waiting (breathing shows), `time` is the scene time in seconds.
  */
-export function stepBody(s: BodyState, dx: number, dy: number, dt: number, time: number, idle: boolean): BodyPose {
+export function stepBody(s: BodyState, dx: number, dy: number, dt: number, time: number, idle: boolean, tired = 0): BodyPose {
   dt = Math.min(Math.max(dt, 1 / 240), 1 / 20);
   const k = Math.min(1, dt * 18);
   const vx = s.vx + (dx / dt - s.vx) * k;
@@ -81,7 +81,8 @@ export function stepBody(s: BodyState, dx: number, dy: number, dt: number, time:
 
   s.stride += speed * dt;
   const bob = speed > STOPPED ? Math.abs(Math.sin((s.stride / STEP_LEN) * Math.PI)) * BOB * Math.min(1, speed / FAST) : 0;
-  const breath = idle && speed < STOPPED ? Math.sin(time * 3.6 + s.phase) * 0.012 : 0;
+  // a tired player breathes deeper and faster
+  const breath = idle && speed < STOPPED ? Math.sin(time * (3.6 + 2.4 * tired) + s.phase) * 0.012 * (1 + 2 * tired) : 0;
   const sy = 1 + s.squash + breath;
   // Volume is kept: taller is thinner.
   return { rotation: s.lean, scaleX: 1 / Math.sqrt(sy), scaleY: sy, bob, braked };

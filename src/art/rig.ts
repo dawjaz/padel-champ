@@ -31,19 +31,30 @@ export class Rig {
   private keys: Key[] = [];
   private driven: PoseSpec | null = null;
   private out: PoseSpec;
+  /** The pose before the look and the head lag are added (what the keys and the drive produce). */
+  private raw: PoseSpec;
   private lastHand: Pt;
   private lag: Pt = [0, 0];
+  /** Where the head looks (-1..1) when nothing else sets it (the ball during a rally); null: as the pose says. */
+  private lookAt: number | null = null;
+  private lookNow = 0;
   /** The last target given to `to` (a repeated call with the same target does not restart the glide). */
   private target: PoseSpec | null = null;
 
   constructor(start: PoseSpec = POSES.ready) {
     this.out = start;
+    this.raw = start;
     this.lastHand = start.hand;
   }
 
   /** The pose to draw now. */
   get pose(): PoseSpec {
     return this.out;
+  }
+
+  /** Turns the head towards `look` (-1..1, eased) while the pose has no look of its own; null stops it. */
+  setLook(look: number | null): void {
+    this.lookAt = look;
   }
 
   /** True while it follows a run or side-step cycle. */
@@ -58,11 +69,11 @@ export class Rig {
 
   /** Glides from the pose shown now to `pose` in `ms`. */
   to(now: number, pose: PoseSpec, ms: number, ease: Ease = inOut): void {
-    if (!this.driven && this.target === pose && (this.playing(now) || this.out === pose)) return;
+    if (!this.driven && this.target === pose && (this.playing(now) || this.raw === pose)) return;
     this.target = pose;
     this.driven = null;
     this.keys = [
-      { at: now, pose: this.out, ease: lin },
+      { at: now, pose: this.raw, ease: lin },
       { at: now + Math.max(1, ms), pose, ease },
     ];
   }
@@ -72,7 +83,7 @@ export class Rig {
     this.driven = null;
     this.target = null;
     let at = now;
-    this.keys = [{ at, pose: this.out, ease: lin }];
+    this.keys = [{ at, pose: this.raw, ease: lin }];
     for (const [ms, pose, ease] of steps) {
       at += Math.max(1, ms);
       this.keys.push({ at, pose, ease });
@@ -90,14 +101,15 @@ export class Rig {
   update(now: number, dt: number): PoseSpec {
     let pose: PoseSpec;
     if (this.driven) {
-      pose = mixPose(this.out, this.driven, 1 - Math.exp(-Math.max(0, dt) / DRIVE_TAU));
+      pose = mixPose(this.raw, this.driven, 1 - Math.exp(-Math.max(0, dt) / DRIVE_TAU));
       pose = { ...pose, front: this.driven.front, racketBehind: this.driven.racketBehind };
     } else if (this.keys.length > 0) {
       pose = sampleKeys(this.keys, now);
       if (now >= this.keys[this.keys.length - 1].at) this.keys = [];
     } else {
-      pose = this.out;
+      pose = this.raw;
     }
+    this.raw = pose;
     // The head trails the racket hand a little (secondary motion) and catches up.
     const s = Math.max(1, dt) / 1000;
     const vx = (pose.hand[0] - this.lastHand[0]) / s;
@@ -106,6 +118,11 @@ export class Rig {
     const want: Pt = [clamp(-vx * 0.006, -6, 6), clamp(-vy * 0.004, -5, 5)];
     const k = 1 - Math.exp(-Math.max(0, dt) / 70);
     this.lag = [this.lag[0] + (want[0] - this.lag[0]) * k, this.lag[1] + (want[1] - this.lag[1]) * k];
+    if (this.lookAt !== null && !this.driven && !pose.look) {
+      this.lookNow += (this.lookAt - this.lookNow) * (1 - Math.exp(-Math.max(0, dt) / 140));
+      const l = Math.round(this.lookNow * 10) / 10;
+      if (l !== 0) pose = { ...pose, look: l };
+    } else this.lookNow = pose.look ?? 0;
     const still = Math.abs(this.lag[0]) < 0.15 && Math.abs(this.lag[1]) < 0.15;
     this.out = still && !pose.head ? pose : { ...pose, head: still ? pose.head : [R1(this.lag[0]), R1(this.lag[1])] };
     return this.out;
@@ -265,5 +282,61 @@ export function racketEnds(P: PoseSpec): [Pt, Pt] {
 export function poseSignature(P: PoseSpec): string {
   const h = (v: number): number => Math.round(v * 2);
   const pt = (p: Pt | undefined): string => (p ? `${h(p[0])},${h(p[1])}` : '-');
-  return [pt(P.hand), h(P.racket), pt(P.elbow), P.off === 'grip' ? 'g' : pt(P.off), pt(P.offElbow), h(P.lean), h(P.crouch), pt(P.left), pt(P.right), h((P.look ?? 0) * 10), pt(P.head), P.front ? 1 : 0, P.racketBehind ? 1 : 0].join('|');
+  return [pt(P.hand), h(P.racket), pt(P.elbow), P.off === 'grip' ? 'g' : pt(P.off), pt(P.offElbow), h(P.lean), h(P.crouch), pt(P.left), pt(P.right), h((P.look ?? 0) * 10), pt(P.head), P.front ? 1 : 0, P.racketBehind ? 1 : 0, P.mood ?? ''].join('|');
+}
+
+// ---------- stage D: reactions, fatigue, celebrations ----------
+
+const pose = (p: Partial<PoseSpec>): PoseSpec => ({ ...POSES.ready, ...p });
+
+// In the front and back views `lean` tilts the body sideways, so a forward bend is shown by the hips and a lowered head (`head`).
+
+/** A fist pumped up with the free hand, the racket down by the side: the player who has just won the point. */
+export function fistSteps(big = true): Step[] {
+  const up = pose({ off: [50, big ? 24 : 62], hand: [146, 176], racket: 150, crouch: 4, lean: -3 });
+  const down = pose({ off: [60, big ? 70 : 88], hand: [146, 180], racket: 155, crouch: 10, lean: 1 });
+  return big
+    ? [[180, up, easeOut], [120, down, inOut], [140, up, easeOut], [500, up, lin], [400, POSES.ready, inOut]]
+    : [[220, down, easeOut], [160, up, easeOut], [400, up, lin], [380, POSES.ready, inOut]];
+}
+
+/** A high five with the partner (`dir`: the partner's side in the picture's own x): the hand on that side goes up and out. */
+export function highFiveSteps(dir: number): Step[] {
+  const reach = dir > 0 ? pose({ hand: [168, 26], racket: 20, off: [60, 160], lean: 6, crouch: 4 }) : pose({ off: [30, 26], hand: [140, 170], racket: 150, lean: -6, crouch: 4 });
+  const slap = dir > 0 ? { ...reach, hand: [176, 34] as Pt } : { ...reach, off: [22, 34] as Pt };
+  return [[220, reach, easeOut], [80, slap, easeIn], [500, reach, lin], [380, POSES.ready, inOut]];
+}
+
+/** Both hands on the head (a mistake), then the racket hangs and the shoulders drop. */
+export function frustrationSteps(): Step[] {
+  const head = pose({ hand: [124, 46], racket: 140, racketBehind: true, off: [76, 46], crouch: 2, lean: 0, look: 0, mood: 'sad' });
+  const slump = pose({ hand: [138, 196], racket: 168, off: [64, 190], crouch: 6, lean: 0, head: [0, 6], mood: 'sad' });
+  return [[260, head, easeOut], [550, head, lin], [300, slump, inOut], [600, slump, lin], [400, POSES.ready, inOut]];
+}
+
+/** The shoulders drop and the racket hangs: a point lost to a winner. */
+export function disappointSteps(): Step[] {
+  const slump = pose({ hand: [138, 198], racket: 170, off: [64, 192], crouch: 6, lean: 0, head: [0, 6], mood: 'sad' });
+  return [[320, slump, inOut], [900, slump, lin], [420, POSES.ready, inOut]];
+}
+
+/** An exhausted player between points: hands on the knees, bent forward. */
+export function tiredSteps(): Step[] {
+  const knees = pose({ hand: [136, 208], racket: 172, off: [64, 208], crouch: 26, lean: 0, head: [0, 10], left: [60, GROUND], right: [140, GROUND], mood: 'sad' });
+  return [[420, knees, inOut], [1100, knees, lin], [500, POSES.ready, inOut]];
+}
+
+/** A tired ready position: lower, bent forward, the racket lower (`tired` 0..1). */
+export function tiredReady(tired: number): PoseSpec {
+  if (tired <= 0) return POSES.ready;
+  return { ...POSES.ready, crouch: POSES.ready.crouch + 6 * tired, head: [0, R(4 * tired)], hand: [POSES.ready.hand[0], POSES.ready.hand[1] + 18 * tired], racket: POSES.ready.racket + 20 * tired };
+}
+
+/** The racket raised high (a game won); `both`: both arms up (the match). */
+export function celebrateSteps(both: boolean): Step[] {
+  const up = both ? pose({ hand: [150, 4], racket: 6, off: [50, 10], crouch: 2, lean: -3 }) : pose({ hand: [148, 10], racket: 8, off: [64, 150], crouch: 4, lean: -2 });
+  const bounce = { ...up, crouch: 14 };
+  return both
+    ? [[200, up, easeOut], [160, bounce, inOut], [160, up, easeOut], [160, bounce, inOut], [160, up, easeOut], [900, up, lin]]
+    : [[220, up, easeOut], [700, up, lin], [400, POSES.ready, inOut]];
 }

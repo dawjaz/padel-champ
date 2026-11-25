@@ -53,6 +53,8 @@ export interface PoseSpec {
   front?: boolean;
   /** Seen from the front: the racket head is behind the head and shoulders (a follow-through over the shoulder). */
   racketBehind?: boolean;
+  /** The face (front view): 'sad' turns the smile into a frown and the brows up in the middle. */
+  mood?: 'sad';
   /** Extra shift of the head (figure units): the head trails a fast movement and catches up (secondary motion). */
   head?: Pt;
 }
@@ -338,8 +340,13 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
     if (L.female) head.push(p('M79 54 q-3 -3 -6 -1 M121 54 q3 -3 6 -1', { stroke: OUTLINE, sw: 2, cap: 'round' }));
     head.push(p('M78 46 C 83 41, 91 41, 95 45 M105 45 C 109 41, 117 41, 122 46', { stroke: hd, sw: L.female ? 2.8 : 3.8, cap: 'round' }));
     head.push(p('M100 60 C 98 68, 97 70, 100 72 C 102 72, 104 71, 103 70', { stroke: skd, sw: 2.4, cap: 'round' }));
-    head.push(p('M89 77 C 96 84, 104 84, 111 77 C 104 79, 96 79, 89 77 Z', { fill: '#ffffff', stroke: OUTLINE, sw: 2 }));
-    head.push(p('M89 77 C 96 80, 104 80, 111 77', { stroke: L.lip, sw: 2.4, cap: 'round' }));
+    if (P.mood === 'sad') {
+      head.push(p('M90 83 C 96 76, 104 76, 110 83', { stroke: OUTLINE, sw: 2.6, cap: 'round' }));
+      head.push(p('M80 42 L 94 38 M106 38 L 120 42', { stroke: hd, sw: 3, cap: 'round' }));
+    } else {
+      head.push(p('M89 77 C 96 84, 104 84, 111 77 C 104 79, 96 79, 89 77 Z', { fill: '#ffffff', stroke: OUTLINE, sw: 2 }));
+      head.push(p('M89 77 C 96 80, 104 80, 111 77', { stroke: L.lip, sw: 2.4, cap: 'round' }));
+    }
     head.push(p(ellipsePath(78, 72, 6, 3.4), { fill: '#e8706a', a: 0.22 }));
     head.push(p(ellipsePath(122, 72, 6, 3.4), { fill: '#e8706a', a: 0.22 }));
   }
@@ -543,6 +550,7 @@ export function mixPose(a: PoseSpec, b: PoseSpec, t: number): PoseSpec {
     head: a.head || b.head ? lerpP(a.head ?? [0, 0], b.head ?? [0, 0], t) : undefined,
     front: (t < 0.5 ? a : b).front,
     racketBehind: (t < 0.5 ? a : b).racketBehind,
+    mood: (t < 0.5 ? a : b).mood,
   };
 }
 

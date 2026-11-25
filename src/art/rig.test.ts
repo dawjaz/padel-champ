@@ -75,3 +75,26 @@ describe('rig stage C', () => {
     expect(land.right[0] - land.left[0]).toBeGreaterThan(POSES.ready.right[0] - POSES.ready.left[0]);
   });
 });
+
+describe('rig stage D', () => {
+  it('reactions end in ready, the sad ones show it on the face', async () => {
+    const m = await import('./rig');
+    for (const steps of [m.fistSteps(true), m.fistSteps(false), m.highFiveSteps(1), m.highFiveSteps(-1), m.frustrationSteps(), m.disappointSteps(), m.tiredSteps(), m.celebrateSteps(false)]) {
+      expect(steps[steps.length - 1][1]).toBe(POSES.ready);
+    }
+    expect(m.frustrationSteps()[0][1].mood).toBe('sad');
+    expect(m.highFiveSteps(1)[0][1].hand[1]).toBeLessThan(60);
+    expect(m.highFiveSteps(-1)[0][1].off).not.toBe('grip');
+  });
+  it('a tired ready is lower with the head down, a fresh one is the plain pose', async () => {
+    const m = await import('./rig');
+    expect(m.tiredReady(0)).toBe(POSES.ready);
+    expect(m.tiredReady(1).crouch).toBeGreaterThan(POSES.ready.crouch);
+  });
+  it('the head turns towards a look target and stops when told', () => {
+    const r = new Rig();
+    r.setLook(1);
+    for (let t = 16; t < 1000; t += 16) r.update(t, 16);
+    expect(r.pose.look).toBeCloseTo(1, 1);
+  });
+});

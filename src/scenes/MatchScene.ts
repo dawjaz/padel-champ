@@ -6,7 +6,7 @@ import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { placeToonSprite } from '../art/toonTexture';
 import { buildToon } from '../art/toon/character';
 import { drawOps, VIEW } from '../art/toon/ops';
-import { easeOut, forHeight, HIT_STOP, inOut, loadPose, lungePose, splitSteps, poseSignature, racketEnds, Rig, smashSteps, strokeSteps } from '../art/rig';
+import { celebrateSteps, disappointSteps, fistSteps, frustrationSteps, highFiveSteps, tiredReady, tiredSteps, type Step as RigStep, easeOut, forHeight, HIT_STOP, inOut, loadPose, lungePose, splitSteps, poseSignature, racketEnds, Rig, smashSteps, strokeSteps } from '../art/rig';
 import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } from '../art/bodyDynamics';
 import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
@@ -121,6 +121,8 @@ interface PlayerView {
   canvas: Phaser.Textures.CanvasTexture;
   unit: number;
   drawn: string;
+  /** A reaction (after a point) plays until then (ms): a plain return to ready does not cut it short. */
+  reactUntil: number;
   /** Recent racket positions for the smear (figure units), newest last. */
   trail: Array<[[number, number], [number, number]]>;
   /** Width in pixels of the guts bar as last drawn (-1: not drawn yet). */
@@ -541,7 +543,7 @@ export class MatchScene extends Phaser.Scene {
           .setDepth(9000);
         const baked = bakedShape(this, 0, 0, GUTS_BAR_W, GUTS_BAR_H, () => undefined, 3);
         const bar = baked.rt.setDepth(9000);
-        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, rig: new Rig(), canvas, unit, drawn: '', trail: [], barShown: -1, body: newBody(Object.keys(this.views).length * 1.7), look: { rotation: 0, scaleX: 1, scaleY: 1, bob: 0, braked: false }, lastFeet: null };
+        this.views[player.id] = { sprite, label, bar, barRepaint: baked.repaint, player, side, lift: 0, pose: 'ready', facing, busyUntil: 0, rig: new Rig(), canvas, unit, drawn: '', trail: [], reactUntil: 0, barShown: -1, body: newBody(Object.keys(this.views).length * 1.7), look: { rotation: 0, scaleX: 1, scaleY: 1, bob: 0, braked: false }, lastFeet: null };
         this.showSprite(player.id);
         this.placeView(player.id);
       });
@@ -870,6 +872,12 @@ export class MatchScene extends Phaser.Scene {
       const id = ids[(this.rigTurn + i) % ids.length];
       const v = this.views[id];
       const before = v.rig.pose;
+      // eyes on the ball: the head turns towards it while the player waits (not in a stroke, a run or a reaction)
+      const view = toonViewOf(v.facing, v.side);
+      if (view !== 'side' && this.time.now >= v.busyUntil && this.time.now >= v.reactUntil && !v.rig.playing(now)) {
+        const look = Math.round(Math.max(-1, Math.min(1, (this.ballFloor.x - this.pos[id].x) / 3)) * 2) / 2;
+        v.rig.setLook(view === 'front' ? -look : look);
+      } else v.rig.setLook(null);
       const pose = v.rig.update(now, dt);
       // the smear: racket ends while the racket moves fast during a stroke
       if (this.time.now < v.busyUntil && pose !== before) {
@@ -911,12 +919,89 @@ export class MatchScene extends Phaser.Scene {
     return l && this.time.now <= l.until ? l : null;
   }
 
+  /** 0 for a player with guts to spare, up to 1 on an empty bar (below a third of it he shows it: lower, bent, breathing hard). */
+  private tiredness(id: string): number {
+    const p = TEAMS.flat().find((q) => q.id === id);
+    const g = this.guts[id];
+    if (!p || g === undefined) return 0;
+    return Math.max(0, Math.min(1, (0.35 - g / p.maxGuts) / 0.35));
+  }
+
+  /** Plays a reaction on a player who is not in the middle of a stroke, facing the court. */
+  private react(id: string, steps: RigStep[]): void {
+    const v = this.views[id];
+    if (this.time.now < v.busyUntil) return;
+    this.setFacing(id, this.defaultFacing(id));
+    v.rig.play(this.time.now, steps);
+    v.reactUntil = this.time.now + steps.reduce((a, s) => a + s[0], 0);
+  }
+
+  /** Which side (in the picture's own x) the partner stands on, and whether he is close enough to slap hands. */
+  private partnerSide(id: string): { dir: number; close: boolean } {
+    const side = this.views[id].side;
+    const mate = TEAMS[side].find((p) => p.id !== id);
+    if (!mate) return { dir: 1, close: false };
+    const dx = this.pos[mate.id].x - this.pos[id].x;
+    const dist = Math.hypot(dx, this.pos[mate.id].z - this.pos[id].z);
+    const mirrored = toonViewOf(this.defaultFacing(id), side) === 'front';
+    return { dir: (dx >= 0 ? 1 : -1) * (mirrored ? -1 : 1), close: dist < 3.4 };
+  }
+
+  /**
+   * Reactions when a point ends: the winner of the point pumps a fist (or slaps hands with a partner close by), the other winner is pleased;
+   * the player who made the mistake holds his head, the others drop their shoulders, an exhausted one puts his hands on his knees.
+   */
+  private reactToPoint(step: Step, coastMs: number): void {
+    const won = step.pointWinner;
+    if (won === null || this.practice) return;
+    const scorer = step.outcome === 'winner' || step.outcome === 'ace' ? TEAMS[step.side][step.attackerIdx].id : null;
+    const culprit = step.outcome === 'error' || step.outcome === 'double-fault' ? TEAMS[step.side][step.attackerIdx].id : null;
+    this.time.delayedCall(Math.max(420, Math.min(coastMs, 1600)), () => {
+      if (this.over) return;
+      for (const p of TEAMS[won]) {
+        const ps = this.partnerSide(p.id);
+        if (ps.close) this.react(p.id, highFiveSteps(ps.dir));
+        else this.react(p.id, p.id === scorer ? fistSteps(true) : fistSteps(false));
+      }
+      for (const p of TEAMS[other(won)]) {
+        if (p.id === culprit) this.react(p.id, frustrationSteps());
+        else if (this.tiredness(p.id) > 0.5) this.react(p.id, tiredSteps());
+        else this.react(p.id, disappointSteps());
+      }
+      // a high five shows where the hands meet
+      const mates = TEAMS[won];
+      if (this.partnerSide(mates[0].id).close) this.time.delayedCall(300, () => this.slapFx(mates[0].id, mates[1].id));
+    });
+  }
+
+  /** A small burst between two players' raised hands. */
+  private slapFx(a: string, b: string): void {
+    const pa = project(this.pos[a].x, this.pos[a].z);
+    const pb = project(this.pos[b].x, this.pos[b].z);
+    const h = ((pa.scale + pb.scale) / 2) * VISUAL_HEIGHT_M;
+    const x = (pa.x + pb.x) / 2;
+    const y = (pa.y + pb.y) / 2 - h * 1.08;
+    const star = this.add.star(x, y, 6, h * 0.05, h * 0.12, 0xffffff, 0.95).setDepth(9000);
+    this.tweens.add({ targets: star, scale: 2, alpha: 0, angle: 40, duration: 320, ease: 'Quad.easeOut', onComplete: () => star.destroy() });
+  }
+
+  /** A game or the match won: the winners raise their rackets (both arms and a few bounces for the match), the losers hang their heads. */
+  private celebrate(winner: SideIndex, match: boolean): void {
+    for (const p of TEAMS[winner]) {
+      this.react(p.id, celebrateSteps(match));
+      this.jump(p.id, match ? 14 : 8, match ? 320 : 260);
+      if (match) this.time.delayedCall(420, () => this.jump(p.id, 12, 300));
+    }
+    if (match) for (const p of TEAMS[other(winner)]) this.react(p.id, disappointSteps());
+  }
+
   /** Shows the player in a pose (glides into it; a stroke's preparation is wound up a little further, see `loadPose`). */
   private setPose(id: string, pose: PoseName): void {
     const v = this.views[id];
+    if (pose === 'ready' && this.time.now < v.reactUntil) return;
     v.pose = pose;
     const prep = pose.endsWith('Prep');
-    let spec = prep ? loadPose(pose, this.hitHeight[id]) : pose.endsWith('Hit') ? forHeight(POSES[pose], this.hitHeight[id]) : POSES[pose];
+    let spec = prep ? loadPose(pose, this.hitHeight[id]) : pose.endsWith('Hit') ? forHeight(POSES[pose], this.hitHeight[id]) : pose === 'ready' ? tiredReady(this.tiredness(id)) : POSES[pose];
     const lunge = pose === 'ready' ? null : this.lungeOf(id);
     if (lunge && toonViewOf(v.facing, v.side) !== 'side') spec = lungePose(spec, lunge.dir, lunge.reach);
     v.rig.to(this.time.now, spec, lunge ? 200 : prep ? 220 : 150, lunge ? easeOut : inOut);
@@ -956,7 +1041,7 @@ export class MatchScene extends Phaser.Scene {
       const last = v.lastFeet ?? p;
       v.lastFeet = { x: p.x, y: p.y };
       const ppm = Math.max(1, p.scale);
-      v.look = stepBody(v.body, (p.x - last.x) / ppm, (p.y - last.y) / ppm, dt, time, this.time.now >= v.busyUntil);
+      v.look = stepBody(v.body, (p.x - last.x) / ppm, (p.y - last.y) / ppm, dt, time, this.time.now >= v.busyUntil, this.tiredness(id));
       if (v.look.braked) this.brakeDust(p.x, p.y, p.scale, v.body.vx);
       this.placeView(id);
     }
@@ -2113,6 +2198,7 @@ export class MatchScene extends Phaser.Scene {
       };
       if (b) this.announce(b[0], b[1], how[step.outcome]);
       if (step.pointWinner === 0 && step.side === 0 && (step.outcome === 'ace' || step.outcome === 'winner')) this.countDailyWin(step);
+      this.reactToPoint(step, coastMs);
       if (step.outcome === 'ace' || step.outcome === 'winner') {
         this.cameras.main.shake(140, 0.004);
         this.winFlash();
@@ -2210,10 +2296,12 @@ export class MatchScene extends Phaser.Scene {
     this.clearMenu();
 
     if (this.matchScore.winner !== null) {
+      this.celebrate(this.matchScore.winner, true);
       this.endMatch(this.matchScore.winner);
       return;
     }
     if (res.gameWon) {
+      this.celebrate(winner, false);
       // The team that has just served hands the next service game of ITS side to its other player; the other team goes on with its own turn
       // (so in the first game of each team the first player serves: the hero in his pair).
       this.serverIdx[this.server] = 1 - this.serverIdx[this.server];

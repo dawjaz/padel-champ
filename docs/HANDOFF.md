@@ -2,6 +2,15 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.114: characters stage D, emotions
+- **Reactions after a point** (`reactToPoint`, ~0.4 s after it ends or when the ball has stopped): the winner of the point pumps a fist (`fistSteps`), his partner a smaller one; a pair standing within 3.4 m slaps hands instead (`highFiveSteps`, the hand on the partner's side, a star at the hands, `slapFx`). The player who made the error or double fault holds his head, then drops his shoulders (`frustrationSteps`); the other losers drop their shoulders (`disappointSteps`), an exhausted one puts his hands on his knees (`tiredSteps`). `MatchScene.react` (not over a stroke; sets `reactUntil` so a plain return to ready does not cut it).
+- **Celebrations:** a game won: rackets up and a hop (`celebrateSteps(false)`); the match: both arms up, two jumps, the losers hang their heads.
+- **Fatigue:** `tiredness` (below a third of the guts bar, 0..1): the ready pose is lower with the head down (`tiredReady`), breathing deeper and faster (`stepBody(..., tired)`).
+- **Eyes on the ball:** `Rig.setLook` turns the head towards the ball (eased, in steps of 0.5) while a player waits; not in a stroke, run or reaction.
+- **Face:** `PoseSpec.mood: 'sad'` (front view: frown, brows up in the middle) in the losing reactions.
+- Note: in the front and back views `lean` tilts the body SIDEWAYS; a forward bend is shown by the hips (`crouch`) and a lowered head (`head`).
+- `Rig` keeps the raw pose apart from the look and head lag it adds (`raw`), so a look does not stick.
+
 ## v0.113: characters stage C, footwork and contact
 - **Lunge** (`lungePose` in rig.ts): a run longer than `LUNGE_FROM_M` 2.4 m ends in a lunge (full 2.4 m further): front foot planted out on the run's side, knee over it, back leg stretched from its hip (worked out from the leg length), hips low, body leaning in. A ball the defender cannot reach (winner, ace) always ends in a full lunge. `MatchScene.planLunge` / `lungeOf` (direction in the picture's own x, mirrored for the front view); the stroke keeps the lunge's legs until the recovery (`withLegs`, `strokeSteps(..., legs)`).
 - **Ball height:** `forHeight` bends the knees and lowers the racket for a low ball (below 0.75 m), stretches up for a high one (above 1.2 m); used for the prep (`loadPose(name, height)`), the arrival pose and the stroke; `MatchScene.hitHeight` from `flight.hitH` (1 m for a ball off the back glass). Serve: low.
