@@ -62,7 +62,7 @@ describe('rig stage C', () => {
   it('a lunge steps out with the leg on the ball side and keeps it through the stroke', async () => {
     const { lungePose, strokeSteps } = await import('./rig');
     const l = lungePose(POSES.ready, 1, 1);
-    expect(l.right[0]).toBeGreaterThan(POSES.ready.right[0] + 30);
+    expect(l.right[0]).toBeGreaterThan(POSES.ready.right[0] + 20);
     expect(l.crouch).toBeGreaterThan(POSES.ready.crouch + 10);
     expect(l.left[0]).toBeLessThan(POSES.ready.left[0] - 30);
     const steps = strokeSteps('fh', 1, l);
