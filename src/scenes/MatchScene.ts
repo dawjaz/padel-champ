@@ -1866,13 +1866,6 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(marker);
     // the real spread of this hit (accuracy, tiredness, the ball's pressure, the shot): the ellipse shows where the ball may fall
     const spread = targetSpreadFor(hitter, { ...st, guts: this.guts }, shot);
-    const missText = this.add
-      .text(0, 0, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ff6b6b' })
-      .setOrigin(0.5, 1)
-      .setStroke(NAVY_CSS, 4)
-      .setDepth(9994)
-      .setVisible(false);
-    this.menu.push(missText);
     const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
     const target = (px: number, py: number): { x: number; depth: number } => {
       const c = unproject(px, Math.max(far, Math.min(net, py)));
@@ -1893,7 +1886,6 @@ export class MatchScene extends Phaser.Scene {
       const fill = miss >= 0.15 ? 0xff4d4d : miss >= 0.05 ? 0xff9f1c : color;
       marker.fillStyle(fill, 0.22).fillEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
       marker.lineStyle(2, fill, 0.95).strokeEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
-      missText.setText(`OUT ${Math.round(miss * 100)}%`).setPosition(p.x, fz.y - 4).setVisible(miss >= 0.03);
       marker.lineStyle(3, 0xffffff, 1).strokeCircle(p.x, p.y, Math.max(5, p.scale * 0.22));
       marker.fillStyle(0xffffff, 1).fillCircle(p.x, p.y, 2.5);
     };

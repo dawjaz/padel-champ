@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.120: no "OUT n%" label
+- The owner tested the spot aim (v0.119): fine; the out-chance label over the ellipse is not wanted (the ellipse colours stay).
+
 ## v0.119: aiming at a spot, real spread and real misses
 - Owner (25.11): with the spot aim every ball went in, even tired, a lob right at the glass. Causes: the rolled landing point was clamped to the court; the error was a separate roll that did not depend on where the ball fell; tiredness hardly changed anything; the ellipse was 0.6 x 0.9 m.
 - `targetSpread` (court.ts): base 0.9 m across, 1.3 m in depth (triangular, either way) times accuracy (1.6 - 0.12 x accuracy, 0.5..1.45), tiredness (from half the guts bar down, up to x2 on an empty one), the incoming ball's pressure (1 + 1.5 x pressure), the shot (0.8 + speed/50; a lob x1.3 in depth; dejada 0.7). `targetSpreadFor(hitter, state, shot)` in point.ts, the scene draws the same.
