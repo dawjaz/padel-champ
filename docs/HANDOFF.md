@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## 3D prototype page (proto/three.html), not part of the game yet
+- Owner (25.11) is considering 3D characters and match, plus short 3D cut-ins between events. Decision gate: this prototype, published at `/proto/three.html` (third Vite input; `three` 0.170 added as a dependency, only this page imports it).
+- `src/proto/three/arena.ts`: court and arena from the game's own measurements (`walls.ts`: back walls glass 3 + mesh 1, side wall segments, the two openings, net), court colours from the city theme, stands with an instanced crowd that can cheer, ad boards, light towers. Court metres map to three.js as `P(x, z, h) = (x, h, z - 10)`.
+- `player3d.ts`: toon characters from simple solids (big comic head, outline by inverted hull, 3-step toon gradient), the same `Appearance` as the 2D game; a small skeleton of groups posed from `Pose3D` (joint angles); poses for strokes, smash in the air (take-off left leg), landing, split step, reactions, celebration, trophy; run cycle. Hip height comes from the leg geometry.
+- `rally.ts`: CPU vs CPU points with the real engine (`pickServe`, `stepServe`, `pickHit`, `stepHit`, scoring) and the real flights (`buildFlight`, `ballPoint`), actors run to the hit point, swing (track of poses with snap, hit-stop, follow-through), jump for high balls, split step, never turn their back on the net when running back.
+- `main.ts`: broadcast camera, a live slow-motion close-up on a winning smash, reactions after each point, and cut-ins with 2-3 random variants each: tournament intro, before the match (pairs / face-off), game won, game lost, match won, tournament won (cup), second place (silver cup), early exit; letterbox bars, titles, tap to skip. FPS counter.
+- Headless (software GL) runs at ~10-12 FPS, which says nothing: measure on the owner's phone.
+
 ## v0.120: no "OUT n%" label
 - The owner tested the spot aim (v0.119): fine; the out-chance label over the ellipse is not wanted (the ellipse colours stay).
 

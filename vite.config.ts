@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 2000,
     // proto/rig.html: the character rig prototype (stage B), published next to the game.
-    rollupOptions: { input: { main: 'index.html', rig: 'proto/rig.html' } },
+    rollupOptions: { input: { main: 'index.html', rig: 'proto/rig.html', three: 'proto/three.html' } },
   },
   test: {
     environment: 'node',
