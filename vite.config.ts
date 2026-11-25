@@ -8,6 +8,8 @@ export default defineConfig({
   define: { __BUILD__: JSON.stringify((process.env.GITHUB_SHA ?? 'dev').slice(0, 7)) },
   build: {
     chunkSizeWarningLimit: 2000,
+    // proto/rig.html: the character rig prototype (stage B), published next to the game.
+    rollupOptions: { input: { main: 'index.html', rig: 'proto/rig.html' } },
   },
   test: {
     environment: 'node',
