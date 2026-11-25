@@ -46,6 +46,11 @@ export class Rig {
     return this.out;
   }
 
+  /** True while it follows a run or side-step cycle. */
+  driving(): boolean {
+    return this.driven !== null;
+  }
+
   /** True while a sequence is playing (a stroke). */
   playing(now: number): boolean {
     return this.keys.length > 0 && this.keys[this.keys.length - 1].at > now;
@@ -134,22 +139,69 @@ const tweak = (p: PoseSpec, d: { racket?: number; crouch?: number; lean?: number
 const GROUND = POSES.ready.left[1];
 const sideOf = (name: PoseName): number => (name.startsWith('bh') ? -1 : 1);
 
+/**
+ * How the stroke follows the ball's height at contact (metres): a low ball is taken with a deep knee bend and the racket low, a high one
+ * with the body stretched up and the racket high. 0.7..1.2 m is the comfortable middle (no change).
+ */
+export function forHeight(p: PoseSpec, height: number | undefined): PoseSpec {
+  if (height === undefined) return p;
+  const low = clamp((0.75 - height) / 0.45, 0, 1);
+  const high = clamp((height - 1.2) / 0.6, 0, 1);
+  if (low === 0 && high === 0) return p;
+  return { ...p, crouch: p.crouch + 12 * low - 6 * high, hand: [p.hand[0], p.hand[1] + 22 * low - 20 * high], racket: p.racket + (p.racket >= 0 ? 1 : -1) * 14 * low };
+}
+
+/**
+ * A lunge towards a ball wide of the player: a long step out with the leg on the ball's side (bent deep), the other leg stretched behind,
+ * the hips low, the body over the front knee. `dir`: -1 or 1, the ball's side in the picture's own x; `reach` 0..1 how far.
+ */
+export function lungePose(p: PoseSpec, dir: number, reach = 1): PoseSpec {
+  const k = clamp(reach, 0, 1);
+  const crouch = Math.max(p.crouch, 14) + 10 * k;
+  // the back leg is stretched (almost straight) from its hip, the front foot is planted well out, the knee bent over it
+  const hipY = 198 + crouch;
+  const backHip = dir > 0 ? 87 : 113;
+  const frontHip = dir > 0 ? 113 : 87;
+  const reachX = Math.sqrt(Math.max(0, 104 * 104 - (GROUND - hipY) ** 2));
+  const back: [number, number] = [R(backHip - dir * reachX * (0.75 + 0.25 * k)), GROUND];
+  const out: [number, number] = [R(frontHip + dir * (26 + 22 * k)), GROUND];
+  return {
+    ...p,
+    crouch,
+    lean: p.lean + dir * (4 + 4 * k),
+    hand: [p.hand[0] + dir * 10 * k, p.hand[1] + 6 * k],
+    left: dir > 0 ? back : out,
+    right: dir > 0 ? out : back,
+  };
+}
+
+const R = (v: number): number => Math.round(v);
+
+/** Keeps the legs (and the depth of the hips) of a pose: a stroke played from a lunge stays in the lunge until it recovers. */
+export function withLegs(p: PoseSpec, legs: PoseSpec | null): PoseSpec {
+  if (!legs) return p;
+  return { ...p, left: legs.left, right: legs.right, crouch: Math.max(p.crouch, legs.crouch), lean: (p.lean + legs.lean) / 2 };
+}
+
 /** The preparation of a stroke, wound up further than the pose (anticipation). A smash is loaded on the left (take-off) leg. */
-export function loadPose(name: PoseName): PoseSpec {
+export function loadPose(name: PoseName, height?: number): PoseSpec {
   const p = POSES[name];
   if (name === 'smashPrep') return tweak(p, { crouch: 8, racket: -10, left: [90, GROUND], right: [140, GROUND - 8] });
   if (!name.endsWith('Prep')) return p;
   const s = sideOf(name);
-  return tweak(p, { crouch: 5, racket: 12 * s, lean: 3 * s, hand: [6 * s, -3] });
+  return forHeight(tweak(p, { crouch: 5, racket: 12 * s, lean: 3 * s, hand: [6 * s, -3] }), height);
 }
 
-/** Hit-stop after contact (ms). */
+/** Hit-stop after contact (ms): the pose holds and the ball stays on the racket. */
 export const HIT_STOP = 50;
 
-/** The stroke from the moment of contact: snap into the hit pose, hold, overshoot the follow-through, settle, back to ready. */
-export function strokeSteps(stance: 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv'): Step[] {
-  const hit = POSES[`${stance}Hit` as PoseName];
-  const follow = POSES[`${stance}Follow` as PoseName];
+/**
+ * The stroke from the moment of contact: snap into the hit pose, hold, overshoot the follow-through, settle, back to ready.
+ * `height`: the ball's height at contact (see `forHeight`); `legs`: a lunge to keep until the recovery.
+ */
+export function strokeSteps(stance: 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv', height?: number, legs: PoseSpec | null = null): Step[] {
+  const hit = withLegs(forHeight(POSES[`${stance}Hit` as PoseName], height), legs);
+  const follow = withLegs(forHeight(POSES[`${stance}Follow` as PoseName], height), legs);
   const s = stance.startsWith('bh') ? -1 : 1;
   const volley = stance === 'fhv' || stance === 'bhv';
   const over = tweak(follow, { racket: (volley ? 10 : -20) * s, hand: [-8 * s, volley ? 6 : -6], lean: -3 * s });
@@ -158,7 +210,18 @@ export function strokeSteps(stance: 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv'): Step[] 
     [HIT_STOP, hit, lin],
     [volley ? 110 : 150, over, easeOut],
     [130, follow, inOut],
-    [volley ? 260 : 360, POSES.ready, inOut],
+    [legs ? 420 : volley ? 260 : 360, POSES.ready, inOut],
+  ];
+}
+
+/** The split step as the opponent hits: a small hop with the feet together, a landing wide and low, ready (the scene lifts the body). */
+export function splitSteps(): Step[] {
+  const up = { ...POSES.ready, crouch: 4, left: [80, GROUND - 4] as Pt, right: [120, GROUND - 4] as Pt };
+  const land = { ...POSES.ready, crouch: 18, left: [56, GROUND] as Pt, right: [144, GROUND] as Pt };
+  return [
+    [70, up, easeOut],
+    [90, land, easeIn],
+    [200, POSES.ready, inOut],
   ];
 }
 

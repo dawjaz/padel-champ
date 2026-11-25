@@ -6,7 +6,7 @@ import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
 import { placeToonSprite } from '../art/toonTexture';
 import { buildToon } from '../art/toon/character';
 import { drawOps, VIEW } from '../art/toon/ops';
-import { inOut, loadPose, poseSignature, racketEnds, Rig, smashSteps, strokeSteps } from '../art/rig';
+import { easeOut, forHeight, HIT_STOP, inOut, loadPose, lungePose, splitSteps, poseSignature, racketEnds, Rig, smashSteps, strokeSteps } from '../art/rig';
 import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } from '../art/bodyDynamics';
 import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
@@ -66,6 +66,8 @@ const RIG_BUDGET_MS = 6;
 /** Run and side-step cycles: metres per cycle (two steps). */
 const RUN_CYCLE_M = 1.7;
 const SHUFFLE_CYCLE_M = 0.9;
+/** A run longer than this (m) ends in a lunge (a full one 2.4 m further). */
+const LUNGE_FROM_M = 2.4;
 const NEXT_HIT_DELAY = 88;
 /** Before a CPU player plays the ball the pause is half as long: only the human has a choice to make. */
 const CPU_NEXT_HIT_DELAY = NEXT_HIT_DELAY / 2;
@@ -176,6 +178,10 @@ export class MatchScene extends Phaser.Scene {
   private pos: Record<string, CourtPos> = {};
   /** How each player is set up for the next stroke (chosen when they run to the ball). */
   private stance: Record<string, Stance> = {};
+  /** The ball's height (m) where the player will hit it (the stroke bends or stretches for it, see `forHeight`). */
+  private hitHeight: Record<string, number> = {};
+  /** A lunge at the end of a long run (picture direction, how far 0..1), valid until `until` (scene ms). */
+  private lunge: Record<string, { dir: number; reach: number; until: number }> = {};
   /** Players who play the next ball after it has come off the back glass: they turn to it and hit side-on. */
   private activeId: string | null = null;
   private ballFloor: CourtPos = { x: 0, z: NET_Z };
@@ -746,6 +752,26 @@ export class MatchScene extends Phaser.Scene {
    * Powerful Smash: when a Por Cuatro comes off the back glass instead of flying out over it. An orange flash, a punch of the camera,
    * a burst of streaks around a flaming banner above the court, and a heavy boom.
    */
+  /** A burst at the racket on contact, bigger for a harder shot (`power` 0..1): a flash, a ring and a few sparks for the hardest. */
+  private hitFlash(id: string, power: number): void {
+    const v = this.views[id];
+    const p = project(this.pos[id].x, this.pos[id].z);
+    const h = p.scale * VISUAL_HEIGHT_M;
+    const x = p.x + (v.sprite.flipX ? -1 : 1) * h * 0.22;
+    const y = p.y - v.lift - h * (this.stance[id] === 'smash' ? 1.05 : 0.55);
+    const r = Math.max(3, h * (0.06 + 0.08 * power));
+    const flash = this.add.circle(x, y, r, 0xffffff, 0.9).setDepth(p.y + 1);
+    this.tweens.add({ targets: flash, scale: 2.2 + power * 1.5, alpha: 0, duration: 140 + 120 * power, ease: 'Quad.easeOut', onComplete: () => flash.destroy() });
+    if (power < 0.6) return;
+    const ring = this.add.circle(x, y, r, 0xffffff, 0).setStrokeStyle(2, 0xffe066, 1).setDepth(p.y + 1);
+    this.tweens.add({ targets: ring, scale: 4 + power * 2, alpha: 0, duration: 300, ease: 'Quad.easeOut', onComplete: () => ring.destroy() });
+    for (let i = 0; i < 5; i++) {
+      const ang = (i / 5) * Math.PI * 2 + Math.random() * 0.6;
+      const spark = this.add.rectangle(x, y, r * 1.6, 1.6, 0xfff3b0, 1).setRotation(ang).setDepth(p.y + 1);
+      this.tweens.add({ targets: spark, x: x + Math.cos(ang) * r * 5, y: y + Math.sin(ang) * r * 5, alpha: 0, duration: 220, ease: 'Quad.easeOut', onComplete: () => spark.destroy() });
+    }
+  }
+
   private powerSmashFx(): void {
     powerSmashSound();
     this.cameras.main.flash(150, 255, 150, 60);
@@ -785,19 +811,7 @@ export class MatchScene extends Phaser.Scene {
     }
   }
 
-  private hop(id: string, height = 8): void {
-    const v = this.views[id];
-    this.tweens.add({
-      targets: v,
-      lift: height,
-      duration: height > 10 ? 150 : 110,
-      yoyo: true,
-      ease: 'Quad.easeOut',
-      onStart: () => kickBody(v.body, 1.4),
-      onUpdate: () => this.placeView(id),
-      onComplete: () => kickBody(v.body, -1.8),
-    });
-  }
+
 
   /**
    * Puts the right picture on the sprite for the player's pose and facing: front, back, or profile for a player running or turned sideways.
@@ -874,11 +888,38 @@ export class MatchScene extends Phaser.Scene {
 
   private rigTurn = 0;
 
+  /**
+   * A player who has to run far sideways for the ball ends the run in a lunge (`minReach`: at least this far, 1 for a ball he cannot reach).
+   * The direction is the run's, in the picture's own x (the front view is mirrored).
+   */
+  private planLunge(id: string, target: CourtPos, ms: number, minReach: number): void {
+    const v = this.views[id];
+    const dx = target.x - this.pos[id].x;
+    const dist = Math.hypot(dx, target.z - this.pos[id].z);
+    const reach = Math.max(minReach, Math.min(1, (dist - LUNGE_FROM_M) / 2.4));
+    if (reach <= 0 || Math.abs(dx) < 0.8) {
+      delete this.lunge[id];
+      return;
+    }
+    const mirrored = toonViewOf(this.defaultFacing(id), v.side) === 'front';
+    this.lunge[id] = { dir: (dx > 0 ? 1 : -1) * (mirrored ? -1 : 1), reach, until: this.time.now + ms + 900 };
+  }
+
+  /** The lunge planned for the player, if it is still valid. */
+  private lungeOf(id: string): { dir: number; reach: number } | null {
+    const l = this.lunge[id];
+    return l && this.time.now <= l.until ? l : null;
+  }
+
   /** Shows the player in a pose (glides into it; a stroke's preparation is wound up a little further, see `loadPose`). */
   private setPose(id: string, pose: PoseName): void {
     const v = this.views[id];
     v.pose = pose;
-    v.rig.to(this.time.now, pose.endsWith('Prep') ? loadPose(pose) : POSES[pose], pose.endsWith('Prep') ? 220 : 150, inOut);
+    const prep = pose.endsWith('Prep');
+    let spec = prep ? loadPose(pose, this.hitHeight[id]) : pose.endsWith('Hit') ? forHeight(POSES[pose], this.hitHeight[id]) : POSES[pose];
+    const lunge = pose === 'ready' ? null : this.lungeOf(id);
+    if (lunge && toonViewOf(v.facing, v.side) !== 'side') spec = lungePose(spec, lunge.dir, lunge.reach);
+    v.rig.to(this.time.now, spec, lunge ? 200 : prep ? 220 : 150, lunge ? easeOut : inOut);
   }
 
   /** Shows the run cycle at `frame` (fractional: the in-betweens); seen from the side in profile, else running towards or away. */
@@ -962,9 +1003,14 @@ export class MatchScene extends Phaser.Scene {
     v.busyUntil = this.time.now + 520;
     kickBody(v.body, stance === 'smash' ? 0.6 : 1);
     v.trail = [];
+    const lunge = this.lungeOf(id);
+    const legs = lunge && stance !== 'smash' ? lungePose(POSES.ready, lunge.dir, lunge.reach) : null;
+    delete this.lunge[id];
+    const height = this.hitHeight[id];
+    delete this.hitHeight[id];
     if (shot === null) {
       // The serve: hit low after a bounce, like a forehand, no jump.
-      v.rig.play(this.time.now, strokeSteps('fh'));
+      v.rig.play(this.time.now, strokeSteps('fh', 0.6));
     } else if (stance === 'smash') {
       // A jump off the left leg: up quickly, the racket meets the ball on the way up, a longer fall, the landing squashes the body.
       const air = 330;
@@ -972,7 +1018,7 @@ export class MatchScene extends Phaser.Scene {
       this.jump(id, 24, air);
       this.cameras.main.shake(90, 0.0035);
     } else {
-      v.rig.play(this.time.now, strokeSteps(stance as 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv'));
+      v.rig.play(this.time.now, strokeSteps(stance as 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv', stance === 'ov' ? undefined : height, legs));
     }
     v.pose = 'ready';
     this.time.delayedCall(520, () => {
@@ -1857,11 +1903,15 @@ export class MatchScene extends Phaser.Scene {
         for (const q of TEAMS[other(step.side)]) {
           this.time.delayedCall(40, () => {
             const w = this.views[q.id];
-            if (w.lift === 0 && this.time.now >= w.busyUntil) this.hop(q.id, 5);
+            if (w.lift === 0 && this.time.now >= w.busyUntil && !w.rig.driving()) {
+              w.rig.play(this.time.now, splitSteps());
+              this.jump(q.id, 7, 160);
+            }
           });
         }
       }
       if (isPowerfulSmash(step)) this.powerSmashFx();
+      this.hitFlash(attacker.id, step.kind === 'serve' ? 0.3 : Math.min(1, step.shot.flight.speed / 34 + (step.shot.id.startsWith('smash_') ? 0.4 : 0)));
     }
     // Por Cuatro (and a strong Por Tres) leave a mark where the ball hits the court.
     this.powerStyle = step.shot.id === 'smash_x4' ? 'x4' : step.shot.id === 'smash_x3' && (step.outcome === 'winner' || step.reboundBack === true) ? 'x3' : null;
@@ -1910,6 +1960,8 @@ export class MatchScene extends Phaser.Scene {
       const prepStance: Stance = stance !== 'smash' && (step.block === true || next.formation[other(step.side)] === 'net') ? (stance === 'bh' ? 'bhv' : 'fhv') : stance;
       this.stance[defender.id] = prepStance;
       targets[defender.id] = standingSpot(other(step.side), stance, flight.hit, offGlass ? REBOUND_BEHIND_BALL : 0);
+      this.hitHeight[defender.id] = offGlass ? 1 : flight.hitH;
+      this.planLunge(defender.id, targets[defender.id], duration * (1 - from), 0);
       endPose[defender.id] = poseOf(prepStance, step.block ? 'Hit' : 'Prep');
       movePartner();
       shiftHitters();
@@ -1926,6 +1978,8 @@ export class MatchScene extends Phaser.Scene {
       } else {
         targets[defender.id] = spot;
         endPose[defender.id] = poseOf(stance, 'Hit');
+        // too late: he throws himself at it with a full lunge
+        this.planLunge(defender.id, spot, duration * (1 - from), 1);
       }
       movePartner();
       shiftHitters();
@@ -1936,15 +1990,18 @@ export class MatchScene extends Phaser.Scene {
     }
     const remain = duration * (1 - from);
     this.movePlayers(targets, remain, undefined, endPose, endFacing);
+    // Hit-stop: the ball stays on the racket for a moment at contact (not on a serve), so the contact reads.
+    const hold = from === 0 && step.kind !== 'serve' ? HIT_STOP + 60 : 0;
     for (const e of flight.events) {
       const at = flight.duration > 0 ? e.t / flight.duration : 0;
       if (at < from) continue;
-      this.time.delayedCall((at - from) * duration, () => this.impactFx(e, flight.path));
+      this.time.delayedCall(hold + (at - from) * duration, () => this.impactFx(e, flight.path));
     }
 
     this.tweens.addCounter({
       from,
       to: 1,
+      delay: hold,
       duration: remain,
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const p = ballPoint(flight.path, tween.getValue() ?? 0);

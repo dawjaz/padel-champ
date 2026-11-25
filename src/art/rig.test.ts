@@ -48,3 +48,29 @@ describe('rig', () => {
     expect(far[1]).toBeLessThan(near[1]);
   });
 });
+
+describe('rig stage C', () => {
+  it('a low ball bends the knees and lowers the racket, a high one stretches', async () => {
+    const { forHeight } = await import('./rig');
+    const low = forHeight(POSES.fhHit, 0.3);
+    const high = forHeight(POSES.fhHit, 1.8);
+    expect(low.crouch).toBeGreaterThan(POSES.fhHit.crouch);
+    expect(low.hand[1]).toBeGreaterThan(POSES.fhHit.hand[1]);
+    expect(high.hand[1]).toBeLessThan(POSES.fhHit.hand[1]);
+    expect(forHeight(POSES.fhHit, 1)).toBe(POSES.fhHit);
+  });
+  it('a lunge steps out with the leg on the ball side and keeps it through the stroke', async () => {
+    const { lungePose, strokeSteps } = await import('./rig');
+    const l = lungePose(POSES.ready, 1, 1);
+    expect(l.right[0]).toBeGreaterThan(POSES.ready.right[0] + 30);
+    expect(l.crouch).toBeGreaterThan(POSES.ready.crouch + 15);
+    const steps = strokeSteps('fh', 1, l);
+    expect(steps[0][1].right).toEqual(l.right);
+    expect(steps[steps.length - 1][1]).toBe(POSES.ready);
+  });
+  it('the split step lands wide and low', async () => {
+    const { splitSteps } = await import('./rig');
+    const land = splitSteps()[1][1];
+    expect(land.right[0] - land.left[0]).toBeGreaterThan(POSES.ready.right[0] - POSES.ready.left[0]);
+  });
+});
