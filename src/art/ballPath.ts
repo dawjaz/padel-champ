@@ -42,6 +42,9 @@ export type FlightOutcome =
   | 'winner'
   | 'continue';
 
+/** A winning Por Cuatro's line meets the back wall at most this far (m) from the middle (see `buildFlight`). */
+const X4_BACK_X = 3;
+
 export interface FlightOpts {
   from: CourtPos;
   /** Height of the ball when it is hit. Default: waist height (serves). */
@@ -829,6 +832,14 @@ export function buildFlight(opts: FlightOpts): Flight {
   const blockAt = o.block ? (o.airDist ?? Math.min(1.6, depth0 * 0.5)) : undefined;
   const depth = o.shot.downward === true && blockAt !== undefined && (o.outcome === 'continue' || o.outcome === 'in') ? Math.min(depth0, blockAt + DOWNWARD_CARRY) : depth0;
   const land = { x: toBack ? clamp(o.landX, -2.6, 2.6) : o.landX, z: NET_Z + away * depth };
+  if (toBack) {
+    // ... and its line must reach the back glass well inside the side walls: a sharp diagonal from a corner would carry on into the
+    // side glass or out through a side opening low down. Straighten the aim until the line meets the back wall within ±X4_BACK_X.
+    const zEnd = away < 0 ? 0 : 20;
+    const along = (zEnd - from.z) / (land.z - from.z);
+    const xEnd = from.x + (land.x - from.x) * along;
+    if (Math.abs(xEnd) > X4_BACK_X) land.x = from.x + (clamp(xEnd, -X4_BACK_X, X4_BACK_X) - from.x) / along;
+  }
   // A volley from right at the net is much faster than one from mid-court (full boost within 2 m, none from 4.5 m).
   const close = clamp((4.5 - Math.abs(o.from.z - NET_Z)) / 2.5, 0, 1);
   const speed = Math.min(fl.speed * (o.speedMul ?? 1) * (1 + (fl.netBoost ?? 0) * close), MAX_SHOT_SPEED);

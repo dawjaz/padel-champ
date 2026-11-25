@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.115: Por Cuatro always leaves over the back glass
+- A winning Por Cuatro (`exitVia: 'back'`, not `reboundBack`) went out sideways in ~7% of cases (low, through a side opening, after a sharp diagonal from a corner) and over the hitter's own half in ~4% (the fallback "any exit" in `buildFlight`). Its aim is now straightened so that the ball's line meets the back wall within `X4_BACK_X` 3 m of the middle (`buildFlight`, after the ±2.6 m clamp). Checked over 1404 flights (both sides, hitter x -4..4, 3 depths, landX -4.5..4.5): 100% over the back glass, `reboundBack` unchanged. Visual only (the engine's result does not depend on the path).
+
 ## v0.114: characters stage D, emotions
 - **Reactions after a point** (`reactToPoint`, ~0.4 s after it ends or when the ball has stopped): the winner of the point pumps a fist (`fistSteps`), his partner a smaller one; a pair standing within 3.4 m slaps hands instead (`highFiveSteps`, the hand on the partner's side, a star at the hands, `slapFx`). The player who made the error or double fault holds his head, then drops his shoulders (`frustrationSteps`); the other losers drop their shoulders (`disappointSteps`), an exhausted one puts his hands on his knees (`tiredSteps`). `MatchScene.react` (not over a stroke; sets `reactUntil` so a plain return to ready does not cut it).
 - **Celebrations:** a game won: rackets up and a hop (`celebrateSteps(false)`); the match: both arms up, two jumps, the losers hang their heads.
@@ -82,7 +85,7 @@ _Last updated: 2026-11-24 (v0.105)_
 ## v0.101: por tres / contrapared fixes, dejada balance, GEAR stats, coins open the shop
 - **Contrapared** is only played off the glass: `requires.formations` is `["back"]` and `buildContrapared` clamps the wall hit to `CONTRAPARED_GLASS_END` (16.4 m), so never off the mesh.
 - **Por tres** (smash_x3): `winnerMargin 8`, `noReboundBack`. Every winning por tres uses `scriptedSideExit` (bounce, back glass with spin, out over the side glass). Strongly level dependent (5v5 ~69% winners, 5 vs 7 ~0%).
-- **Nothing lands on the crowd**: `OUTSIDE_LIMIT` in `ballPath.ts`; `buildCoast` keeps the ball within ~3 m outside the court (`OVER_FENCE_KEEP`). Leftover: smash_x4 ~12% side exits, ~1.5% own-half exits.
+- **Nothing lands on the crowd**: `OUTSIDE_LIMIT` in `ballPath.ts`; `buildCoast` keeps the ball within ~3 m outside the court (`OVER_FENCE_KEEP`). Leftover fixed in v0.115 (smash_x4 exits).
 - **Dejada**: the reach model had pushed it to 83-91% winners vs back defenders; `winnerMargin 30` now gives ~49% vs back and 6-14% vs mid.
 - **GEAR**: stats table (real totals incl. gear) next to the hero; tapping a model previews the change (green/orange deltas), WEAR/REMOVE button on the row wears it. The set text moved above the sheet (no longer hidden).
 - **Coins**: tapping the coin pill on any screen opens the shop (`coinPill` in `theme.ts`; not in the shop, not during a tournament). The shop's back button returns to the screen it was opened from.
