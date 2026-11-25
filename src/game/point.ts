@@ -1,5 +1,5 @@
 import { DIRECTIONS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetRisk } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread } from './court';
 import { fatigued } from './attributes';
 import { LOB_APEX, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
@@ -446,6 +446,22 @@ export interface HitOptions {
   target?: { x: number; depth: number };
 }
 
+/**
+ * How far a ball aimed at a chosen point may stray for this hitter now (see `targetSpread`): his accuracy as tiredness leaves it, the guts
+ * he has left, the pressure of the ball he plays, the shot. The scene draws the same spread as the aiming ellipse.
+ */
+export function targetSpreadFor(hitter: PlayerDef, state: PointState, shot: ShotDef): { x: number; depth: number } {
+  const g = state.guts[hitter.id] ?? hitter.maxGuts;
+  return targetSpread({
+    accuracy: fatigued(hitter, g).stats.accuracy,
+    gutsShare: hitter.maxGuts > 0 ? g / hitter.maxGuts : 1,
+    pressure: state.ball.pressure ?? 0,
+    speed: shot.flight.speed,
+    lob: isLob(shot),
+    touch: shot.id === 'dejada',
+  });
+}
+
 export function stepHit(
   teams: Teams,
   state: PointState,
@@ -470,7 +486,7 @@ export function stepHit(
   const targetIdx = defenderIndex(state.hitterIdx, direction, rng);
   // The ball is aimed at one of 10 points; whoever of the two is closer to where it will come down plays it (they read the ball).
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
-  const tgt = !fixedAim && options?.target ? targetLanding(options.target, rng, attacker.stats.accuracy) : undefined;
+  const tgt = !fixedAim && options?.target ? targetLanding(options.target, rng, targetSpreadFor(hitter, state, shot)) : undefined;
   const fixDepth = tgt?.depth;
   const landX = fixedAim ? undefined : tgt ? tgt.x : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
   // A ball exactly on the centre line goes to the player it was aimed at (random for a middle ball), not always to the right-hand one.
@@ -481,7 +497,7 @@ export function stepHit(
     attacker,
     attackerGuts: state.guts[attacker.id],
     shot,
-    direction: tgt ? { ...DIRECTIONS[direction], risk: DIRECTIONS[direction].risk + targetRisk(options!.target!.depth) } : DIRECTIONS[direction],
+    direction: DIRECTIONS[direction],
     incoming: state.ball,
     defender,
     defenderFormation: state.formation[defSide],
@@ -489,7 +505,8 @@ export function stepHit(
     airTake:
       netVolley(shot, state.formation[defSide], undefined) || airTake(shot, state.formation[defSide], undefined, shot.landDepth) !== undefined,
     rallyLength: state.hits,
-    landX,
+    // aimed at a chosen point the walls are dealt with by where the ball really falls (a miss below), not by an extra risk
+    landX: tgt ? undefined : landX,
     // The ball comes down at the nominal depth (the real one is rolled later). A ball into a gap between the defenders, or too short or too long for where they stand, is hard to reach.
     reach:
       landX === undefined
@@ -498,7 +515,9 @@ export function stepHit(
     rng,
   });
   const force = options?.force;
-  const res = force === undefined ? rolled : { ...rolled, outcome: force === 'rebound' ? ('continue' as const) : force, pressure: force === 'continue' || force === 'rebound' ? rolled.pressure : 0 };
+  const forced = force === undefined ? rolled : { ...rolled, outcome: force === 'rebound' ? ('continue' as const) : force, pressure: force === 'continue' || force === 'rebound' ? rolled.pressure : 0 };
+  // A ball aimed at a chosen point that strays off the court is an error, whatever the roll said.
+  const res = tgt?.miss && force === undefined && forced.outcome !== 'error' ? { ...forced, outcome: 'error' as const, pressure: 0 } : forced;
   const guts = { ...state.guts, [attacker.id]: spendGuts(state.guts[attacker.id], shot.cost) };
 
   const step: Step = {
@@ -595,7 +614,7 @@ export function stepHit(
       ...(res.outcome === 'winner' && shot.reboundWin !== undefined && rng() < shot.reboundWin
         ? { reboundBack: true, glass: true, ...aimDepthFor(shot, rng, landX, REBOUND_WIN_DEPTH, prefer?.depth, attacker.stats.accuracy) }
         : aimDepthFor(shot, rng, landX, res.outcome === 'winner' ? shot.winLandDepth ?? fixDepth : fixDepth, prefer?.depth, attacker.stats.accuracy)),
-      errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? pickErrorKind(shot, rng, landX) : undefined,
+      errorKind: res.outcome === 'error' && shot.wall !== 'fence' ? (tgt?.miss ?? pickErrorKind(shot, rng, landX)) : undefined,
     },
   };
 }

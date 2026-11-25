@@ -61,26 +61,60 @@ export function aimX(direction: Direction, defenderIdx: number, rng: Rng, prefer
   }
   return point(k);
 }
-/** Spread (m, either way at accuracy 5) of a ball aimed at a point the player chose: across and in depth. */
-export const TARGET_SPREAD_X = 0.6;
-export const TARGET_SPREAD_DEPTH = 0.9;
+/** Spread (m, either way) of a ball aimed at a point the player chose, for an average hitter (accuracy 5), fresh, an easy ball, a medium shot. */
+export const TARGET_SPREAD_X = 0.9;
+export const TARGET_SPREAD_DEPTH = 1.3;
 
-/**
- * A ball aimed at a point the player tapped (x across, depth past the net): it comes down around it, a triangular spread that grows
- * for a less accurate (or tired) hitter. Kept on the court (|x| <= 4.6, depth 1..9.4).
- */
-export function targetLanding(target: { x: number; depth: number }, rng: Rng, accuracy = 5): { x: number; depth: number } {
-  const k = aimSpreadMul(accuracy);
-  const tri = (): number => rng() + rng() - 1;
-  return {
-    x: Math.max(-4.6, Math.min(4.6, target.x + tri() * TARGET_SPREAD_X * k)),
-    depth: Math.max(1, Math.min(9.4, target.depth + tri() * TARGET_SPREAD_DEPTH * k)),
-  };
+export interface SpreadContext {
+  /** Accuracy attribute (already lowered by tiredness, see `fatigued`). */
+  accuracy: number;
+  /** Guts left as a share of the bar (0..1). */
+  gutsShare: number;
+  /** Pressure of the incoming ball (0..~0.5, see `resolveHit`). */
+  pressure: number;
+  /** Shot pace (m/s) and whether it is a lob or a touch shot (dejada). */
+  speed: number;
+  lob: boolean;
+  touch: boolean;
 }
 
-/** Extra error risk of a chosen target right behind the net (into the net) or at the back glass (straight into it). Side walls: `edgeRisk`. */
-export function targetRisk(depth: number): number {
-  return Math.max(0, 1.6 - depth) * 0.08 + Math.max(0, depth - 8.6) * 0.1;
+/**
+ * How far a ball aimed at a chosen point may stray (m, either way across and in depth): accuracy (a good hitter halves it), tiredness
+ * (up to twice as much on an empty bar, from half the bar down), the incoming ball's pressure, the shot (fast flat balls stray more,
+ * a lob mostly in depth, a touch shot less).
+ */
+export function targetSpread(c: SpreadContext): { x: number; depth: number } {
+  const acc = Math.max(0.5, Math.min(1.45, 1.6 - 0.12 * c.accuracy));
+  const tired = 1 + Math.max(0, Math.min(1, (0.5 - c.gutsShare) / 0.5));
+  const press = 1 + 1.5 * Math.max(0, c.pressure);
+  const pace = c.touch ? 0.7 : 0.8 + Math.max(0, c.speed) / 50;
+  const k = acc * tired * press * pace;
+  return { x: TARGET_SPREAD_X * k, depth: TARGET_SPREAD_DEPTH * k * (c.lob ? 1.3 : 1) };
+}
+
+/** Where a ball that strays off the court ends: past the back glass without a bounce, into the side wall, into the net. */
+export type TargetMiss = 'glass' | 'side' | 'net';
+
+/**
+ * A ball aimed at a point the player tapped (x across, depth past the net): it comes down around it, a triangular spread of
+ * `spread`. It is NOT kept on the court: beyond the back line (10 m past the net) it hits the back glass on the full, beyond the
+ * side lines the side wall, too short it is in the net; `miss` says which (an error). A ball that stays in is returned as it fell.
+ */
+export function targetLanding(target: { x: number; depth: number }, rng: Rng, spread: { x: number; depth: number }): { x: number; depth: number; miss?: TargetMiss } {
+  const tri = (): number => rng() + rng() - 1;
+  const x = target.x + tri() * spread.x;
+  const depth = target.depth + tri() * spread.depth;
+  const miss: TargetMiss | undefined = depth < 0.35 ? 'net' : depth > 10 ? 'glass' : Math.abs(x) > 5 ? 'side' : undefined;
+  return { x: Math.max(-4.6, Math.min(4.6, x)), depth: Math.max(1, Math.min(9.4, depth)), ...(miss ? { miss } : {}) };
+}
+
+/** Share of the balls aimed at `target` that land off the court (for the aiming ellipse): analytic, from the triangular spread. */
+export function targetMissChance(target: { x: number; depth: number }, spread: { x: number; depth: number }): number {
+  // P(|u| > a) for u triangular on [-s, s] beyond a one-sided limit at distance d from the centre: ((s - d) / s)^2 / 2 when 0 < d < s.
+  const tail = (d: number, s: number): number => (s <= 0 ? (d < 0 ? 1 : 0) : d >= s ? 0 : d <= -s ? 1 : d >= 0 ? ((s - d) / s) ** 2 / 2 : 1 - ((s + d) / s) ** 2 / 2);
+  const inX = 1 - tail(5 - target.x, spread.x) - tail(5 + target.x, spread.x);
+  const inD = 1 - tail(10 - target.depth, spread.depth) - tail(target.depth - 0.35, spread.depth);
+  return Math.max(0, Math.min(1, 1 - Math.max(0, inX) * Math.max(0, inD)));
 }
 
 /** How often a CPU hitter really hits the aim point he wants (otherwise the point is random, he misses his spot a little). */

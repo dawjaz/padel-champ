@@ -2,6 +2,13 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.119: aiming at a spot, real spread and real misses
+- Owner (25.11): with the spot aim every ball went in, even tired, a lob right at the glass. Causes: the rolled landing point was clamped to the court; the error was a separate roll that did not depend on where the ball fell; tiredness hardly changed anything; the ellipse was 0.6 x 0.9 m.
+- `targetSpread` (court.ts): base 0.9 m across, 1.3 m in depth (triangular, either way) times accuracy (1.6 - 0.12 x accuracy, 0.5..1.45), tiredness (from half the guts bar down, up to x2 on an empty one), the incoming ball's pressure (1 + 1.5 x pressure), the shot (0.8 + speed/50; a lob x1.3 in depth; dejada 0.7). `targetSpreadFor(hitter, state, shot)` in point.ts, the scene draws the same.
+- `targetLanding` no longer clamps a miss: past the back line (10 m) = straight into the back glass, past a side line = side wall, under 0.35 m = net; `stepHit` turns such a hit into an `error` with that `errorKind`. In spot mode the side-wall `edgeRisk` and the old `targetRisk` are not added (the geometry decides); the skill error roll stays.
+- Ellipse = the real spread; it turns orange from 5% and red from 15% out chance (`targetMissChance`, analytic) and shows "OUT n%".
+- Measured (4000 hits each, Dani vs Bruno/Ines, back formation): lob fresh: middle 6%, (3.5, 8.5) 7%, corner (4.3, 9.2) 22%, corner on 10% guts 48% errors; bounce shot corner tired 51%; bajada fast corner tired 80%. Winners like-for-like (same defender): spot vs directions within a few points (cross 24% vs 25-28%, parallel 16% vs 18%); an earlier "62% winners" was a measuring mistake (target on the weaker defender's side with the parallel direction's attack).
+
 ## v0.118: no jump when a ball comes off the glass towards the net
 - A hard ball (bajada fast and others, after the back glass with a high/mid rebound) could fly back past the receivers towards and even over the net before the point where it was played; `clampHit` then moved the hit point back to 0.5 m from the net, so the last step of the path jumped 1 to 2.7 m (it looked like a drop of half a metre or a metre in the TV view). `SimOpts.playZ` (from `buildFlight`): the hit window of `simulateAfterBounce` ends before the ball leaves the receivers' half on the net side, so the player (at the net) takes it out of the air there. Checked over 16,200 rally flights (both sides, all rally shots, positions, glass on/off, rebound classes): 77 jumps before, 0 after; no hit point above 2.7 m.
 

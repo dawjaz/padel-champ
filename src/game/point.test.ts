@@ -1104,3 +1104,33 @@ describe('aiming at a chosen point', () => {
     expect(r.step.landX).toBeUndefined();
   });
 });
+
+describe('aiming spread and misses', () => {
+  it('the spread grows with tiredness, pressure and pace, shrinks with accuracy', async () => {
+    const { targetSpread } = await import('./court');
+    const base = { accuracy: 5, gutsShare: 1, pressure: 0, speed: 20, lob: false, touch: false };
+    const s0 = targetSpread(base);
+    expect(targetSpread({ ...base, gutsShare: 0 }).x).toBeCloseTo(s0.x * 2, 5);
+    expect(targetSpread({ ...base, pressure: 0.25 }).x).toBeGreaterThan(s0.x);
+    expect(targetSpread({ ...base, speed: 35 }).x).toBeGreaterThan(s0.x);
+    expect(targetSpread({ ...base, accuracy: 9 }).x).toBeLessThan(s0.x * 0.7);
+    expect(targetSpread({ ...base, lob: true }).depth).toBeGreaterThan(s0.depth);
+  });
+  it('a ball that strays past the back line or a side line is a miss; the out chance matches', async () => {
+    const { targetLanding, targetMissChance } = await import('./court');
+    const rng = seededRng(5);
+    const spread = { x: 1, depth: 1.5 };
+    let miss = 0;
+    const N = 20000;
+    for (let i = 0; i < N; i++) if (targetLanding({ x: 4.5, depth: 9.3 }, rng, spread).miss) miss++;
+    expect(miss / N).toBeCloseTo(targetMissChance({ x: 4.5, depth: 9.3 }, spread), 1);
+    expect(targetMissChance({ x: 0, depth: 5 }, spread)).toBe(0);
+    expect(targetLanding({ x: 0, depth: 12 }, () => 0.5, spread).miss).toBe('glass');
+    expect(targetLanding({ x: 5.4, depth: 5 }, () => 0.5, spread).miss).toBe('side');
+  });
+  it('a miss turns the hit into an error with that kind', () => {
+    const r = stepHit(TEAMS, rallyState({ hitterIdx: 0 }), shot('rally_lob'), 'cross', seededRng(2), undefined, { target: { x: 0, depth: 13 } });
+    expect(r.step.outcome).toBe('error');
+    expect(r.step.errorKind).toBe('glass');
+  });
+});

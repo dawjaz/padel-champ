@@ -20,10 +20,9 @@ import { applyHd } from '../hd';
 import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
-import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, TARGET_SPREAD_DEPTH, TARGET_SPREAD_X } from '../game/court';
-import { aimSpreadMul, fatigued } from '../game/attributes';
+import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, targetMissChance } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
-import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -1865,8 +1864,15 @@ export class MatchScene extends Phaser.Scene {
     const net = project(0, NET_Z - 0.6).y;
     const marker = this.add.graphics().setDepth(9993);
     this.menu.push(marker);
-    const tired = fatigued(hitter, this.guts[hitter.id] ?? hitter.maxGuts);
-    const spread = aimSpreadMul(tired.stats.accuracy);
+    // the real spread of this hit (accuracy, tiredness, the ball's pressure, the shot): the ellipse shows where the ball may fall
+    const spread = targetSpreadFor(hitter, { ...st, guts: this.guts }, shot);
+    const missText = this.add
+      .text(0, 0, '', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ff6b6b' })
+      .setOrigin(0.5, 1)
+      .setStroke(NAVY_CSS, 4)
+      .setDepth(9994)
+      .setVisible(false);
+    this.menu.push(missText);
     const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
     const target = (px: number, py: number): { x: number; depth: number } => {
       const c = unproject(px, Math.max(far, Math.min(net, py)));
@@ -1877,13 +1883,17 @@ export class MatchScene extends Phaser.Scene {
       const p = project(t.x, z);
       const f = reachAgainst(defenders, 1, st.formation[1], shot, t.x, t.depth, this.reachPositions());
       const color = f < 0.75 ? 0x4ade80 : f >= 0.97 ? 0xff9f1c : 0xffe066;
-      const a = project(t.x - TARGET_SPREAD_X * spread, z);
-      const b = project(t.x + TARGET_SPREAD_X * spread, z);
-      const n = project(t.x, z + TARGET_SPREAD_DEPTH * spread);
-      const fz = project(t.x, z - TARGET_SPREAD_DEPTH * spread);
+      const a = project(t.x - spread.x, z);
+      const b = project(t.x + spread.x, z);
+      const n = project(t.x, z + spread.depth);
+      const fz = project(t.x, z - spread.depth);
+      const miss = targetMissChance(t, spread);
       marker.clear();
-      marker.fillStyle(color, 0.25).fillEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
-      marker.lineStyle(2, color, 0.9).strokeEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
+      // the part of the spread off the court is a risk of an error: the ellipse turns red with it
+      const fill = miss >= 0.15 ? 0xff4d4d : miss >= 0.05 ? 0xff9f1c : color;
+      marker.fillStyle(fill, 0.22).fillEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
+      marker.lineStyle(2, fill, 0.95).strokeEllipse(p.x, (n.y + fz.y) / 2, b.x - a.x, n.y - fz.y);
+      missText.setText(`OUT ${Math.round(miss * 100)}%`).setPosition(p.x, fz.y - 4).setVisible(miss >= 0.03);
       marker.lineStyle(3, 0xffffff, 1).strokeCircle(p.x, p.y, Math.max(5, p.scale * 0.22));
       marker.fillStyle(0xffffff, 1).fillCircle(p.x, p.y, 2.5);
     };
