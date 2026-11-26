@@ -1,30 +1,38 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
-import { updateSave } from '../save';
-import { applyLightScreen, drawCard, makeThemeButton, TC, themeText } from '../theme';
+import { getSave, updateSave } from '../save';
+import { FIRST_RUN, LESSONS, setTipsOff, type LessonGroup } from '../tutorial/lessons';
+import { openLessons } from '../tutorial/tips';
+import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
-const PAGES: Array<{ title: string; lines: string[] }> = [
-  { title: 'THE POINT', lines: ['Padel is played in pairs, with', 'walls. Every ball you hit has to', 'cross the net and bounce in the', 'court before it touches anything.', '', 'You choose each shot from a menu:', 'pick the TYPE, then the SHOT,', 'then the DIRECTION.'] },
-  { title: 'SERVE AND RECEIVE', lines: ['Serve to the body, the T or the', 'glass. A fault gives a slower,', 'easier second serve.', '', 'When the opponent serves, the ball', 'flies in slow motion: read its', 'speed and direction, THEN pick', 'how to return it.'] },
-  { title: 'GUTS (G)', lines: ['Every shot costs guts. A tired', 'player is slower, weaker and less', 'accurate; below half the bar the', 'drop starts. Soft shots recover.', '', 'A shot you cannot pay for is', 'RISKY (red): +15% chance to', 'miss per missing G. Boosts help.'] },
-  { title: 'WHAT CAN I PLAY?', lines: ['The menu only offers shots that', 'fit the ball:', '', 'VOLLEY, VIBORA, BANDEJA: only', 'out of the air, never after a bounce.', 'BAJADA: only off the back glass.', 'SMASH: weak lobs. LOB: any time.'] },
-  { title: 'CAREER', lines: ['Win matches for XP and coins.', 'Spend skill points on your hero,', 'open packs for gear, play knockout', 'tournaments in the CAREER calendar', 'and climb the ranking.', '', 'Tournament ties are best of one', 'match. Trophies pay bonus coins.'] },
-];
+const GROUPS: LessonGroup[] = ['MATCH', 'SHOTS', 'HERO', 'CAREER', 'CAMP'];
 
+/**
+ * HOW TO PLAY: the list of lessons by topic (a tick on the ones seen); a touch opens one over this screen (TipScene). On the very
+ * first game the basics play in a row before the first match (`first`).
+ */
 export class TutorialScene extends Phaser.Scene {
-  private page = 0;
-  private next: { scene: string; data?: object } = { scene: 'TitleScene' };
+  private group: LessonGroup = 'MATCH';
+  private first = false;
+  private next: { scene: string; data?: object } = { scene: 'SettingsScene' };
 
   constructor() {
     super('TutorialScene');
   }
 
-  init(data: { next?: string; data?: object }): void {
-    this.page = 0;
-    this.next = { scene: data.next ?? 'TitleScene', data: data.data };
+  init(data: { first?: boolean; next?: string; data?: object }): void {
+    this.first = data.first === true;
+    this.next = { scene: data.next ?? 'SettingsScene', data: data.data };
+    this.group = 'MATCH';
+    this.sys.settings.data = {};
   }
 
   create(): void {
+    if (this.first) {
+      applyLightScreen(this, false);
+      this.time.delayedCall(50, () => openLessons(this, FIRST_RUN, () => this.finish()));
+      return;
+    }
     this.render();
   }
 
@@ -36,25 +44,26 @@ export class TutorialScene extends Phaser.Scene {
   private render(): void {
     this.children.removeAll(true);
     applyLightScreen(this, false);
-    const p = PAGES[this.page];
-    themeText(this, WIDTH / 2, 56, 'HOW TO PLAY', { size: 30, color: TC.navy, font: 'display' });
-    themeText(this, WIDTH / 2, 112, p.title, { size: 20, color: TC.orange, font: 'display' });
-    const card = this.add.graphics().setPosition(15, 144);
-    drawCard(card, 330, 262, { radius: 18 });
-    themeText(this, WIDTH / 2, 275, p.lines.join('\n'), { size: 14, color: TC.navy, align: 'center', weight: '700' }).setLineSpacing(5);
-    // Page dots
-    PAGES.forEach((_, i) => {
-      const d = this.add.graphics();
-      d.fillStyle(i === this.page ? TC.orange : TC.sky, 1);
-      d.fillCircle(WIDTH / 2 + (i - (PAGES.length - 1) / 2) * 18, 434, 5);
-      d.lineStyle(1.5, TC.navy, 1);
-      d.strokeCircle(WIDTH / 2 + (i - (PAGES.length - 1) / 2) * 18, 434, 5);
+    screenHeader(this, 'How to play', { onBack: () => this.scene.start(this.next.scene, this.next.data) });
+    const seen = getSave().tips.seen;
+    GROUPS.forEach((g, i) => {
+      const w = 62;
+      const b = makeThemeButton(this, 18 + w / 2 + i * (w + 4), 92, w, 30, g, () => { this.group = g; this.render(); }, g === this.group ? 'primary' : 'secondary', 11);
+      void b;
     });
-    const last = this.page === PAGES.length - 1;
-    makeThemeButton(this, WIDTH / 2, 494, 260, 54, last ? "LET'S PLAY" : 'NEXT', () => {
-      if (last) this.finish();
-      else { this.page++; this.render(); }
-    }, 'primary', 22);
-    makeThemeButton(this, WIDTH / 2, 556, 160, 40, 'SKIP', () => this.finish(), 'secondary', 15);
+    LESSONS.filter((l) => l.group === this.group).forEach((l, i) => {
+      const y = 118 + i * 70;
+      const ok = seen.includes(l.id);
+      const card = this.add.graphics().setPosition(14, y);
+      drawCard(card, WIDTH - 28, 62, { radius: 14, stroke: ok ? TC.navy : TC.orange });
+      themeText(this, 28, y + 22, l.title, { size: 15, font: 'display', origin: [0, 0.5] });
+      themeText(this, 28, y + 44, `${l.pages.length} ${l.pages.length === 1 ? 'PAGE' : 'PAGES'}${ok ? '  ·  SEEN' : '  ·  NEW'}`, { size: 10, color: ok ? TC.sub : TC.orange, origin: [0, 0.5] });
+      makeThemeButton(this, WIDTH - 64, y + 31, 76, 36, ok ? 'AGAIN' : 'PLAY', () => openLessons(this, [l.id], () => this.render()), ok ? 'blue' : 'primary', 13);
+    });
+    const tipsLabel = (): string => `TIPS DURING PLAY: ${getSave().tips.off ? 'OFF' : 'ON'}`;
+    const t = makeThemeButton(this, WIDTH / 2, 600, 290, 40, tipsLabel(), () => {
+      updateSave((d) => ({ ...d, tips: setTipsOff(d.tips, !d.tips.off) }));
+      t.text.setText(tipsLabel());
+    }, 'secondary', 14);
   }
 }

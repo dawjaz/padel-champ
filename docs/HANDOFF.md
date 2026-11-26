@@ -2,6 +2,16 @@
 
 _Last updated: 2026-11-26 (v0.137)_
 
+## v0.141: graphic tutorial, stage 1 (comic slides, tips in context, lesson list)
+- Owner's brief: the tutorial is for the whole game, not only the minigames, and it must be comic slides with the cutscene characters (preparing, striking), not empty diagrams. The first attempt (flat schematics in `art/tutorialArt.ts`) was rejected and removed.
+- `src/tutorial/lessons.ts` (pure, tested): 15 lessons in 5 groups (MATCH, SHOTS, HERO, CAREER, CAMP), each 1-3 pages {head, text, art}; `TipState` in `save.tips` ({seen, off}), `tipDue/markTip/setTipsOff`, `sanitizeTips` (a player of the old tutorial has the basics and serve as seen). `FIRST_RUN` = basics, serve (played in a row before the very first match from QUICK MATCH, via `TutorialScene {first:true}`).
+- `src/scenes/tutorialSlides.ts`: the slides. A framed comic panel (court / sunburst / gold stage) with `StageActor`s (the hero as he looks in the game, a partner, an opponent) playing a looped script (`SCRIPTS`: `Kit.at/ball/bubble/shout/tap/ring/burst/flash/chip/icon/bar/glow/cross/head/walk`), local coordinates 312x232. To add a slide: add an `ArtId` in lessons.ts and a `Script` here.
+- `src/scenes/TipScene.ts`: the overlay (like ConfirmScene: the scene under it is paused and resumed), pages with NEXT / GOT IT, queue of lessons, DON'T SHOW TIPS on contextual tips. `src/tutorial/tips.ts`: `showTip(scene, id, done?)` (once, only if tips are on, never over another tip) and `openLessons`.
+- `TutorialScene` is now the HOW TO PLAY list (SETTINGS): lessons by group with SEEN/NEW, PLAY/AGAIN, TIPS DURING PLAY on/off.
+- Tips are hooked at: the first timing ring (`timingRing`), the first RUN OUT (`runOutPhase`, human runner), the first rally/return menu (`shots`: what can I play, aiming) and the first menu with a special (`special`), Practice Court, Hero, Gear, Career (calendar), Camp and each camp minigame before its countdown.
+- Scripts in tests/automation: set `tips.off = true` (or `tutorialSeen` plus filled `tips.seen`) or the tips will pause the scenes.
+- Next stages: more lessons (shop and packs, partners, daily and weekly tasks, quitting and retiring from a match, coin toss), a short pass on the slides after the owner's look (pacing, wording), maybe voice-less "sound" effects with the rest of the sounds.
+
 ## v0.140: owner's test round (Gear tiers, serve pace and spin, Smash Show ring, camp counters, big-draw layout, skill points)
 - Skill points (fixes the v0.138 misreading): the owner wanted the same pace as before (the cap rises every 5 levels, 2 points a level); the bug was an off-by-one: the new room opened on level 6, 11, ... while the hero screen promised level 5. `statCap(level) = capBase + floor(level / levelsPerCap)` now (opens ON 5, 10, 15, 20, 25), `levelsPerCap` is back to 5, `nextCapLevel` feeds the hint under the stat rows ("unlocks at level N"). Supersedes the v0.138 note about caps every 3 levels.
 - Gear: every worn-item tile shows its grade (Basic / Pro / Technical / Elite, `tierOf` from the id suffix _1.._4) under the brand.

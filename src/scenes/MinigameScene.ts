@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import playersData from '../data/players.json';
+import { showTip } from '../tutorial/tips';
 import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { project, unproject } from '../art/camera';
 import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ballPath';
@@ -100,7 +101,10 @@ export class MinigameScene extends Phaser.Scene {
     this.ballShadow = this.add.image(0, 0, SHADOW_KEY).setAlpha(0.35).setVisible(false).setDepth(5);
     this.ball = this.add.image(0, 0, BALL_KEY).setVisible(false).setDepth(9100);
     this.updateHud();
-    this.countdown(() => this.nextRound());
+    const start = (): void => this.countdown(() => this.nextRound());
+    this.time.delayedCall(30, () => {
+      if (!showTip(this, `camp_${this.gameId}`, start)) start();
+    });
   }
 
   /** 3, 2, 1, GO! before the first round, so the player is ready. */

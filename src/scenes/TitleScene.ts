@@ -75,7 +75,7 @@ export class TitleScene extends Phaser.Scene {
         go: () =>
           this.scene.start(
             save.settings.tutorialSeen ? 'MatchScene' : 'TutorialScene',
-            save.settings.tutorialSeen ? { practice: null, career: null } : { next: 'MatchScene', data: { practice: null, career: null } },
+            save.settings.tutorialSeen ? { practice: null, career: null } : { first: true, next: 'MatchScene', data: { practice: null, career: null } },
           ),
       },
       { label: 'HERO', icon: 'top', color: TC.orange, lock: true, go: () => this.scene.start('CharacterScene') },

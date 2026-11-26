@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { showTip } from '../tutorial/tips';
 import { WIDTH } from '../config';
 import { activeBracket, enterEvent, entryCheck, skipWeek, tournamentActive } from '../career/careerFlow';
 import { levelOf } from '../career/profile';
@@ -27,6 +28,7 @@ export class CalendarScene extends Phaser.Scene {
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('skip-confirmed'));
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'career'));
   }
 
   private label(x: number, y: number, str: string, size: number, color: number, originX = 0.5, display = false): Phaser.GameObjects.Text {

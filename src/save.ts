@@ -9,6 +9,7 @@ import { newDaily, sanitizeDaily, type Daily } from './career/daily';
 import { newWeekly, sanitizeWeekly, type Weekly } from './career/weekly';
 import { newCampGoals, sanitizeCampGoals, type CampGoals } from './career/campGoals';
 import { newProfile, sanitizeProfile, type Profile } from './career/profile';
+import { newTips, sanitizeTips, type TipState } from './tutorial/lessons';
 import { sanitizeCutHistory, type CutHistory, type CutMode } from './art/cutscenes';
 
 export interface SaveData {
@@ -33,6 +34,8 @@ export interface SaveData {
   campGoals: CampGoals;
   /** The cutscenes seen so far (how often, the last variant of each occasion). */
   cuts: CutHistory;
+  /** The tutorial tips seen so far and whether they are switched off (see tutorial/lessons.ts). */
+  tips: TipState;
 }
 
 export interface KeyValueStore {
@@ -44,7 +47,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {} };
+  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {}, tips: newTips() };
 }
 
 function count(v: unknown): number {
@@ -75,6 +78,7 @@ export function parseSave(raw: string | null): SaveData {
       weekly: sanitizeWeekly(p?.weekly),
       campGoals: sanitizeCampGoals(p?.campGoals),
       cuts: sanitizeCutHistory(p?.cuts),
+      tips: sanitizeTips(p?.tips, p?.settings?.tutorialSeen === true),
     };
   } catch {
     return base;

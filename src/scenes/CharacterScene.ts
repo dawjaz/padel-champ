@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { showTip } from '../tutorial/tips';
 import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
@@ -53,6 +54,7 @@ export class CharacterScene extends Phaser.Scene {
     makeThemeButton(this, WIDTH / 2, 614, 108, 40, 'SPECIAL', () => this.scene.start('SpecialScene'), 'primary', 15);
     makeThemeButton(this, WIDTH - 64, 614, 108, 40, 'GEAR', () => this.scene.start('GearScene'), 'blue', 15);
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'hero'));
   }
 
   private text(x: number, y: number, str: string, size: number, color: number, originX = 0.5, display = false): Phaser.GameObjects.Text {

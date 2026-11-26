@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { showTip } from '../tutorial/tips';
 import { WIDTH } from '../config';
 import { CAMP, CAMP_GAMES, campNow, campOpen, canTry, grantExtraTry, nextMilestone, startTry, type CampGameId } from '../career/camp';
 import { rewardedAd } from '../ads';
@@ -64,6 +65,7 @@ export class CampScene extends Phaser.Scene {
       if (!more) b.text.setAlpha(0.6);
     }
     themeText(this, WIDTH / 2, 612, 'Rewards: coins, basic boosts and Gear Pack fragments.', { size: 10, color: TC.sub });
+    this.time.delayedCall(250, () => showTip(this, 'camp'));
   }
 
   private play(game: CampGameId): void {

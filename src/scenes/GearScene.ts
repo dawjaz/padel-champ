@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { showTip } from '../tutorial/tips';
 import { addToon } from '../art/toonTexture';
 import { sfx } from '../audio';
 import { drawIcon } from '../art/icons';
@@ -43,6 +44,7 @@ export class GearScene extends Phaser.Scene {
     applyLightScreen(this);
     screenHeader(this, 'Gear', { onBack: () => this.scene.start('CharacterScene'), coins: getSave().profile.coins });
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'gear'));
   }
 
   private label(x: number, y: number, str: string, size: number, color: number, originX = 0.5, display = false): Phaser.GameObjects.Text {

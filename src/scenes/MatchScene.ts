@@ -27,6 +27,7 @@ import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchS
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { seededRng } from '../game/rng';
+import { showTip } from '../tutorial/tips';
 import { practicePoint, situation, SITUATIONS, type SituationId } from '../game/practice';
 import { tournamentEnd, type CutOccasion } from '../art/cutscenes';
 import { CUPS } from '../career/cups';
@@ -374,7 +375,10 @@ export class MatchScene extends Phaser.Scene {
 
     this.refreshScore();
     this.refreshGuts();
-    if (this.practice) this.practiceMenu();
+    if (this.practice) {
+      this.practiceMenu();
+      this.time.delayedCall(400, () => showTip(this, 'practice'));
+    }
     // a career match opens with the two pairs (now and then, see art/cutscenes.ts)
     else if (this.career) playCutscene(this, 'preMatch', this.cutCast(), () => this.coinToss());
     else this.coinToss();
@@ -1383,6 +1387,13 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /** Puts everybody back in place, refills the guts and shows the menu of the exercise. */
+  /** A lesson a moment after a menu has opened (only if the menu is still there), once. */
+  private tipSoon(id: string): void {
+    this.time.delayedCall(350, () => {
+      if (this.menu.length > 0) showTip(this, id);
+    });
+  }
+
   private practiceMenu(): void {
     this.clearMenu();
     this.hideHeight();
@@ -2046,6 +2057,8 @@ export class MatchScene extends Phaser.Scene {
     for (const sp of specialsFor(hitter, st)) items.unshift(this.specialButton(sp, hitter));
     this.showHeight(st.ball.height, context);
     this.showButtons(title, items);
+    this.tipSoon('shots');
+    if (specialsFor(hitter, st).length > 0) this.tipSoon('special');
   }
 
   private showDirectionMenu(shot: ShotDef): void {
@@ -2340,6 +2353,8 @@ export class MatchScene extends Phaser.Scene {
    * safer and stronger, a mistimed one riskier and weaker. A grade flashes over the ball.
    */
   private timingRing(kind: 'serve' | 'high' | 'out', hitter: PlayerDef, done: (q: number) => void, pathAt?: (ms: number) => { x: number; z: number; h: number }): void {
+    // the first ring of the player's life comes with its lesson (the scene waits, then the ring starts)
+    if (showTip(this, 'ring', () => this.timingRing(kind, hitter, done, pathAt))) return;
     const at = { ...this.ballFloor };
     const hitH = this.ballH;
     const window = ringWindow(hitter);
@@ -2772,6 +2787,7 @@ export class MatchScene extends Phaser.Scene {
     const runner = TEAMS[runSide][step.defenderIdx];
     const id = runner.id;
     const human = this.isHuman(runSide, step.defenderIdx);
+    if (human && showTip(this, 'runout', () => this.runOutPhase(step, next, headline, exit, coast, plan, resume))) return;
     const sgn = Math.sign(exit.x) || 1;
     this.powerStyle = null;
     this.trail = [];
