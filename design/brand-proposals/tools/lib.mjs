@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const here = new URL('.', import.meta.url).pathname;
 /** A font reference: the TTF converted from the @fontsource package. */
-export const font = (name, weight = 400) => `${here}ttf/${name}-latin-${weight}-normal.ttf`;
+export const font = (name, weight = 400, style = "normal") => `${here}ttf/${name}-latin-${weight}-${style}.ttf`;
 
 /**
  * Lays out `text` with HarfBuzz (kerning) plus extra tracking (in em). Per-glyph paths have the origin at the baseline start,

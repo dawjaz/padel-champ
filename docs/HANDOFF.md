@@ -5,6 +5,7 @@ _Last updated: 2026-11-26 (v0.151)_
 ## Brand proposals (no game change): logo and app icon, four directions
 - `design/brand-proposals/` (README there): A modern (Unbounded, navy + lime, the por tres path), B retro 8-bit (pixel title, pixel racket), C dynamic sport (Anton skewed, fireball through glass), D comic (the real game hero smashing, comic POR TRES! in the game colours). SVG sources, PNG previews and the generators.
 - Shown to the owner on a design canvas (claude.ai artifact "PorTres – logo i ikona (4 kierunki)"): overview, home-screen and store-row comparison, one detail board per direction with small-size tests.
+- Round 2 (owner: A and B out, C liked most, D not liked): C2 esports crest, C3 championship gold with the numeral 3, C4 urban brush, D2 pop-art comic panel; on page "Runda 2" of the same canvas.
 - Next: the owner picks one (or a mix); then a transparent logo for the title screen, the store icon set (iOS/Android sizes, Android adaptive foreground/background) and the splash.
 
 ## v0.151 (small): the all-capitals UI writes POR TRES with a space (`GAME_TITLE`), the logo and store keep PorTres
