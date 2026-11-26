@@ -324,14 +324,24 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     },
   },
   special: {
-    stage: 'gold', period: 8000, cast: 'solo',
+    stage: 'gold', period: 8200, cast: 'solo',
     run: (k) => {
       const names: Array<[string, string]> = [['L3', 'SKY ROCKET'], ['L6', 'VENOM'], ['L10', 'CORNER LOCK'], ['L15', 'FREEZE DROP']];
-      names.forEach(([lv], i) => k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: false, size: 13 }));
       k.hero.to(loadPose('smashPrep'), 300);
-      k.at(600, () => { k.hero.play(smashSteps(560)); k.shout(156, 90, 'SKY ROCKET!', { color: 0xffffff, size: 30 }); k.flash(GOLD); k.burst(156, 120, 0xffffff); });
-      names.forEach(([lv, nm], i) => k.at(1800 + i * 1500, () => { k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: true, size: 13 }); k.bubble(156, 70, `LEVEL ${lv.slice(1)}: ${nm}`, { tail: 'up', size: 12, ttl: 1300 }); k.burst(46 + i * 74, 22, 0xffffff); }));
-      k.at(1000, () => k.bubble(156, 196, 'A COSTLY SHOT THAT NEVER EXPIRES', { tail: 'up', size: 10, ttl: 6000 }));
+      // a special shot needs the timing ring as well: touch on green, or it is only a normal shot
+      const hit = k.head(k.hero, 'smashHit');
+      const from: Pt = [hit[0] + 46, hit[1] - 96];
+      k.ballAt(from);
+      k.ball(from, hit, { ms: 1300 });
+      k.ring(hit[0], hit[1], 1300);
+      k.bubble(236, 60, 'WAIT FOR THE GREEN RING', { tail: 'left', size: 10, ttl: 1300 });
+      k.at(1200, () => k.tap(hit[0], hit[1]));
+      k.at(1350, () => { k.hero.play(smashSteps(560)); k.shout(156, 90, 'SKY ROCKET!', { color: 0xffffff, size: 30 }); k.flash(GOLD); k.burst(156, 120, 0xffffff); k.ball(hit, [214, 100], { apex: 10, ms: 520, after: () => { k.burst(214, 100, 0xffffff); k.hideBall(); } }); });
+      // the level chips come after the shot, so they do not hide the ring
+      k.at(2400, () => names.forEach(([lv], i) => k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: false, size: 13 })));
+      names.forEach(([lv, nm], i) => k.at(2600 + i * 1350, () => { k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: true, size: 13 }); k.bubble(156, 70, `LEVEL ${lv.slice(1)}: ${nm}`, { tail: 'up', size: 12, ttl: 1200 }); k.burst(46 + i * 74, 22, 0xffffff); }));
+      k.at(2000, () => k.bubble(156, 196, 'COSTLY, AND IT NEVER EXPIRES', { tail: 'up', size: 10, ttl: 5600 }));
+      k.at(7300, () => k.bubble(156, 196, 'EARLY OR LATE = A NORMAL SHOT', { tail: 'up', size: 10, ttl: 600 }));
     },
   },
   hero: {
@@ -455,7 +465,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     },
   },
   season: {
-    stage: 'gold', period: 8000, cast: 'solo',
+    stage: 'gold', period: 8200, cast: 'solo',
     run: (k) => {
       k.hero.to(POSES.ready, 200);
       k.at(300, () => k.shout(156, 36, 'SEASON COMPLETE', { color: 0xffffff, size: 22 }));

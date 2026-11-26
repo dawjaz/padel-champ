@@ -38,7 +38,7 @@ export const LESSONS: Lesson[] = [
     id: 'serve', group: 'MATCH', title: 'SERVING AND RECEIVING',
     pages: [
       { head: 'THE SERVE', art: 'serve', text: 'The ball must bounce first: drop it, then hit\nit underarm between your knee and hip.\nSend it diagonally into the opposite box.\nA fault gives a slower, easier second serve.' },
-      { head: 'RECEIVING', art: 'receive', text: 'When the opponent serves, the ball flies\nin slow motion: read its speed, spin and\ndirection, THEN pick how to return it.' },
+      { head: 'RECEIVING', art: 'receive', text: 'The opponent drops the ball and serves it\nafter the bounce. It then flies in slow\nmotion: read speed, spin and direction,\nTHEN pick how to return it.' },
     ],
   },
   {
@@ -51,7 +51,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'ring', group: 'SHOTS', title: 'THE TIMING RING',
     pages: [
-      { head: 'TOUCH AS IT CLOSES', art: 'ring', text: 'Serves, smashes, viboras and bandejas\nare hit with a ring that closes on the\nball. Touch when it is GREEN for the\nfull shot; early or late weakens it.' },
+      { head: 'TOUCH AS IT CLOSES', art: 'ring', text: 'Serves, smashes, viboras, bandejas and\nall special shots use a ring that closes\non the ball. Touch when it is GREEN for\nthe full shot; early or late weakens it.' },
     ],
   },
   {
@@ -71,7 +71,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'special', group: 'SHOTS', title: 'SPECIAL SHOTS',
     pages: [
-      { head: 'YOUR SIGNATURE SHOTS', art: 'special', text: 'Levels 3, 6, 10 and 15 unlock a special\nshot each, and none ever expires.\nThey cost a lot of G and need your own\nball, but almost always win the point.' },
+      { head: 'YOUR SIGNATURE SHOTS', art: 'special', text: 'Levels 3, 6, 10 and 15 unlock a special\nshot each, and none ever expires. They cost\na lot of G and need your own ball, and the\nring: hit it on green or it is a normal shot.' },
     ],
   },
   {
