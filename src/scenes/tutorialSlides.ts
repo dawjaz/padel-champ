@@ -33,11 +33,11 @@ const GOLD = 0xffe066;
 type Pt = [number, number];
 
 interface Script {
-  stage: 'court' | 'burst' | 'gold';
+  stage: 'court' | 'burst' | 'gold' | 'outside';
   /** How long one loop is (ms). */
   period: number;
   /** The player behind and the opponent far (rally), the player big in front (solo), him and his partner (duo). */
-  cast: 'rally' | 'solo' | 'duo';
+  cast: 'rally' | 'solo' | 'duo' | 'side';
   run: (k: Kit, cycle: number) => void;
 }
 
@@ -77,7 +77,25 @@ function stage(scene: Phaser.Scene, ox: number, oy: number, kind: Script['stage'
   objs.push(g);
   const sky = kind === 'gold' ? [0x7a4a00, 0xffc933] : kind === 'burst' ? [0x4b8bff, 0xbfd8ff] : [0x1a2f66, 0x2a4c96];
   g.fillStyle(sky[0], 1).fillRoundedRect(0, 0, SLIDE_W, SLIDE_H, 18);
-  if (kind !== 'court') {
+  if (kind === 'outside') {
+    // the court on the left, its side glass with a door, and the ground outside it on the right
+    g.fillStyle(0x203a7c, 1).fillRect(0, 26, 190, 66);
+    g.lineStyle(1.5, GLASS, 0.5);
+    for (let i = 0; i <= 6; i++) g.lineBetween(i * 31.6, 26, i * 31.6, 92);
+    g.fillStyle(0x2f6fd0, 1).fillRect(0, 92, 190, 140);
+    g.fillStyle(0x3a80e8, 1).fillRect(0, 112, 190, 80);
+    g.lineStyle(2, 0xffffff, 0.9).lineBetween(0, 92, 190, 92).lineBetween(0, 112, 190, 112).lineBetween(0, 192, 190, 192);
+    g.fillStyle(0xeaf1fa, 0.9).fillRect(0, 142, 190, 9);
+    g.lineStyle(2, TC.navy, 1).strokeRect(0, 142, 190, 9);
+    g.fillStyle(0x34456e, 1).fillRect(202, 26, 110, 70);
+    g.fillStyle(0x6b7a90, 1).fillRect(202, 96, 110, 136);
+    g.lineStyle(2, 0x8fa0ba, 1).lineBetween(202, 96, 312, 96);
+    // the side glass, with the door in it
+    g.fillStyle(GLASS, 0.5).fillRect(190, 26, 12, 142).fillRect(190, 222, 12, 10);
+    g.lineStyle(3, GLASS, 0.95).strokeRect(190, 26, 12, 206);
+    g.fillStyle(0x6b7a90, 1).fillRect(190, 168, 12, 54);
+    g.lineStyle(3, TC.navy, 1).strokeRect(190, 168, 12, 54);
+  } else if (kind !== 'court') {
     g.fillStyle(sky[1], 0.9).fillRoundedRect(0, SLIDE_H * 0.35, SLIDE_W, SLIDE_H * 0.65, { tl: 0, tr: 0, bl: 18, br: 18 });
     const cx = SLIDE_W / 2;
     const cy = 120;
@@ -152,12 +170,15 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     },
   },
   serve: {
-    stage: 'court', period: 6600, cast: 'rally',
+    stage: 'court', period: 7200, cast: 'rally',
     run: (k, c) => {
-      const names = ['THE T', 'THE BODY', 'THE GLASS'];
-      const sp = SPOTS[c % 3];
-      SPOTS.forEach((s, i) => k.glow(s[0], s[1], 44, 16, i === c % 3 ? GREEN : 0xffffff));
-      k.bubble(sp[0], sp[1] - 28, `SERVE TO ${names[c % 3]}`, { tail: 'down', size: 11 });
+      // all three serves bounce inside the far court; the third bounces first and then goes on to the side glass
+      const spots: Pt[] = [[146, 104], [186, 106], [194, 99]];
+      const names = ['THE T', 'THE OPPONENT', 'THE GLASS (BOUNCE FIRST)'];
+      const i = c % 3;
+      const sp = spots[i];
+      spots.forEach((p, j) => k.glow(p[0], p[1], 40, 14, j === i ? GREEN : 0xffffff));
+      k.bubble(sp[0] - (i === 2 ? 20 : 0), 52, `SERVE TO ${names[i]}`, { tail: 'down', size: 10, ttl: 3600 });
       k.hero.to(loadPose('fhPrep'), 260);
       const hit = k.head(k.hero, 'fhHit');
       const top: Pt = [hit[0], hit[1] - 46];
@@ -168,7 +189,11 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
         k.hero.play(strokeSteps('fh'));
         k.tap(hit[0], hit[1]);
         k.shout(100, 150, 'WHAM!', { color: GOLD });
-        k.ball(hit, sp, { apex: 52, ms: 720, after: () => { k.burst(sp[0], sp[1], 0xffffff); k.ball(sp, [sp[0] + (c % 3 === 2 ? 26 : -22), sp[1] - 34], { apex: 14, ms: 320, after: () => k.hideBall() }); } });
+        k.ball(hit, sp, { apex: 52, ms: 720, after: () => {
+          k.burst(sp[0], sp[1], 0xffffff);
+          if (i === 2) k.ball(sp, [236, 90], { apex: 6, ms: 320, after: () => { k.burst(236, 90, GLASS); k.ball([236, 90], [206, 118], { apex: 10, ms: 380, after: () => k.hideBall() }); } });
+          else k.ball(sp, [sp[0] + (i === 1 ? 20 : -22), sp[1] - 30], { apex: 14, ms: 320, after: () => k.hideBall() });
+        } });
       });
     },
   },
@@ -176,14 +201,14 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     stage: 'court', period: 7600, cast: 'rally',
     run: (k) => {
       k.rival?.to(loadPose('fhPrep'), 240);
-      k.bubble(120, 26, 'HE SERVES...', { tail: 'down', size: 12 });
+      k.bubble(120, 26, 'HE SERVES...', { tail: 'down', size: 12, ttl: 2300 });
       k.at(700, () => {
         k.rival?.play(strokeSteps('fh'));
         k.ball([186, 112], [150, 176], { apex: 46, ms: 1700, after: () => k.ball([150, 176], [122, 204], { apex: 14, ms: 800 }) });
         k.shout(150, 124, 'SLOW MOTION', { color: GLASS, size: 20, angle: -4 });
       });
-      k.at(3000, () => { k.hero.to(POSES.ready, 200); k.bubble(88, 62, 'READ SPEED, SPIN, DIRECTION', { tail: 'down', size: 11 }); });
-      k.at(3900, () => { ['LOB', 'CHIQUITA', 'DRIVE'].forEach((t, i) => k.chip(54 + i * 102, 26, 92, t, { color: TC.blue, on: i === 1, size: 13 })); k.tap(156, 36); });
+      k.at(3000, () => { k.hero.to(POSES.ready, 200); k.bubble(100, 62, 'READ SPEED, SPIN, DIRECTION', { tail: 'down', size: 11, ttl: 1600 }); });
+      k.at(4100, () => { ['LOB', 'CHIQUITA', 'DRIVE'].forEach((t, i) => k.chip(54 + i * 102, 26, 92, t, { color: TC.blue, on: i === 1, size: 13 })); k.tap(156, 36); });
       k.at(4900, () => k.hero.to(loadPose('fhPrep'), 220));
       k.at(5400, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.ballAt(h); k.ball(h, [172, 110], { apex: 30, ms: 650, after: () => k.hideBall() }); });
     },
@@ -252,40 +277,43 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       k.at(600, () => {
         k.hero.play(smashSteps(520));
         k.shout(96, 110, 'POR TRES!', { color: GOLD, size: 26 });
-        k.ball(h, [248, 96], { apex: 16, ms: 420, after: () => k.ball([248, 96], [292, 44], { apex: 24, ms: 520, after: () => {
+        k.ball(h, [186, 106], { apex: 20, ms: 420, after: () => { k.burst(186, 106, 0xffffff); k.shout(150, 120, '1 BOUNCE', { size: 15, color: GOLD }); k.ball([186, 106], [242, 92], { apex: 6, ms: 340, after: () => { k.burst(242, 92, GLASS); k.ball([242, 92], [292, 44], { apex: 24, ms: 520, after: () => {
           k.glow(292, 44, 40, 40, GOLD);
           k.bubble(224, 92, 'THE BALL HANGS IN THE AIR', { tail: 'right', size: 10 });
           k.chip(228, 28, 104, 'RUN OUT!', { color: TC.orange, on: true, size: 15 });
           k.tap(228, 34);
-        } }) });
+        } }); } }); } });
       });
       k.at(3600, () => { k.walk(262, 1400); k.bubble(130, 150, 'YOUR PLAYER CHASES IT OUTSIDE', { tail: 'down', size: 10 }); });
     },
   },
   runout2: {
-    stage: 'court', period: 9000, cast: 'rally',
+    stage: 'outside', period: 9400, cast: 'side',
     run: (k) => {
-      k.heroX(238);
+      // the player is OUTSIDE the court, beside the side glass; the ball has come over the fence
+      k.heroX(262);
       k.hero.to(loadPose('fhPrep'), 200);
       const hit = k.head(k.hero, 'fhHit');
-      k.ballAt([296, 70]);
-      k.ball([296, 70], hit, { apex: 10, ms: 1300 });
+      k.chip(257, 52, 104, 'OUTSIDE THE COURT', { color: TC.navy, on: true, size: 9, h: 22 });
+      k.chip(96, 52, 96, 'THE COURT', { color: TC.blue, on: true, size: 10, h: 22 });
+      k.ballAt([300, 30]);
+      k.ball([300, 30], hit, { apex: 6, ms: 1300 });
       k.ring(hit[0], hit[1], 1300);
-      k.bubble(110, 40, 'HIT THE RING, THEN CHOOSE', { tail: 'down', size: 11, ttl: 3600 });
       k.at(1200, () => k.tap(hit[0], hit[1]));
-      k.at(1350, () => { k.hero.play(strokeSteps('fh')); k.shout(150, 160, 'WHAM!', { color: GOLD }); });
+      k.at(1350, () => { k.hero.play(strokeSteps('fh')); k.shout(236, 130, 'WHAM!', { color: GOLD, size: 22 }); });
+      // LOB: high over the glass, back into the court
       k.at(1700, () => {
-        k.chip(70, 200, 90, 'LOB', { color: TC.blue, on: true, size: 14 });
-        k.chip(170, 200, 110, 'DOOR (FLAT)', { color: TC.orange, on: false, size: 12 });
-        k.ball(hit, [146, 108], { apex: 90, ms: 1000, after: () => { k.burst(146, 108, GREEN); k.hideBall(); } });
+        k.chip(96, 82, 128, 'LOB: OVER THE GLASS', { color: TC.blue, on: true, size: 9, h: 24 });
+        k.ball(hit, [92, 124], { apex: 120, ms: 1200, after: () => { k.burst(92, 124, GREEN); k.hideBall(); } });
       });
-      k.at(4200, () => {
+      // DOOR: flat through the opening in the glass
+      k.at(4700, () => {
         k.hero.to(loadPose('fhPrep'), 200);
         const h2 = k.head(k.hero, 'fhHit');
         k.ballAt(h2);
-        k.chip(170, 200, 110, 'DOOR (FLAT)', { color: TC.orange, on: true, size: 12 });
-        k.bubble(112, 60, 'ONLY IF THE ANGLE ALLOWS', { tail: 'down', size: 10 });
-        k.at(500, () => { k.hero.play(strokeSteps('fh')); k.shout(150, 160, 'WHAM!', { color: GOLD }); k.ball(h2, [176, 108], { apex: 8, ms: 520, after: () => { k.burst(176, 108, 0xffffff); k.bubble(214, 92, 'HARD TO HOLD!', { tail: 'left', size: 11 }); k.hideBall(); } }); });
+        k.chip(96, 214, 150, 'DOOR: FLAT THROUGH IT', { color: TC.orange, on: true, size: 9, h: 24 });
+        k.bubble(252, 120, 'ONLY IF THE ANGLE ALLOWS', { tail: 'down', size: 10, ttl: 2600 });
+        k.at(500, () => { k.hero.play(strokeSteps('fh')); k.shout(236, 150, 'WHAM!', { color: GOLD, size: 22 }); k.ball(h2, [196, 196], { apex: 6, ms: 320, after: () => k.ball([196, 196], [96, 160], { apex: 10, ms: 520, after: () => { k.burst(96, 160, 0xffffff); k.bubble(100, 120, 'HARD TO HOLD!', { tail: 'down', size: 11, ttl: 1600 }); k.hideBall(); } }) }); });
       });
     },
   },
@@ -463,7 +491,7 @@ export function buildSlide(scene: Phaser.Scene, id: ArtId, ox: number, oy: numbe
     actors.push(a);
     return a;
   };
-  const hero = sc.cast === 'rally' ? make(cast.hero, HERO_X, 228, 122, 'back') : sc.cast === 'duo' ? make(cast.hero, 100, 218, 132, 'front') : make(cast.hero, 156, 218, 140, 'front');
+  const hero = sc.cast === 'rally' || sc.cast === 'side' ? make(cast.hero, HERO_X, 228, 122, 'back') : sc.cast === 'duo' ? make(cast.hero, 100, 218, 132, 'front') : make(cast.hero, 156, 218, 140, 'front');
   const rival = sc.cast === 'rally' ? make(cast.rival, 208, 118, 62, 'front') : null;
   const mate = sc.cast === 'duo' ? make(cast.mate, 212, 218, 132, 'front') : null;
   const heroStart = hero.x;

@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.143)_
+_Last updated: 2026-11-26 (v0.144)_
+
+## v0.144: tutorial slides corrected after the owner's look
+- Serve slide: all three spots (T, the opponent, the glass) are inside the far court; the glass serve bounces in the court first and then goes on to the side glass. Receive slide: the chips LOB / CHIQUITA / DRIVE no longer hide behind the speech bubbles (bubbles got a `ttl`). After the glass: the ball bounces in the court, then hits the side glass, then goes over the fence. Lob or door: new stage `'outside'` and cast `'side'` (the player stands outside the court beside the side glass with a door in it; LOB goes over the glass, DOOR flat through the opening).
+- Open question for the owner: the shot menu changes places as the playable shots change (`showShotMenu`: `playableShots` in catalog order, specials unshifted). Three layouts proposed (fixed grid, columns by intent, two-step categories); waiting for his choice.
 
 ## v0.143: owner's test round (spin, Smash Show, Settings, Hero, seasons) and tutorial stage 2
 - Camp balls turn: `MinigameScene` keeps the ball's orientation like the match (`ballR`, `ballOmega`, `redrawBall`); serves spin by kind (flat little, kick hard topspin, slice backspin + side), smashes by kind. The camp ball is a bit larger (min 9 px) so the turning shows.
