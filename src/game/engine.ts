@@ -98,7 +98,35 @@ export interface HitInput {
   landX?: number;
   /** Share (0 to 1) of his defence the defender keeps because of how far from him the ball comes down (see `reachFactor`); default 1. */
   reach?: number;
+  /** How well a timed shot was timed (0 to 1, see `timingEffect`); undefined: not timed (AUTO, the CPU), neutral. */
+  timing?: number;
   rng: Rng;
+}
+
+/** The timing ring's window for a key shot in a match (ms either side of the moment): technique and accuracy widen it. */
+export function ringWindow(p: PlayerDef): number {
+  return Math.round(150 + 6 * p.stats.technique + 4 * p.stats.accuracy);
+}
+
+/** How well a touch was timed: 1 in the inner 40% of the window, down to 0.3 at its edge, 0 beyond it or with no touch (null). */
+export function ringQuality(offMs: number | null, window: number): number {
+  if (offMs === null) return 0;
+  const q = Math.abs(offMs) / Math.max(1, window);
+  if (q <= 0.4) return 1;
+  if (q <= 1) return 1 - (0.7 * (q - 0.4)) / 0.6;
+  return 0;
+}
+
+/**
+ * What the timing of a key shot does (`q` 0 to 1; undefined: neutral, like AUTO and the CPU). A clean hit (q 1) makes an error 30%
+ * less likely and adds 6% to the attack (3% for a serve: the ace threshold is steep); an average one (q 0.5) changes nothing; a
+ * mistimed one (q 0) does the opposite. A whiff (no touch at all) is dealt with by the scene as q 0. Measured (scripts, level-1
+ * hero): Por Tres winners 59% on AUTO, 76% clean, 35% mistimed; the hard serve 1.8% aces and 18% faults on AUTO, 4.8% and 12% clean.
+ */
+export function timingEffect(q: number | undefined, serve = false): { risk: number; attack: number } {
+  if (q === undefined) return { risk: 1, attack: 1 };
+  const t = clamp(q, 0, 1);
+  return { risk: 1.3 - 0.6 * t, attack: serve ? 0.97 + 0.06 * t : 0.94 + 0.12 * t };
 }
 
 export interface HitResult {
@@ -122,7 +150,8 @@ export function resolveHit(i: HitInput): HitResult {
   const tired = missing > 0;
   const fit = i.shot.fit[i.incoming.height];
   const lowOffGlass = i.incoming.glass === true && i.incoming.height === 'low' ? (i.shot.lowGlassRisk ?? 0) : 0;
-  const chance = clamp(errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass, MIN_ERROR, MAX_ERROR);
+  const te = timingEffect(i.timing);
+  const chance = clamp((errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass) * te.risk, MIN_ERROR, MAX_ERROR);
 
   if (i.rng() < chance) {
     return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };
@@ -131,6 +160,7 @@ export function resolveHit(i: HitInput): HitResult {
   let attackScore =
     i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (i.shot.ignorePressure === true ? 1 : 1 - i.incoming.pressure) +
     i.rng() * RANDOM_SPREAD;
+  attackScore *= te.attack;
   const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
     defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus * (i.reach ?? 1) + i.rng() * RANDOM_SPREAD;
@@ -173,14 +203,17 @@ export function resolveServe(
   rng: Rng,
   receive: ReceiveMode = 'wall',
   second = false,
+  /** How well the serve was timed (see `timingEffect`); undefined: neutral. */
+  timing?: number,
 ): ServeResult {
   const missing = Math.max(0, shot.cost - serverGuts);
   const tired = missing > 0;
-  if (rng() < faultChance(server, shot, missing) * (second ? SECOND_SERVE_FAULT : 1)) {
+  const te = timingEffect(timing, true);
+  if (rng() < faultChance(server, shot, missing) * (second ? SECOND_SERVE_FAULT : 1) * te.risk) {
     return { outcome: 'fault', attackScore: 0, defenseScore: 0, tired, pressure: 0 };
   }
 
-  let attackScore = server.stats[shot.stat] * 10 * shot.power + rng() * RANDOM_SPREAD;
+  let attackScore = (server.stats[shot.stat] * 10 * shot.power + rng() * RANDOM_SPREAD) * te.attack;
   if (second) attackScore *= SECOND_SERVE_POWER;
   const walled = shot.wall !== 'none';
   const receiveMod = !walled ? 1 : receive === 'bounce' ? BOUNCE_DEFENSE : WALL_DEFENSE;

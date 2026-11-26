@@ -15,7 +15,8 @@ export interface SaveData {
    * aim: 'point' = tap the spot on the court (the default since v0.125), 'directions' = the three ways (Parallel / Middle / Cross).
    * aimPicked: the player chose it in Settings (saves from before v0.125 move to 'point' unless they did).
    */
-  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean };
+  /** timing: 'ring' = key shots (smashes, vibora, bandeja, serves) are hit with the timing ring; 'auto' = no ring, neutral. */
+  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto' };
   stats: { played: number; won: number; lost: number };
   profile: Profile;
   /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
@@ -36,7 +37,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly() };
 }
 
 function count(v: unknown): number {
@@ -56,6 +57,7 @@ export function parseSave(raw: string | null): SaveData {
         tutorialSeen: p?.settings?.tutorialSeen === true,
         aim: p?.settings?.aimPicked === true && p.settings.aim === 'directions' ? 'directions' : 'point',
         ...(p?.settings?.aimPicked === true ? { aimPicked: true } : {}),
+        timing: p?.settings?.timing === 'auto' ? 'auto' : 'ring',
       },
       stats: { played: count(p?.stats?.played), won: count(p?.stats?.won), lost: count(p?.stats?.lost) },
       profile: sanitizeProfile(p?.profile),

@@ -311,6 +311,8 @@ export function stepServe(
   receive: ReceiveMode = 'wall',
   /** The receiver ran out of time to decide: a serve that is in becomes an ace (a fault stays a fault). */
   late = false,
+  /** How well the serve was timed (0 to 1); undefined: neutral. */
+  timing?: number,
 ): StepResult {
   if (state.status !== 'serve') throw new Error('Point is not at the serve');
   const side = state.servingSide;
@@ -318,7 +320,7 @@ export function stepServe(
   const server = teams[side][state.serverIdx];
   const receiver = fatigued(teams[recvSide][state.receiverIdx], state.guts[teams[recvSide][state.receiverIdx].id]);
 
-  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng, receive, state.attempt === 2);
+  const res = resolveServe(server, state.guts[server.id], shot, receiver, DIRECTIONS.cross, rng, receive, state.attempt === 2, shot.timed === true ? timing : undefined);
   const guts = { ...state.guts, [server.id]: spendGuts(state.guts[server.id], shot.cost) };
 
   const base = {
@@ -444,6 +446,8 @@ export interface HitOptions {
   positions?: ReachPositions;
   /** A point the human player chose (x across, depth m past the net): the ball comes down around it (`targetLanding`) instead of one of the aim points of the direction. */
   target?: { x: number; depth: number };
+  /** How well a timed shot was timed (0 to 1); undefined: neutral (AUTO, the CPU). */
+  timing?: number;
 }
 
 /**
@@ -505,6 +509,7 @@ export function stepHit(
     airTake:
       netVolley(shot, state.formation[defSide], undefined) || airTake(shot, state.formation[defSide], undefined, shot.landDepth) !== undefined,
     rallyLength: state.hits,
+    timing: shot.timed === true ? options?.timing : undefined,
     // aimed at a chosen point the walls are dealt with by where the ball really falls (a miss below), not by an extra risk
     landX: tgt ? undefined : landX,
     // The ball comes down at the nominal depth (the real one is rolled later). A ball into a gap between the defenders, or too short or too long for where they stand, is hard to reach.

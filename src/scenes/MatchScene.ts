@@ -21,12 +21,13 @@ import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, T
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { DIRECTIONS, shotsOfKind } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, targetMissChance } from '../game/court';
-import { GAME_BREAK_RECOVERY_MUL, recoverGuts, SECOND_SERVE_SPEED } from '../game/engine';
+import { GAME_BREAK_RECOVERY_MUL, recoverGuts, ringQuality, ringWindow, SECOND_SERVE_SPEED } from '../game/engine';
 import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { seededRng } from '../game/rng';
+import { practicePoint, situation, SITUATIONS, type SituationId } from '../game/practice';
 import { flipCoin, tossWinner, type CoinFace } from '../game/toss';
 import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
@@ -213,8 +214,18 @@ export class MatchScene extends Phaser.Scene {
   private sb!: { names: Phaser.GameObjects.Text[]; games: Phaser.GameObjects.Text[]; pts: Phaser.GameObjects.Text[]; dot: Phaser.GameObjects.Graphics; note: Phaser.GameObjects.Text; title: Phaser.GameObjects.Text; boxes: Phaser.GameObjects.RenderTexture };
   private logText!: Phaser.GameObjects.Text;
 
-  /** Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you. */
-  private practice: 'attack' | 'defend' | null = null;
+  /**
+   * Free Practice: 'attack' = you play any shot at the opponents, 'defend' = the opponents play a shot of your choice at you (developer
+   * tools, hidden). 'court' = the Practice Court of the main menu: ready-made situations, one shot again and again, with the timing
+   * ring and the aiming of a match.
+   */
+  private practice: 'attack' | 'defend' | 'court' | null = null;
+  /** Scene time when the running timing ring closes (for automated checks). */
+  ringDueAt = 0;
+  /** Practice Court: the situation being practised (null: choosing) and what the hero's shots did since it was chosen. */
+  private court: { sit: SituationId | null; shots: number; winners: number; inPlay: number; errors: number; perfect: number } = {
+    sit: null, shots: 0, winners: 0, inPlay: 0, errors: 0, perfect: 0,
+  };
   private pr: {
     ball: Height; glass: boolean; weakLob: boolean; me: Formation; opp: Formation; result: 'auto' | HitOptions['force']; page: number;
     /** The ball has bounced (not played out of the air), comes in fast, comes down by a side wall, SETUP page. */
@@ -229,8 +240,9 @@ export class MatchScene extends Phaser.Scene {
   }
 
   // Phaser keeps the data of the previous start when a scene is started without any: a normal match is always started with { practice: null }.
-  init(data?: { practice?: 'attack' | 'defend' | null; career?: CareerMatch | null }): void {
+  init(data?: { practice?: 'attack' | 'defend' | 'court' | null; career?: CareerMatch | null }): void {
     this.practice = data?.practice ?? null;
+    this.court = { sit: null, shots: 0, winners: 0, inPlay: 0, errors: 0, perfect: 0 };
     this.career = data?.career ?? null;
     this.pr = { ball: 'mid', glass: false, weakLob: false, me: 'back', opp: 'back', result: 'auto', page: 0, bounced: false, hard: false, atWall: false, setupPage: 0 };
   }
@@ -1226,6 +1238,14 @@ export class MatchScene extends Phaser.Scene {
     sb.title.setVisible(practice);
     sb.boxes.setVisible(!practice);
     sb.dot.clear();
+    if (practice && this.practice === 'court') {
+      const c = this.court;
+      sb.title.setText(
+        c.sit === null ? 'PRACTICE COURT' : `PRACTICE · ${situation(c.sit).label}\nWINNERS ${c.winners}  IN PLAY ${c.inPlay}  ERRORS ${c.errors}`,
+      );
+      sb.note.setText('');
+      return;
+    }
     if (practice) {
       sb.title.setText(`FREE PRACTICE\n${this.practice === 'attack' ? 'ATTACKING' : 'DEFENDING'}`);
       sb.note.setText('');
@@ -1322,18 +1342,7 @@ export class MatchScene extends Phaser.Scene {
   // ---------- Free Practice ----------
 
   private practiceState(holder: SideIndex, hitterIdx: number): PointState {
-    return {
-      ...startPoint(this.guts, 0, HUMAN_IDX, 0),
-      status: 'rally',
-      holder,
-      hitterIdx,
-      hits: 1,
-      ball: {
-        height: this.pr.ball, pressure: 0, glass: this.pr.glass, air: !this.pr.glass && !this.pr.bounced, zone: 'mid', speed: this.pr.hard ? 26 : 18,
-        lob: this.pr.weakLob && holder === HUMAN_SIDE ? 'weak' : undefined, ...(this.pr.atWall ? { nearWall: true } : {}),
-      },
-      formation: [this.pr.me, this.pr.opp],
-    };
+    return practicePoint(startPoint(this.guts, 0, HUMAN_IDX, 0), this.pr, holder, hitterIdx, HUMAN_SIDE);
   }
 
   /** Puts everybody back in place, refills the guts and shows the menu of the exercise. */
@@ -1343,6 +1352,11 @@ export class MatchScene extends Phaser.Scene {
     this.setActive(null);
     for (const p of TEAMS.flat()) this.guts[p.id] = p.maxGuts;
     this.refreshGuts();
+    this.refreshScore();
+    if (this.practice === 'court') {
+      this.courtMenu();
+      return;
+    }
     const attack = this.practice === 'attack';
     const st = this.practiceState(attack ? HUMAN_SIDE : 1, attack ? HUMAN_IDX : 0);
     this.point = st;
@@ -1364,6 +1378,143 @@ export class MatchScene extends Phaser.Scene {
       };
       place();
     });
+  }
+
+  // ---------- Practice Court ----------
+
+  /** The court's menu: choose a situation, or set the chosen one up again (everybody back in place, guts full) for the next ball. */
+  private courtMenu(): void {
+    const sitId = this.court.sit;
+    if (sitId === null) {
+      this.showSituations();
+      return;
+    }
+    const sit = situation(sitId);
+    if (sit.kind === 'serve' || sit.kind === 'return') {
+      this.courtServe(sit.kind === 'serve');
+      return;
+    }
+    this.pr = { ...this.pr, ...sit.setup! };
+    const st = this.practiceState(HUMAN_SIDE, HUMAN_IDX);
+    this.point = st;
+    for (const id of Object.keys(this.views)) {
+      this.setFacing(id, this.defaultFacing(id));
+      this.setPose(id, 'ready');
+    }
+    this.movePlayers(this.rallyTargets(st), 450, () => {
+      const place = (): void => {
+        if (this.coastRunning) {
+          this.time.delayedCall(80, place);
+          return;
+        }
+        this.stopCoast();
+        const hero = TEAMS[HUMAN_SIDE][HUMAN_IDX];
+        this.ballH = ARRIVAL_HEIGHT[st.ball.height];
+        this.setBall(this.pos[hero.id].x, this.pos[hero.id].z, this.ballH, false);
+        this.setActive(hero.id);
+        this.showCourtShots();
+      };
+      place();
+    });
+  }
+
+  private showSituations(): void {
+    this.setActive(null);
+    this.say('PRACTICE COURT: pick a situation, then play the shot again and again. Nothing counts here.');
+    const items: ButtonSpec[] = SITUATIONS.map((s) => ({
+      label: s.label,
+      tone: 'normal' as Tone,
+      onPick: () => {
+        this.court = { sit: s.id, shots: 0, winners: 0, inPlay: 0, errors: 0, perfect: 0 };
+        this.practiceMenu();
+      },
+    }));
+    items.push({ label: 'EXIT', tone: 'tired', onPick: () => this.scene.start('TitleScene') });
+    this.showButtons('practice court', items);
+  }
+
+  /** The shots of the current ball (the rules of a match), and CHANGE / EXIT. A shot is played exactly as in a match. */
+  private showCourtShots(): void {
+    const st = this.point;
+    const sit = situation(this.court.sit ?? 'short_lob');
+    const kind = st.hits === 0 ? 'return' : 'rally';
+    const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => ({
+      label: sh.timed ? `${sh.name}\n(ring)` : sh.name,
+      tone: (sit.signature.includes(sh.id) ? 'good' : 'normal') as Tone,
+      onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
+    }));
+    items.push(
+      { label: 'CHANGE', tone: 'normal', onPick: () => { this.court.sit = null; this.practiceMenu(); } },
+      { label: 'EXIT', tone: 'tired', onPick: () => this.scene.start('TitleScene') },
+    );
+    this.say(kind === 'return' ? 'Your return: pick the shot.' : sit.desc);
+    this.showHeight(st.ball.height, st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : '');
+    this.showButtons('practice court', items);
+  }
+
+  /** Your serve (pick it, then the ring) or theirs at you (they serve on their own; you read it and return it). */
+  private courtServe(mine: boolean): void {
+    const serverSide: SideIndex = mine ? HUMAN_SIDE : 1;
+    const serverIdx = mine ? HUMAN_IDX : 0;
+    let points = 0;
+    let st = startPoint(this.guts, serverSide, serverIdx, points);
+    if (!mine) {
+      // the opponents serve to you: the point number that makes you the receiver
+      for (points = 0; points < 4; points++) {
+        st = startPoint(this.guts, serverSide, serverIdx, points);
+        if (st.receiverIdx === HUMAN_IDX) break;
+      }
+    } else {
+      // your serves alternate sides like in a game
+      points = this.court.shots % 2;
+      st = startPoint(this.guts, serverSide, serverIdx, points);
+    }
+    this.point = st;
+    const setup = serveSetup(serverSide, points, serverIdx);
+    const recvSide = other(serverSide);
+    const server = TEAMS[serverSide][serverIdx];
+    const targets: Record<string, CourtPos> = {
+      [server.id]: setup.server,
+      [TEAMS[serverSide][1 - serverIdx].id]: setup.partner,
+      [TEAMS[recvSide][setup.receiverIdx].id]: setup.receiver,
+      [TEAMS[recvSide][1 - setup.receiverIdx].id]: setup.receiverPartner,
+    };
+    for (const id of Object.keys(this.views)) {
+      this.setFacing(id, this.defaultFacing(id));
+      this.setPose(id, 'ready');
+    }
+    this.movePlayers(targets, 450, () => {
+      this.stopCoast();
+      this.stance[server.id] = 'smash';
+      this.setPose(server.id, 'fhPrep');
+      this.ballH = HIT_HEIGHT_M;
+      this.putServeBall(server.id, serverSide);
+      if (!mine) {
+        this.say('They serve: watch it, then choose how to take it.');
+        this.time.delayedCall(700, () => this.chooseReceive(pickServe(TEAMS, this.point, Math.random)));
+        return;
+      }
+      this.setActive(server.id);
+      this.say(situation('serve').desc);
+      const items: ButtonSpec[] = shotsOfKind('serve').map((sh) => ({ label: sh.name, tone: 'normal' as Tone, onPick: () => this.chooseReceive(sh) }));
+      items.push(
+        { label: 'CHANGE', tone: 'normal', onPick: () => { this.court.sit = null; this.practiceMenu(); } },
+        { label: 'EXIT', tone: 'tired', onPick: () => this.scene.start('TitleScene') },
+      );
+      this.showButtons('practice court', items);
+    });
+  }
+
+  /** Counts what the hero's shot did on the Practice Court (shown on the scoreboard). */
+  private courtCount(step: Step, timing: number | undefined): void {
+    if (this.practice !== 'court' || step.side !== HUMAN_SIDE || step.attackerIdx !== HUMAN_IDX) return;
+    const c = this.court;
+    c.shots++;
+    if (timing !== undefined && timing >= 0.95) c.perfect++;
+    if (step.outcome === 'winner' || step.outcome === 'ace') c.winners++;
+    else if (step.outcome === 'error' || step.outcome === 'fault' || step.outcome === 'double-fault') c.errors++;
+    else c.inPlay++;
+    this.refreshScore();
   }
 
   /** Attacking: serves and the shots that can be played with the ball and positions of the SETUP (the rules are the same as in a match). Defending: every shot the opponents can play. */
@@ -1799,6 +1950,10 @@ export class MatchScene extends Phaser.Scene {
   }
 
   private showShotMenu(): void {
+    if (this.practice === 'court') {
+      this.showCourtShots();
+      return;
+    }
     const st = this.point;
     const hitter = TEAMS[0][st.hitterIdx];
     const kind = st.hits === 0 ? 'return' : 'rally';
@@ -1986,16 +2141,101 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(g);
   }
 
-  private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number }): void {
+  private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number; timing?: number }): void {
     this.hideHeight();
-    const { state, step } = stepServe(TEAMS, this.point, shot, opts?.seed !== undefined ? seededRng(opts.seed) : Math.random, receive);
+    const st = this.point;
+    // your own serve with the timing ring: the ball is dropped, bounces, and you touch as the ring closes on it
+    if (opts?.timing === undefined && shot.timed === true && this.isHuman(st.servingSide, st.serverIdx) && getSave().settings.timing !== 'auto') {
+      this.timingRing('serve', TEAMS[st.servingSide][st.serverIdx], (q) => this.performServe(shot, receive, { ...opts, timing: q }));
+      return;
+    }
+    const { state, step } = stepServe(TEAMS, st, shot, opts?.seed !== undefined ? seededRng(opts.seed) : Math.random, receive, false, opts?.timing);
+    this.courtCount(step, opts?.timing);
     this.playStep(step, state, opts);
   }
 
   private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions): void {
     this.hideHeight();
-    const { state, step } = stepHit(TEAMS, this.point, shot, direction, Math.random, prefer, { ...options, positions: this.reachPositions() });
+    const st = this.point;
+    // your own smash, vibora or bandeja with the timing ring: the ball comes down and you touch as the ring closes on it
+    if (options?.timing === undefined && shot.timed === true && this.isHuman(st.holder, st.hitterIdx) && getSave().settings.timing !== 'auto') {
+      this.timingRing('high', TEAMS[st.holder][st.hitterIdx], (q) => this.performHit(shot, direction, prefer, { ...options, timing: q }));
+      return;
+    }
+    const { state, step } = stepHit(TEAMS, st, shot, direction, Math.random, prefer, { ...options, positions: this.reachPositions() });
+    this.courtCount(step, options?.timing);
     this.playStep(step, state);
+  }
+
+  /**
+   * The timing ring of a key shot: the ball comes to the racket (down from above for an overhead, dropped and up off its bounce for a
+   * serve) and a ring closes on it; the player touches anywhere as it closes. The quality (0 to 1) goes to the engine: a clean hit is
+   * safer and stronger, a mistimed one riskier and weaker. A grade flashes over the ball.
+   */
+  private timingRing(kind: 'serve' | 'high', hitter: PlayerDef, done: (q: number) => void): void {
+    const at = { ...this.ballFloor };
+    const hitH = this.ballH;
+    const window = ringWindow(hitter);
+    const due = kind === 'serve' ? 1000 : 900;
+    const drop = 420;
+    const ballAt = (ms: number): number => {
+      if (kind === 'high') {
+        const u = Math.min(1.3, ms / due);
+        return Math.max(0.3, hitH + 1.6 * (1 - u));
+      }
+      // dropped from the hand, a bounce, up to the hitting height at `due`
+      if (ms < drop) return (hitH + 0.3) * (1 - (ms / drop) ** 2);
+      const u = Math.min(1.5, (ms - drop) / (due - drop));
+      return Math.max(0, hitH * (2 * u - u * u));
+    };
+    // he loads the shot while it comes: the racket back over the head (an overhead) or low behind him (the serve)
+    if (kind === 'high') this.setPose(hitter.id, 'smashPrep');
+    const ring = this.add.graphics().setDepth(9990);
+    const hint = this.add
+      .text(WIDTH / 2, 470, 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
+      .setOrigin(0.5)
+      .setDepth(9996)
+      .setStroke('#0b2a5b', 5);
+    const tap = this.add.zone(0, 0, WIDTH, HEIGHT).setOrigin(0, 0).setDepth(9995).setInteractive();
+    const t0 = this.time.now;
+    this.ringDueAt = t0 + due;
+    this.ball.setVisible(true);
+    let finished = false;
+    const finish = (offMs: number | null): void => {
+      if (finished) return;
+      finished = true;
+      tick.remove();
+      tap.destroy();
+      hint.destroy();
+      ring.destroy();
+      const q = ringQuality(offMs, window);
+      this.ballH = Math.max(0.3, ballAt(Math.min(this.time.now - t0, due + window)));
+      this.setBall(at.x, at.z, this.ballH, false);
+      const p = project(at.x, at.z, this.ballH);
+      const grade = q >= 0.95 ? 'PERFECT!' : q >= 0.6 ? 'GOOD' : q > 0 ? 'LATE' : 'MISTIMED';
+      const t = this.add
+        .text(p.x, p.y - 26, grade, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: q >= 0.95 ? '20px' : '16px', color: q >= 0.95 ? '#4ade80' : q >= 0.6 ? '#ffe066' : '#ff9a6a' })
+        .setOrigin(0.5)
+        .setDepth(9997)
+        .setStroke('#0b2a5b', 5);
+      this.tweens.add({ targets: t, y: p.y - 50, alpha: 0, delay: 350, duration: 450, onComplete: () => t.destroy() });
+      done(q);
+    };
+    const tick = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const ms = this.time.now - t0;
+        const h = ballAt(ms);
+        this.setBall(at.x, at.z, h, false);
+        const p = project(at.x, at.z, h);
+        const u = Math.min(1, ms / due);
+        const green = Math.abs(ms - due) <= window * 0.4;
+        ring.clear().lineStyle(green ? 4 : 3, green ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, Math.max(7, 64 * (1 - u) + 8));
+        if (ms > due + window + 150) finish(null);
+      },
+    });
+    tap.on('pointerdown', () => finish(this.time.now - t0 - due));
   }
 
   /** The flight of the ball for a step (the same seed always gives the same flight). */
@@ -2311,6 +2551,7 @@ export class MatchScene extends Phaser.Scene {
       case 'in':
         if (this.practice && !this.isHuman(next.holder, next.hitterIdx)) {
           this.say(`${headline}\nIn play. (practice: back to the menu)`);
+          if (this.practice === 'court') this.announce('IN PLAY', '#5db4ff');
           this.time.delayedCall(1300, () => this.practiceMenu());
           break;
         }
@@ -2338,6 +2579,7 @@ export class MatchScene extends Phaser.Scene {
       case 'continue':
         if (this.practice && !this.isHuman(next.holder, next.hitterIdx)) {
           this.say(`${headline}\nIn play. (practice: back to the menu)`);
+          if (this.practice === 'court') this.announce('IN PLAY', '#5db4ff');
           this.time.delayedCall(1300, () => this.practiceMenu());
           break;
         }

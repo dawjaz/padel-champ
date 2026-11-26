@@ -101,12 +101,12 @@ export class TitleScene extends Phaser.Scene {
       tiles.push(g, chip, t, z);
     });
 
-    // Collection: a small button next to Settings.
-    const col = makeThemeButton(this, WIDTH / 2 - 52, 614, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
+    // Practice Court, Collection and Settings: small buttons in a row at the bottom.
+    const prc = makeThemeButton(this, WIDTH / 2 - 104, 614, 92, 24, 'PRACTICE', () => this.scene.start('MatchScene', { practice: 'court', career: null }), 'secondary', 13);
+    tiles.push(...prc.parts);
+    const col = makeThemeButton(this, WIDTH / 2, 614, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
     tiles.push(...col.parts);
-
-    // Settings: a small button at the bottom right.
-    const set = makeThemeButton(this, WIDTH / 2 + 59, 614, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
+    const set = makeThemeButton(this, WIDTH / 2 + 104, 614, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
     tiles.push(...set.parts);
 
     // Free Practice stays in the game but hidden (SHOW_FREE_PRACTICE in config.ts brings it back).

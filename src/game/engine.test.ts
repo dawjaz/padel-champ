@@ -15,6 +15,8 @@ import {
   spendGuts,
   RISKY_PER_G,
   type HitInput,
+  ringQuality,
+  timingEffect,
 } from './engine';
 import { fixedRng, seededRng } from './rng';
 import type { Appearance, BallState, PlayerDef, ShotDef } from './types';
@@ -273,5 +275,28 @@ describe('lob', () => {
   it('still builds pressure on the next hit', () => {
     const r = resolveHit(hit({ attacker: player({ technique: 10 }), defender: player({ defense: 1 }), shot: { ...shot('rally_lob'), winnerMargin: 1 }, rng: fixedRng(NO_ERROR_NO_SPREAD) }));
     expect(r.pressure).toBeGreaterThan(0);
+  });
+});
+
+describe('timing of key shots', () => {
+  it('a clean hit is safer and a little stronger, a mistimed one the opposite, none is neutral; serves get a smaller edge', () => {
+    expect(timingEffect(undefined)).toEqual({ risk: 1, attack: 1 });
+    expect(timingEffect(0.5).risk).toBeCloseTo(1);
+    expect(timingEffect(0.5).attack).toBeCloseTo(1);
+    expect(timingEffect(1).risk).toBeCloseTo(0.7);
+    expect(timingEffect(1).attack).toBeCloseTo(1.06);
+    expect(timingEffect(0).risk).toBeCloseTo(1.3);
+    expect(timingEffect(0).attack).toBeCloseTo(0.94);
+    expect(timingEffect(1, true).attack).toBeCloseTo(1.03);
+  });
+});
+
+describe('ring quality', () => {
+  it('is 1 near the moment, 0.3 at the edge of the window, 0 beyond or without a touch', () => {
+    expect(ringQuality(0, 200)).toBe(1);
+    expect(ringQuality(-80, 200)).toBe(1);
+    expect(ringQuality(200, 200)).toBeCloseTo(0.3);
+    expect(ringQuality(201, 200)).toBe(0);
+    expect(ringQuality(null, 200)).toBe(0);
   });
 });
