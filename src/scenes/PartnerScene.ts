@@ -7,6 +7,7 @@ import { buyPartner, choosePartner, tournamentActive } from '../career/careerFlo
 import { PARTNERS } from '../career/season';
 import { levelOf } from '../career/profile';
 import { STAT_KEYS } from '../game/attributes';
+import { showTip } from '../tutorial/tips';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
@@ -41,6 +42,7 @@ export class PartnerScene extends Phaser.Scene {
     this.page = Math.floor(Math.max(0, PARTNERS.findIndex((d) => d.id === this.sel)) / PER_PAGE);
     applyLightScreen(this);
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'partner'));
   }
 
   private redraw(): void {

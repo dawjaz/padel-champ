@@ -4,6 +4,7 @@ import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, priceOf,
 import { BRANDS, CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
+import { showTip } from '../tutorial/tips';
 import { drawBoostIcon } from '../art/boostArt';
 import { applyLightScreen, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
@@ -40,6 +41,7 @@ export class ShopScene extends Phaser.Scene {
     }
     applyLightScreen(this);
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'shop'));
   }
 
   private label(x: number, y: number, str: string, size: number, color: number, originX = 0.5, display = false): Phaser.GameObjects.Text {

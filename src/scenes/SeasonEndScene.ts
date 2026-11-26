@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { dismissRecap } from '../career/seasonEnd';
 import { sfx } from '../audio';
+import { showTip } from '../tutorial/tips';
 import { getSave, updateSave } from '../save';
 import { iconChip, applyLightScreen, drawCard, makeThemeButton, rewardRow, screenHeader, TC, themeText } from '../theme';
 
@@ -54,6 +55,7 @@ export class SeasonEndScene extends Phaser.Scene {
     }
     themeText(this, WIDTH / 2, 516, `SEASON ${r.season + 1} BEGINS WITH ${r.carried.toLocaleString('en-US')} POINTS\n(HALF OF YOUR POINTS CARRY OVER)`, { size: 12, color: TC.sub, align: 'center' });
     if (r.paid) sfx('win');
+    this.time.delayedCall(900, () => showTip(this, 'season'));
     makeThemeButton(this, WIDTH / 2, 584, 280, 52, `START SEASON ${r.season + 1}`, () => {
       updateSave((d) => ({ ...d, profile: dismissRecap(d.profile) }));
       this.scene.start('CalendarScene');

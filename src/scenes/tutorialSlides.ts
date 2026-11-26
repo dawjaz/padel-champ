@@ -363,6 +363,74 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       k.at(1500, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.shout(100, 150, 'WHAM!', { color: GOLD }); k.ball(h, z, { apex: 56, ms: 900, after: () => { k.burst(z[0], z[1], GREEN); k.bubble(z[0], z[1] - 30, 'IN THE ZONE: POINTS!', { tail: 'down', size: 11 }); } }); });
     },
   },
+  toss: {
+    stage: 'burst', period: 7200, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      k.chip(100, 40, 100, 'HEADS', { color: TC.orange, on: true, size: 14 });
+      k.chip(212, 40, 100, 'TAILS', { color: TC.blue, on: false, size: 14 });
+      k.tap(100, 48);
+      [0, 1, 2, 3].forEach((i) => k.at(900 + i * 280, () => k.icon('coin', 156, 150 - Math.sin((i / 3) * Math.PI) * 70, 34, TC.gold)));
+      k.at(2600, () => { k.hero.play(fistSteps(true)); k.shout(156, 110, 'YOU SERVE FIRST!', { color: GOLD, size: 22 }); k.burst(156, 150, 0xffffff); });
+      k.at(4800, () => k.bubble(156, 200, 'THEN YOU CHANGE SIDES EVERY ODD GAME', { tail: 'up', size: 10, ttl: 2200 }));
+    },
+  },
+  retire: {
+    stage: 'court', period: 7000, cast: 'rally',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      k.at(400, () => k.hero.play(tiredSteps()));
+      k.at(900, () => k.bubble(156, 24, 'RETIRE FROM THE MATCH?', { tail: 'down', size: 12, ttl: 5200 }));
+      k.at(1700, () => { k.chip(84, 62, 130, 'YES, RETIRE', { color: 0xe05a2b, on: true, size: 11, h: 26 }); k.chip(228, 62, 130, 'KEEP PLAYING', { color: TC.blue, on: false, size: 11, h: 26 }); });
+      k.at(3200, () => k.tap(84, 70));
+      k.at(4000, () => k.bubble(156, 190, 'THE OPPONENTS WIN. NO XP, NO COINS.', { tail: 'up', size: 10, ttl: 2600 }));
+    },
+  },
+  shop: {
+    stage: 'burst', period: 7600, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      k.chip(86, 36, 130, 'GEAR PACK 150', { color: TC.blue, on: false, size: 12, h: 30 });
+      k.chip(226, 36, 130, 'PREMIUM 500', { color: TC.orange, on: true, size: 12, h: 30 });
+      k.at(500, () => { k.icon('coin', 36, 90, 26, TC.gold); k.icon('boost', 276, 90, 26, TC.navy); });
+      k.at(1600, () => k.tap(226, 44));
+      k.at(2200, () => { k.hero.play(fistSteps(true)); k.shout(156, 100, 'NEW GEAR!', { color: GOLD, size: 30 }); k.burst(226, 36, 0xffffff); k.icon('star', 156, 168, 36, TC.gold); k.flash(0xffffff); });
+      k.at(4600, () => k.bubble(156, 206, 'BOOSTS HELP IN ONE MATCH', { tail: 'up', size: 10, ttl: 2400 }));
+    },
+  },
+  partner: {
+    stage: 'burst', period: 7600, cast: 'duo',
+    run: (k) => {
+      k.chip(88, 24, 104, 'YOU 5.0', { color: TC.blue, on: true, size: 12, h: 24 });
+      k.at(500, () => k.chip(222, 24, 124, 'PARTNER 4.6', { color: TC.blue, on: true, size: 12, h: 24 }));
+      k.at(1400, () => k.chip(156, 60, 170, 'PAIR RATING 4.8', { color: TC.orange, on: true, size: 13, h: 28 }));
+      k.at(3000, () => { k.hero.play(highFiveSteps(1)); k.mate?.play(highFiveSteps(-1)); k.shout(156, 110, 'TEAM!', { color: GOLD, size: 32 }); k.flash(0xffffff); });
+      k.at(4800, () => k.bubble(156, 150, 'A BETTER PARTNER NEEDS LEVEL AND COINS', { tail: 'down', size: 10, ttl: 2400 }));
+    },
+  },
+  tasks: {
+    stage: 'burst', period: 7600, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      const rows = ['PLAY 2 CAREER MATCHES', 'WIN A CAREER MATCH', 'WIN 20 POINTS'];
+      rows.forEach((t, i) => {
+        k.at(300 + i * 500, () => k.chip(120, 30 + i * 34, 214, t, { color: TC.blue, on: false, size: 11, h: 28 }));
+        k.at(2400 + i * 700, () => { k.chip(262, 30 + i * 34, 62, 'DONE', { color: 0x2fbf71, on: true, size: 11, h: 28 }); k.burst(262, 30 + i * 34, 0xffffff); });
+      });
+      k.at(4700, () => { k.hero.play(celebrateSteps(false)); k.shout(156, 150, 'BONUS!', { color: GOLD, size: 32 }); k.icon('coin', 156, 190, 34, TC.gold); k.flash(0xffffff); });
+    },
+  },
+  season: {
+    stage: 'gold', period: 8000, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      k.at(300, () => k.shout(156, 36, 'SEASON COMPLETE', { color: 0xffffff, size: 22 }));
+      k.at(1200, () => { k.icon('trophy', 156, 100, 52, TC.gold); k.burst(156, 100, 0xffffff); });
+      k.at(2000, () => k.chip(156, 150, 160, '#7 IN THE WORLD', { color: TC.orange, on: true, size: 13, h: 28 }));
+      k.at(3000, () => { k.hero.play(celebrateSteps(false)); k.icon('coin', 70, 196, 28, TC.gold); k.icon('boost', 242, 196, 28, TC.navy); k.flash(0xffffff); });
+      k.at(4600, () => k.bubble(156, 70, 'COINS, PACKS AND HALF YOUR POINTS CARRY ON', { tail: 'down', size: 10, ttl: 2800 }));
+    },
+  },
   smash: {
     stage: 'court', period: 7000, cast: 'rally',
     run: (k) => {
@@ -395,9 +463,9 @@ export function buildSlide(scene: Phaser.Scene, id: ArtId, ox: number, oy: numbe
     actors.push(a);
     return a;
   };
-  const hero = sc.cast === 'rally' ? make(cast.hero, HERO_X, 228, 122, 'back') : sc.cast === 'duo' ? make(cast.hero, 100, 232, 140, 'front') : make(cast.hero, 156, 232, 150, 'front');
+  const hero = sc.cast === 'rally' ? make(cast.hero, HERO_X, 228, 122, 'back') : sc.cast === 'duo' ? make(cast.hero, 100, 218, 132, 'front') : make(cast.hero, 156, 218, 140, 'front');
   const rival = sc.cast === 'rally' ? make(cast.rival, 208, 118, 62, 'front') : null;
-  const mate = sc.cast === 'duo' ? make(cast.mate, 212, 232, 140, 'front') : null;
+  const mate = sc.cast === 'duo' ? make(cast.mate, 212, 218, 132, 'front') : null;
   const heroStart = hero.x;
 
   const track = <T extends Phaser.GameObjects.GameObject>(o: T): T => {

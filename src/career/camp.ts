@@ -317,7 +317,9 @@ export function smashWindow(hero: PlayerDef, r: SmashRound, kind: SmashKind): nu
   return Math.max(SMASH_MIN_WINDOW, Math.round((110 + 8 * hero.stats.power + 6 * hero.stats.technique) * SMASH_FIT[kind][r.lob]));
 }
 /** Never narrower than this (ms), so even the hardest smash can be hit by a good tap (a tap is not accurate to the frame). */
-export const SMASH_MIN_WINDOW = 90;
+export const SMASH_MIN_WINDOW = 150;
+/** A touch is judged this many ms earlier than the clock says: the picture on a phone screen is a few frames behind (and so is the finger). */
+export const SMASH_INPUT_LAG = 50;
 /** Inner share of the window that gives the full smash (the ring is green exactly inside it). */
 export const SMASH_CORE = 0.4;
 /** Half-width (ms) of the green part: what the ring shows is what the result pays. */

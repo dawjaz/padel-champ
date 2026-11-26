@@ -7,9 +7,10 @@ import { partnerById, WEEKS } from '../career/season';
 import { getSave } from '../save';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
-type Tab = 'world' | 'records' | 'online';
+type Tab = 'world' | 'seasons' | 'records' | 'online';
 const TABS: Array<{ id: Tab; label: string; source?: RankingSource }> = [
   { id: 'world', label: 'WORLD', source: WORLD_SOURCE },
+  { id: 'seasons', label: 'SEASONS' },
   { id: 'records', label: 'RECORDS' },
   { id: 'online', label: 'ONLINE', source: ONLINE_SOURCE },
 ];
@@ -19,8 +20,16 @@ export class RankingScene extends Phaser.Scene {
   private tab: Tab = 'world';
   private dyn: Phaser.GameObjects.GameObject[] = [];
 
+  /** Where the back button leads (the calendar, or the hero screen). */
+  private from = 'CalendarScene';
+
   constructor() {
     super('RankingScene');
+  }
+
+  init(data: { from?: string }): void {
+    this.from = data?.from ?? 'CalendarScene';
+    this.tab = 'world';
   }
 
   create(): void {
@@ -33,7 +42,7 @@ export class RankingScene extends Phaser.Scene {
     this.dyn = [];
     const save = getSave();
     const before = this.children.length;
-    screenHeader(this, 'Ranks', { onBack: () => this.scene.start('CalendarScene'), coins: save.profile.coins });
+    screenHeader(this, 'Ranks', { onBack: () => this.scene.start(this.from), coins: save.profile.coins });
     this.dyn.push(...this.children.list.slice(before));
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => {
       this.dyn.push(o);
@@ -42,16 +51,17 @@ export class RankingScene extends Phaser.Scene {
 
     TABS.forEach((t, i) => {
       const locked = t.source !== undefined && !t.source.available;
-      const b = makeThemeButton(this, 12 + 56 + i * 112, 82, 106, 32, t.label, () => {
+      const b = makeThemeButton(this, 12 + 41 + i * 85, 82, 81, 32, t.label, () => {
         if (locked && this.tab === t.id) return;
         this.tab = t.id;
         this.redraw();
-      }, this.tab === t.id ? 'primary' : 'blue', 13);
+      }, this.tab === t.id ? 'primary' : 'blue', 11);
       if (locked) b.text.setAlpha(0.6);
       this.dyn.push(...b.parts);
     });
 
     if (this.tab === 'world') this.world(add);
+    else if (this.tab === 'seasons') this.seasons(add);
     else if (this.tab === 'records') this.records(add);
     else this.online(add);
   }
@@ -98,6 +108,24 @@ export class RankingScene extends Phaser.Scene {
       y += 36;
     }
     add(themeText(this, WIDTH / 2, 624, 'CAREER MATCHES ONLY. SPARRING DOES NOT COUNT.', { size: 10, color: TC.sub, font: 'display' }));
+  }
+
+  /** The finished seasons: the final place in the world, the points and what he won. */
+  private seasons(add: <T extends Phaser.GameObjects.GameObject>(o: T) => T): void {
+    const list = [...getSave().profile.career.seasons].reverse();
+    if (list.length === 0) {
+      add(themeText(this, WIDTH / 2, 260, 'NO SEASON FINISHED YET', { size: 16, color: TC.orange, font: 'display' }));
+      add(themeText(this, WIDTH / 2, 310, 'A season is 24 weeks. When it ends you get\nyour final place in the world and a reward.', { size: 12, color: TC.sub, align: 'center' }).setLineSpacing(4));
+      return;
+    }
+    list.slice(0, 8).forEach((s, i) => {
+      const y = 130 + i * 62;
+      const g = add(this.add.graphics().setPosition(12, y));
+      drawCard(g, WIDTH - 24, 56, { radius: 14, shadow: 2, stroke: s.place <= 3 ? TC.orange : TC.navy });
+      add(themeText(this, 26, y + 18, `SEASON ${s.season}`, { size: 15, font: 'display', origin: [0, 0.5] }));
+      add(themeText(this, 26, y + 39, `${s.events} TOURNAMENTS  ·  ${s.titles} ${s.titles === 1 ? 'TITLE' : 'TITLES'}  ·  ${s.points.toLocaleString('en-US')} PTS`, { size: 10, color: TC.sub, origin: [0, 0.5] }));
+      add(themeText(this, WIDTH - 26, y + 28, `#${s.place}`, { size: 26, color: s.place <= 3 ? TC.orange : TC.navy, font: 'display', origin: [1, 0.5] }));
+    });
   }
 
   private online(add: <T extends Phaser.GameObjects.GameObject>(o: T) => T): void {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { claimWeeklyBonus, claimWeeklyTask, daysLeft, WEEKLY_BONUS_COINS, WEEKLY_TASK_COINS, weekKey, weeklyBonusReady, weeklyViews } from '../career/weekly';
+import { showTip } from '../tutorial/tips';
 import { getSave, updateSave } from '../save';
 import { sfx } from '../audio';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -13,6 +14,7 @@ export class WeeklyScene extends Phaser.Scene {
 
   create(): void {
     this.render(true);
+    this.time.delayedCall(250, () => showTip(this, 'tasks'));
   }
 
   private render(first = false): void {

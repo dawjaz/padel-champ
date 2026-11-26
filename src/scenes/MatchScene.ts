@@ -455,6 +455,7 @@ export class MatchScene extends Phaser.Scene {
     ensureCoinTexture(this, 'T');
     this.setActive(null);
     this.say('COIN TOSS: call it!');
+    this.time.delayedCall(350, () => showTip(this, 'toss'));
     this.showButtons('Coin toss', [
       { label: 'HEADS', tone: 'normal', onPick: () => this.flipCoinAnimation('heads') },
       { label: 'TAILS', tone: 'normal', onPick: () => this.flipCoinAnimation('tails') },

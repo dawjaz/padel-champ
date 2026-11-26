@@ -7,7 +7,7 @@
 /** Which drawing a page uses (see art/tutorialArt.ts). */
 export type ArtId =
   | 'court' | 'menu' | 'guts' | 'serve' | 'receive' | 'ring' | 'glass' | 'aim' | 'runout' | 'runout2' | 'special' | 'hero' | 'gear'
-  | 'career' | 'practice' | 'camp' | 'targets' | 'smash';
+  | 'career' | 'practice' | 'camp' | 'targets' | 'smash' | 'toss' | 'retire' | 'shop' | 'partner' | 'tasks' | 'season';
 
 export interface LessonPage {
   head: string;
@@ -39,6 +39,13 @@ export const LESSONS: Lesson[] = [
     pages: [
       { head: 'THE SERVE', art: 'serve', text: 'Serve to the body, the T or the glass.\nA fault gives a slower, easier second\nserve. Hit the serve as the ring closes.' },
       { head: 'RECEIVING', art: 'receive', text: 'When the opponent serves, the ball flies\nin slow motion: read its speed, spin and\ndirection, THEN pick how to return it.' },
+    ],
+  },
+  {
+    id: 'toss', group: 'MATCH', title: 'COIN TOSS AND LEAVING',
+    pages: [
+      { head: 'CALL IT', art: 'toss', text: 'Before the first point, call HEADS or TAILS.\nWho wins the toss serves first. After that\nthe teams change sides every odd game.' },
+      { head: 'LEAVING A MATCH', art: 'retire', text: 'Before the toss you can go back, nothing\nis lost. After it, END THE GAME gives the\nmatch to your opponents and pays nothing.' },
     ],
   },
   {
@@ -83,6 +90,30 @@ export const LESSONS: Lesson[] = [
     id: 'career', group: 'CAREER', title: 'THE CAREER',
     pages: [
       { head: 'WEEK BY WEEK', art: 'career', text: 'Each week offers tournaments. Win your\nties (one match each) to climb the draw,\nearn XP, coins and trophies, and rise\nin the ranking.' },
+    ],
+  },
+  {
+    id: 'partner', group: 'CAREER', title: 'YOUR PARTNER',
+    pages: [
+      { head: 'PLAY AS A PAIR', art: 'partner', text: 'Padel is played in pairs. Your partner plays\nthe other half of the court, and the pair\nrating counts both of you. Better partners\nneed a higher level and some coins.' },
+    ],
+  },
+  {
+    id: 'shop', group: 'CAREER', title: 'SHOP AND PACKS',
+    pages: [
+      { head: 'SPEND YOUR COINS', art: 'shop', text: 'Gear Packs and Premium Packs hold random\ngear (the better pack, the better odds).\nBoosts help in one match. The shop is closed\nwhile a tournament is on.' },
+    ],
+  },
+  {
+    id: 'tasks', group: 'CAREER', title: 'DAILY AND WEEKLY TASKS',
+    pages: [
+      { head: 'SMALL GOALS, BIG REWARDS', art: 'tasks', text: 'Three tasks every day and three every week,\nplayed in career matches. Each pays coins.\nFinish all three for a bonus, and a daily\nlogin gives more every day in a row.' },
+    ],
+  },
+  {
+    id: 'season', group: 'CAREER', title: 'THE END OF A SEASON',
+    pages: [
+      { head: 'SEASON COMPLETE', art: 'season', text: 'A season is 24 weeks. At the end you get\nyour place in the world ranking, and coins\nand packs for it, plus more for every title.\nPlay at least 8 tournaments to earn it.' },
     ],
   },
   {

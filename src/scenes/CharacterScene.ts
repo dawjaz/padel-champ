@@ -96,8 +96,6 @@ export class CharacterScene extends Phaser.Scene {
       }, p.gender === g ? 'primary' : 'secondary', 10);
       this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
     });
-    const cups = makeThemeButton(this, 296, 147, 100, 18, 'TROPHIES', () => this.scene.start('CupsScene', { from: 'CharacterScene' }), 'blue', 10);
-    this.dyn.push(...(cups.parts as Phaser.GameObjects.GameObject[]));
     const xpIcon = this.add.graphics();
     drawXp(xpIcon, 106, 123, 8);
     this.dyn.push(xpIcon);
@@ -119,41 +117,41 @@ export class CharacterScene extends Phaser.Scene {
     const gear = gearBonus(p.inventory);
     const max = levels.statMax;
     STAT_KEYS.forEach((k, i) => {
-      const y = 192 + i * 50;
+      const y = 194 + i * 46;
       const v = statValue(p, k);
       const row = this.add.graphics().setPosition(12, y);
-      drawCard(row, WIDTH - 24, 46, { radius: 14 });
+      drawCard(row, WIDTH - 24, 42, { radius: 13 });
       this.dyn.push(row);
       const ic = this.add.graphics();
       ic.fillStyle(TC.blue, 1);
-      ic.fillRoundedRect(20, y + 8, 36, 36, 10);
+      ic.fillRoundedRect(20, y + 5, 32, 32, 9);
       ic.lineStyle(2, TC.navy, 1);
-      ic.strokeRoundedRect(20, y + 8, 36, 36, 10);
-      drawIcon(ic, k, 38, y + 26, 22, TC.white);
+      ic.strokeRoundedRect(20, y + 5, 32, 32, 9);
+      drawIcon(ic, k, 36, y + 21, 20, TC.white);
       this.dyn.push(ic);
-      this.text(64, y + 17, LABEL[k], 14, TC.navy, 0, true);
-      this.text(64, y + 36, HINT[k], 10, TC.sub, 0);
+      this.text(62, y + 14, LABEL[k], 14, TC.navy, 0, true);
+      this.text(62, y + 31, HINT[k], 10, TC.sub, 0);
       // Bar: value in blue, gear bonus in orange, the part above the level cap shaded.
       const bx0 = 168;
       const bw = 72;
       const g = this.add.graphics();
-      drawBar(g, bx0, y + 20, bw, 14, v / max, TC.blue);
+      drawBar(g, bx0, y + 14, bw, 14, v / max, TC.blue);
       const bonus = Math.min(gear[k], max - v);
       if (bonus > 0) {
         g.fillStyle(TC.orange, 1);
-        g.fillRoundedRect(bx0 + 1 + (bw - 2) * (v / max), y + 21, (bw - 2) * (bonus / max), 12, 3);
+        g.fillRoundedRect(bx0 + 1 + (bw - 2) * (v / max), y + 15, (bw - 2) * (bonus / max), 12, 3);
       }
       if (cap < max) {
         g.fillStyle(TC.navy, 0.16);
-        g.fillRect(bx0 + 1 + (bw - 2) * (cap / max), y + 21, (bw - 2) * (1 - cap / max), 12);
+        g.fillRect(bx0 + 1 + (bw - 2) * (cap / max), y + 15, (bw - 2) * (1 - cap / max), 12);
         g.lineStyle(2, TC.navy, 0.8);
-        g.lineBetween(bx0 + 1 + (bw - 2) * (cap / max), y + 18, bx0 + 1 + (bw - 2) * (cap / max), y + 36);
+        g.lineBetween(bx0 + 1 + (bw - 2) * (cap / max), y + 12, bx0 + 1 + (bw - 2) * (cap / max), y + 30);
       }
       this.dyn.push(g);
-      this.text(246, y + 26, String(v), 16, TC.navy, 0, true);
-      if (gear[k] > 0) this.text(260, y + 26, `+${gear[k]}`, 11, TC.orange, 0);
+      this.text(246, y + 21, String(v), 16, TC.navy, 0, true);
+      if (gear[k] > 0) this.text(260, y + 21, `+${gear[k]}`, 11, TC.orange, 0);
       const ok = canSpend(p, k);
-      const b = makeThemeButton(this, 330, y + 25, 32, 36, '+', () => {
+      const b = makeThemeButton(this, 330, y + 21, 32, 32, '+', () => {
         updateSave((d) => ({ ...d, profile: spend(d.profile, k) }));
         this.redraw();
       }, ok ? 'primary' : 'secondary', 24);
@@ -161,7 +159,7 @@ export class CharacterScene extends Phaser.Scene {
       if (!ok) b.bg.disableInteractive();
       this.dyn.push(...b.parts);
       const can = canUnspend(p, k);
-      const m = makeThemeButton(this, 292, y + 25, 32, 36, '-', () => {
+      const m = makeThemeButton(this, 292, y + 21, 32, 32, '-', () => {
         updateSave((d) => ({ ...d, profile: unspend(d.profile, k) }));
         this.redraw();
       }, 'secondary', 24);
@@ -169,11 +167,17 @@ export class CharacterScene extends Phaser.Scene {
       if (!can) m.bg.disableInteractive();
       this.dyn.push(...m.parts);
     });
-    this.text(86, 576, 'I PLAY ON THE', 11, TC.navy, 0, true);
-    for (const b of makeSideSwitch(this, 238, 576, p.heroSide, (side) => {
+    // the player's records: trophies, the world ranking, achievements
+    const links: Array<[string, string, object | undefined]> = [['TROPHIES', 'CupsScene', { from: 'CharacterScene' }], ['RANKS', 'RankingScene', { from: 'CharacterScene' }], ['ACHIEVEMENTS', 'AchievementsScene', { from: 'CharacterScene' }]];
+    links.forEach(([label, scene, data], i) => {
+      const b = makeThemeButton(this, 12 + 56 + i * 118, 530, 112, 28, label, () => this.scene.start(scene, data), 'blue', label.length > 8 ? 10 : 12);
+      this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
+    });
+    this.text(86, 580, 'I PLAY ON THE', 11, TC.navy, 0, true);
+    for (const b of makeSideSwitch(this, 238, 580, p.heroSide, (side) => {
       updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
       this.redraw();
     })) this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-    this.text(WIDTH / 2, 552, nextCapLevel(level) ? `SHADED PART OF THE BAR UNLOCKS AT LEVEL ${nextCapLevel(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
+    this.text(WIDTH / 2, 557, nextCapLevel(level) ? `SHADED PART OF THE BAR UNLOCKS AT LEVEL ${nextCapLevel(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
   }
 }

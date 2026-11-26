@@ -5,9 +5,10 @@ import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { project, unproject } from '../art/camera';
 import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ballPath';
 import { themeIdOfCity } from '../art/hd/courtThemes';
+import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
 import {
-  campGame, isServeRound, kickedFrom, SERVE_SPIN, serveKindOfSpot, landShot, openSpotOf, receiverX, returnResult, returnShotsFor, rollOn, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashCore, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
+  campGame, isServeRound, SMASH_INPUT_LAG, type ServeKind, kickedFrom, SERVE_SPIN, serveKindOfSpot, landShot, openSpotOf, receiverX, returnResult, returnShotsFor, rollOn, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashCore, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
   type CampGameId, type ReturnRound, type ReturnShot, type ServeSpot, type SmashKind, type SmashRound, type TimingRound, type Zone,
 } from '../career/camp';
 import { CampHero } from './campHero';
@@ -64,6 +65,12 @@ export class MinigameScene extends Phaser.Scene {
   private busy = false;
   /** Scene time when the ball of a timing or smash round is due (for automated checks). */
   hitDueAt = 0;
+  /** The ball's turn (its markings are redrawn as it spins, like in the match): orientation, angular speed, last update/redraw. */
+  private ballR: Mat3 = IDENTITY;
+  private ballOmega: Vec3 = launchSpin(0.8, 0, 0, 1);
+  private ballTurnedAt = 0;
+  private ballDrawnAt = 0;
+  private redrawBall: (m: Mat3) => void = () => undefined;
 
   constructor() {
     super('MinigameScene');
@@ -85,7 +92,7 @@ export class MinigameScene extends Phaser.Scene {
     this.add.image(0, 0, backKey).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
     const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
     net.setDisplaySize(WIDTH, net.height / HD_SCALE);
-    ensureBallTextures(this);
+    this.redrawBall = ensureBallTextures(this).redrawBall;
     ensureFlatTextures(this);
     // bottom panel and HUD
     const panel = this.add.graphics().setDepth(9000);
@@ -245,10 +252,26 @@ export class MinigameScene extends Phaser.Scene {
     }, msPerM);
   }
 
+  /** Sets the spin of the next flight: `top` (+ topspin, - backspin) and `side`, along the line from `a` to `b` (court metres). */
+  private spin(top: number, side: number, a: { x: number; z: number }, b: { x: number; z: number }): void {
+    this.ballOmega = launchSpin(top, side, b.x - a.x, b.z - a.z);
+  }
+
   private placeBall(x: number, z: number, h: number): void {
+    const now = this.time.now;
+    const dt = Math.min(0.05, Math.max(0, (now - this.ballTurnedAt) / 1000));
+    this.ballTurnedAt = now;
+    if (dt > 0 && h > 0.06) {
+      this.ballR = rotate(this.ballR, this.ballOmega, dt);
+      if (now - this.ballDrawnAt >= 50) {
+        this.ballDrawnAt = now;
+        this.redrawBall(this.ballR);
+      }
+    }
     const p = project(x, z, h);
     const g = project(x, z);
-    this.ball.setPosition(p.x, p.y).setDisplaySize(Math.max(6, p.scale * 0.32), Math.max(6, p.scale * 0.32));
+    // a little larger than in the match, so that its turning can be seen
+    this.ball.setPosition(p.x, p.y).setDisplaySize(Math.max(9, p.scale * 0.45), Math.max(9, p.scale * 0.45));
     this.ballShadow.setPosition(g.x, g.y).setDisplaySize(Math.max(5, g.scale * 0.35), Math.max(2, g.scale * 0.12));
   }
 
@@ -455,6 +478,7 @@ export class MinigameScene extends Phaser.Scene {
     const core = smashCore(this.hero, r, kind);
     this.ball.setVisible(true);
     this.ballShadow.setVisible(true);
+    this.spin(0.5, 0, r.from, c);
     sfx('hit');
     // he runs under it (the ball a little in front of his racket shoulder), then loads the smash
     this.heroView.runTo(c.x - 0.45, c.z + 0.3, Math.min(900, r.closeMs * 0.45));
@@ -479,6 +503,7 @@ export class MinigameScene extends Phaser.Scene {
       if (res.outcome === 'out' || res.outcome === 'winner') this.cameras.main.shake(140, 0.006);
       const s = shot(SMASH_SHOT[kind]);
       const side = Math.random() < 0.5 ? -1 : 1;
+      this.spin(kind === 'vibora' ? -0.4 : kind === 'x4' ? 1.6 : 1.2, kind === 'vibora' ? side * 2 : 0, { x: from.x, z: from.z }, { x: side * 1.5, z: 4 });
       const flight = buildFlight({
         from: { x: from.x, z: from.z }, startH: Math.max(2, from.h), hitterSide: 0, shot: s,
         landX: kind === 'vibora' ? side * 3.5 : side * 1.5,
@@ -488,7 +513,7 @@ export class MinigameScene extends Phaser.Scene {
       this.playFlight(flight, (e) => {
         if (e === 'out') this.bigCall(kind === 'x3' ? 'POR TRES!' : 'POR CUATRO!');
       }, () => {
-        const label = res.outcome === 'out' ? `+${res.points}` : res.outcome === 'winner' ? `WINNER +${res.points}` : res.outcome === 'glass' ? `BACK IN PLAY +${res.points}` : 'NET';
+        const label = res.outcome === 'out' ? `+${res.points}` : res.outcome === 'winner' ? `WINNER +${res.points}` : res.outcome === 'glass' ? `BACK IN PLAY +${res.points}` : tapMs < r.closeMs ? 'TOO EARLY' : 'TOO LATE';
         this.smashDone(res.points, label, res.outcome === 'out' || res.outcome === 'winner');
       });
     };
@@ -522,7 +547,8 @@ export class MinigameScene extends Phaser.Scene {
     tap.on('pointerdown', () => {
       if (done) return;
       tick.remove();
-      end(this.time.now - t0);
+      // what he sees on screen is a few frames behind the clock, so a touch is judged that much earlier
+      end(this.time.now - t0 - SMASH_INPUT_LAG);
     });
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
@@ -638,6 +664,13 @@ export class MinigameScene extends Phaser.Scene {
     this.layer.push(tip);
   }
 
+  /** A flat serve turns a little, a kick serve spins hard forward, a slice turns on its side with backspin. */
+  private spinOfServe(kind: ServeKind, dir: number, a: { x: number; z: number }, b: { x: number; z: number }): void {
+    const top = kind === 'kick' ? 1.7 : kind === 'slice' ? -0.5 : 0.5;
+    const side = dir * (kind === 'slice' ? 2.4 : kind === 'kick' ? 0.8 : 0.2);
+    this.spin(top, side, a, b);
+  }
+
   /** The underhand padel serve: the ball dropped, its bounce, the hit as it comes up (the ring closes on it). */
   private serveToss(open: ServeSpot, spot: ServeSpot): void {
     this.clearLayer();
@@ -687,6 +720,7 @@ export class MinigameScene extends Phaser.Scene {
       // side spin by where he aims (slice wide, kick at the body, flat down the T): the ball bows in the air and the bounce throws it on
       const spin = SERVE_SPIN[serveKindOfSpot(spot)];
       const spinDir = Math.sign(aim.x) || 1;
+      this.spinOfServe(serveKindOfSpot(spot), spinDir, from, land);
       this.flyArc(from, land, 1.0, () => {
         const rv = this.rival!;
         const rf = kickedFrom(from, land, rv.z + 0.35, spinDir * spin.kick);
@@ -761,6 +795,7 @@ export class MinigameScene extends Phaser.Scene {
         sfx('hit');
         const spin = SERVE_SPIN[r.kind];
         const spinDir = Math.sign(land.x) || 1;
+        this.spinOfServe(r.kind, spinDir, from, land);
         const fromK = kickedFrom(from, land, 18.3, spinDir * spin.kick);
         this.flyArc(from, land, 1.0, () => this.askReturn(r, fromK, land), SERVE_MS_PER_M, spinDir * spin.swerve);
         this.time.delayedCall(500, () => rv.runTo(-lane * 1.2, NET_Z - 2.6, 900));

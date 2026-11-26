@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { getSave, updateSave } from '../save';
-import { FIRST_RUN, LESSONS, setTipsOff, type LessonGroup } from '../tutorial/lessons';
+import { FIRST_RUN, LESSONS, newTips, setTipsOff, type LessonGroup } from '../tutorial/lessons';
 import { openLessons } from '../tutorial/tips';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
@@ -60,6 +60,11 @@ export class TutorialScene extends Phaser.Scene {
       themeText(this, 28, y + 44, `${l.pages.length} ${l.pages.length === 1 ? 'PAGE' : 'PAGES'}${ok ? '  ·  SEEN' : '  ·  NEW'}`, { size: 10, color: ok ? TC.sub : TC.orange, origin: [0, 0.5] });
       makeThemeButton(this, WIDTH - 64, y + 31, 76, 36, ok ? 'AGAIN' : 'PLAY', () => openLessons(this, [l.id], () => this.render()), ok ? 'blue' : 'primary', 13);
     });
+    makeThemeButton(this, WIDTH / 2, 518, 290, 40, 'WATCH ALL LESSONS', () => openLessons(this, LESSONS.map((l) => l.id), () => this.render()), 'primary', 16);
+    makeThemeButton(this, WIDTH / 2, 562, 290, 34, 'SHOW EVERY TIP AGAIN IN PLAY', () => {
+      updateSave((d) => ({ ...d, tips: { ...newTips(), off: false } }));
+      this.render();
+    }, 'secondary', 12);
     const tipsLabel = (): string => `TIPS DURING PLAY: ${getSave().tips.off ? 'OFF' : 'ON'}`;
     const t = makeThemeButton(this, WIDTH / 2, 600, 290, 40, tipsLabel(), () => {
       updateSave((d) => ({ ...d, tips: setTipsOff(d.tips, !d.tips.off) }));

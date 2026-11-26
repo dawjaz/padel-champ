@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.142)_
+_Last updated: 2026-11-26 (v0.143)_
+
+## v0.143: owner's test round (spin, Smash Show, Settings, Hero, seasons) and tutorial stage 2
+- Camp balls turn: `MinigameScene` keeps the ball's orientation like the match (`ballR`, `ballOmega`, `redrawBall`); serves spin by kind (flat little, kick hard topspin, slice backspin + side), smashes by kind. The camp ball is a bit larger (min 9 px) so the turning shows.
+- Smash Show "MISS": the timing window was as narrow as 90 ms while the ring shrinks slowly, so a human could not tell. `SMASH_MIN_WINDOW` 150, and a touch is judged `SMASH_INPUT_LAG` (50 ms) earlier (screen and finger lag). A bad touch now says TOO EARLY or TOO LATE instead of NET. The other camp timing games were not changed (same lag idea may apply).
+- Settings: buttons and captions re-spaced (they overlapped). Hero: TROPHIES, RANKS, ACHIEVEMENTS in a row under the attributes (rows are 46 px now); `RankingScene` takes `from` and has a SEASONS tab (history from `career.seasons`).
+- Owner decided: no change to seasons for now (same calendar, level-gated events); season-end rewards stay. Ideas left: season trophy in the hero room.
+- Tutorial stage 2: lessons toss (+ leaving a match), partner, shop, tasks, season; tips hooked in `coinToss`, PartnerScene, ShopScene, DailyScene/WeeklyScene, SeasonEndScene. HOW TO PLAY has WATCH ALL LESSONS and SHOW EVERY TIP AGAIN IN PLAY (resets seen tips only; achievements untouched).
 
 ## v0.142: special shots need the ring, and the season has an end (recap + rewards)
 - Specials (`sp_*`, smash-type) went in ~85-95% against defense <=5 by design, and the timing ring did almost nothing for them. `specialTimingError(q)` in `game/engine.ts` now adds an error: clean touch ~2-7%, no ring (AUTO/CPU) 8%, mistimed up to 45%. A strong defender (7) still answers more. Numbers are in `calendar`-independent engine code; tune the constants there.

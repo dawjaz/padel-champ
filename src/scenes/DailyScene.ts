@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { BONUS_COINS, bonusReady, claimBonus, claimLogin, claimTask, dayKey, loginReward, loginStatus, STREAK_LENGTH, TASK_COINS, taskViews } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
+import { showTip } from '../tutorial/tips';
 import { getSave, updateSave } from '../save';
 import { sfx } from '../audio';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -14,6 +15,7 @@ export class DailyScene extends Phaser.Scene {
 
   create(): void {
     this.render(true);
+    this.time.delayedCall(250, () => showTip(this, 'tasks'));
   }
 
   private render(first = false): void {

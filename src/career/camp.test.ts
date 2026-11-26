@@ -4,7 +4,7 @@ import { SHOTS } from '../game/catalog';
 import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
-  CAMP, CAMP_GAMES, campNow, canTry, finishTry, nextMilestone, kickedFrom, smashCore, SERVE_SPIN, serveKindOfSpot, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
+  CAMP, CAMP_GAMES, campNow, canTry, finishTry, nextMilestone, kickedFrom, smashCore, SERVE_SPIN, serveKindOfSpot, zoneAt, smashResult, smashRound, smashWindow, SMASH_MIN_WINDOW, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
   openSpotOf, returnFit, returnShotsFor, rollOn, returnResult, returnRound, returnWindow, serveOutcome, starsFor, tossQuality, tossWindow, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
@@ -130,7 +130,8 @@ describe('camp minigames', () => {
     expect(smashResult(hero, r, 'x3', r.closeMs + w * 1.2).points).toBe(0);
     expect(smashResult(hero, r, 'x3', null).outcome).toBe('net');
     const deep = { ...r, lob: 'deep' as const };
-    expect(smashWindow(hero, deep, 'x4')).toBeLessThan(smashWindow(hero, deep, 'vibora') / 2);
+    expect(smashWindow(hero, deep, 'x4')).toBe(SMASH_MIN_WINDOW);
+    expect(smashWindow(hero, deep, 'x4')).toBeLessThan(smashWindow(hero, deep, 'vibora'));
     const short = { ...r, lob: 'short' as const };
     expect(smashResult(hero, short, 'x4', short.closeMs).points).toBeGreaterThan(smashResult(hero, short, 'x3', short.closeMs).points);
   });
