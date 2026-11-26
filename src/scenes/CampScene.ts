@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
-import { CAMP, CAMP_GAMES, campNow, campOpen, canTry, grantExtraTry, startTry, type CampGameId } from '../career/camp';
+import { CAMP, CAMP_GAMES, campNow, campOpen, canTry, grantExtraTry, nextMilestone, startTry, type CampGameId } from '../career/camp';
 import { rewardedAd } from '../ads';
 import { goalsWaiting } from '../career/campGoals';
 import { dayKey } from '../career/daily';
@@ -27,10 +27,12 @@ export class CampScene extends Phaser.Scene {
     themeText(this, WIDTH / 2, 78, open ? `WEEK ${p.career.week}  ·  TRIES LEFT: ${c.triesLeft}` : 'CLOSED WHILE A TOURNAMENT IS ON', { size: 13, color: open ? TC.navy : TC.sub, font: 'display' });
     // fragments towards a Gear Pack, total stars
     const g = this.add.graphics().setPosition(12, 92);
-    drawCard(g, WIDTH - 130, 46, { radius: 12 });
+    drawCard(g, WIDTH - 130, 52, { radius: 12 });
     themeText(this, 24, 106, `GEAR PACK FRAGMENTS  ${c.fragments}/${CAMP.fragmentsPerPack}`, { size: 11, color: TC.navy, font: 'display', origin: [0, 0.5] });
     drawBar(this.add.graphics(), 24, 120, WIDTH - 250, 8, c.fragments / CAMP.fragmentsPerPack, TC.orange);
-    themeText(this, WIDTH - 130, 106, `${c.totalStars} ★`, { size: 13, color: TC.orange, font: 'display', origin: [1, 0.5] });
+    // the stars here are all the stars earned in trials so far (they pay the fragments), not the best stars of the four games below
+    const next = nextMilestone(c.totalStars, c.claimed);
+    themeText(this, 24, 136, `${c.totalStars} ★ EARNED  ·  +${next.fragments} FRAGMENTS AT ${next.stars} ★`, { size: 9, color: TC.sub, font: 'body', origin: [0, 0.5] });
     const waiting = goalsWaiting(getSave().campGoals, dayKey(new Date()), weekKey(new Date()));
     makeThemeButton(this, WIDTH - 62, 115, 100, 46, 'GOALS', () => this.scene.start('CampGoalsScene'), waiting ? 'primary' : 'blue', 15);
 

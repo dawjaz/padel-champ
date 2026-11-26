@@ -114,6 +114,18 @@ export function milestonesCrossed(before: number, after: number, claimed: string
   return out;
 }
 
+/** The next star total that pays fragments (unpaid milestones first, then every `repeatEvery` stars after the last one). */
+export function nextMilestone(totalStars: number, claimed: string[]): { stars: number; fragments: number } {
+  for (let i = 0; i < CAMP.milestones.length; i++) {
+    const m = CAMP.milestones[i];
+    if (!claimed.includes(String(i)) && m.stars > totalStars) return { stars: m.stars, fragments: m.fragments };
+  }
+  const last = CAMP.milestones[CAMP.milestones.length - 1]?.stars ?? 0;
+  let n = Math.max(1, Math.floor((totalStars - last) / CAMP.repeatEvery) + 1);
+  while (claimed.includes(`r${n}`) && last + n * CAMP.repeatEvery <= totalStars) n++;
+  return { stars: last + n * CAMP.repeatEvery, fragments: CAMP.repeatFragments };
+}
+
 /**
  * Finishes a try with its score: stars, coins (a share of a match's pay by stars), on three stars maybe a basic boost (if the bag has
  * room), milestone fragments (enough of them make a Gear Pack). `double`: a rewarded ad doubles the coins.
@@ -302,16 +314,22 @@ export function smashRound(round: number, rng: Rng): SmashRound {
 }
 /** The timing window (ms either side) for this smash against this lob; power and technique widen it. */
 export function smashWindow(hero: PlayerDef, r: SmashRound, kind: SmashKind): number {
-  return Math.round((110 + 8 * hero.stats.power + 6 * hero.stats.technique) * SMASH_FIT[kind][r.lob]);
+  return Math.max(SMASH_MIN_WINDOW, Math.round((110 + 8 * hero.stats.power + 6 * hero.stats.technique) * SMASH_FIT[kind][r.lob]));
 }
+/** Never narrower than this (ms), so even the hardest smash can be hit by a good tap (a tap is not accurate to the frame). */
+export const SMASH_MIN_WINDOW = 90;
+/** Inner share of the window that gives the full smash (the ring is green exactly inside it). */
+export const SMASH_CORE = 0.4;
+/** Half-width (ms) of the green part: what the ring shows is what the result pays. */
+export const smashCore = (hero: PlayerDef, r: SmashRound, kind: SmashKind): number => smashWindow(hero, r, kind) * SMASH_CORE;
 export type SmashOutcome = 'out' | 'winner' | 'glass' | 'net';
 /** `tapMs`: when the player touched, from the start of the lob (null: never). The core of the window is its inner 40%. */
 export function smashResult(hero: PlayerDef, r: SmashRound, kind: SmashKind, tapMs: number | null): { outcome: SmashOutcome; points: number } {
   if (tapMs === null) return { outcome: 'net', points: 0 };
   const w = smashWindow(hero, r, kind);
   const q = Math.abs(tapMs - r.closeMs) / Math.max(1, w);
-  if (q <= 0.4) return { outcome: kind === 'vibora' ? 'winner' : 'out', points: SMASH_TOP[kind] };
-  if (q <= 1) return { outcome: 'glass', points: Math.round(60 - (30 * (q - 0.4)) / 0.6) };
+  if (q <= SMASH_CORE) return { outcome: kind === 'vibora' ? 'winner' : 'out', points: SMASH_TOP[kind] };
+  if (q <= 1) return { outcome: 'glass', points: Math.round(60 - (30 * (q - SMASH_CORE)) / (1 - SMASH_CORE)) };
   return { outcome: 'net', points: 0 };
 }
 
@@ -386,6 +404,29 @@ export function serveOutcome(open: ServeSpot, spot: ServeSpot, q: number, rng: R
   const pressure = 0.2 + (spot === open ? 0.35 : spot === 'body' ? 0.2 : 0) + 0.3 * q + (rng() - 0.5) * 0.2;
   const tier: ServeTier = pressure >= 0.9 ? 'ace' : pressure >= 0.62 ? 'weak' : pressure >= 0.42 ? 'average' : 'strong';
   return { tier, pressure, points: SERVE_POINTS[tier] };
+}
+
+/**
+ * Side spin of a serve, in metres: how far the ball bows sideways in the air (`swerve`) and how far the bounce throws it on sideways
+ * by the time it reaches the receiver (`kick`). A slice bows a lot, a kick serve jumps off the bounce, a flat one hardly moves.
+ */
+export const SERVE_SPIN: Record<ServeKind, { swerve: number; kick: number }> = {
+  flat: { swerve: 0.3, kick: 0.25 },
+  kick: { swerve: 0.55, kick: 1.2 },
+  slice: { swerve: 0.9, kick: 0.9 },
+};
+/** The hero's own serve has no menu: aiming wide is a slice, at the body a kick serve, down the T a flat one. */
+export const serveKindOfSpot = (spot: ServeSpot): ServeKind => (spot === 'wide' ? 'slice' : spot === 'body' ? 'kick' : 'flat');
+/**
+ * A start point to give `rollOn` so that a ball bouncing at `land` ends `kick` metres further across (towards +x) when it reaches the
+ * depth `zRef`, i.e. its line bends off the bounce by the spin.
+ */
+export function kickedFrom(from: FloorPoint, land: FloorPoint, zRef: number, kick: number): FloorPoint {
+  const dz = land.z - from.z;
+  if (Math.abs(dz) < 1e-6) return from;
+  const t = (zRef - land.z) / dz;
+  if (Math.abs(t) < 1e-6) return from;
+  return { x: from.x - kick / t, z: from.z };
 }
 
 export interface ReturnRound {

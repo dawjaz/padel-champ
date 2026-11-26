@@ -81,6 +81,10 @@ export const MAX_BOOSTS: number = consumablesData.maxBoosts;
 /** One boost per match. */
 export const MAX_QUEUED = 1;
 
+/** The grade of an item: the 1st..4th model of its brand in a slot (rackets have their own names, so the id decides). */
+export const TIER_NAMES = ['Basic', 'Pro', 'Technical', 'Elite'] as const;
+export const tierOf = (g: GearItem): string => TIER_NAMES[Math.min(3, Math.max(0, Number(g.id.split('_').pop()) - 1 || 0))];
+
 export const gearById = (id: string): GearItem | undefined => GEAR.find((g) => g.id === id);
 export const consumableById = (id: string): Consumable | undefined => CONSUMABLES.find((c) => c.id === id);
 export const itemsOfSlot = (slot: Slot): GearItem[] => GEAR.filter((g) => g.slot === slot);

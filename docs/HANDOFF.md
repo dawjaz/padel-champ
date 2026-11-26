@@ -2,6 +2,14 @@
 
 _Last updated: 2026-11-26 (v0.137)_
 
+## v0.140: owner's test round (Gear tiers, serve pace and spin, Smash Show ring, camp counters, big-draw layout, skill points)
+- Skill points (fixes the v0.138 misreading): the owner wanted the same pace as before (the cap rises every 5 levels, 2 points a level); the bug was an off-by-one: the new room opened on level 6, 11, ... while the hero screen promised level 5. `statCap(level) = capBase + floor(level / levelsPerCap)` now (opens ON 5, 10, 15, 20, 25), `levelsPerCap` is back to 5, `nextCapLevel` feeds the hint under the stat rows ("unlocks at level N"). Supersedes the v0.138 note about caps every 3 levels.
+- Gear: every worn-item tile shows its grade (Basic / Pro / Technical / Elite, `tierOf` from the id suffix _1.._4) under the brand.
+- Camp minigames: serves (hero's and the opponent's) fly at `SERVE_MS_PER_M` 48 (about 75 km/h; before 85, which the owner found slow in both); `AFTER_BOUNCE_MS_PER_M` 90. Side spin: `SERVE_SPIN` (swerve = bow in the air via `flyArc(..., swerve)`, kick = line bent off the bounce via `kickedFrom` + `rollOn`); the hero's serve kind follows the spot (`serveKindOfSpot`: wide slice, body kick, T flat), the opponent's follows the round's kind.
+- Smash Show: the ring went green within +-60 ms of the due time while the real full-smash window was `0.4 x smashWindow` (as low as ~19 ms for a Por Cuatro off a deep lob), hence "green but missed". The ring is now green exactly inside `smashCore`, and `SMASH_MIN_WINDOW` 90 ms keeps even the hardest smash hittable.
+- Camp header: the number beside the fragments was all stars ever earned in trials (they pay the fragments), unrelated to the best stars of the four games; now reads "N EARNED, +F FRAGMENTS AT M" (`nextMilestone`).
+- Big draw (16): tree pitch 19 -> 17 so the side switch, boost buttons and PLAY MATCH no longer overlap; the boost block is positioned from the tree bottom.
+
 ## v0.139: camp goals (daily and weekly goals from the minigames)
 - `src/career/campGoals.ts` (pure, tested in `campGoals.test.ts`; lists and coins in `src/data/campGoals.json`): two goals a day (30 coins each) and two a week (100 each), drawn from a pool (seeded by the day / the Monday, no two of the same kind). Kinds: `trials` (play n), `stars` (earn n in total), `best` (n stars in one trial, optionally in one named game), `perfect` (n three-star trials), `games` (n different games). State in `save.campGoals` (a log of the day's and the week's trials, ids already paid); real days and weeks like the daily tasks (`dayKey`, `weekKey`).
 - Deliberately NOT part of the daily tasks / daily bonus: the camp is closed while a tournament is on, so a camp goal could be unreachable and must never hold back the daily bonus.

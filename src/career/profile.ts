@@ -105,15 +105,18 @@ export function levelProgress(xp: number): number {
   return (xp - lo) / (xpToReach(level + 1) - lo);
 }
 
-/** Highest value one attribute may have at this level (before gear). */
-export const statCap = (level: number): number =>
-  Math.min(levels.statMax, levels.capBase + Math.floor((Math.max(1, level) - 1) / levels.levelsPerCap));
-
 /**
- * Skill points earned up to this level; never more than the attributes can take at the top (so none are ever stuck). The caps
- * (`statCap`) rise fast enough that every point earned can be spent at once: with 2 points a level and 7 attributes, a cap that rose
- * every 5 levels left the hero at level 5 with 3 points he could not place (every attribute already at the cap).
+ * Highest value one attribute may have at this level (before gear). The cap rises every `levelsPerCap` levels and the new room opens
+ * ON the level itself (5, 10, 15, ...), so a hero who reaches level 5 can spend the points that were waiting.
  */
+export const statCap = (level: number): number =>
+  Math.min(levels.statMax, levels.capBase + Math.floor(Math.max(1, level) / levels.levelsPerCap));
+
+/** The next level at which the cap rises (null once the cap is at its maximum). */
+export const nextCapLevel = (level: number): number | null =>
+  statCap(level) >= levels.statMax ? null : (Math.floor(Math.max(1, level) / levels.levelsPerCap) + 1) * levels.levelsPerCap;
+
+/** Skill points earned up to this level; never more than the attributes can take at the top. */
 export const pointsEarned = (level: number): number =>
   Math.min(levels.startPoints + (Math.max(1, level) - 1) * levels.pointsPerLevel, STAT_KEYS.length * (levels.statMax - levels.startStat));
 

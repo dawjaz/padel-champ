@@ -73,15 +73,15 @@ export class BracketScene extends Phaser.Scene {
     const inv = profile.inventory;
     const bagIds = [...new Set(inv.boosts)];
     if (bagIds.length === 0) {
-      text(WIDTH / 2, 470, 'NO BOOSTS IN THE BAG (BUY THEM IN THE SHOP)', 10, TC.sub);
+      text(WIDTH / 2, y0 + 108, 'NO BOOSTS IN THE BAG (BUY THEM IN THE SHOP)', 10, TC.sub);
     } else {
-      text(WIDTH / 2, 446, 'USE A BOOST IN THIS MATCH?', 12, TC.navy, true);
+      text(WIDTH / 2, y0 + 86, 'USE A BOOST IN THIS MATCH?', 12, TC.navy, true);
       bagIds.forEach((id, i) => {
         const c = consumableById(id)!;
         const count = inv.boosts.filter((b) => b === id).length;
         const on = inv.queued.includes(id);
         const bx = WIDTH / 2 + (i - (bagIds.length - 1) / 2) * 168;
-        const b = makeThemeButton(this, bx, 480, 160, 40, `${on ? '* ' : ''}${c.name.toUpperCase()}${count > 1 ? ` x${count}` : ''}\n${c.short}`, () => {
+        const b = makeThemeButton(this, bx, y0 + 118, 160, 40, `${on ? '* ' : ''}${c.name.toUpperCase()}${count > 1 ? ` x${count}` : ''}\n${c.short}`, () => {
           updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: toggleQueued(d.profile.inventory, id) } }));
           this.scene.restart();
         }, on ? 'primary' : 'blue', 10);
@@ -123,7 +123,7 @@ export class BracketScene extends Phaser.Scene {
   private drawTree(bracket: Bracket, top: number): number {
     const draw = bracket.division.draw;
     const roundsN = bracket.roundNames.length;
-    const pitch = draw === 16 ? 19 : 34;
+    const pitch = draw === 16 ? 17 : 34;
     const margin = 8;
     const gap = draw === 16 ? 9 : 12;
     const w = (WIDTH - margin * 2 - gap * roundsN) / (roundsN + 1);

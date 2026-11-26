@@ -4,7 +4,7 @@ import { sfx } from '../audio';
 import { drawIcon } from '../art/icons';
 import { drawGear } from '../art/gearArt';
 import { WIDTH } from '../config';
-import { setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, itemsOfBrand, markItemSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, itemsOfBrand, markItemSeen, SLOT_LABEL, SLOTS, tierOf, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { heroFrom, heroLook, levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -131,10 +131,11 @@ export class GearScene extends Phaser.Scene {
         this.redraw();
       });
       const ic = this.add.graphics().setDepth(5);
-      drawIcon(ic, s, x + 33, y + 25, 26, sel ? TC.orange : g ? RARITY_COLOR[g.rarity] : TC.blue);
+      drawIcon(ic, s, x + 33, y + 20, 24, sel ? TC.orange : g ? RARITY_COLOR[g.rarity] : TC.blue);
       this.dyn.push(ic);
-      this.label(x + 33, y + 50, SLOT_LABEL[s], 10, sel ? TC.orange : TC.navy).setDepth(6);
-      this.label(x + 33, y + 62, g ? g.name.split(' ')[0] : 'EMPTY', 9, TC.sub).setDepth(6);
+      this.label(x + 33, y + 40, SLOT_LABEL[s], 10, sel ? TC.orange : TC.navy).setDepth(6);
+      this.label(x + 33, y + 51, g ? g.name.split(' ')[0] : 'EMPTY', 9, TC.sub).setDepth(6);
+      if (g) this.label(x + 33, y + 62, tierOf(g).toUpperCase(), 9, RARITY_COLOR[g.rarity], 0.5, true).setDepth(6);
       if (!sel && hasNewIn(inv, s, level)) this.star(x + 55, y + 12, 20);
     });
 

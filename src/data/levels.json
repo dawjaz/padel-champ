@@ -5,7 +5,7 @@
   "pointsPerLevel": 2,
   "statMax": 10,
   "capBase": 5,
-  "levelsPerCap": 3,
+  "levelsPerCap": 5,
   "xpBase": 600,
   "xpExp": 1.5,
   "reward": { "xpPlayed": 40, "xpWin": 60, "xpPerPoint": 2, "xpPerRallyHit": 1, "rallyHitsFrom": 8, "coinsPlayed": 20, "coinsWin": 30, "coinsPerPoint": 1 }

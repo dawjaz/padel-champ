@@ -2,7 +2,7 @@ import playersData from '../data/players.json';
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach, unlockedSpecials } from './profile';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, nextCapLevel, statValue, unspend, xpToReach, unlockedSpecials } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -23,16 +23,21 @@ describe('levels', () => {
     expect(pointsEarned(levels.maxLevel)).toBe(room); // a maxed hero is reachable and no point is ever stuck
   });
 
-  it('every point earned can be spent at once: the room under the cap is never smaller than the points (owner: level 5, points stuck)', () => {
-    for (let level = 1; level <= levels.maxLevel; level++) {
-      const roomNow = STAT_KEYS.length * (statCap(level) - levels.startStat);
-      expect(pointsEarned(level), `level ${level}`).toBeLessThanOrEqual(roomNow);
-    }
-    // the hero from the report: level 5, everything at the old cap of 5
+  it('the cap opens ON levels 5, 10, 15 ... (owner: reached level 5 and could not spend)', () => {
+    expect(statCap(4)).toBe(levels.capBase);
+    expect(statCap(5)).toBe(levels.capBase + 1);
+    expect(statCap(9)).toBe(levels.capBase + 1);
+    expect(statCap(10)).toBe(levels.capBase + 2);
+    expect(nextCapLevel(1)).toBe(5);
+    expect(nextCapLevel(5)).toBe(10);
+    expect(nextCapLevel(levels.maxLevel)).toBeNull();
+    // the hero from the report: level 5, everything already at the old cap of 5 -> can spend again
     let p = { ...newProfile(), xp: xpToReach(5) };
     for (const k of STAT_KEYS) p = spend(p, k);
     expect(freePoints(p)).toBeGreaterThan(0);
     expect(STAT_KEYS.some((k) => canSpend(p, k))).toBe(true);
+    // at level 5 all the points earned so far fit under the new cap
+    expect(pointsEarned(5)).toBeLessThanOrEqual(STAT_KEYS.length * (statCap(5) - levels.startStat));
   });
 });
 

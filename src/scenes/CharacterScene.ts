@@ -3,7 +3,7 @@ import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
 import { gearBonus } from '../career/gear';
-import { withGender, canSpend, canUnspend, freePoints, heroLook, levelOf, levelProgress, respec, spend, statCap, statValue, unspend, xpToReach } from '../career/profile';
+import { withGender, canSpend, canUnspend, freePoints, heroLook, levelOf, levelProgress, respec, spend, statCap, nextCapLevel, statValue, unspend, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { StatKey } from '../game/types';
@@ -172,6 +172,6 @@ export class CharacterScene extends Phaser.Scene {
       updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
       this.redraw();
     })) this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-    this.text(WIDTH / 2, 552, `SHADED PART OF THE BAR UNLOCKS WITH LEVEL (CAP NOW ${cap})`, 10, TC.sub);
+    this.text(WIDTH / 2, 552, nextCapLevel(level) ? `SHADED PART OF THE BAR UNLOCKS AT LEVEL ${nextCapLevel(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
   }
 }

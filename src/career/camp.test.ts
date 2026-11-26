@@ -4,7 +4,7 @@ import { SHOTS } from '../game/catalog';
 import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
-  CAMP, CAMP_GAMES, campNow, canTry, finishTry, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
+  CAMP, CAMP_GAMES, campNow, canTry, finishTry, nextMilestone, kickedFrom, smashCore, SERVE_SPIN, serveKindOfSpot, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
   openSpotOf, returnFit, returnShotsFor, rollOn, returnResult, returnRound, returnWindow, serveOutcome, starsFor, tossQuality, tossWindow, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
@@ -130,7 +130,7 @@ describe('camp minigames', () => {
     expect(smashResult(hero, r, 'x3', r.closeMs + w * 1.2).points).toBe(0);
     expect(smashResult(hero, r, 'x3', null).outcome).toBe('net');
     const deep = { ...r, lob: 'deep' as const };
-    expect(smashWindow(hero, deep, 'x4')).toBeLessThan(smashWindow(hero, deep, 'vibora') / 3);
+    expect(smashWindow(hero, deep, 'x4')).toBeLessThan(smashWindow(hero, deep, 'vibora') / 2);
     const short = { ...r, lob: 'short' as const };
     expect(smashResult(hero, short, 'x4', short.closeMs).points).toBeGreaterThan(smashResult(hero, short, 'x3', short.closeMs).points);
   });
@@ -191,5 +191,36 @@ describe('camp minigames', () => {
     const rng = seededRng(2);
     const kinds = new Set(Array.from({ length: 20 }, (_, i) => timingRound(hero, i % 8, rng).kind));
     expect(kinds.size).toBe(3);
+  });
+
+  it('smash: the green core of the ring is exactly the window that pays the full smash, and no window is hopeless', () => {
+    for (const kind of ['x3', 'x4', 'vibora'] as const) {
+      for (const z of [11.8, 13.5, 15.2]) {
+        const r = { ...smashRound(0, seededRng(5)), contact: { x: 0, z, h: 2.7 } };
+        const core = smashCore(hero, r, kind);
+        expect(core).toBeGreaterThanOrEqual(35);
+        expect(smashResult(hero, r, kind, r.closeMs + core - 1).points).toBeGreaterThanOrEqual(smashResult(hero, r, kind, r.closeMs).points);
+        expect(smashResult(hero, r, kind, r.closeMs + core * 1.3).outcome).not.toBe('out');
+      }
+    }
+  });
+
+  it('serve spin: slice bows most, kick jumps most off the bounce; a spun ball ends up where the kick says', () => {
+    expect(SERVE_SPIN.slice.swerve).toBeGreaterThan(SERVE_SPIN.flat.swerve);
+    expect(SERVE_SPIN.kick.kick).toBeGreaterThan(SERVE_SPIN.slice.kick);
+    expect(serveKindOfSpot('wide')).toBe('slice');
+    const from = { x: 1, z: 19 };
+    const land = { x: 0, z: 14 };
+    const plain = rollOn(from, land, 3);
+    const kicked = rollOn(kickedFrom(from, land, 3, 1), land, 3);
+    expect(kicked.x - plain.x).toBeCloseTo(1, 5);
+  });
+
+  it('the next fragment milestone is the first one not yet reached, then every few stars', () => {
+    expect(nextMilestone(0, []).stars).toBe(CAMP.milestones[0].stars);
+    expect(nextMilestone(CAMP.milestones[0].stars, ['0']).stars).toBe(CAMP.milestones[1].stars);
+    const last = CAMP.milestones[CAMP.milestones.length - 1].stars;
+    const all = CAMP.milestones.map((_, i) => String(i));
+    expect(nextMilestone(last, all).stars).toBe(last + CAMP.repeatEvery);
   });
 });

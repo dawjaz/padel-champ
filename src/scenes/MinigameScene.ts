@@ -6,7 +6,7 @@ import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ball
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
 import {
-  campGame, isServeRound, landShot, openSpotOf, receiverX, returnResult, returnShotsFor, rollOn, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
+  campGame, isServeRound, kickedFrom, SERVE_SPIN, serveKindOfSpot, landShot, openSpotOf, receiverX, returnResult, returnShotsFor, rollOn, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashCore, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
   type CampGameId, type ReturnRound, type ReturnShot, type ServeSpot, type SmashKind, type SmashRound, type TimingRound, type Zone,
 } from '../career/camp';
 import { CampHero } from './campHero';
@@ -25,9 +25,9 @@ const NAVY_CSS = '#0b2a5b';
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const TARGET_SHOT = 'bounce_shot';
 /** Seconds of ball flight per screen of the parabola animation (the camp is quicker than a match). */
-/** Serves fly at this pace (ms per metre), the hero's and the opponent's alike; after the bounce a little slower. */
-const SERVE_MS_PER_M = 85;
-const AFTER_BOUNCE_MS_PER_M = 115;
+/** Serves fly at this pace (ms per metre: about 75 km/h), the hero's and the opponent's alike; after the bounce a little slower. */
+const SERVE_MS_PER_M = 48;
+const AFTER_BOUNCE_MS_PER_M = 90;
 /**
  * The apex an arc needs so that it passes over the net (0.88 m in the middle, 0.92 at the sides) with some room, if it crosses it; an
  * arc meant to end in the net (it stops at the net) is left alone.
@@ -204,7 +204,7 @@ export class MinigameScene extends Phaser.Scene {
   }
 
   /** Animates a ball along a parabola from `from` to `to` (court metres, heights), then calls `done`. */
-  private flyArc(from: { x: number; z: number; h: number }, to: { x: number; z: number; h: number }, apex: number, done: () => void, msPerM = FLIGHT_MS_PER_M): number {
+  private flyArc(from: { x: number; z: number; h: number }, to: { x: number; z: number; h: number }, apex: number, done: () => void, msPerM = FLIGHT_MS_PER_M, swerve = 0): number {
     apex = netClearApex(from, to, apex);
     const dist = Math.hypot(to.x - from.x, to.z - from.z);
     const ms = Math.max(msPerM < FLIGHT_MS_PER_M ? 200 : 420, dist * msPerM);
@@ -216,7 +216,7 @@ export class MinigameScene extends Phaser.Scene {
       duration: ms,
       onUpdate: (tw) => {
         const u = tw.getValue() ?? 0;
-        const x = from.x + (to.x - from.x) * u;
+        const x = from.x + (to.x - from.x) * u + swerve * 4 * u * (1 - u);
         const z = from.z + (to.z - from.z) * u;
         const h = from.h + (to.h - from.h) * u + 4 * apex * u * (1 - u);
         this.placeBall(x, z, h);
@@ -448,6 +448,7 @@ export class MinigameScene extends Phaser.Scene {
     let prepped = false;
     this.hitDueAt = t0 + r.closeMs;
     const apex = 6.5;
+    const core = smashCore(this.hero, r, kind);
     this.ball.setVisible(true);
     this.ballShadow.setVisible(true);
     sfx('hit');
@@ -503,7 +504,8 @@ export class MinigameScene extends Phaser.Scene {
         const p = project(c.x, c.z, c.h);
         const rad = Math.max(6, 80 * (1 - u) + 8);
         const w = Math.abs(ms - r.closeMs);
-        ring.clear().lineStyle(3, w < 60 ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, rad);
+        const inCore = w <= core;
+        ring.clear().lineStyle(inCore ? 4 : 3, inCore ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, rad);
         ring.fillStyle(0xffe066, 0.9).fillCircle(p.x, p.y, 3);
         if (ms > r.closeMs * 1.3) {
           tick.remove();
@@ -678,20 +680,24 @@ export class MinigameScene extends Phaser.Scene {
         this.flyArc(from, { x: land.x * 0.5, z: NET_Z + 0.1, h: 0.4 }, 0.3, () => this.serveDone(out.points, 'FAULT', false), SERVE_MS_PER_M);
         return;
       }
+      // side spin by where he aims (slice wide, kick at the body, flat down the T): the ball bows in the air and the bounce throws it on
+      const spin = SERVE_SPIN[serveKindOfSpot(spot)];
+      const spinDir = Math.sign(aim.x) || 1;
       this.flyArc(from, land, 1.0, () => {
         const rv = this.rival!;
+        const rf = kickedFrom(from, land, rv.z + 0.35, spinDir * spin.kick);
         // after the bounce it keeps its line (off the side glass only if it gets there)
         if (out.tier === 'ace') {
           // he goes for it all the same, and gets there a moment too late
-          const past = rollOn(from, land, 0.2);
-          const passing = rollOn(from, land, rv.z + 0.35);
+          const past = rollOn(rf, land, 0.2);
+          const passing = rollOn(rf, land, rv.z + 0.35);
           const st = rv.stanceFor(passing);
           const ms = Math.hypot(passing.x - land.x, passing.z - land.z) * SERVE_MS_PER_M;
           rv.runTo(rv.x + (st.x - rv.x) * 0.7, st.z, Math.max(160, ms * 0.9), () => rv.dive(st.fh ? 'fh' : 'bh', 0.7, Math.sign(st.x - rv.x) || 1));
           this.flyVia(land, past, 0.9, () => this.serveDone(out.points, 'ACE! +100', true), SERVE_MS_PER_M);
           return;
         }
-        const roll = rollOn(from, land, rv.z + 0.35);
+        const roll = rollOn(rf, land, rv.z + 0.35);
         const meet = { x: roll.x, z: roll.z, h: 0.9 };
         // he gets there inside the glass: forehand if there is room, backhand otherwise
         const st = rv.stanceFor(meet);
@@ -705,7 +711,7 @@ export class MinigameScene extends Phaser.Scene {
           else if (out.tier === 'average') this.flyArc(meet, { x: 0, z: NET_Z + 6, h: 0 }, 2.4, () => this.serveDone(out.points, '+30', true));
           else this.flyArc(meet, { x: lane * 1.4, z: NET_Z + 8.6, h: 0 }, 0.9, () => this.serveDone(out.points, 'HE WAS READY', false), 55);
         }, SERVE_MS_PER_M);
-      }, SERVE_MS_PER_M);
+      }, SERVE_MS_PER_M, spinDir * spin.swerve);
     };
     const tick = this.time.addEvent({
       delay: 16,
@@ -749,7 +755,10 @@ export class MinigameScene extends Phaser.Scene {
       this.time.delayedCall(300, () => {
         rv.stroke('fh', 0.6);
         sfx('hit');
-        this.flyArc(from, land, 1.0, () => this.askReturn(r, from, land), SERVE_MS_PER_M);
+        const spin = SERVE_SPIN[r.kind];
+        const spinDir = Math.sign(land.x) || 1;
+        const fromK = kickedFrom(from, land, 18.3, spinDir * spin.kick);
+        this.flyArc(from, land, 1.0, () => this.askReturn(r, fromK, land), SERVE_MS_PER_M, spinDir * spin.swerve);
         this.time.delayedCall(500, () => rv.runTo(-lane * 1.2, NET_Z - 2.6, 900));
       });
     });
