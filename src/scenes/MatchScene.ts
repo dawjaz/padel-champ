@@ -76,6 +76,10 @@ const RIG_BUDGET_MS = 6;
 /** Run and side-step cycles: metres per cycle (two steps). */
 const RUN_CYCLE_M = 1.7;
 const SHUFFLE_CYCLE_M = 0.9;
+/** A winner passes at least this far (m) from where the beaten defender's run ends, so it never looks as if it went past his racket. */
+const WINNER_MISS_M = 1.8;
+/** ... and he covers at most this share of the way to it. */
+const WINNER_RUN_SHARE = 0.7;
 /** A run longer than this (m) ends in a lunge (a full one 2.4 m further). */
 const LUNGE_FROM_M = 2.4;
 const NEXT_HIT_DELAY = 88;
@@ -2718,9 +2722,12 @@ export class MatchScene extends Phaser.Scene {
       if (out === 'error') {
         targets[defender.id] = { x: clampX(d.x + 0.65 * (spot.x - d.x)), z: clampZ(d.z + 0.45 * (spot.z - d.z)) };
       } else {
-        targets[defender.id] = spot;
+        // too late: he runs for it but stops short (the ball clearly passes out of his reach, never past his racket), and throws
+        // himself at it with a full lunge
+        const dist = Math.hypot(spot.x - d.x, spot.z - d.z);
+        const cover = dist > 1e-6 ? Math.max(0, Math.min(dist - WINNER_MISS_M, dist * WINNER_RUN_SHARE)) / dist : 0;
+        targets[defender.id] = { x: clampX(d.x + cover * (spot.x - d.x)), z: clampZ(d.z + cover * (spot.z - d.z)) };
         endPose[defender.id] = poseOf(stance, 'Hit');
-        // too late: he throws himself at it with a full lunge
         this.planLunge(defender.id, spot, duration * (1 - from), 1);
       }
       movePartner();

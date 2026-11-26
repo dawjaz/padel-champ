@@ -699,7 +699,7 @@
     "stat": "power",
     "power": 1.25,
     "cost": 3,
-    "risk": 0.3,
+    "risk": 0.26,
     "out": "mid",
     "fit": {
       "high": 1.15,
@@ -709,7 +709,7 @@
     "advance": "stay",
     "landDepth": 7.4,
     "wall": "back",
-    "winnerMargin": 62,
+    "winnerMargin": 45,
     "glassChance": 0.3,
     "requires": {
       "glass": true,
@@ -760,7 +760,7 @@
     "advance": "stay",
     "landDepth": 6.2,
     "wall": "back",
-    "winnerMargin": 26,
+    "winnerMargin": 18,
     "glassChance": 1.0,
     "requires": {
       "glass": true,

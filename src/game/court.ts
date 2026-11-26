@@ -203,6 +203,30 @@ export const reachGap = (spot: CourtPos, landX: number, landZ: number): number =
 /** The z (m) where a ball hit `depth` metres past the net comes down in the court of `defSide`. */
 export const landingZ = (defSide: SideIndex, depth: number): number => (defSide === 0 ? NET_Z + depth : NET_Z - depth);
 
+/**
+ * A defender who takes the ball out of the air (at the net, or in mid-court before it lands) meets it on its way, not where it would come
+ * down behind him: the gap is measured to the nearest point of the ball's ground track between the net and the landing spot
+ * (depth-weighted like `reachGap`). `dist` is how far the ball has flown from the hitter to that point (it sets the time he has).
+ */
+export function trackGap(spot: CourtPos, from: CourtPos, landX: number, landZ: number): { gap: number; dist: number } {
+  const dzAll = landZ - from.z;
+  const tNet = Math.abs(dzAll) < 1e-6 ? 0 : clampUnit((NET_Z - from.z) / dzAll);
+  const ax = from.x + (landX - from.x) * tNet;
+  const az = from.z + dzAll * tNet;
+  // nearest point of the segment (net crossing -> landing) in the depth-weighted metric
+  const ux = landX - ax;
+  const uz = (landZ - az) * REACH_DEPTH_WEIGHT;
+  const vx = spot.x - ax;
+  const vz = (spot.z - az) * REACH_DEPTH_WEIGHT;
+  const len2 = ux * ux + uz * uz;
+  const u = len2 < 1e-9 ? 1 : clampUnit((vx * ux + vz * uz) / len2);
+  const px = ax + (landX - ax) * u;
+  const pz = az + (landZ - az) * u;
+  return { gap: Math.hypot(spot.x - px, REACH_DEPTH_WEIGHT * (spot.z - pz)), dist: Math.hypot(px - from.x, pz - from.z) };
+}
+
+const clampUnit = (v: number): number => Math.max(0, Math.min(1, v));
+
 export interface ServeSetup {
   /** Lane the server stands in (serves cross to the opposite lane). */
   lane: LaneSign;

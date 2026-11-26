@@ -5,9 +5,9 @@ import { netVolley, reachAgainst } from './point';
 import { SHOTS, shotsOfKind } from './catalog';
 import { recoverGuts } from './engine';
 import { isPowerfulSmash, nextFormation, POWERFUL_SMASH, shotLabel, pickErrorKind, playableShots, zoneOf, startPoint, stepHit, stepServe, unavailableReason, type PointState, type Teams } from './point';
-import { aimDepth, aimX, flightTime, reachFactor, reachRadius, reachTimeFactor, REACH_MIN } from './court';
+import { aimDepth, aimX, flightTime, reachFactor, reachRadius, reachTimeFactor, REACH_MIN, restPos } from './court';
 import { fixedRng, seededRng } from './rng';
-import type { Formation, PlayerDef, ShotDef } from './types';
+import type { CourtPos, Formation, PlayerDef, ShotDef } from './types';
 
 const TEAMS: Teams = [playersData.you as unknown as PlayerDef[], playersData.cpu as unknown as PlayerDef[]];
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
@@ -825,6 +825,19 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
     expect(rate('mid')).toBeLessThan(0.3);
   });
 
+  it('a defender who volleys a ball is measured to its path, and the middle is covered by both', () => {
+    const pair: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
+    const net: [CourtPos, CourtPos] = [restPos(1, 0, 'net'), restPos(1, 1, 'net')];
+    const hitter = { x: -2.5, z: 18.5 };
+    // deep middle behind a pair at the net: the ball passes between them about 1.5 m from each, so they reach it
+    expect(reachAgainst(pair, 1, 'net', shot('bajada_slow'), 0, 9, { defenders: net, hitter })).toBeGreaterThan(0.9);
+    // the same spot against a pair at the back: both are 2.5 m away, the second closes part of the gap
+    const back: [CourtPos, CourtPos] = [restPos(1, 0, 'back'), restPos(1, 1, 'back')];
+    const both = reachAgainst(pair, 1, 'back', shot('bajada_fast'), 0, 9, { defenders: back, hitter });
+    const one = reachAgainst(pair, 1, 'back', shot('bajada_fast'), 0, 9, { defenders: [back[0], { x: 4.8, z: 0.5 }], hitter });
+    expect(both).toBeGreaterThan(one);
+  });
+
   it('bajada high speed is not a point every time, also cross-court against players at the net', () => {
     let n = 0;
     let all = 0;
@@ -834,7 +847,8 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
       if (stepHit(TEAMS, st, shot('bajada_fast'), 'cross', seededRng(seed), undefined, { ignoreRequires: true }).step.outcome === 'winner') n++;
     }
     expect(n / all).toBeLessThan(0.4);
-    expect(n / all).toBeGreaterThan(0.05);
+    // Cross-court it passes right by a player at the net, who volleys it (his reach counts to the ball's path since v0.156): rarely a winner.
+    expect(n / all).toBeGreaterThan(0.02);
   });
 
   it('contrapared: not at the net, after the bounce, low or mid, with a ball that comes down by a side wall', () => {

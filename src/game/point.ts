@@ -1,5 +1,5 @@
 import { baseId, DIRECTIONS, SPECIALS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, NET_Z, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, NET_Z, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, REACH_MIN, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread, trackGap } from './court';
 import { fatigued, STAT_KEYS } from './attributes';
 import { LOB_APEX, MAX_PRESSURE, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
@@ -16,22 +16,40 @@ export interface ReachPositions {
 }
 
 /**
- * How much of his defence a defender keeps against a ball that comes down at (landX, depth m past the net): the nearer of the two
- * defenders counts. His reach grows with his speed and with the time the ball is in the air (a slow or high ball can be run down, a
- * hard flat one cannot). 1 = the ball is within his reach, down to REACH_MIN when it is far from both. A lob can be run down (never
- * below REACH_LOB_MIN). Without `at` the defenders are at the places of their formation and the hitter is assumed REACH_DEFAULT_RUN away.
+ * How much of his defence a defender keeps against a ball that comes down at (landX, depth m past the net). His reach grows with his
+ * speed and with the time the ball is in the air (a slow or high ball can be run down, a hard flat one cannot). 1 = the ball is within
+ * his reach, down to REACH_MIN when it is far from both. A lob can be run down (never below REACH_LOB_MIN). Without `at` the defenders
+ * are at the places of their formation and the hitter is assumed REACH_DEFAULT_RUN away.
+ * - A defender who takes this ball out of the air (a pair at the net volleys it, one in mid-court takes it before it lands) is measured to
+ *   the nearest point of its path, not to where it would land behind him (that made a deep ball past a net pair look unreachable).
+ * - Both defenders cover the court: the better placed one counts, and the other closes part of what is left (a ball into the middle is
+ *   not a gap that neither can reach).
  */
 export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number, at: ReachPositions = {}): number {
   const z = landingZ(defSide, depth);
+  const hitter: CourtPos = at.hitter ?? { x: 0, z: defSide === 0 ? NET_Z - REACH_DEFAULT_RUN / 2 : NET_Z + REACH_DEFAULT_RUN / 2 };
   const dist = at.hitter ? Math.hypot(landX - at.hitter.x, z - at.hitter.z) : REACH_DEFAULT_RUN;
-  const time = reachTimeFactor(flightTime(shot.flight.speed, shot.flight.apex, dist), isLob(shot) ? REACH_LOB_TIME_MAX : undefined);
-  let best = 0;
+  const lobMax = isLob(shot) ? REACH_LOB_TIME_MAX : undefined;
+  const floor = isLob(shot) ? REACH_LOB_MIN : REACH_MIN;
+  const inAir = netVolley(shot, formation, undefined) || airTake(shot, formation, undefined, depth) !== undefined;
+  const f: number[] = [];
   for (let i = 0; i < 2; i++) {
     const spot = at.defenders ? at.defenders[i] : restPos(defSide, i, formation);
-    const f = reachFactor(reachGap(spot, landX, z), reachRadius(defenders[i].stats.speed) * time, isLob(shot) ? REACH_LOB_MIN : undefined);
-    best = Math.max(best, f);
+    let gap = reachGap(spot, landX, z);
+    let flown = dist;
+    if (inAir) {
+      const t = trackGap(spot, hitter, landX, z);
+      if (t.gap < gap) {
+        gap = t.gap;
+        flown = at.hitter ? t.dist : REACH_DEFAULT_RUN * (t.dist / Math.max(1e-6, Math.hypot(landX - hitter.x, z - hitter.z)));
+      }
+    }
+    const time = reachTimeFactor(flightTime(shot.flight.speed, shot.flight.apex, flown), lobMax);
+    f.push(reachFactor(gap, reachRadius(defenders[i].stats.speed) * time, floor));
   }
-  return best;
+  const hi = Math.max(f[0], f[1]);
+  const lo = Math.min(f[0], f[1]);
+  return Math.min(1, hi + ((1 - hi) * (lo - floor)) / (1 - floor));
 }
 /**
  * Shares of the three kinds of lob: deep (into the court, it bounces), medium (the back third, played out of the air with a

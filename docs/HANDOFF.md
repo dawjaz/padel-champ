@@ -1,6 +1,27 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.155)_
+_Last updated: 2026-11-26 (v0.156)_
+
+## v0.156: the bajada is no longer a free point; reach to the ball's path; a winner visibly passes the defender
+- Owner's choice after the realism analysis (`docs/analysis/`): points 1 and 4 first, with the slow bajada at about 20% winners like
+  the fast one (not 7%).
+- `reachAgainst` (point.ts): a defender who takes the ball out of the air (pair at the net: `netVolley`; mid-court: `airTake`) is
+  measured to the nearest point of the ball's path between the net and the landing spot (`trackGap`, court.ts), with the time to that
+  point; before, a deep ball past a net pair was measured to its bounce 4 to 7 m behind them (reach floor 0.55). Both defenders cover:
+  `reach = hi + (1 - hi)(lo - floor)/(1 - floor)` (the middle is no longer a gap neither can reach). Applies to every shot.
+- Data: `bajada_fast` winnerMargin 62 -> 45, risk 0.30 -> 0.26; `bajada_slow` winnerMargin 26 -> 18.
+- Effect (hero plays the bajada at every chance, aimed middle-deep, full matches): slow Dani+Lucy v Bruno+Ines 60.7 -> 7.8% winners,
+  v a level-5 pair 77.1 -> 21.7%, level 7 (power 9) v level 6 84.3 -> 15.0%; fast 8 to 18% winners, about 40% errors (real padel:
+  bajada 8-17% winners, 7-15% errors: the fast one's errors are still high, see next steps). Equal stats: 0% winners with either.
+- Whole game (simMatrix match level, 4000 points each): default teams winners 55.8 -> 42.4% of points, shots per point 7.3 -> 8.5;
+  even 7v7 46.3 -> 36.3%, 9.2 -> 10.0; even 4v4 18.7 -> 12.7%; 7v4 69.8 -> 60.0%. Real pro men: 38-48% winners, 8-11 shots. Longer
+  rallies also mean more tired hits (simBalance: tired-hit share +4 to +13 points).
+- MatchScene, winner: the beaten defender stops at least `WINNER_MISS_M` (1.8 m) short of the ball (at most 70% of the way) and lunges,
+  instead of reaching the spot "a moment too late".
+- Tests: reach to the path and two-defender cover; the old "fast bajada cross v net pair wins > 5%" now > 2% (the net player volleys it).
+- Next (owner to decide): forced errors (error chance rising with the incoming pressure), a smaller stat-gap effect, fewer CPU lobs,
+  answerable specials at low levels, fast bajada errors (40% vs real 7-15%).
+
 
 ## Realism analysis (no game change, 2026-11-26): how points and shots end vs real padel
 - Owner: points feel too easy (e.g. Bajada Low Speed to the middle, deep, is never returned). Three analyses in `docs/analysis/`:
