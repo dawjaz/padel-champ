@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.126: UI fixes after the owner's review
+- **Title:** the "x played x won" line is gone (the spot is used for the locked-button flash message only); COLLECTION and SETTINGS are centred as a pair.
+- **Shop, BOOSTS:** each button shows a drawn icon of the item (`src/art/boostArt.ts`: isotonic bottle, gel sachet, grip tape roll, balls) on a disc, what it gives (`short`: "+2 MAX G") and the price with a coin; the names are gone (the bag line below still names what you hold).
+- **Career:** the map takes the room the events leave (112-176 px, a 6-event week gets the shortest); event rows 45 px. LAST RESULTS removed; **LAST TROPHIES** instead: the cups of the last titles (champion entries of the history matched to cups by name, `lastTrophies` in cups.ts, tested), newest first, up to six, 32 px, one row (hidden when there is none). Note: history keeps only the last 12 tournaments (`HISTORY_LIMIT`).
+- **SKIP THIS WEEK** asks first (ConfirmScene, event `skip-confirmed`): "You sit this week out: no tournament, no entry fee. The calendar moves on and this week's events are gone for good."
+
 ## v0.125: week map on the Career screen, minigame countdown, tap-the-spot aim by default
 - **Career screen (CalendarScene):** the week's tournaments on a compact map card (touch: the full Map screen with the other weeks); the map is shared code now (`src/scenes/weekMap.ts`: `drawWeekMap(scene, events, card, compact)`, `courtColour`), MapScene uses it too. Event rows are slimmer (44 px) with a dot in the court colour, matching the map; RANKS and the partner (`WITH <NAME>`) moved into the season card; LAST RESULTS shows as many as fit (a 6-event week fits on 640 px).
 - **Minigames:** a 3, 2, 1, GO! countdown (with the game's description) before the first round.

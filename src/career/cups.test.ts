@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHALLENGES, CUPS, challengeProgress, cupId, goldCount, recordCup, requiredCups, sanitizeShelf, unclaimed, emptyShelf } from './cups';
+import { CHALLENGES, CUPS, challengeProgress, cupId, goldCount, recordCup, requiredCups, sanitizeShelf, unclaimed, emptyShelf, lastTrophies } from './cups';
 import { enterEvent, reportMatch } from './careerFlow';
 import { newProfile } from './profile';
 import { EVENTS } from './season';
@@ -47,5 +47,21 @@ describe('cups', () => {
     expect(final.fin?.cup).toMatchObject({ id, kind: 'silver' });
     expect(play([false]).fin?.cup).toBeUndefined();
     expect(play([true, false]).fin?.cup).toBeUndefined();
+  });
+});
+
+describe('lastTrophies', () => {
+  it('lists the cups of the last titles, newest first, at most six, skipping lost finals', () => {
+    const h = [
+      { event: 'Club Cup Doha', champion: true },
+      { event: 'Regional Open Warsaw', champion: false },
+      { event: 'Regional Open Warsaw', champion: true },
+      ...Array.from({ length: 6 }, () => ({ event: 'FIP Silver Athens', champion: true })),
+    ];
+    const t = lastTrophies(h);
+    expect(t).toHaveLength(6);
+    expect(t.every((c) => c.name === 'FIP Silver Athens')).toBe(true);
+    expect(lastTrophies(h.slice(0, 3)).map((c) => c.name)).toEqual(['Regional Open Warsaw', 'Club Cup Doha']);
+    expect(lastTrophies([{ event: 'Nowhere Cup', champion: true }])).toEqual([]);
   });
 });

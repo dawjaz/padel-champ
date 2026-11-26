@@ -6,7 +6,9 @@ import { campNow } from '../career/camp';
 import { eventName, eventsOfWeek, partnerById, WEEKS } from '../career/season';
 import { divisionById } from '../career/tournament';
 import { getSave, updateSave } from '../save';
-import { applyLightScreen, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { applyLightScreen, bakedShape, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { cityAccent, drawCup } from '../art/cupArt';
+import { lastTrophies } from '../career/cups';
 import { courtColour, drawWeekMap } from './weekMap';
 
 /** The career hub: the week of the season, the events you can enter, partner, ranking. */
@@ -19,6 +21,11 @@ export class CalendarScene extends Phaser.Scene {
 
   create(): void {
     applyLightScreen(this);
+    this.events.on('skip-confirmed', () => {
+      updateSave((d) => ({ ...d, profile: skipWeek(d.profile) }));
+      this.redraw();
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off('skip-confirmed'));
     this.redraw();
   }
 
@@ -89,8 +96,13 @@ export class CalendarScene extends Phaser.Scene {
     }, lockedPartner);
     this.button(WIDTH - 26 - pw - 6 - 27, 104, 54, 22, 'RANKS', 11, 'blue', () => this.scene.start('RankingScene'));
 
-    // The week's tournaments on the map (a touch opens the full map, with the other weeks).
-    const mapCard = { x: 12, y: 132, w: WIDTH - 24, h: 116 };
+    // The week's tournaments on the map (a touch opens the full map, with the other weeks). The map takes what the events below leave:
+    // the longer, the better (a week with six events gets the shortest one).
+    const ROW = 45;
+    const trophies = lastTrophies(c.history);
+    const below = c.active ? 100 : 16 + eventsOfWeek(c.week).length * ROW + 44 + (trophies.length > 0 ? 36 : 0);
+    const mapH = Math.max(112, Math.min(176, 636 - 132 - 8 - below));
+    const mapCard = { x: 12, y: 132, w: WIDTH - 24, h: mapH };
     this.dyn.push(...drawWeekMap(this, eventsOfWeek(c.week), mapCard, true));
     const mapHit = this.add.zone(mapCard.x, mapCard.y, mapCard.w, mapCard.h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     mapHit.on('pointerup', () => this.scene.start('MapScene'));
@@ -98,7 +110,7 @@ export class CalendarScene extends Phaser.Scene {
     const full = this.label(mapCard.x + mapCard.w - 10, mapCard.y + mapCard.h - 10, 'FULL MAP >', 10, TC.navy, 1, true);
     full.setStroke('#ffffff', 3);
 
-    let y = 262;
+    let y = mapCard.y + mapH + 10;
     if (c.active) {
       const b = activeBracket(p);
       this.label(WIDTH / 2, y, 'TOURNAMENT IN PROGRESS', 13, TC.navy, 0.5, true);
@@ -110,40 +122,47 @@ export class CalendarScene extends Phaser.Scene {
       for (const e of eventsOfWeek(c.week)) {
         const problem = entryCheck(p, e);
         const div = divisionById(e.division)!;
-        const name = this.button(WIDTH / 2, y + 23, 336, 44, eventName(e).toUpperCase(), 12, problem ? 'secondary' : 'primary', () => {
+        const name = this.button(WIDTH / 2, y + 20, 336, 40, eventName(e).toUpperCase(), 12, problem ? 'secondary' : 'primary', () => {
           if (problem) return;
           const next = enterEvent(getSave().profile, e.id, Math.floor(Math.random() * 1e9));
           if (!next) return;
           updateSave((d) => ({ ...d, profile: next }));
           this.scene.start('BracketScene');
         }, !!problem);
-        name.y = y + 15;
-        this.feeRow(y + 32, div.draw, div.fee, problem ? problem.toUpperCase() : 'TAP TO ENTER', problem ? TC.navy : TC.white, problem ? 0.5 : 1);
+        name.y = y + 12;
+        this.feeRow(y + 28, div.draw, div.fee, problem ? problem.toUpperCase() : 'TAP TO ENTER', problem ? TC.navy : TC.white, problem ? 0.5 : 1);
         // the colour of its dot on the map
         const sw = this.add.graphics();
-        sw.fillStyle(0xffffff, 1).fillCircle(30, y + 23, 7);
-        sw.fillStyle(courtColour(e.city), problem ? 0.5 : 1).fillCircle(30, y + 23, 5);
-        sw.lineStyle(2, TC.navy, problem ? 0.5 : 1).strokeCircle(30, y + 23, 7);
+        sw.fillStyle(0xffffff, 1).fillCircle(30, y + 20, 7);
+        sw.fillStyle(courtColour(e.city), problem ? 0.5 : 1).fillCircle(30, y + 20, 5);
+        sw.lineStyle(2, TC.navy, problem ? 0.5 : 1).strokeCircle(30, y + 20, 7);
         this.dyn.push(sw);
-        y += 50;
+        y += ROW;
       }
       // A week without a tournament: the training camp (minigames) or skip it.
       const tries = campNow(p).triesLeft;
       this.button(WIDTH / 2 - 86, y + 18, 164, 34, `TRAINING CAMP (${tries})`, 12, 'blue', () => this.scene.start('CampScene'));
       this.button(WIDTH / 2 + 86, y + 18, 164, 34, 'SKIP THIS WEEK', 12, 'secondary', () => {
-        updateSave((d) => ({ ...d, profile: skipWeek(d.profile) }));
-        this.redraw();
+        this.scene.pause();
+        this.scene.launch('ConfirmScene', {
+          under: this.scene.key,
+          title: 'SKIP THIS WEEK?',
+          text: 'You sit this week out: no tournament, no entry fee. The calendar moves on and this week\'s events are gone for good.',
+          yes: 'YES, SKIP IT',
+          no: 'GO BACK',
+          event: 'skip-confirmed',
+        });
       });
       y += 44;
     }
 
-    // the last results, as many as fit
-    const room = Math.min(4, Math.floor((632 - (y + 30)) / 17) + 1);
-    if (c.history.length > 0 && room > 0) {
-      this.label(WIDTH / 2, y + 8, 'LAST RESULTS', 12, TC.navy, 0.5, true);
-      c.history.slice(-room).reverse().forEach((h, i) => {
-        const text = `${h.champion ? '* CHAMPION' : `${h.roundsWon} ROUND${h.roundsWon === 1 ? '' : 'S'}`}   ${h.event.toUpperCase()}`;
-        this.label(20, y + 30 + i * 17, text, 11, h.champion ? TC.orange : TC.sub, 0);
+    // the last trophies: the cups of the last tournaments won, small, in a row
+    if (trophies.length > 0) {
+      this.label(20, y + 22, 'LAST TROPHIES', 11, TC.navy, 0, true);
+      trophies.forEach((cup, i) => {
+        const x = 128 + i * 36;
+        const t = bakedShape(this, x, y + 6, 32, 34, (g) => drawCup(g, 16, 19, 32, cup.division, 'gold', cityAccent(cup.city), cup.symbol));
+        this.dyn.push(t.rt);
       });
     }
   }

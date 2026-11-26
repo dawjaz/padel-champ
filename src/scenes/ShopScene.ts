@@ -4,7 +4,8 @@ import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, priceOf,
 import { BRANDS, CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
-import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
+import { drawBoostIcon } from '../art/boostArt';
+import { applyLightScreen, drawCard, drawCoin, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const RARITY_COLOR: Record<string, number> = { common: 0x8d9bb0, rare: TC.blue, epic: 0x9b3df0, legendary: 0xf2a900 };
 
@@ -138,7 +139,7 @@ export class ShopScene extends Phaser.Scene {
       const bx = 97 + (i % 2) * 166;
       const by = boostTop + 40 + Math.floor(i / 2) * 50;
       const problem = boostProblem(p, c.id);
-      const b = makeThemeButton(this, bx, by, 160, 44, `${c.name.toUpperCase()}\n${c.short}  ${c.price}`, () => {
+      const b = makeThemeButton(this, bx, by, 160, 44, ' ', () => {
         const next = buyBoost(getSave().profile, c.id);
         if (!next) {
           this.note = (boostProblem(getSave().profile, c.id) ?? 'CANNOT BUY').toUpperCase();
@@ -148,8 +149,19 @@ export class ShopScene extends Phaser.Scene {
         }
         this.redraw();
       }, problem ? 'secondary' : 'blue', 10);
-      b.text.setAlpha(problem ? 0.5 : 1);
       this.dyn.push(...b.parts);
+      const dim = problem ? 0.5 : 1;
+      // the item (drawn, on a light disc), what it gives, and the price with a coin
+      const disc = this.add.graphics().setDepth(9000).setAlpha(dim);
+      disc.fillStyle(0xffffff, 1).fillCircle(bx - 58, by, 18);
+      disc.lineStyle(2, TC.navy, 1).strokeCircle(bx - 58, by, 18);
+      drawBoostIcon(disc, c.id, bx - 58, by);
+      const fx = themeText(this, bx + 14, by - 9, c.short, { size: 10, color: problem ? TC.navy : TC.white, font: 'display', origin: [0.5, 0.5] }).setDepth(9000).setAlpha(dim);
+      const pr = themeText(this, bx + 5, by + 10, `${c.price}`, { size: 12, color: problem ? TC.navy : TC.white, font: 'display', origin: [0, 0.5] }).setDepth(9000).setAlpha(dim);
+      const coin = this.add.graphics().setDepth(9000).setAlpha(dim);
+      drawCoin(coin, bx - 4, by + 10, 6);
+      pr.x = bx + 5;
+      this.dyn.push(disc, fx, pr, coin);
     });
     const bag = p.inventory.boosts.map((id) => consumableById(id)?.name.toUpperCase() ?? id);
     this.label(WIDTH / 2, boostTop + 148, `IN YOUR BAG: ${bag.length > 0 ? bag.join(', ') : 'EMPTY'}`, 11, TC.orange);

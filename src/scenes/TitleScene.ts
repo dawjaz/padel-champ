@@ -53,8 +53,6 @@ export class TitleScene extends Phaser.Scene {
 
     // Career is the main button, the four tiles below.
     const locked = tournamentActive(profile);
-    const stats = save.stats;
-    const statsLine = stats.played === 0 ? 'NO MATCHES YET' : `${stats.played} PLAYED  ${stats.won} WON`;
     const tiles: Phaser.GameObjects.GameObject[] = [];
     const practice: Phaser.GameObjects.GameObject[] = [];
     const showList = (list: Phaser.GameObjects.GameObject[], on: boolean): void => {
@@ -63,10 +61,10 @@ export class TitleScene extends Phaser.Scene {
 
     makeThemeButton(this, WIDTH / 2, 410, 328, 60, 'CAREER', () => this.scene.start('CalendarScene'), 'primary', 26);
 
-    const note = themeText(this, 16, 606, statsLine, { size: 12, color: TC.sub, origin: [0, 0.5] });
+    const note = themeText(this, WIDTH / 2, 586, '', { size: 12, color: TC.sub, origin: [0.5, 0.5] });
     const flash = (msg: string): void => {
       note.setText(msg).setColor('#d93f00');
-      this.time.delayedCall(2200, () => note.setText(statsLine).setColor('#44566f'));
+      this.time.delayedCall(2200, () => note.setText('').setColor('#44566f'));
     };
 
     const entries: Array<{ label: string; icon: IconKind; color: number; lock?: boolean; go: () => void }> = [
@@ -104,11 +102,11 @@ export class TitleScene extends Phaser.Scene {
     });
 
     // Collection: a small button next to Settings.
-    const col = makeThemeButton(this, WIDTH - 172, 614, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
+    const col = makeThemeButton(this, WIDTH / 2 - 52, 614, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
     tiles.push(...col.parts);
 
     // Settings: a small button at the bottom right.
-    const set = makeThemeButton(this, WIDTH - 62, 614, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
+    const set = makeThemeButton(this, WIDTH / 2 + 59, 614, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
     tiles.push(...set.parts);
 
     // Free Practice stays in the game but hidden (SHOW_FREE_PRACTICE in config.ts brings it back).
