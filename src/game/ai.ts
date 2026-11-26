@@ -1,7 +1,7 @@
 import { DIRECTIONS, shotsOfKind } from './catalog';
 import { landingX, NET_Z } from './court';
 import { defenseRating, faultChance } from './engine';
-import { isLob, playableShots, SPECIAL_ANSWER_COST, specialFor, type PointState, type Teams } from './point';
+import { isLob, playableShots, SPECIAL_ANSWER_COST, specialsFor, type PointState, type Teams } from './point';
 import type { AimPreference, CourtPos, Direction, PlayerDef, ReceiveMode, Rng, ShotDef } from './types';
 
 /** How often a CPU player goes for his special shot when he can play it and has the guts for it (and some to spare). */
@@ -89,9 +89,9 @@ export function pickHit(
     return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);
   });
   // His special shot, now and then, when the ball allows it and he has the guts (with a reserve to defend the next ball).
-  const sp = specialFor(hitter, state);
-  const goSpecial = sp !== null && (state.guts[hitter.id] ?? 0) >= sp.cost + SPECIAL_ANSWER_COST && rng() < SPECIAL_USE;
-  const shot = goSpecial ? sp : weightedPick(options, weights, rng);
+  const sps = specialsFor(hitter, state).filter((s) => (state.guts[hitter.id] ?? 0) >= s.cost + SPECIAL_ANSWER_COST);
+  const sp = sps.length > 0 ? sps[Math.min(sps.length - 1, Math.floor(rng() * sps.length))] : null;
+  const shot = sp && rng() < SPECIAL_USE ? sp : weightedPick(options, weights, rng);
   if (shot.fixedDirection) return { shot, direction: shot.fixedDirection };
 
   // Aim at the gap (or the weaker defender when the positions are not known), with some randomness.

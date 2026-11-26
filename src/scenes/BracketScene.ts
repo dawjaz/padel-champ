@@ -3,8 +3,10 @@ import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { activeBracket, withdraw } from '../career/careerFlow';
 import { consumableById, toggleQueued } from '../career/gear';
-import { heroFrom } from '../career/profile';
-import { eventById } from '../career/season';
+import { heroFrom, heroLook } from '../career/profile';
+import { playCutscene } from './CutsceneScene';
+import type { CareerMatch } from './MatchScene';
+import { eventById, eventName, partnerById } from '../career/season';
 import { rivalLine } from '../career/rivals';
 import { rivalTalk, type Talk } from '../speech';
 import { STAT_KEYS } from '../game/attributes';
@@ -19,9 +21,17 @@ const BASE_HERO = (playersData.you as unknown as PlayerDef[])[0];
 /** The draw of the tournament in progress: the round, who plays whom, your next opponent. */
 export class BracketScene extends Phaser.Scene {
   private confirm = false;
+  /** Just entered from the calendar: the tournament-start cutscene plays over the draw. */
+  private fresh = false;
 
   constructor() {
     super('BracketScene');
+  }
+
+  init(data?: { fresh?: boolean }): void {
+    this.fresh = data?.fresh === true;
+    // Phaser keeps the data of the last start for a start without any: the cutscene must not come back
+    this.sys.settings.data = {};
   }
 
   create(): void {
@@ -34,6 +44,8 @@ export class BracketScene extends Phaser.Scene {
       return;
     }
     const roundName = bracket.roundNames[bracket.rounds.length - 1];
+    const ev = eventById(profile.career.active?.eventId ?? '');
+    const eventLabel = ev ? eventName(ev) : bracket.division.name;
     const text = (x: number, y: number, s: string, size: number, color: number, bold = false, ox = 0.5): Phaser.GameObjects.Text =>
       themeText(this, x, y, s, { size, color, origin: [ox, 0.5], font: bold ? 'display' : 'body', align: 'center' });
 
@@ -77,7 +89,7 @@ export class BracketScene extends Phaser.Scene {
       });
     }
 
-    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.faceOff(opp.players, rivalLine('before', opp.players[0].name, `${bracket.roundsWon}`), { opponents: opp.players, name: bracket.division.name, city: eventById(profile.career.active?.eventId ?? '')?.city }), 'primary', 22);
+    makeThemeButton(this, WIDTH / 2, 536, 270, 52, 'PLAY MATCH', () => this.faceOff(opp.players, rivalLine('before', opp.players[0].name, `${bracket.roundsWon}`), { opponents: opp.players, name: bracket.division.name, city: eventById(profile.career.active?.eventId ?? '')?.city, round: roundName.toUpperCase(), event: eventLabel }), 'primary', 22);
     const leave = makeThemeButton(this, WIDTH / 2, 598, 200, 38, 'WITHDRAW', () => {
       if (!this.confirm) {
         this.confirm = true;
@@ -89,6 +101,19 @@ export class BracketScene extends Phaser.Scene {
       if (f) updateSave((d) => ({ ...d, profile: f.profile }));
       this.scene.start('CalendarScene');
     }, 'secondary', 13);
+
+    // just entered: the tournament opens with its scene, over the draw
+    if (this.fresh) {
+      this.fresh = false;
+      const mate = partnerById(profile.career.partnerId);
+      playCutscene(this, 'tourStart', {
+        hero: { name: profile.name, appearance: heroLook(profile) },
+        partner: mate ? { name: mate.name, appearance: mate.appearance } : undefined,
+        event: eventLabel,
+        city: ev?.city,
+        round: roundName.toUpperCase(),
+      }, () => undefined);
+    }
   }
 
   /**
@@ -173,7 +198,7 @@ export class BracketScene extends Phaser.Scene {
   }
 
   /** The face-off before a match: the rival's head and a speech bubble with his line, typed letter by letter. A tap skips the typing, the next tap starts the match. */
-  private faceOff(players: PlayerDef[], line: string, career: { opponents: PlayerDef[]; name: string; city?: string }): void {
+  private faceOff(players: PlayerDef[], line: string, career: CareerMatch): void {
     const depth = 20000;
     const veil = this.add.rectangle(WIDTH / 2, 320, WIDTH, 640, TC.navyDark, 1).setDepth(depth).setInteractive();
     const title = themeText(this, WIDTH / 2, 70, 'YOUR NEXT OPPONENT', { size: 15, color: TC.gold, font: 'display' }).setDepth(depth + 1);

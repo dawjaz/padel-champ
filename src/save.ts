@@ -8,6 +8,7 @@ import { emptyRecords, sanitizeRecords, sanitizeUnlocked, type Records } from '.
 import { newDaily, sanitizeDaily, type Daily } from './career/daily';
 import { newWeekly, sanitizeWeekly, type Weekly } from './career/weekly';
 import { newProfile, sanitizeProfile, type Profile } from './career/profile';
+import { sanitizeCutHistory, type CutHistory, type CutMode } from './art/cutscenes';
 
 export interface SaveData {
   version: 2;
@@ -16,7 +17,8 @@ export interface SaveData {
    * aimPicked: the player chose it in Settings (saves from before v0.125 move to 'point' unless they did).
    */
   /** timing: 'ring' = key shots (smashes, vibora, bandeja, serves) are hit with the timing ring; 'auto' = no ring, neutral. */
-  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto' };
+  /** cutscenes: the scenes between events in full, in their short cut, or none (see art/cutscenes.ts). */
+  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto'; cutscenes: CutMode };
   stats: { played: number; won: number; lost: number };
   profile: Profile;
   /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
@@ -26,6 +28,8 @@ export interface SaveData {
   daily: Daily;
   /** Weekly challenges (see career/weekly.ts). */
   weekly: Weekly;
+  /** The cutscenes seen so far (how often, the last variant of each occasion). */
+  cuts: CutHistory;
 }
 
 export interface KeyValueStore {
@@ -37,7 +41,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), cuts: {} };
 }
 
 function count(v: unknown): number {
@@ -58,6 +62,7 @@ export function parseSave(raw: string | null): SaveData {
         aim: p?.settings?.aimPicked === true && p.settings.aim === 'directions' ? 'directions' : 'point',
         ...(p?.settings?.aimPicked === true ? { aimPicked: true } : {}),
         timing: p?.settings?.timing === 'auto' ? 'auto' : 'ring',
+        cutscenes: p?.settings?.cutscenes === 'short' || p?.settings?.cutscenes === 'off' ? p.settings.cutscenes : 'full',
       },
       stats: { played: count(p?.stats?.played), won: count(p?.stats?.won), lost: count(p?.stats?.lost) },
       profile: sanitizeProfile(p?.profile),
@@ -65,6 +70,7 @@ export function parseSave(raw: string | null): SaveData {
       records: sanitizeRecords(p?.records),
       daily: sanitizeDaily(p?.daily),
       weekly: sanitizeWeekly(p?.weekly),
+      cuts: sanitizeCutHistory(p?.cuts),
     };
   } catch {
     return base;

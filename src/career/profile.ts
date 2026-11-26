@@ -39,8 +39,6 @@ export interface Profile {
   camp: CampState;
   /** Calendar, ranking, the tournament in progress and the partner (see season.ts). */
   career: Career;
-  /** The special shot the hero has chosen (HERO screen); null: the first one unlocked (see `heroSpecial`). */
-  special: string | null;
 }
 
 export interface MatchSummary {
@@ -80,18 +78,12 @@ export function withGender(p: Profile, gender: Gender): Profile {
   return { ...p, gender, name: p.name === from.name ? to.name : p.name, nick: p.nick === from.nick ? to.nick : p.nick };
 }
 
-export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', heroSide: 'left', cups: emptyShelf(), cupClaims: [], camp: newCamp(), xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer(), special: null });
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', heroSide: 'left', cups: emptyShelf(), cupClaims: [], camp: newCamp(), xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
 
 /** The special shots the hero has unlocked at his level (in the order they unlock). */
 export const unlockedSpecials = (level: number): string[] =>
   [...SPECIALS].sort((a, b) => (a.unlockLevel ?? 0) - (b.unlockLevel ?? 0)).filter((s) => level >= (s.unlockLevel ?? 0)).map((s) => s.id);
 
-/** The hero's special shot: the one he chose if it is unlocked, else the first unlocked one; none before the first unlock. */
-export function heroSpecial(p: Pick<Profile, 'special' | 'xp'>): string | undefined {
-  const open = unlockedSpecials(levelOf(p.xp));
-  if (p.special !== null && open.includes(p.special)) return p.special;
-  return open[0];
-}
 
 /** Total XP needed to reach `level` (level 1 = 0). */
 export function xpToReach(level: number): number {
@@ -176,7 +168,7 @@ export function sanitizeProfile(raw: unknown): Profile {
     left -= alloc[k];
   }
   const gender: Gender = o.gender === 'female' ? 'female' : 'male';
-  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, heroSide: o.heroSide === 'right' ? 'right' : 'left', cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), camp: sanitizeCamp(o.camp), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career), special: typeof o.special === 'string' && SPECIALS.some((s) => s.id === o.special) ? o.special : null };
+  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, heroSide: o.heroSide === 'right' ? 'right' : 'left', cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), camp: sanitizeCamp(o.camp), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
 /** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */
@@ -185,6 +177,6 @@ export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef 
   const stats = Object.fromEntries(
     STAT_KEYS.map((k) => [k, Math.min(levels.statMax, statValue(p, k) + gear[k] + (boost?.stats[k] ?? 0))]),
   ) as Record<StatKey, number>;
-  const special = heroSpecial(p);
-  return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: heroLook(p, base.appearance), ...(special ? { special } : {}) };
+  const specials = unlockedSpecials(levelOf(p.xp));
+  return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: heroLook(p, base.appearance), ...(specials.length > 0 ? { specials } : {}) };
 }

@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { SHOTS, SPECIALS } from '../game/catalog';
 import type { ShotDef } from '../game/types';
-import { heroSpecial, levelOf } from '../career/profile';
-import { getSave, updateSave } from '../save';
+import { levelOf } from '../career/profile';
+import { getSave } from '../save';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 /** The little emblem of a special shot (own shapes): a rocket, a snake's curve, a corner, a snowflake. */
@@ -38,7 +38,7 @@ function drawEmblem(g: Phaser.GameObjects.Graphics, id: string, cx: number, cy: 
 }
 
 /**
- * The hero's special shots: the four of the game, unlocked by level; the hero chooses the one he plays in matches (one at a time). All
+ * The hero's special shots: the four of the game, unlocked by level and all kept (a portfolio that grows); the match offers each one the ball allows. All
  * of them can be tried on the Practice Court, whatever the level.
  */
 export class SpecialScene extends Phaser.Scene {
@@ -60,17 +60,16 @@ export class SpecialScene extends Phaser.Scene {
     this.dyn = [];
     const p = getSave().profile;
     const level = levelOf(p.xp);
-    const current = heroSpecial(p);
     const add = <T extends Phaser.GameObjects.GameObject>(o: T): T => {
       this.dyn.push(o);
       return o;
     };
-    add(themeText(this, WIDTH / 2, 80, 'One special shot at a time: it costs a lot of G and\nonly works from its own ball, but it is nearly always a winner.', { size: 11, color: TC.sub, align: 'center' }));
+    add(themeText(this, WIDTH / 2, 80, 'Every level opens a new special shot and you keep them all.\nEach costs a lot of G and only works from its own ball.', { size: 11, color: TC.sub, align: 'center' }));
     const sorted = [...SPECIALS].sort((a, b) => (a.unlockLevel ?? 0) - (b.unlockLevel ?? 0));
     sorted.forEach((sp: ShotDef, i) => {
       const y = 108 + i * 118;
       const open = level >= (sp.unlockLevel ?? 0);
-      const on = sp.id === current;
+      const on = open;
       const card = add(this.add.graphics().setPosition(12, y));
       drawCard(card, WIDTH - 24, 108, { fill: on ? 0xfff4cf : open ? 0xffffff : 0xf1f4f8, stroke: on ? 0xc98a00 : TC.navy });
       const emb = add(this.add.graphics());
@@ -83,14 +82,8 @@ export class SpecialScene extends Phaser.Scene {
       if (!open) {
         add(themeText(this, WIDTH - 66, y + 36, `LEVEL ${sp.unlockLevel}`, { size: 13, font: 'display', color: 0x8d9bb0 }));
         add(themeText(this, WIDTH - 66, y + 54, 'LOCKED', { size: 10, color: 0x8d9bb0 }));
-      } else if (on) {
-        add(themeText(this, WIDTH - 66, y + 40, 'IN USE', { size: 14, font: 'display', color: 0xb07700 }));
       } else {
-        const b = makeThemeButton(this, WIDTH - 66, y + 40, 92, 34, 'USE', () => {
-          updateSave((d) => ({ ...d, profile: { ...d.profile, special: sp.id } }));
-          this.redraw();
-        }, 'primary', 15);
-        this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
+        add(themeText(this, WIDTH - 66, y + 40, 'YOURS', { size: 14, font: 'display', color: 0xb07700 }));
       }
     });
   }

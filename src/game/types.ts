@@ -37,8 +37,8 @@ export interface PlayerDef {
   /** Derived from stamina (`gutsFor`); kept here so that the scenes read one number. */
   maxGuts: number;
   appearance: Appearance;
-  /** His special shot (a shot id of kind 'special'), if he has one. */
-  special?: string;
+  /** His special shots (shot ids of kind 'special'): the hero has every one he has unlocked, a CPU player one. */
+  specials?: string[];
 }
 
 /** Index of a side: 0 = player (near end of the court), 1 = CPU (far end). */

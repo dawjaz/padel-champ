@@ -1,5 +1,5 @@
 import { baseId, DIRECTIONS, SPECIALS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread } from './court';
+import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, NET_Z, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread } from './court';
 import { fatigued, STAT_KEYS } from './attributes';
 import { LOB_APEX, MAX_PRESSURE, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
@@ -161,20 +161,76 @@ export function runOutChance(p: PlayerDef, guts: number, timing?: number): numbe
   const t = timing === undefined ? 1 : 0.6 + 0.8 * Math.max(0, Math.min(1, timing));
   return Math.min(0.75, base * (0.7 + 0.3 * share) * t);
 }
+/** How a run-out is played back: a lob over the wall (safe) or a flat ball through the door by the net (only where the angles allow it). */
+export type RunOutMode = 'lob' | 'door';
+
+/** The opening in the side fence by the net: its centre is this far from the net, its half-width along the net line (metres). */
+export const DOOR_FROM_NET = 0.75;
+export const DOOR_HALF = 0.7;
+/** Where a ball played through the door lands (metres from the net, in the other pair's half). */
+const DOOR_LAND_DEPTH = 4.5;
+
+export interface DoorShot {
+  /** The flat ball through the door can be played from here. */
+  open: boolean;
+  /** 0..1: how wide the door looks from the contact point (a narrow gap is hard to hit). */
+  window: number;
+  /** The centre of the door (the ball passes through it), on the fence line. */
+  gate: { x: number; z: number };
+  /** Where the ball would land in the other half when played through the centre of the door. */
+  target: { x: number; z: number };
+}
+
 /**
- * The run-out itself, after the step `step` (a Por Tres winner, `done` the finished state). Made: the point goes on, the ball comes
- * back as a defensive lob (high, medium, played out of the air) to the hitting pair, which drops to mid-court; the runner's pair is at the
- * back. Not made: the point stays won. The runner pays `RUN_OUT_COST` guts either way.
+ * The flat shot back through the door, for a runner on `runSide` who meets the ball at `contact` (outside the court, |x| over 5). It
+ * only exists where the geometry allows it: the angle the opening takes up from the contact point must be wide enough (the further
+ * along the fence from the door, the narrower it gets), and the line through it must cross the net inside the posts and land in the
+ * court on the other side.
  */
-export function runOutReturn(teams: Teams, done: PointState, step: Step, rng: Rng, timing?: number): { made: boolean; state: PointState } {
+export function doorShot(runSide: SideIndex, contact: { x: number; z: number }): DoorShot {
+  const sgn = Math.sign(contact.x) || 1;
+  const gz = runSide === 0 ? NET_Z + DOOR_FROM_NET : NET_Z - DOOR_FROM_NET;
+  const gate = { x: sgn * 5, z: gz };
+  const landZ = runSide === 0 ? NET_Z - DOOR_LAND_DEPTH : NET_Z + DOOR_LAND_DEPTH;
+  const dx = gate.x - contact.x;
+  const dz = gz - contact.z;
+  const none: DoorShot = { open: false, window: 0, gate, target: { x: gate.x, z: landZ } };
+  if (Math.abs(contact.x) < 5.05 || Math.abs(dz) < 1e-6 && Math.abs(dx) < 1e-6) return none;
+  // the ball must travel towards the net and the other half
+  if (runSide === 0 ? dz >= 0 : dz <= 0) return none;
+  const k = (landZ - contact.z) / dz;
+  const target = { x: contact.x + k * dx, z: landZ };
+  const kNet = (NET_Z - contact.z) / dz;
+  const atNet = contact.x + kNet * dx;
+  if (Math.abs(target.x) > 4.8 || Math.abs(atNet) > 4.95) return none;
+  const a1 = Math.atan2(gate.x - contact.x, gz - DOOR_HALF - contact.z);
+  const a2 = Math.atan2(gate.x - contact.x, gz + DOOR_HALF - contact.z);
+  const width = Math.abs(a1 - a2);
+  const window = Math.max(0, Math.min(1, (width - 0.08) / 0.3));
+  return { open: window > 0, window, gate, target };
+}
+
+/**
+ * The run-out itself, after the step `step` (a Por Tres winner, `done` the finished state). Made: the point goes on and the ball comes
+ * back to the hitting pair under heavy pressure (a ball played from outside the court is very hard to keep in play): as a defensive lob
+ * (medium, played out of the air; the pair drops to mid-court), or, through the door (`mode` 'door', needs `window` from `doorShot`),
+ * flat and low, harder to make (the narrower the door the less often) and harder still to play. Not made: the point stays won. The
+ * runner pays `RUN_OUT_COST` guts either way.
+ */
+export const RUN_OUT_PRESSURE = 0.3;
+export function runOutReturn(teams: Teams, done: PointState, step: Step, rng: Rng, timing?: number, mode: RunOutMode = 'lob', window = 0): { made: boolean; state: PointState } {
   const runSide = other(step.side);
   const runner = teams[runSide][step.defenderIdx];
   const g = done.guts[runner.id] ?? runner.maxGuts;
-  const made = rng() < runOutChance(fatigued(runner, g), g, timing);
+  const door = mode === 'door';
+  // the flat ball is the harder one: a narrow door and a loose touch cost it dearly
+  const doorMul = door ? (0.45 + 0.4 * window) * (0.8 + 0.04 * runner.stats.accuracy) : 1;
+  const made = rng() < runOutChance(fatigued(runner, g), g, timing) * doorMul;
   const guts = { ...done.guts, [runner.id]: spendGuts(g, RUN_OUT_COST) };
   if (!made) return { made, state: { ...done, guts } };
   // the hitting pair steps back from the net for the lob (mid-court: vibora, bandeja or a volley), the runner's pair is at the back
   const formation: [Formation, Formation] = step.side === 0 ? ['mid', 'back'] : ['back', 'mid'];
+  const t = timing === undefined ? 0.5 : timing;
   return {
     made,
     state: {
@@ -186,7 +242,9 @@ export function runOutReturn(teams: Teams, done: PointState, step: Step, rng: Rn
       // the one of the pair the lob goes to: the hitter (he is at the net, the ball drops behind him) or his partner
       hitterIdx: rng() < 0.5 ? step.attackerIdx : 1 - step.attackerIdx,
       hits: done.hits + 1,
-      ball: { height: 'high', pressure: 0, lob: 'medium', glass: false, air: true, zone: 'back', speed: 14 },
+      ball: door
+        ? { height: 'low', pressure: RUN_OUT_PRESSURE + 0.1 + 0.2 * window * (0.5 + 0.5 * t), glass: false, air: true, zone: 'mid', speed: 22 }
+        : { height: 'high', pressure: RUN_OUT_PRESSURE, lob: 'medium', glass: false, air: true, zone: 'back', speed: 14 },
       formation,
     },
   };
@@ -195,14 +253,13 @@ export function runOutReturn(teams: Teams, done: PointState, step: Step, rng: Rn
 /** Guts a defender spends to get a special shot back (and the guts the hitter must have on top of its cost for the CPU to try one). */
 export const SPECIAL_ANSWER_COST = 3;
 /**
- * The special shot `player` can play now, if any: he has one, it is a rally ball (not the serve or its return) and the ball and the
+ * The special shots `player` can play now: he has them, it is a rally ball (not the serve or its return) and the ball and the
  * positions allow it (the same rules as its base shot). The guts are not checked here (a special without enough guts is RISKY, as any
  * shot).
  */
-export function specialFor(player: PlayerDef, state: PointState): ShotDef | null {
-  if (!player.special || state.status !== 'rally' || state.hits === 0) return null;
-  const sp = SPECIALS.find((s) => s.id === player.special);
-  return sp && unavailableReason(sp, state) === null ? sp : null;
+export function specialsFor(player: PlayerDef, state: PointState): ShotDef[] {
+  if (!player.specials?.length || state.status !== 'rally' || state.hits === 0) return [];
+  return SPECIALS.filter((s) => player.specials!.includes(s.id) && unavailableReason(s, state) === null);
 }
 /** CPU players and partners whose attributes average at least this have a special shot (the Rise division and up; quick match). */
 export const SPECIAL_MIN_RATING = 5;
@@ -222,9 +279,9 @@ export function cpuSpecial(p: PlayerDef): string | undefined {
 }
 /** A CPU player with his special (a player who has one keeps it). */
 export const withSpecial = (p: PlayerDef): PlayerDef => {
-  if (p.special) return p;
+  if (p.specials?.length) return p;
   const sp = cpuSpecial(p);
-  return sp ? { ...p, special: sp } : p;
+  return sp ? { ...p, specials: [sp] } : p;
 };
 
 /**

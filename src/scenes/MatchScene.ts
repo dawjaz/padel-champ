@@ -22,12 +22,15 @@ import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { baseId, DIRECTIONS, shotsOfKind, SPECIALS } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, targetMissChance } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, ringQuality, ringWindow, SECOND_SERVE_SPEED } from '../game/engine';
-import { canRunOut, isPowerfulSmash, playableShots, reachAgainst, RUN_OUT_COST, runOutReturn, specialFor, withSpecial, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { canRunOut, doorShot, isPowerfulSmash, playableShots, reachAgainst, RUN_OUT_COST, runOutReturn, type DoorShot, type RunOutMode, specialsFor, withSpecial, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
 import { seededRng } from '../game/rng';
 import { practicePoint, situation, SITUATIONS, type SituationId } from '../game/practice';
+import { tournamentEnd, type CutOccasion } from '../art/cutscenes';
+import { CUPS } from '../career/cups';
+import { playCutscene, type CutCast } from './CutsceneScene';
 import { flipCoin, tossWinner, type CoinFace } from '../game/toss';
 import { fatigueFactor, gutsRecovery, powerSpeedMul, receiveDecisionMs, spinMul } from '../game/attributes';
 import { reportMatch, type Finished } from '../career/careerFlow';
@@ -51,6 +54,9 @@ export interface CareerMatch {
   name: string;
   /** The tournament city: picks the court colours (see art/hd/courtThemes.ts). */
   city?: string;
+  /** For the cutscenes: the round ("SEMIFINAL") and the tournament ("Regional Open Warsaw"). */
+  round?: string;
+  event?: string;
 }
 
 /** The one player you control. Your partner and the whole CPU team play automatically and quickly. */
@@ -259,7 +265,7 @@ export class MatchScene extends Phaser.Scene {
     const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
     HUMAN_IDX = heroLane(profile);
     const hero = heroFrom(BASE_YOU[0], profile, boost);
-    // the partner and the opponents have their special shots (the stronger ones; see `cpuSpecial`), the hero the one of his level
+    // the partner and the opponents have their special shots (the stronger ones; see `cpuSpecial`), the hero every one he has unlocked
     const mate = withSpecial(partner);
     TEAMS = [HUMAN_IDX === 0 ? [hero, mate] : [mate, hero], (this.career ? this.career.opponents : DEFAULT_CPU).map(withSpecial)];
     if (boost && profile.inventory.queued.length > 0) {
@@ -359,6 +365,8 @@ export class MatchScene extends Phaser.Scene {
     this.refreshScore();
     this.refreshGuts();
     if (this.practice) this.practiceMenu();
+    // a career match opens with the two pairs (now and then, see art/cutscenes.ts)
+    else if (this.career) playCutscene(this, 'preMatch', this.cutCast(), () => this.coinToss());
     else this.coinToss();
   }
 
@@ -1469,7 +1477,7 @@ export class MatchScene extends Phaser.Scene {
     // on the practice court every special the ball allows is there to try (in a match only your own, from its level)
     if (kind === 'rally') {
       const hero = TEAMS[HUMAN_SIDE][HUMAN_IDX];
-      for (const sp of SPECIALS) if (specialFor({ ...hero, special: sp.id }, st)) items.unshift(this.specialButton(sp, hero));
+      for (const sp of specialsFor({ ...hero, specials: SPECIALS.map((s) => s.id) }, st)) items.unshift(this.specialButton(sp, hero));
     }
     // (the way out is the GO TO MAIN MENU button at the top)
     items.push({ label: 'CHANGE', tone: 'normal', onPick: () => { this.court.sit = null; this.practiceMenu(); } });
@@ -1535,7 +1543,7 @@ export class MatchScene extends Phaser.Scene {
   private courtRunOut(): void {
     this.pr = { ...this.pr, ball: 'high', glass: false, weakLob: false, me: 'back', opp: 'net', bounced: false, hard: false, atWall: false };
     const x3 = shotsOfKind('rally').find((sh) => sh.id === 'smash_x3')!;
-    const dirs: Direction[] = ['parallel', 'middle', 'cross'];
+    const dirs: Direction[] = ['parallel', 'cross']; // (a ball down the middle never leaves over the side wall)
     for (let i = 0; i < 80; i++) {
       const hitterIdx = Math.random() < 0.5 ? 0 : 1;
       const st = this.practiceState(1, hitterIdx);
@@ -2025,8 +2033,7 @@ export class MatchScene extends Phaser.Scene {
       onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
     }));
     // his special shot, in gold, when the ball allows it
-    const sp = specialFor(hitter, st);
-    if (sp) items.unshift(this.specialButton(sp, hitter));
+    for (const sp of specialsFor(hitter, st)) items.unshift(this.specialButton(sp, hitter));
     this.showHeight(st.ball.height, context);
     this.showButtons(title, items);
   }
@@ -2322,14 +2329,14 @@ export class MatchScene extends Phaser.Scene {
    * serve) and a ring closes on it; the player touches anywhere as it closes. The quality (0 to 1) goes to the engine: a clean hit is
    * safer and stronger, a mistimed one riskier and weaker. A grade flashes over the ball.
    */
-  private timingRing(kind: 'serve' | 'high', hitter: PlayerDef, done: (q: number) => void): void {
+  private timingRing(kind: 'serve' | 'high' | 'out', hitter: PlayerDef, done: (q: number) => void): void {
     const at = { ...this.ballFloor };
     const hitH = this.ballH;
     const window = ringWindow(hitter);
     const due = kind === 'serve' ? 1000 : 900;
     const drop = 420;
     const ballAt = (ms: number): number => {
-      if (kind === 'high') {
+      if (kind !== 'serve') {
         const u = Math.min(1.3, ms / due);
         return Math.max(0.3, hitH + 1.6 * (1 - u));
       }
@@ -2340,6 +2347,7 @@ export class MatchScene extends Phaser.Scene {
     };
     // he loads the shot while it comes: the racket back over the head (an overhead) or low behind him (the serve)
     if (kind === 'high') this.setPose(hitter.id, 'smashPrep');
+    else if (kind === 'out') this.setPose(hitter.id, 'fhPrep');
     const ring = this.add.graphics().setDepth(9990);
     const hint = this.add
       .text(WIDTH / 2, 470, 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
@@ -2554,19 +2562,56 @@ export class MatchScene extends Phaser.Scene {
       const d = this.pos[defender.id];
       targets[defender.id] = { x: clampX(d.x + 0.4 * (flight.hit.x - d.x)), z: clampZ(d.z + 0.3 * (flight.hit.z - d.z)) };
     }
-    const remain = duration * (1 - from);
+    // A Por Tres that bounced in his half and left over the side wall: the ball hangs in the air at the wall while the runner decides
+    // (the whole match waits), so everything of this ball stops there (see `runOutPhase`).
+    const runner = TEAMS[other(step.side)][step.defenderIdx];
+    const exit = canRunOut(step) && (next.guts[runner.id] ?? runner.maxGuts) >= RUN_OUT_COST ? flight.events.find((e) => e.kind === 'out' && Math.abs(e.x) >= 4.7) : undefined;
+    const hangU = exit && flight.duration > 0 && from < 1 ? Math.min(1, Math.max(from + 0.05, exit.t / flight.duration)) : 1;
+    const remain = duration * (hangU - from);
     this.movePlayers(targets, remain, undefined, endPose, endFacing);
     // Hit-stop: the ball stays on the racket for a moment at contact (not on a serve), so the contact reads.
     const hold = from === 0 && step.kind !== 'serve' ? HIT_STOP + 60 : 0;
     for (const e of flight.events) {
       const at = flight.duration > 0 ? e.t / flight.duration : 0;
-      if (at < from) continue;
+      if (at < from || at > hangU + 1e-6) continue;
       this.time.delayedCall(hold + (at - from) * duration, () => this.impactFx(e, flight.path));
     }
 
+    /** The end of the flight: the ball falls, bounces and rolls on, and what happens next (the point goes on, or is over). */
+    const settle = (): void => {
+      this.powerStyle = null;
+      this.trail = [];
+      this.drawTrail();
+      this.ballH = flight.hitH;
+      // When the point is over the ball is not stopped: it falls, bounces and rolls on.
+      const over = ['winner', 'ace', 'error', 'double-fault', 'fault'].includes(step.outcome);
+      const coast = over ? this.playCoast(flight, step.shot.flight.spin) : { ms: 0, end: null };
+      // A defender who has lost the point still runs after the ball until it has stopped.
+      if (coast.end && !step.reboundBack && (step.outcome === 'winner' || step.outcome === 'ace')) this.chaseBall(defender.id, other(step.side), coast.end, coast.ms);
+      this.afterStep(step, next, headline, coast.ms);
+    };
+    /** The rest of the flight after the hang (the runner did not go, or did not get there), then the end as usual. */
+    const resume = (): void => {
+      if (hangU >= 1) {
+        settle();
+        return;
+      }
+      const rest = Math.max(200, duration * (1 - hangU));
+      this.tweens.addCounter({
+        from: hangU,
+        to: 1,
+        duration: rest,
+        onUpdate: (tween: Phaser.Tweens.Tween) => {
+          const p = ballPoint(flight.path, tween.getValue() ?? 0);
+          this.setBall(p.x, p.z, p.h);
+        },
+        onComplete: settle,
+      });
+    };
+
     this.tweens.addCounter({
       from,
-      to: 1,
+      to: hangU,
       delay: hold,
       duration: remain,
       onUpdate: (tween: Phaser.Tweens.Tween) => {
@@ -2574,22 +2619,11 @@ export class MatchScene extends Phaser.Scene {
         this.setBall(p.x, p.z, p.h);
       },
       onComplete: () => {
-        this.powerStyle = null;
-        this.trail = [];
-        this.drawTrail();
-        this.ballH = flight.hitH;
-        // When the point is over the ball is not stopped: it falls, bounces and rolls on.
-        const over = ['winner', 'ace', 'error', 'double-fault', 'fault'].includes(step.outcome);
-        const coast = over ? this.playCoast(flight, step.shot.flight.spin) : { ms: 0, end: null };
-        // A Por Tres that bounced in the defenders' half and left over the side wall is still in play: the defender may run out after it.
-        const exit = canRunOut(step) ? flight.events.find((e) => e.kind === 'out' && Math.abs(e.x) >= 4.7) : undefined;
         if (exit) {
-          this.runOutPhase(step, next, headline, coast.ms, exit);
+          this.runOutPhase(step, next, headline, exit, buildCoast(flight, step.shot.flight.spin).path, resume);
           return;
         }
-        // A defender who has lost the point still runs after the ball until it has stopped.
-        if (coast.end && !step.reboundBack && (step.outcome === 'winner' || step.outcome === 'ace')) this.chaseBall(defender.id, other(step.side), coast.end, coast.ms);
-        this.afterStep(step, next, headline, coast.ms);
+        settle();
       },
     });
   }
@@ -2662,50 +2696,90 @@ export class MatchScene extends Phaser.Scene {
 
   /**
    * Out-of-court play after a Por Tres (FIP rules, `canRunOut`): the defender may run out through the opening by the net after the
-   * ball and play it back. Yours: a RUN OUT! button for a moment (it costs guts), then the timing ring for the shot outside. The CPU
-   * decides by itself. Made (`runOutReturn`): a defensive lob back over the wall and the rally goes on; the runner comes back in.
-   * Not made (or not tried): the point ends as a winner (`afterStep`).
+   * ball and play it back. The ball HANGS in the air at the wall and the match waits; yours: a RUN OUT! button (it costs guts), the
+   * CPU decides by itself. Then the ball carries on, a long way, while the runner runs at his ordinary pace to meet it, and you choose
+   * how to play it: a LOB over the wall or, where the angles allow it (`doorShot`), flat and low through the door. The timing ring
+   * closes as the ball comes down on the racket. Made (`runOutReturn`): the rally goes on, but a ball from outside is very hard to keep
+   * in play. Not made (or not tried): the point ends as a winner (`resume`: the rest of the flight, then `afterStep`).
    */
-  private runOutPhase(step: Step, next: PointState, headline: string, coastMs: number, exit: FlightEvent): void {
+  private runOutPhase(step: Step, next: PointState, headline: string, exit: FlightEvent, outside: Sample[], resume: () => void): void {
     const runSide = other(step.side);
     const runner = TEAMS[runSide][step.defenderIdx];
     const id = runner.id;
-    const finish = (): void => this.afterStep(step, next, headline, coastMs);
-    const gutsNow = next.guts[id] ?? runner.maxGuts;
-    if (gutsNow < RUN_OUT_COST) {
-      finish();
-      return;
-    }
+    const human = this.isHuman(runSide, step.defenderIdx);
     const sgn = Math.sign(exit.x) || 1;
-    // where he plays it: just outside the wall (as far as the screen shows), level with where it left, in his own half
-    const zMin = runSide === 0 ? NET_Z + 1.6 : 1.2;
-    const zMax = runSide === 0 ? 18.6 : NET_Z - 1.6;
-    const spot: CourtPos = { x: sgn * (runSide === 0 ? 5.7 : 6.2), z: Math.max(zMin, Math.min(zMax, exit.z + (runSide === 0 ? 1.2 : -1.2))) };
+    this.powerStyle = null;
+    this.trail = [];
+    this.drawTrail();
+    this.setBall(exit.x, exit.z, Math.max(0.8, exit.h), false);
+    const hangX = this.ballFloor.x;
+    const hangZ = this.ballFloor.z;
+    const hangH = this.ballH = Math.max(0.8, exit.h);
+    // where he meets it: just outside the wall (as far as the screen shows), where the ball's own path takes it (it keeps its direction,
+    // so a ball coming off the glass drifts towards the net), in his own half
+    const zMin = runSide === 0 ? NET_Z + 1.0 : 1.2;
+    const zMax = runSide === 0 ? 18.6 : NET_Z - 1.0;
+    const spotX = runSide === 0 ? 5.7 : 6.2;
+    const way = outside.find((p) => Math.abs(p.x) >= spotX) ?? outside[outside.length - 1] ?? { z: exit.z };
+    const spot: CourtPos = { x: sgn * spotX, z: Math.max(zMin, Math.min(zMax, way.z)) };
+    const contact: CourtPos = { x: spot.x - sgn * 0.45, z: spot.z + (runSide === 0 ? -0.4 : 0.4) };
+    const door = doorShot(runSide, contact);
     // the opening by the net on that side, in his half
-    const gate: CourtPos = { x: sgn * 4.95, z: runSide === 0 ? 10.65 : 9.35 };
+    const gate: CourtPos = { x: sgn * 4.95, z: door.gate.z };
+    let mode: RunOutMode = 'lob';
+    const extras: Phaser.GameObjects.GameObject[] = [];
+    const clearExtras = (): void => {
+      for (const o of extras.splice(0)) o.destroy();
+    };
+
+    // --- the run: ordinary running pace (not faster than in the match), the ball comes down in the same time
     const go = (): void => {
       this.say(`${runner.name} runs out after it!`);
-      const d1 = Math.hypot(gate.x - this.pos[id].x, gate.z - this.pos[id].z);
+      const per = Math.max(220, Math.min(360, 300 - 12 * (runner.stats.speed - 5)));
+      const here = this.pos[id];
+      const d1 = Math.hypot(gate.x - here.x, gate.z - here.z);
       const d2 = Math.hypot(spot.x - gate.x, spot.z - gate.z);
-      this.movePlayers({ [id]: gate }, Math.max(220, d1 * 150), () => {
-        this.movePlayers({ [id]: spot }, Math.max(200, d2 * 150), () => arrive(), {}, {}, [id]);
-      }, {}, {}, [id]);
+      const fresh = Math.max(0.77, this.freshness(id));
+      const m1 = Math.max(260, d1 * per) / fresh;
+      const m2 = Math.max(240, d2 * per) / fresh;
+      const T = Math.max(1100, m1 + m2);
+      let waiting = 2;
+      const oneDone = (): void => {
+        if (--waiting === 0) arrive();
+      };
+      this.movePlayers({ [id]: gate }, m1, () => this.movePlayers({ [id]: spot }, m2, oneDone, {}, {}, [id]), {}, {}, [id]);
+      // the ball carries on over the wall and comes down by the spot where he meets it, high above the racket (the ring takes it from there)
+      const HIGH = 0.9 + 1.6;
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: T,
+        ease: 'Sine.easeOut',
+        onUpdate: (tw) => {
+          const u = tw.getValue() ?? 0;
+          const h = hangH + (HIGH - hangH) * u + 1.3 * 4 * u * (1 - u) * (hangH > HIGH ? 0.3 : 1);
+          this.setBall(hangX + (contact.x - hangX) * u, hangZ + (contact.z - hangZ) * u, h, false);
+        },
+        onComplete: oneDone,
+      });
+      if (human) this.runOutChoice(door, T, (m) => (mode = m), extras);
+      else if (door.open && Math.random() < 0.3 + 0.4 * door.window) mode = 'door';
     };
     const arrive = (): void => {
-      // he catches up with the ball outside: it is on his racket, a little in front of him
+      clearExtras();
       this.stopCoast();
-      const contact = { x: spot.x - sgn * 0.45, z: spot.z + (runSide === 0 ? -0.4 : 0.4) };
       this.ballH = 0.9;
-      this.setBall(contact.x, contact.z, this.ballH, false);
+      this.setBall(contact.x, contact.z, 0.9 + 1.6, false);
       this.ball.setVisible(true);
-      if (this.isHuman(runSide, step.defenderIdx) && getSave().settings.timing !== 'auto') this.timingRing('high', runner, (q) => resolve(q));
+      if (human && getSave().settings.timing !== 'auto') this.timingRing('out', runner, (q) => resolve(q));
       else resolve(undefined);
     };
     const resolve = (q: number | undefined): void => {
-      const r = runOutReturn(TEAMS, next, step, Math.random, q);
+      const useDoor = mode === 'door' && door.open;
+      const r = runOutReturn(TEAMS, next, step, Math.random, q, useDoor ? 'door' : 'lob', door.window);
       this.guts = { ...r.state.guts };
       this.refreshGuts();
-      if (this.practice === 'court' && this.isHuman(runSide, step.defenderIdx)) {
+      if (this.practice === 'court' && human) {
         this.court.shots++;
         if (r.made) this.court.inPlay++;
         else this.court.errors++;
@@ -2717,28 +2791,53 @@ export class MatchScene extends Phaser.Scene {
         this.refreshScore();
       }
       if (!r.made) {
-        // a stretch, a moment too late
+        // a stretch, a moment too late (or the flat ball into the fence, beside the door)
         this.planLunge(id, { x: spot.x + sgn * 0.6, z: spot.z }, 160, 1);
         this.setPose(id, 'fhHit');
-        // (the WINNER! banner of the point follows; the log says why)
-        this.say(`${runner.name} gets there but cannot play it back: TOO FAR!`);
-        this.time.delayedCall(350, finish);
+        this.say(useDoor ? `${runner.name} gets there but the ball does not find the door!` : `${runner.name} gets there but cannot play it back: TOO FAR!`);
+        // the ball drops to the ground outside and the point is over (the WINNER! banner of the point follows)
+        const h0 = this.ballH;
+        this.tweens.addCounter({
+          from: 0,
+          to: 1,
+          duration: 380,
+          onUpdate: (tw) => {
+            const u = tw.getValue() ?? 0;
+            this.setBall(contact.x + sgn * 0.5 * u, contact.z, h0 * (1 - u * u), false);
+          },
+          onComplete: () => this.afterStep(step, next, headline, 380),
+        });
         return;
       }
-      this.announce('RUN OUT!', '#4ade80', `${runner.name} gets it back`);
-      this.say(`${runner.name} gets it back from outside the court! The rally goes on.`);
+      this.announce('RUN OUT!', '#4ade80', useDoor ? `${runner.name} fires it through the door` : `${runner.name} gets it back`);
+      this.say(useDoor ? `${runner.name} plays it flat through the door! The rally goes on, under heavy pressure.` : `${runner.name} gets it back from outside the court! The rally goes on.`);
       sfx('hit');
       this.swing(id, null);
-      // the lob: up over the wall and back into the hitting pair's half, to the one who will play it
-      const recv = TEAMS[step.side][r.state.hitterIdx];
-      const land = restPos(step.side, r.state.hitterIdx, 'mid');
       const from = { x: this.ballFloor.x, z: this.ballFloor.z, h: this.ballH };
-      const to = { x: land.x, z: land.z, h: ARRIVAL_HEIGHT.high };
-      const ms = 1500;
+      let state = r.state;
+      let ms = 1500;
+      let to: { x: number; z: number; h: number };
+      let arc: (u: number) => number;
+      if (useDoor) {
+        // flat and fast through the door, over the net, to the one of the pair who is closer to where it lands
+        const lx = Math.max(-4.6, Math.min(4.6, door.target.x));
+        const near = TEAMS[step.side].reduce((a, p) => (Math.abs(this.pos[p.id].x - lx) < Math.abs(this.pos[a.id].x - lx) ? p : a));
+        state = { ...state, hitterIdx: TEAMS[step.side].indexOf(near) };
+        to = { x: lx, z: door.target.z, h: ARRIVAL_HEIGHT.low };
+        ms = 650;
+        arc = (u) => from.h * (1 - u) ** 2 + 2 * (1 - u) * u * 1.5 + ARRIVAL_HEIGHT.low * u * u - (from.h + (to.h - from.h) * u);
+      } else {
+        // the lob: up over the wall and back into the hitting pair's half, to the one who will play it
+        const land = restPos(step.side, state.hitterIdx, 'mid');
+        to = { x: land.x, z: land.z, h: ARRIVAL_HEIGHT.high };
+        arc = (u) => 4 * 6.5 * u * (1 - u);
+      }
+      const recv = TEAMS[step.side][state.hitterIdx];
       // everybody to their places for the next ball: the runner comes back in through the opening, his partner covers
-      const targets = this.rallyTargets(r.state);
+      const targets = this.rallyTargets(state);
       const home = targets[id];
       delete targets[id];
+      if (useDoor) targets[recv.id] = { x: to.x, z: to.z + (step.side === 0 ? 0.5 : -0.5) };
       this.movePlayers(targets, ms * 0.85, undefined, { [recv.id]: 'ready' }, {}, [recv.id]);
       this.time.delayedCall(260, () => {
         this.movePlayers({ [id]: gate }, 520, () => this.movePlayers({ [id]: home }, 600, undefined, {}, {}, [id]), {}, {}, [id]);
@@ -2749,23 +2848,27 @@ export class MatchScene extends Phaser.Scene {
         duration: ms,
         onUpdate: (tw) => {
           const u = tw.getValue() ?? 0;
-          this.setBall(from.x + (to.x - from.x) * u, from.z + (to.z - from.z) * u, from.h + (to.h - from.h) * u + 4 * 6.5 * u * (1 - u));
+          this.setBall(from.x + (to.x - from.x) * u, from.z + (to.z - from.z) * u, from.h + (to.h - from.h) * u + arc(u));
         },
         onComplete: () => {
-          this.point = r.state;
-          this.ballH = ARRIVAL_HEIGHT.high;
+          this.point = state;
+          this.ballH = to.h;
           this.setBall(this.pos[recv.id].x, this.pos[recv.id].z, this.ballH, false);
           this.hitTurn();
         },
       });
     };
-    if (!this.isHuman(runSide, step.defenderIdx)) {
+
+    // --- the hang: the ball stays where it is, the match waits for the decision
+    const decline = (): void => {
+      clearExtras();
+      resume();
+    };
+    if (!human) {
       // the CPU (and your partner) goes for it most of the time when he has the legs and the guts
-      if (Math.random() < 0.4 + 0.08 * runner.stats.speed) go();
-      else finish();
+      this.time.delayedCall(450, () => (Math.random() < 0.4 + 0.08 * runner.stats.speed ? go() : decline()));
       return;
     }
-    // yours: a big button for a moment
     this.clearMenu();
     const bx = WIDTH / 2;
     const by = 500;
@@ -2776,31 +2879,37 @@ export class MatchScene extends Phaser.Scene {
       .text(bx, by - 6, 'RUN OUT!', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '30px', color: '#ffffff' })
       .setOrigin(0.5)
       .setDepth(9991)
-      .setStroke('#0b2a5b', 6);
+      .setStroke('#0b2a5b', 5);
     const sub2 = this.add
       .text(bx, by + 22, `chase it outside  [${RUN_OUT_COST} G]`, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#0b2a5b' })
       .setOrigin(0.5)
       .setDepth(9991);
     const bar = this.add.graphics().setDepth(9991);
+    const halo = this.add.graphics().setDepth(9989);
     const hit = this.add.zone(bx - 130, by - 44, 260, 88).setOrigin(0, 0).setDepth(9992).setInteractive({ useHandCursor: true });
     this.tweens.add({ targets: [base, label, sub2], scale: { from: 0.7, to: 1 }, duration: 200, ease: 'Back.easeOut' });
     const t0 = this.time.now;
-    const window = 1500;
+    const window = 2600;
     let decided = false;
     const close = (): void => {
       tick.remove();
-      for (const o of [base, label, sub2, bar, hit]) o.destroy();
+      for (const o of [base, label, sub2, bar, halo, hit]) o.destroy();
     };
     const tick = this.time.addEvent({
       delay: 16,
       loop: true,
       callback: () => {
-        const left = 1 - (this.time.now - t0) / window;
+        const el = this.time.now - t0;
+        const left = 1 - el / window;
         bar.clear().fillStyle(0x0b2a5b, 0.85).fillRect(bx - 110, by + 38, 220 * Math.max(0, left), 5);
+        // the ball hangs, a ring pulses round it
+        const p = project(hangX, hangZ, hangH);
+        const k = 0.5 + 0.5 * Math.sin(el / 120);
+        halo.clear().lineStyle(3, 0xffe066, 0.9 - 0.4 * k).strokeCircle(p.x, p.y, 16 + 8 * k);
         if (left <= 0 && !decided) {
           decided = true;
           close();
-          finish();
+          decline();
         }
       },
     });
@@ -2811,6 +2920,44 @@ export class MatchScene extends Phaser.Scene {
       close();
       go();
     });
+  }
+
+  /**
+   * While the runner runs: the choice of the shot, LOB (always) or DOOR (flat through the opening by the net; only where the
+   * angle allows it). Gone when he arrives; no touch means the lob.
+   */
+  private runOutChoice(door: DoorShot, ms: number, set: (m: RunOutMode) => void, bag: Phaser.GameObjects.GameObject[]): void {
+    const y = 500;
+    const items: Array<{ mode: RunOutMode; x: number; title: string; sub: string; on: boolean }> = [
+      { mode: 'lob', x: WIDTH / 2 - 84, title: 'LOB', sub: 'over the wall · safe', on: true },
+      { mode: 'door', x: WIDTH / 2 + 84, title: 'DOOR', sub: door.open ? `flat · ${door.window >= 0.6 ? 'wide' : 'narrow'} angle` : 'no angle from here', on: door.open },
+    ];
+    let chosen: RunOutMode = 'lob';
+    const draw: Array<() => void> = [];
+    for (const it of items) {
+      const g = this.add.graphics().setDepth(9990);
+      const t1 = this.add.text(it.x, y - 8, it.title, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '24px', color: it.on ? '#ffffff' : '#9aa7bb' }).setOrigin(0.5).setDepth(9991).setStroke('#0b2a5b', 5);
+      const t2 = this.add.text(it.x, y + 18, it.sub, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '10px', color: it.on ? '#0b2a5b' : '#6b7a90' }).setOrigin(0.5).setDepth(9991);
+      const z = this.add.zone(it.x - 78, y - 32, 156, 64).setOrigin(0, 0).setDepth(9992);
+      if (it.on) z.setInteractive({ useHandCursor: true });
+      const paint = (): void => {
+        const sel = chosen === it.mode;
+        g.clear();
+        g.fillStyle(!it.on ? 0xdfe5ee : sel ? 0xff8a1a : 0x5b7db8, 1).fillRoundedRect(it.x - 76, y - 30, 152, 60, 14);
+        g.lineStyle(sel ? 5 : 3, sel ? 0xffe066 : 0x0b2a5b, 1).strokeRoundedRect(it.x - 76, y - 30, 152, 60, 14);
+      };
+      draw.push(paint);
+      paint();
+      z.on('pointerdown', () => {
+        chosen = it.mode;
+        set(it.mode);
+        sfx('select');
+        for (const d of draw) d();
+      });
+      bag.push(g, t1, t2, z);
+    }
+    void ms;
+    // (door open: the ball is better played through it when the angle is wide; the lob stays the default so a missed touch is safe)
   }
 
   private afterStep(step: Step, next: PointState, headline: string, coastMs = 0): void {
@@ -2949,7 +3096,13 @@ export class MatchScene extends Phaser.Scene {
       this.serverIdx[this.server] = 1 - this.serverIdx[this.server];
       this.server = other(this.server);
       this.say(`${this.lastSaid}\nGAME TO ${SIDE_NAME[winner]}!`);
-      this.time.delayedCall(GAME_PAUSE, () => this.beginPoint());
+      // the scene of the game (now and then); the pause after a game is kept either way
+      const t0 = this.time.now;
+      this.time.delayedCall(Math.min(GAME_PAUSE, 900), () =>
+        playCutscene(this, winner === HUMAN_SIDE ? 'gameWon' : 'gameLost', this.cutCast(), () =>
+          this.time.delayedCall(Math.max(250, GAME_PAUSE - (this.time.now - t0)), () => this.beginPoint()),
+        ),
+      );
     } else {
       this.time.delayedCall(POINT_PAUSE, () => this.beginPoint());
     }
@@ -2994,6 +3147,33 @@ export class MatchScene extends Phaser.Scene {
     if (this.exitButton) for (const part of this.exitButton.parts) (part as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(false);
     this.say(retired ? 'YOU RETIRE: THE OPPONENTS WIN BY RETIREMENT' : winner === 0 ? 'YOU WIN THE MATCH!' : 'CPU WINS THE MATCH...');
     const games: [number, number] = [this.matchScore.games[0], this.matchScore.games[1]];
-    this.time.delayedCall(2200, () => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, retired, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, nick: this.career.opponents[0].nick, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches, cup: out.finished.cup, cupBonuses: out.finished.cupBonuses } : undefined }));
+    // the end of the match (or of the tournament) has its scene before the result screen; not after a retirement
+    const fin = out.finished;
+    const occ: CutOccasion | null = retired ? null : fin ? tournamentEnd(fin.champion, fin.lostFinal) : winner === HUMAN_SIDE ? 'matchWon' : 'matchLost';
+    const cupDef = fin?.cup ? CUPS.find((c) => c.id === fin.cup!.id) : undefined;
+    const cast: CutCast = {
+      ...this.cutCast(),
+      ...(fin ? { event: fin.event } : {}),
+      ...(fin?.cup ? { cup: { division: fin.cup.division, city: fin.cup.city, symbol: cupDef?.symbol ?? '', metal: fin.cup.kind } } : {}),
+    };
+    const toResult = (go: () => void): void => {
+      if (occ) playCutscene(this, occ, cast, go);
+      else go();
+    };
+    this.time.delayedCall(occ ? 1400 : 2200, () => toResult(() => this.scene.start('ResultScene', { winner, games, reward: this.career && !out.finished ? undefined : this.career ? reward : undefined, levelUp: levelAfter > levelBefore ? levelAfter : 0, packs: Math.max(0, levelAfter - levelBefore), career: this.career !== null, retired, rival: this.career?.opponents[0] ? { name: this.career.opponents[0].name, nick: this.career.opponents[0].nick, appearance: this.career.opponents[0].appearance } : undefined, trophies: out.trophies, finished: out.finished ? { event: out.finished.event, roundsWon: out.finished.roundsWon, champion: out.finished.champion, prize: out.finished.prize, matches: out.finished.matches, cup: out.finished.cup, cupBonuses: out.finished.cupBonuses } : undefined })));
+  }
+
+  /** Who and what the cutscenes of this match show: your pair, the opponents, the tournament and the round. */
+  private cutCast(): CutCast {
+    const hero = TEAMS[HUMAN_SIDE][HUMAN_IDX];
+    const mate = TEAMS[HUMAN_SIDE][1 - HUMAN_IDX];
+    return {
+      hero: { name: hero.name, appearance: hero.appearance },
+      partner: { name: mate.name, appearance: mate.appearance },
+      opponents: TEAMS[1].map((p) => ({ name: p.name, appearance: p.appearance })),
+      event: this.career?.event ?? this.career?.name,
+      city: this.career?.city,
+      round: this.career?.round,
+    };
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
 import { SHOTS } from './catalog';
-import { canRunOut, playableShots, RUN_OUT_COST, runOutChance, runOutReturn, startPoint, stepHit, type PointState, type Step, type Teams } from './point';
+import { canRunOut, doorShot, playableShots, RUN_OUT_COST, RUN_OUT_PRESSURE, runOutChance, runOutReturn, startPoint, stepHit, type PointState, type Step, type Teams } from './point';
 import { practicePoint, situation } from './practice';
 import { seededRng } from './rng';
 import { shotsOfKind } from './catalog';
@@ -72,5 +72,55 @@ describe('running out of the court', () => {
     }
     expect(made / n).toBeGreaterThan(runOutChance(runner, state.guts[runner.id]) - 0.04);
     expect(made / n).toBeLessThan(runOutChance(runner, state.guts[runner.id]) + 0.04);
+  });
+
+  it('a lob and a door shot both come back under heavy pressure', () => {
+    const { step, state } = x3Winner(3);
+    const rng = seededRng(9);
+    const lob = Array.from({ length: 200 }, () => runOutReturn(teams, state, step, rng)).find((r) => r.made)!;
+    expect(lob.state.ball.pressure).toBeGreaterThanOrEqual(RUN_OUT_PRESSURE);
+    const door = Array.from({ length: 400 }, () => runOutReturn(teams, state, step, rng, 1, 'door', 1)).find((r) => r.made)!;
+    expect(door.state.ball).toMatchObject({ height: 'low', air: true });
+    expect(door.state.ball.pressure).toBeGreaterThan(lob.state.ball.pressure);
+  });
+
+  it('the door is harder to make than the lob, and the narrower the door the harder', () => {
+    const { step, state } = x3Winner(4);
+    const rate = (mode: 'lob' | 'door', window: number): number => {
+      const rng = seededRng(21);
+      let made = 0;
+      for (let i = 0; i < 4000; i++) if (runOutReturn(teams, state, step, rng, 0.8, mode, window).made) made++;
+      return made / 4000;
+    };
+    expect(rate('door', 1)).toBeLessThan(rate('lob', 0));
+    expect(rate('door', 0.1)).toBeLessThan(rate('door', 1));
+  });
+});
+
+describe('the door by the net', () => {
+  it('opens from beside the door and closes further along the fence', () => {
+    // the hero side (z over 10): the door is by the net on each side
+    const near = doorShot(0, { x: 5.9, z: 11.9 });
+    expect(near.open).toBe(true);
+    expect(near.window).toBeGreaterThan(0.5);
+    expect(near.target.z).toBeLessThan(10); // the ball goes into the other half
+    expect(Math.abs(near.target.x)).toBeLessThanOrEqual(4.8);
+    const far = doorShot(0, { x: 5.9, z: 17 });
+    expect(far.open).toBe(false);
+    const mid = doorShot(0, { x: 5.9, z: 13 });
+    expect(mid.window).toBeLessThan(near.window);
+  });
+
+  it('works on both sides of the court and for both halves', () => {
+    expect(doorShot(0, { x: -5.9, z: 11.9 }).open).toBe(true);
+    const far = doorShot(1, { x: 5.9, z: 8.1 });
+    expect(far.open).toBe(true);
+    expect(far.target.z).toBeGreaterThan(10);
+    expect(doorShot(1, { x: 5.9, z: 3 }).open).toBe(false);
+  });
+
+  it('not from inside the court, nor from behind the door (the ball must travel towards the net)', () => {
+    expect(doorShot(0, { x: 4.9, z: 11.9 }).open).toBe(false);
+    expect(doorShot(0, { x: 5.9, z: 10.2 }).open).toBe(false);
   });
 });

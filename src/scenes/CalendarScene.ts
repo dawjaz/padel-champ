@@ -153,7 +153,7 @@ export class CalendarScene extends Phaser.Scene {
           const next = enterEvent(getSave().profile, e.id, Math.floor(Math.random() * 1e9));
           if (!next) return;
           updateSave((d) => ({ ...d, profile: next }));
-          this.scene.start('BracketScene');
+          this.scene.start('BracketScene', { fresh: true });
         }, !!problem);
         name.y = y + 12;
         this.feeRow(y + 28, div.draw, div.fee, problem ? problem.toUpperCase() : 'TAP TO ENTER', problem ? TC.navy : TC.white, problem ? 0.5 : 1);

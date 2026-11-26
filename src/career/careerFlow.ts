@@ -37,6 +37,8 @@ export interface Finished {
   cup?: { id: string; city: string; division: string; kind: CupKind };
   /** Cup challenges completed by this cup, paid out already. */
   cupBonuses: Array<{ id: string; name: string; coins: number; packs: Record<string, number> }>;
+  /** Lost in the final (the runner-up), as opposed to out before it. */
+  lostFinal: boolean;
 }
 
 /** Ends the tournament: prizes, ranking points, history, and the week moves on. */
@@ -69,7 +71,7 @@ function finish(p: Profile, bracket: Bracket): Finished {
   next = { ...next, inventory: { ...next.inventory, queued: [] } }; // a boost picked for a match that was never played stays in the bag
   const history = [...next.career.history, { season: next.career.season, event: eventName(event), division: event.division, roundsWon: bracket.roundsWon, champion }].slice(-HISTORY_LIMIT);
   const career = advanceWeek({ ...next.career, active: null, rankPoints: next.career.rankPoints + prize.rank, titles: next.career.titles + (champion ? 1 : 0), history });
-  return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches, cup, cupBonuses };
+  return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches, cup, cupBonuses, lostFinal: !champion && bracket.status === 'lost' && reachedFinal };
 }
 
 export interface Reported {

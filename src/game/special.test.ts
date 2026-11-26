@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import playersData from '../data/players.json';
 import { pickHit, SPECIAL_USE } from './ai';
 import { baseId, SHOTS, shotsOfKind, SPECIALS } from './catalog';
-import { cpuSpecial, playableShots, SPECIAL_ANSWER_COST, SPECIAL_MIN_RATING, withSpecial, specialAnswerChance, specialFor, startPoint, stepHit, type PointState, type Teams } from './point';
+import { cpuSpecial, playableShots, SPECIAL_ANSWER_COST, SPECIAL_MIN_RATING, withSpecial, specialAnswerChance, specialsFor, startPoint, stepHit, type PointState, type Teams } from './point';
 import { practicePoint, situation, type SituationId } from './practice';
 import { seededRng } from './rng';
 import type { PlayerDef } from './types';
@@ -27,16 +27,16 @@ describe('special shots', () => {
   });
 
   it('a special is on offer only to its owner, in a rally, from the ball its base shot needs', () => {
-    const hero = { ...you[0], special: 'sp_skyrocket' };
+    const hero = { ...you[0], specials: ['sp_skyrocket'] };
     const teams: Teams = [[hero, you[1]], [cpu[0], cpu[1]]];
-    expect(specialFor(you[0], at(teams, 'short_lob'))?.id).toBeUndefined();
-    expect(specialFor(hero, at(teams, 'short_lob'))?.id).toBe('sp_skyrocket');
-    expect(specialFor(hero, at(teams, 'mid_lob'))?.id).toBe('sp_skyrocket'); // unlike a Por Cuatro: no short lob needed
-    expect(specialFor(hero, at(teams, 'deep_lob'))).toBeNull(); // off the glass
-    expect(specialFor(hero, { ...at(teams, 'short_lob'), hits: 0 })).toBeNull(); // the return of serve
-    expect(specialFor({ ...you[0], special: 'sp_venom' }, at(teams, 'mid_lob'))?.id).toBe('sp_venom');
-    expect(specialFor({ ...you[0], special: 'sp_freeze' }, at(teams, 'net'))?.id).toBe('sp_freeze');
-    expect(specialFor({ ...you[0], special: 'sp_freeze' }, at(teams, 'mid_lob'))).toBeNull();
+    expect(specialsFor(you[0], at(teams, 'short_lob'))).toEqual([]);
+    expect(specialsFor(hero, at(teams, 'short_lob')).map((x) => x.id)).toEqual(['sp_skyrocket']);
+    expect(specialsFor(hero, at(teams, 'mid_lob')).map((x) => x.id)).toEqual(['sp_skyrocket']); // unlike a Por Cuatro: no short lob needed
+    expect(specialsFor(hero, at(teams, 'deep_lob'))).toEqual([]); // off the glass
+    expect(specialsFor(hero, { ...at(teams, 'short_lob'), hits: 0 })).toEqual([]); // the return of serve
+    expect(specialsFor({ ...you[0], specials: ['sp_venom'] }, at(teams, 'mid_lob')).map((x) => x.id)).toEqual(['sp_venom']);
+    expect(specialsFor({ ...you[0], specials: ['sp_freeze'] }, at(teams, 'net')).map((x) => x.id)).toEqual(['sp_freeze']);
+    expect(specialsFor({ ...you[0], specials: ['sp_freeze'] }, at(teams, 'mid_lob'))).toEqual([]);
   });
 
   it('a special wins far more often than any ordinary shot of its situation, and costs much more than its base shot', () => {
@@ -80,7 +80,7 @@ describe('special shots', () => {
   });
 
   it('the CPU goes for its special about as often as SPECIAL_USE when it can, never without the guts', () => {
-    const ace = { ...you[0], special: 'sp_skyrocket' };
+    const ace = { ...you[0], specials: ['sp_skyrocket'] };
     const teams: Teams = [[ace, you[1]], [cpu[0], cpu[1]]];
     const rng = seededRng(5);
     let used = 0;
@@ -100,6 +100,6 @@ describe('special shots', () => {
     expect(cpuSpecial({ ...base, stats: { ...flat(5), technique: 8 } })).toBe('sp_cornerlock');
     expect(cpuSpecial({ ...base, stats: { ...flat(5), accuracy: 8 } })).toBe('sp_freeze');
     expect(cpuSpecial({ ...base, stats: flat(SPECIAL_MIN_RATING - 1) })).toBeUndefined();
-    expect(withSpecial({ ...base, special: 'sp_freeze' }).special).toBe('sp_freeze');
+    expect(withSpecial({ ...base, specials: ['sp_freeze'] }).specials).toEqual(['sp_freeze']);
   });
 });

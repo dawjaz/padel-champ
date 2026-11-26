@@ -2,7 +2,7 @@ import playersData from '../data/players.json';
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach, heroSpecial, unlockedSpecials } from './profile';
+import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, statValue, unspend, xpToReach, unlockedSpecials } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -127,18 +127,16 @@ describe('hero side', () => {
 });
 
 describe('hero special shot', () => {
-  it('unlocks by level; the chosen one if unlocked, else the first; none at the start', () => {
+  it('unlocks by level and nothing expires: the hero plays every special he has unlocked', () => {
     const p = newProfile();
-    expect(heroSpecial(p)).toBeUndefined();
-    expect(heroFrom(playersData.you[0] as unknown as PlayerDef, p).special).toBeUndefined();
+    const base = playersData.you[0] as unknown as PlayerDef;
+    expect(heroFrom(base, p).specials).toBeUndefined();
     const at = (lvl: number) => ({ ...p, xp: xpToReach(lvl) });
     expect(unlockedSpecials(3)).toEqual(['sp_skyrocket']);
-    expect(heroSpecial(at(3))).toBe('sp_skyrocket');
-    expect(heroSpecial({ ...at(3), special: 'sp_venom' })).toBe('sp_skyrocket'); // not unlocked yet
-    expect(heroSpecial({ ...at(6), special: 'sp_venom' })).toBe('sp_venom');
-    expect(heroFrom(playersData.you[0] as unknown as PlayerDef, { ...at(6), special: 'sp_venom' }).special).toBe('sp_venom');
+    expect(heroFrom(base, at(3)).specials).toEqual(['sp_skyrocket']);
+    expect(heroFrom(base, at(6)).specials).toEqual(['sp_skyrocket', 'sp_venom']); // the old one stays
     expect(unlockedSpecials(15)).toHaveLength(4);
-    expect(sanitizeProfile({ special: 'nope' }).special).toBeNull();
-    expect(sanitizeProfile({ special: 'sp_freeze' }).special).toBe('sp_freeze');
+    expect(heroFrom(base, at(15)).specials).toHaveLength(4);
+    expect('special' in sanitizeProfile({ special: 'sp_freeze' })).toBe(false); // the old one-at-a-time choice is gone
   });
 });

@@ -58,6 +58,7 @@ describe('a tournament run', () => {
     }
     expect(finished).toBeDefined();
     expect(finished!.champion).toBe(true);
+    expect(finished!.lostFinal).toBe(false);
     expect(p.career.active).toBeNull();
     expect(p.career.week).toBe(3);
     expect(p.career.titles).toBe(1);
@@ -71,12 +72,26 @@ describe('a tournament run', () => {
     let p = enterEvent(newProfile(), 'club-w1', 5)!;
     const rep = reportMatch(p, false);
     expect(rep.finished!.roundsWon).toBe(0);
+    expect(rep.finished!.lostFinal).toBe(false);
     expect(rep.finished!.prize.coins).toBe(0);
     expect(rep.profile.career.week).toBe(2);
     expect(rep.profile.career.titles).toBe(0);
     p = enterEvent(newProfile(), 'club-w1', 5)!;
     expect(skipWeek(p)).toBe(p);
     expect(reportMatch(newProfile(), true).finished).toBeUndefined();
+  });
+
+  it('losing the final is a lost final (the runner-up), not an early exit', () => {
+    let p = enterEvent(newProfile(), 'club-w1', 7)!;
+    const rounds = activeBracket(p)!.roundNames.length;
+    let fin;
+    for (let r = 0; r < rounds; r++) {
+      const rep = reportMatch(p, r < rounds - 1);
+      p = rep.profile;
+      fin = rep.finished;
+    }
+    expect(fin!.champion).toBe(false);
+    expect(fin!.lostFinal).toBe(true);
   });
 
   it('withdrawing pays for the rounds won so far', () => {
