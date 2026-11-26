@@ -5,7 +5,7 @@ import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
   CAMP, CAMP_GAMES, campNow, canTry, finishTry, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
-  openSpotOf, returnFit, returnResult, returnRound, returnWindow, serveOutcome, starsFor, tossQuality, tossWindow, startTry, targetZone, timingPoints, timingRound, zonePoints,
+  openSpotOf, returnFit, returnShotsFor, rollOn, returnResult, returnRound, returnWindow, serveOutcome, starsFor, tossQuality, tossWindow, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
 import { MAX_BOOSTS } from './gear';
@@ -158,6 +158,19 @@ describe('camp minigames', () => {
     expect(returnResult(hero, r, 'chiquita', returnWindow(hero) * 1.2).tier).toBe('error');
     expect(returnResult(hero, r, 'chiquita', null).points).toBe(0);
     expect(returnFit({ ...r, kind: 'flat' }, 'glass')).toBe(1);
+    expect(returnShotsFor(true)).toContain('glass');
+    expect(returnShotsFor(false)).not.toContain('glass');
+  });
+  it('after the bounce the ball goes on straight, and off a side glass like a mirror', () => {
+    // straight on: same direction as before the bounce
+    const a = rollOn({ x: 0, z: 0 }, { x: 1, z: 15 }, 18);
+    expect(a.wall).toBeNull();
+    expect(a.x).toBeCloseTo(1.2);
+    // a wide one reaches the side glass and comes back in
+    const b = rollOn({ x: -2.4, z: 0.5 }, { x: 4.2, z: 15.2 }, 18.4);
+    expect(b.wall).not.toBeNull();
+    expect(b.wall!.x).toBe(5);
+    expect(b.x).toBeLessThan(5);
   });
 
   it('timing: a finer scale (100 perfect, 90..10 inside the window, 0 out); every ball differs', () => {

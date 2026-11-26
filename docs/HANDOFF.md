@@ -2,6 +2,10 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.130: Serve & Return ball physics after the bounce
+- After the bounce a serve **keeps its line** (`rollOn(from, land, toZ)` in camp.ts, tested): straight on in the direction it came, off a side glass like a mirror only if it gets there first (`wall`). Before, it turned towards the receiver after the bounce, which looked like a glass contact. The receiver now moves to where the ball comes (`flyVia`: through the glass point when there is one); an ace runs on to the back glass on its line.
+- Return rounds: **OFF GLASS is offered only when the serve is going into the side glass** before it reaches the hero (`returnShotsFor(toGlass)`); a serve at you offers LOB / CHIQUITA / DRIVE (drive fit: flat 0.9, kick 0.6, slice 0.5). The big word says it: "FAST & FLAT · TO THE GLASS" / "HIGH KICK · AT YOU". The ball follows the same straight line (met before the glass, or after it when OFF GLASS is chosen).
+
 ## v0.129: Serve & Return made easier and simpler (owner: never hit a ball, too much to read)
 - Timing windows about doubled: serve `tossWindow` 170 + 6 technique + 4 accuracy, return `returnWindow` 160 + 6 technique + 4 speed (were ~90/80 base); full quality in the inner 40% (was 30%), 0.3 at the edge. The serve is slower (ball dropped, bounce, hit at 1.15 s, was 0.76 s), the return ball takes 1.3-1.5 s from the bounce.
 - **The ring now closes on the ball itself** (follows it, `ringOn`), green in the sweet part, like Timing; before it sat at a fixed point the ball was still flying to.

@@ -322,10 +322,37 @@ export function smashResult(hero: PlayerDef, r: SmashRound, kind: SmashKind, tap
  */
 export type ServeKind = 'flat' | 'kick' | 'slice';
 export type ServeSpot = 'T' | 'body' | 'wide';
-export type ReturnShot = 'lob' | 'chiquita' | 'glass';
+export type ReturnShot = 'lob' | 'chiquita' | 'drive' | 'glass';
 export const SERVE_KINDS: ServeKind[] = ['flat', 'kick', 'slice'];
 export const SERVE_SPOTS: ServeSpot[] = ['T', 'body', 'wide'];
-export const RETURN_SHOTS: ReturnShot[] = ['lob', 'chiquita', 'glass'];
+/** The returns on offer: off the glass only for a ball that is going into the glass, a drive otherwise. */
+export const returnShotsFor = (toGlass: boolean): ReturnShot[] => ['lob', 'chiquita', toGlass ? 'glass' : 'drive'];
+
+/** A point of the court floor (metres). */
+export interface FloorPoint {
+  x: number;
+  z: number;
+}
+/**
+ * Where a ball that came from `from` and bounced at `land` is when it reaches the depth `toZ`: it goes on in a straight line after the
+ * bounce (it keeps its direction) and comes off a side glass (x = +-5) as off a mirror if it gets there first. `wall` is where it hit
+ * that glass (null if it did not).
+ */
+export function rollOn(from: FloorPoint, land: FloorPoint, toZ: number): { x: number; z: number; wall: FloorPoint | null } {
+  const dx = land.x - from.x;
+  const dz = land.z - from.z;
+  if (Math.abs(dz) < 1e-6) return { x: land.x, z: toZ, wall: null };
+  const t = (toZ - land.z) / dz;
+  let x = land.x + dx * t;
+  let wall: FloorPoint | null = null;
+  if (Math.abs(x) > 5) {
+    const side = Math.sign(x) * 5;
+    const tw = (side - land.x) / dx;
+    wall = { x: side, z: land.z + dz * tw };
+    x = 2 * side - x;
+  }
+  return { x: Math.max(-4.7, Math.min(4.7, x)), z: toZ, wall };
+}
 const pick = <T>(rng: Rng, list: T[]): T => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 export const isServeRound = (round: number): boolean => round % 2 === 0;
 /** The gap the receiver leaves (he stands towards the other side). */
@@ -367,11 +394,11 @@ export interface ReturnRound {
   closeMs: number;
 }
 /** How well each return answers each serve (0..1): a high kick sits up for a lob, a low slice is for the chiquita, a fast flat one is
- * best let onto the glass. */
+ * best let onto the glass when it goes there, or driven back when it comes at you. */
 export const RETURN_FIT: Record<ServeKind, Record<ReturnShot, number>> = {
-  flat: { lob: 0.6, chiquita: 0.7, glass: 1 },
-  kick: { lob: 1, chiquita: 0.4, glass: 0.6 },
-  slice: { lob: 0.35, chiquita: 1, glass: 0.45 },
+  flat: { lob: 0.6, chiquita: 0.7, drive: 0.9, glass: 1 },
+  kick: { lob: 1, chiquita: 0.4, drive: 0.6, glass: 0.6 },
+  slice: { lob: 0.35, chiquita: 1, drive: 0.5, glass: 0.45 },
 };
 export const returnFit = (r: ReturnRound, shot: ReturnShot): number => RETURN_FIT[r.kind][shot];
 export function returnRound(round: number, rng: Rng): ReturnRound {

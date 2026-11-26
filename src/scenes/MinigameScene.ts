@@ -6,7 +6,7 @@ import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ball
 import { themeIdOfCity } from '../art/hd/courtThemes';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
 import {
-  campGame, isServeRound, landShot, openSpotOf, receiverX, RETURN_SHOTS, returnResult, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
+  campGame, isServeRound, landShot, openSpotOf, receiverX, returnResult, returnShotsFor, rollOn, returnRound, returnWindow, serveOutcome, serveSpotAt, SERVE_SPOTS, SMASH_SHOT, tossQuality, tossWindow, smashResult, smashRound, targetZone, timingPoints, timingRound, zoneAt, zonePoints,
   type CampGameId, type ReturnRound, type ReturnShot, type ServeSpot, type SmashKind, type SmashRound, type TimingRound, type Zone,
 } from '../career/camp';
 import { CampHero } from './campHero';
@@ -210,6 +210,21 @@ export class MinigameScene extends Phaser.Scene {
       },
       onComplete: done,
     });
+  }
+
+  /** A ball rolling on from its bounce to `to` (court metres), through the side glass point first if it hits one. */
+  private flyVia(land: { x: number; z: number; h?: number }, to: { x: number; z: number; h?: number; wall: { x: number; z: number } | null }, endH: number, done: () => void, msPerM = FLIGHT_MS_PER_M): void {
+    const a = { x: land.x, z: land.z, h: 0 };
+    const b = { x: to.x, z: to.z, h: to.h ?? endH };
+    if (!to.wall) {
+      this.flyArc(a, b, 0.35, done, msPerM);
+      return;
+    }
+    const w = { x: to.wall.x * 0.98, z: to.wall.z, h: (b.h + 0.4) / 2 + 0.3 };
+    this.flyArc(a, w, 0.3, () => {
+      sfx('select');
+      this.flyArc(w, b, 0.15, done, msPerM);
+    }, msPerM);
   }
 
   private placeBall(x: number, z: number, h: number): void {
@@ -651,14 +666,18 @@ export class MinigameScene extends Phaser.Scene {
       }
       this.flyArc(from, land, 1.0, () => {
         const rv = this.rival!;
-        const meet = { x: land.x + (rv.x - land.x) * 0.6, z: land.z - 1.6, h: 0.9 };
+        // after the bounce it keeps its line (off the side glass only if it gets there)
+        if (out.tier === 'ace') {
+          rv.react([[260, { ...POSES.ready, crouch: 10 }, inOut]]);
+          const past = rollOn(from, land, 0.2);
+          this.flyVia(land, past, 0.9, () => this.serveDone(out.points, 'ACE! +100', true), 85);
+          return;
+        }
+        const roll = rollOn(from, land, rv.z + 0.35);
+        const meet = { x: roll.x, z: roll.z, h: 0.9 };
+        rv.runTo(meet.x + 0.5, meet.z - 0.35, 260);
         const fh = meet.x < rv.x;
-        this.flyArc(land, meet, 0.3, () => {
-          if (out.tier === 'ace') {
-            rv.react([[260, { ...POSES.ready, crouch: 10 }, inOut]]);
-            this.flyArc(meet, { x: meet.x, z: 0.1, h: 0.8 }, 0.1, () => this.serveDone(out.points, 'ACE! +100', true), 85);
-            return;
-          }
+        this.flyVia(land, { ...roll, h: meet.h }, 0.3, () => {
           rv.stroke(fh ? 'fh' : 'bh', meet.h);
           sfx('hit');
           const lane = this.lane();
@@ -710,25 +729,27 @@ export class MinigameScene extends Phaser.Scene {
       this.time.delayedCall(300, () => {
         rv.stroke('fh', 0.6);
         sfx('hit');
-        this.flyArc(from, land, r.kind === 'kick' ? 2.0 : r.kind === 'slice' ? 1.0 : 0.6, () => this.askReturn(r, land), 220);
+        this.flyArc(from, land, r.kind === 'kick' ? 2.0 : r.kind === 'slice' ? 1.0 : 0.6, () => this.askReturn(r, from, land), 220);
         this.time.delayedCall(500, () => rv.runTo(-lane * 1.2, NET_Z - 2.6, 900));
       });
     });
   }
 
-  private askReturn(r: ReturnRound, land: { x: number; z: number; h: number }): void {
+  private askReturn(r: ReturnRound, from: { x: number; z: number }, land: { x: number; z: number; h: number }): void {
     this.clearLayer();
+    // does it keep going into the side glass before it reaches him?
+    const toGlass = rollOn(from, land, 18.3).wall !== null;
     const name = r.kind === 'kick' ? 'HIGH KICK' : r.kind === 'slice' ? 'LOW SLICE' : 'FAST & FLAT';
-    const big = themeText(this, WIDTH / 2, 432, name, { size: 22, color: 0xffe066, font: 'display' }).setDepth(9300);
+    const big = themeText(this, WIDTH / 2, 432, toGlass ? `${name} · TO THE GLASS` : `${name} · AT YOU`, { size: 18, color: 0xffe066, font: 'display' }).setDepth(9300);
     this.layer.push(big);
     const parts: Phaser.GameObjects.GameObject[] = [];
-    const labels: Record<ReturnShot, string> = { lob: 'LOB', chiquita: 'CHIQUITA', glass: 'OFF GLASS' };
-    RETURN_SHOTS.forEach((k, i) => {
+    const labels: Record<ReturnShot, string> = { lob: 'LOB', chiquita: 'CHIQUITA', drive: 'DRIVE', glass: 'OFF GLASS' };
+    returnShotsFor(toGlass).forEach((k, i) => {
       const b = makeThemeButton(this, 64 + i * 116, 490, 108, 44, labels[k], () => {
         if (this.busy) return;
         this.busy = true;
         for (const o of parts) o.destroy();
-        this.hitReturn(r, k, land);
+        this.hitReturn(r, k, from, land, toGlass);
       }, 'blue', 14);
       for (const o of b.parts) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(9300);
       parts.push(...(b.parts as Phaser.GameObjects.GameObject[]));
@@ -736,13 +757,26 @@ export class MinigameScene extends Phaser.Scene {
     this.layer.push(...parts);
   }
 
-  private hitReturn(r: ReturnRound, shotK: ReturnShot, land: { x: number; z: number; h: number }): void {
+  private hitReturn(r: ReturnRound, shotK: ReturnShot, from: { x: number; z: number }, land: { x: number; z: number; h: number }, toGlass: boolean): void {
     this.clearLayer();
     this.hint('TOUCH WHEN THE RING\nCLOSES ON THE BALL');
     const lane = this.lane();
-    const glass = shotK === 'glass';
-    const hx = Math.max(-4.3, Math.min(4.3, land.x + (r.spot === 'wide' ? lane * 0.6 : 0)));
-    const meet = { x: hx, z: glass ? 19.0 : Math.min(18.6, land.z + 2.2), h: r.kind === 'kick' ? 1.4 : r.kind === 'slice' ? 0.45 : 0.9 };
+    const h = r.kind === 'kick' ? 1.4 : r.kind === 'slice' ? 0.45 : 0.9;
+    // the ball keeps its line after the bounce: met before the glass, or after it (off the glass)
+    const wallAt = rollOn(from, land, 18.3).wall;
+    let pts: Array<{ x: number; z: number }>;
+    if (toGlass && wallAt && shotK !== 'glass') {
+      pts = [land, { x: land.x + (wallAt.x - land.x) * 0.6, z: land.z + (wallAt.z - land.z) * 0.6 }];
+    } else if (toGlass && wallAt) {
+      const after = rollOn(from, land, Math.min(19.3, wallAt.z + 1.8));
+      pts = [land, { x: wallAt.x * 0.98, z: wallAt.z }, after];
+    } else {
+      pts = [land, rollOn(from, land, 18.3)];
+    }
+    const meetXZ = pts[pts.length - 1];
+    const meet = { x: meetXZ.x, z: meetXZ.z, h };
+    const segs = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i].x, p.z - pts[i].z));
+    const total = segs.reduce((x, y) => x + y, 0) || 1;
     const bh = meet.x - this.heroView.x < -0.2;
     this.heroView.runTo(meet.x - (bh ? -0.55 : 0.5), meet.z + 0.35, Math.min(500, r.closeMs * 0.4), () => this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', meet.h));
     const ring = this.add.graphics().setDepth(9200);
@@ -753,9 +787,16 @@ export class MinigameScene extends Phaser.Scene {
     let done = false;
     const apex = r.kind === 'kick' ? 1.4 : r.kind === 'slice' ? 0.2 : 0.5;
     const at = (ms: number): { x: number; z: number; h: number } => {
-      const u = ms / r.closeMs;
+      const u = Math.max(0, ms / r.closeMs);
       const uu = Math.min(1, u);
-      return { x: land.x + (meet.x - land.x) * u, z: land.z + (meet.z - land.z) * u, h: meet.h * uu + 4 * apex * uu * (1 - uu) };
+      // along the polyline (past the end it carries on along the last leg)
+      let d = u * total;
+      let i = 0;
+      while (i < segs.length - 1 && d > segs[i]) d -= segs[i++];
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const f = d / (segs[i] || 1);
+      return { x: p0.x + (p1.x - p0.x) * f, z: p0.z + (p1.z - p0.z) * f, h: h * uu + 4 * apex * uu * (1 - uu) };
     };
     const end = (offMs: number | null): void => {
       if (done) return;
