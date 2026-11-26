@@ -31,6 +31,40 @@ export interface HistoryEntry {
   champion: boolean;
 }
 
+/** What the hero did this season (reset when a new one starts). */
+export interface SeasonLog {
+  events: number;
+  titles: number;
+  finals: number;
+  /** Ranking points won in tournaments this season. */
+  rankGained: number;
+}
+export const newLog = (): SeasonLog => ({ events: 0, titles: 0, finals: 0, rankGained: 0 });
+
+/** The recap of a finished season, shown once (see career/seasonEnd.ts); the rewards are already paid. */
+export interface SeasonRecap {
+  season: number;
+  place: number;
+  points: number;
+  /** Ranking points taken into the next season. */
+  carried: number;
+  log: SeasonLog;
+  /** What it paid: the tier, coins, packs; `paid` false when he played too few tournaments. */
+  label: string;
+  coins: number;
+  packs: Record<string, number>;
+  paid: boolean;
+}
+
+/** One line of the seasons behind him. */
+export interface SeasonResult {
+  season: number;
+  place: number;
+  points: number;
+  events: number;
+  titles: number;
+}
+
 export interface Career {
   season: number;
   /** The current week of the season (1 .. weeks). */
@@ -42,6 +76,12 @@ export interface Career {
   active: ActiveTournament | null;
   titles: number;
   history: HistoryEntry[];
+  /** This season so far. */
+  log: SeasonLog;
+  /** The recap waiting to be shown (the first visit to the calendar after the season ended). */
+  recap: SeasonRecap | null;
+  /** The finished seasons, the last ones. */
+  seasons: SeasonResult[];
 }
 
 export const WEEKS: number = calendarData.weeks;
@@ -61,6 +101,9 @@ export const newCareer = (): Career => ({
   active: null,
   titles: 0,
   history: [],
+  log: newLog(),
+  recap: null,
+  seasons: [],
 });
 
 /** Why the hero cannot enter this event now (text), or null when he can. */
@@ -78,7 +121,7 @@ export function entryProblem(career: Career, level: number, coins: number, event
 /** The next week; after the last one a new season starts and part of the ranking points carries over. */
 export function advanceWeek(career: Career): Career {
   if (career.week < WEEKS) return { ...career, week: career.week + 1 };
-  return { ...career, season: career.season + 1, week: 1, rankPoints: Math.floor(career.rankPoints * calendarData.rankCarry) };
+  return { ...career, season: career.season + 1, week: 1, rankPoints: Math.floor(career.rankPoints * calendarData.rankCarry), log: newLog() };
 }
 
 // ---------- partners ----------
@@ -96,6 +139,23 @@ export const PARTNERS: PartnerDef[] = partnersData.partners.map((p) => ({
   minLevel: p.minLevel,
 }));
 export const partnerById = (id: string): PartnerDef | undefined => PARTNERS.find((p) => p.id === id);
+
+export const SEASONS_LIMIT = 10;
+
+function sanitizeLog(raw: unknown): SeasonLog {
+  const o = (raw ?? {}) as Partial<Record<string, unknown>>;
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1e9, Math.floor(v))) : 0);
+  return { events: Math.min(WEEKS, n(o.events)), titles: Math.min(WEEKS, n(o.titles)), finals: Math.min(WEEKS, n(o.finals)), rankGained: n(o.rankGained) };
+}
+
+function sanitizeRecap(raw: unknown): SeasonRecap | null {
+  const o = (raw ?? null) as Partial<Record<string, unknown>> | null;
+  if (!o || typeof o.season !== 'number' || typeof o.label !== 'string') return null;
+  const n = (v: unknown, max = 1e9): number => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
+  const packs: Record<string, number> = {};
+  for (const [k, v] of Object.entries((o.packs ?? {}) as Record<string, unknown>)) if (typeof v === 'number' && v > 0) packs[k] = Math.min(20, Math.floor(v));
+  return { season: Math.max(1, n(o.season)), place: Math.max(1, n(o.place, 999)), points: n(o.points), carried: n(o.carried), log: sanitizeLog(o.log), label: o.label.slice(0, 40), coins: n(o.coins, 100000), packs, paid: o.paid === true };
+}
 
 /** Makes a stored career safe: whole numbers, known ids, a partner that the hero owns. */
 export function sanitizeCareer(raw: unknown): Career {
@@ -130,5 +190,11 @@ export function sanitizeCareer(raw: unknown): Career {
     active,
     titles: n(o.titles, 0),
     history,
+    log: sanitizeLog(o.log),
+    recap: sanitizeRecap(o.recap),
+    seasons: (Array.isArray(o.seasons) ? o.seasons : [])
+      .filter((x): x is SeasonResult => !!x && typeof x === 'object')
+      .slice(-SEASONS_LIMIT)
+      .map((x) => ({ season: n(x.season, 1), place: n(x.place, 1, 999), points: n(x.points, 0), events: n(x.events, 0, WEEKS), titles: n(x.titles, 0, WEEKS) })),
   };
 }

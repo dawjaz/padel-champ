@@ -428,5 +428,51 @@
    "division": "finals",
    "city": "Buenos Aires"
   }
- ]
+ ],
+ "seasonRewards": {
+  "minEvents": 8,
+  "perTitle": 150,
+  "tiers": [
+   {
+    "place": 1,
+    "label": "WORLD NUMBER 1",
+    "coins": 2500,
+    "packs": {
+     "premium": 2
+    }
+   },
+   {
+    "place": 3,
+    "label": "TOP 3 OF THE WORLD",
+    "coins": 1500,
+    "packs": {
+     "premium": 1
+    }
+   },
+   {
+    "place": 10,
+    "label": "TOP 10 OF THE WORLD",
+    "coins": 900,
+    "packs": {
+     "premium": 1
+    }
+   },
+   {
+    "place": 30,
+    "label": "TOP 30 OF THE WORLD",
+    "coins": 450,
+    "packs": {
+     "gear": 2
+    }
+   },
+   {
+    "place": 999,
+    "label": "SEASON COMPLETE",
+    "coins": 200,
+    "packs": {
+     "gear": 1
+    }
+   }
+  ]
+ }
 }

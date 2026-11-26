@@ -129,6 +129,17 @@ export function timingEffect(q: number | undefined, serve = false): { risk: numb
   return { risk: 1.3 - 0.6 * t, attack: serve ? 0.97 + 0.06 * t : 0.94 + 0.12 * t };
 }
 
+/**
+ * The extra chance that a special shot goes wrong because of the ring (absolute, added to the error chance). The shot itself is so
+ * strong that its ordinary error chance sits near the floor and the ring changed nothing: now a clean touch costs 2%, no ring (AUTO,
+ * the CPU) 8%, an average touch 15% and a mistimed or missed one 45%.
+ */
+export function specialTimingError(q: number | undefined): number {
+  if (q === undefined) return 0.08;
+  const t = clamp(q, 0, 1);
+  return 0.02 + 0.43 * (1 - t) ** 1.4;
+}
+
 export interface HitResult {
   outcome: HitOutcome;
   attackScore: number;
@@ -151,7 +162,8 @@ export function resolveHit(i: HitInput): HitResult {
   const fit = i.shot.fit[i.incoming.height];
   const lowOffGlass = i.incoming.glass === true && i.incoming.height === 'low' ? (i.shot.lowGlassRisk ?? 0) : 0;
   const te = timingEffect(i.timing);
-  const chance = clamp((errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass) * te.risk, MIN_ERROR, MAX_ERROR);
+  const special = i.shot.kind === 'special' ? specialTimingError(i.timing) : 0;
+  const chance = clamp((errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass) * te.risk + special, MIN_ERROR, MAX_ERROR);
 
   if (i.rng() < chance) {
     return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };

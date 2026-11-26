@@ -300,3 +300,13 @@ describe('ring quality', () => {
     expect(ringQuality(null, 200)).toBe(0);
   });
 });
+
+describe('special shot timing', () => {
+  it('a clean touch costs little, no ring more, a mistimed touch most', async () => {
+    const { specialTimingError } = await import('./engine');
+    expect(specialTimingError(1)).toBeLessThan(specialTimingError(undefined));
+    expect(specialTimingError(undefined)).toBeLessThan(specialTimingError(0.5));
+    expect(specialTimingError(0.5)).toBeLessThan(specialTimingError(0));
+    expect(specialTimingError(0)).toBeLessThanOrEqual(0.5);
+  });
+});

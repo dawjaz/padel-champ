@@ -21,6 +21,11 @@ export class CalendarScene extends Phaser.Scene {
   }
 
   create(): void {
+    // a season has just ended: its recap comes first
+    if (getSave().profile.career.recap) {
+      this.scene.start('SeasonEndScene');
+      return;
+    }
     applyLightScreen(this);
     this.events.on('skip-confirmed', () => {
       updateSave((d) => ({ ...d, profile: skipWeek(d.profile) }));

@@ -1,6 +1,7 @@
 // Profile-level career actions: entering an event, reporting a match, finishing a tournament, the partner. Pure, tested.
 
 import { award, levelOf, type Profile, type Reward } from './profile';
+import { closeSeason } from './seasonEnd';
 import { advanceWeek, entryProblem, eventById, eventName, HISTORY_LIMIT, partnerById, type CalendarEvent } from './season';
 import { cupOfEvent, recordCup, unclaimed, type CupKind } from './cups';
 import { buildBracket, divisionById, prizeFor, type Bracket, type Prize } from './tournament';
@@ -70,8 +71,11 @@ function finish(p: Profile, bracket: Bracket): Finished {
   }
   next = { ...next, inventory: { ...next.inventory, queued: [] } }; // a boost picked for a match that was never played stays in the bag
   const history = [...next.career.history, { season: next.career.season, event: eventName(event), division: event.division, roundsWon: bracket.roundsWon, champion }].slice(-HISTORY_LIMIT);
-  const career = advanceWeek({ ...next.career, active: null, rankPoints: next.career.rankPoints + prize.rank, titles: next.career.titles + (champion ? 1 : 0), history });
-  return { profile: { ...next, career }, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches, cup, cupBonuses, lostFinal: !champion && bracket.status === 'lost' && reachedFinal };
+  const log = { events: next.career.log.events + 1, titles: next.career.log.titles + (champion ? 1 : 0), finals: next.career.log.finals + (reachedFinal ? 1 : 0), rankGained: next.career.log.rankGained + prize.rank };
+  const pre = { ...next.career, active: null, rankPoints: next.career.rankPoints + prize.rank, titles: next.career.titles + (champion ? 1 : 0), history, log };
+  next = { ...next, career: advanceWeek(pre) };
+  next = closeSeason(next, pre);
+  return { profile: next, event: eventName(event), roundsWon: bracket.roundsWon, champion, prize, matches, cup, cupBonuses, lostFinal: !champion && bracket.status === 'lost' && reachedFinal };
 }
 
 export interface Reported {
@@ -101,7 +105,8 @@ export function withdraw(p: Profile): Finished | null {
 
 /** Skips a week without playing (only with no tournament in progress). */
 export function skipWeek(p: Profile): Profile {
-  return p.career.active ? p : { ...p, career: advanceWeek(p.career) };
+  if (p.career.active) return p;
+  return closeSeason({ ...p, career: advanceWeek(p.career) }, p.career);
 }
 
 export function buyPartner(p: Profile, id: string): Profile | null {

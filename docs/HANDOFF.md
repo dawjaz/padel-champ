@@ -1,6 +1,12 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.137)_
+_Last updated: 2026-11-26 (v0.142)_
+
+## v0.142: special shots need the ring, and the season has an end (recap + rewards)
+- Specials (`sp_*`, smash-type) went in ~85-95% against defense <=5 by design, and the timing ring did almost nothing for them. `specialTimingError(q)` in `game/engine.ts` now adds an error: clean touch ~2-7%, no ring (AUTO/CPU) 8%, mistimed up to 45%. A strong defender (7) still answers more. Numbers are in `calendar`-independent engine code; tune the constants there.
+- Season end: `career/seasonEnd.ts` (pure, tested): `seasonPay(place, events, titles)` from `calendar.json -> seasonRewards` (tiers by world place: 1 / 3 / 10 / 30 / complete, +150 coins per title, needs `minEvents` 8 tournaments, else nothing). `closeSeason` is called from `finish()` and `skipWeek()` when `advanceWeek` crosses into a new season: pays coins and packs (`inventory.packs`), stores `career.recap` and a line in `career.seasons` (last 10). `career.log` counts the season (events, titles, finals, rank points) and resets.
+- `SeasonEndScene`: the recap (place, numbers, pay, carry-over of 50% points), shown by `CalendarScene` before anything else while `career.recap` is set; START SEASON N clears it.
+- Not done / ideas: season 2 difficulty step, shuffled cities/hosts, a season-trophy in the hero's room, a seasons history screen (data is in `career.seasons`).
 
 ## v0.141: graphic tutorial, stage 1 (comic slides, tips in context, lesson list)
 - Owner's brief: the tutorial is for the whole game, not only the minigames, and it must be comic slides with the cutscene characters (preparing, striking), not empty diagrams. The first attempt (flat schematics in `art/tutorialArt.ts`) was rejected and removed.

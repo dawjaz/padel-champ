@@ -34,6 +34,7 @@ import { NameEditScene } from './scenes/NameEditScene';
 import { CollectionScene } from './scenes/CollectionScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { TipScene } from './scenes/TipScene';
+import { SeasonEndScene } from './scenes/SeasonEndScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { TitleScene } from './scenes/TitleScene';
 
@@ -53,8 +54,9 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, CutsceneScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, SeasonEndScene, CutsceneScene],
 });
+
 
 // Dev server only: lets screenshot scripts jump to a scene.
 // Development builds only: handles for automated checks (the game and the shot list).
