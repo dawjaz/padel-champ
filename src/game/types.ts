@@ -37,6 +37,8 @@ export interface PlayerDef {
   /** Derived from stamina (`gutsFor`); kept here so that the scenes read one number. */
   maxGuts: number;
   appearance: Appearance;
+  /** His special shot (a shot id of kind 'special'), if he has one. */
+  special?: string;
 }
 
 /** Index of a side: 0 = player (near end of the court), 1 = CPU (far end). */
@@ -47,7 +49,8 @@ export type Height = 'high' | 'mid' | 'low';
 export type Direction = 'parallel' | 'middle' | 'cross';
 /** A team plays up at the net, in the middle of its half (after a short lob), or back at the baseline. */
 export type Formation = 'net' | 'mid' | 'back';
-export type ShotKind = 'serve' | 'return' | 'rally';
+/** 'special': the special shots (one per player, see `SPECIALS`); never offered with the rally shots. */
+export type ShotKind = 'serve' | 'return' | 'rally' | 'special';
 /** What the ball hits after its first bounce in the opponent's court. */
 export type WallHit = 'none' | 'side' | 'back' | 'fence';
 /** Screen-side lane of a player: -1 = left, +1 = right. */
@@ -133,6 +136,12 @@ export interface ShotDef {
   kind: ShotKind;
   /** A key shot hit with the timing ring (smashes, vibora, bandeja, serves): how well it is timed changes its risk and power. */
   timed?: boolean;
+  /** Special shots: the ordinary shot it is a version of (its stroke, sound and look in the scene). */
+  base?: string;
+  /** Special shots: the hero's level that unlocks it. */
+  unlockLevel?: number;
+  /** Special shots: how much harder than usual it is to get back (multiplies `specialAnswerChance`; default 1). */
+  answerMul?: number;
   /** Hit from above and downwards (volley, dejada, bajada, bandeja, vibora, smash): the racket is up and the stroke goes down, the ball comes down steeply and is taken low. */
   downward?: boolean;
   /** Which stat drives the attack. */

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SPECIALS } from '../game/catalog';
 import { WIDTH } from '../config';
 import { getSave } from '../save';
 import { tournamentActive } from '../career/careerFlow';
@@ -148,6 +149,32 @@ export class ResultScene extends Phaser.Scene {
     }
   }
 
+  /** A gold card over the screen: a special shot was unlocked (it goes by itself, or with a touch). */
+  private specialToast(names: string): void {
+    const box = this.add.container(WIDTH / 2, 300).setDepth(50).setScale(0.6).setAlpha(0);
+    const g = this.add.graphics();
+    g.fillStyle(0xffe9a8, 1).fillRoundedRect(-150, -52, 300, 104, 18);
+    g.lineStyle(3, 0xc98a00, 1).strokeRoundedRect(-150, -52, 300, 104, 18);
+    box.add(g);
+    box.add(themeText(this, 0, -28, 'NEW SPECIAL SHOT!', { size: 13, font: 'display', color: TC.orange }));
+    box.add(themeText(this, 0, 2, names, { size: 20, font: 'display', color: TC.navy }));
+    box.add(themeText(this, 0, 32, 'It is yours from now on: see HERO > SPECIAL.', { size: 10, color: TC.navy }));
+    sfx('win');
+    this.tweens.add({ targets: box, scale: 1, alpha: 1, duration: 280, ease: 'Back.easeOut' });
+    const hide = (): void => {
+      this.tweens.add({ targets: box, alpha: 0, duration: 250, onComplete: () => box.destroy() });
+    };
+    const zone = this.add.zone(0, 0, WIDTH, 640).setOrigin(0, 0).setDepth(51).setInteractive();
+    zone.once('pointerdown', () => {
+      zone.destroy();
+      hide();
+    });
+    this.time.delayedCall(3500, () => {
+      if (zone.active) zone.destroy();
+      if (box.active) hide();
+    });
+  }
+
   /** The level and XP bar: it starts where the hero was before the tournament and fills up to where he is now (over a level-up it fills, flashes and starts again). */
   private xpBar(xpAfter: number, gain: number, y: number): void {
     const xpBefore = Math.max(0, xpAfter - gain);
@@ -183,7 +210,12 @@ export class ResultScene extends Phaser.Scene {
           sfx('win');
         }
       },
-      onComplete: () => paint(xpAfter),
+      onComplete: () => {
+        paint(xpAfter);
+        // a level that unlocks a special shot says so
+        const fresh = SPECIALS.filter((sp) => (sp.unlockLevel ?? 0) > levelOf(xpBefore) && (sp.unlockLevel ?? 0) <= levelNow);
+        if (fresh.length > 0) this.specialToast(fresh.map((sp) => sp.name.toUpperCase()).join(' & '));
+      },
     });
   }
 }

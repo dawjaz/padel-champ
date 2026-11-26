@@ -1,7 +1,7 @@
-import { DIRECTIONS } from './catalog';
+import { baseId, DIRECTIONS, SPECIALS } from './catalog';
 import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread } from './court';
-import { fatigued } from './attributes';
-import { LOB_APEX, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
+import { fatigued, STAT_KEYS } from './attributes';
+import { LOB_APEX, MAX_PRESSURE, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
 
 /** A high, slow arc that is meant to send the opponents back. */
@@ -109,6 +109,8 @@ export interface Step {
   airDist?: number;
   /** Por Cuatro: the defender tried to take it before the glass and fumbled it (the point goes to the hitter). */
   earlyError?: boolean;
+  /** A special shot the defender got back (it would have been a winner; he paid guts for it). */
+  answered?: boolean;
   /** Por Cuatro that was not hit well: the ball comes back off the glass and the defender, now at the net, plays it back. */
   netReturn?: boolean;
   /** A hard ball that comes off the glass or the fence so fast that it flies back over the net: the point is the attackers' (nobody touches it). */
@@ -135,7 +137,52 @@ export const POWERFUL_SMASH = 'Powerful Smash';
  * shot is not a Por Cuatro any more: it is a Powerful Smash.
  */
 export function isPowerfulSmash(step: Pick<Step, 'shot' | 'reboundBack' | 'netReturn'>): boolean {
-  return step.shot.id === 'smash_x4' && (step.reboundBack === true || step.netReturn === true);
+  return baseId(step.shot) === 'smash_x4' && (step.reboundBack === true || step.netReturn === true);
+}
+
+/** Guts a defender spends to get a special shot back (and the guts the hitter must have on top of its cost for the CPU to try one). */
+export const SPECIAL_ANSWER_COST = 3;
+/**
+ * The special shot `player` can play now, if any: he has one, it is a rally ball (not the serve or its return) and the ball and the
+ * positions allow it (the same rules as its base shot). The guts are not checked here (a special without enough guts is RISKY, as any
+ * shot).
+ */
+export function specialFor(player: PlayerDef, state: PointState): ShotDef | null {
+  if (!player.special || state.status !== 'rally' || state.hits === 0) return null;
+  const sp = SPECIALS.find((s) => s.id === player.special);
+  return sp && unavailableReason(sp, state) === null ? sp : null;
+}
+/** CPU players and partners whose attributes average at least this have a special shot (the Rise division and up; quick match). */
+export const SPECIAL_MIN_RATING = 5;
+const SPECIAL_BY_STAT: Partial<Record<keyof PlayerDef['stats'], string>> = {
+  power: 'sp_skyrocket',
+  spin: 'sp_venom',
+  technique: 'sp_cornerlock',
+  accuracy: 'sp_freeze',
+};
+/** The special of a CPU player: the one of his best attacking attribute (power, spin, technique, accuracy); none for weaker players. */
+export function cpuSpecial(p: PlayerDef): string | undefined {
+  const mean = STAT_KEYS.reduce((a, k) => a + p.stats[k], 0) / STAT_KEYS.length;
+  if (mean < SPECIAL_MIN_RATING) return undefined;
+  const keys = Object.keys(SPECIAL_BY_STAT) as Array<keyof PlayerDef['stats']>;
+  const best = keys.reduce((a, k) => (p.stats[k] > p.stats[a] ? k : a), keys[0]);
+  return SPECIAL_BY_STAT[best];
+}
+/** A CPU player with his special (a player who has one keeps it). */
+export const withSpecial = (p: PlayerDef): PlayerDef => {
+  if (p.special) return p;
+  const sp = cpuSpecial(p);
+  return sp ? { ...p, special: sp } : p;
+};
+
+/**
+ * The chance that a defender gets a special shot back that would have been a winner: only good defenders with guts left (up to 40%
+ * for defence and speed 8 with full guts, 10% at 5 and 5, none with less than `SPECIAL_ANSWER_COST` guts).
+ */
+export function specialAnswerChance(defender: PlayerDef, guts: number): number {
+  if (guts < SPECIAL_ANSWER_COST) return 0;
+  const share = defender.maxGuts > 0 ? Math.min(1, guts / defender.maxGuts) : 1;
+  return Math.max(0, Math.min(0.4, 0.05 * (defender.stats.defense + defender.stats.speed - 8))) * share;
 }
 
 /** The shot's name as the player is told it (a Por Cuatro that stays in the court is a Powerful Smash). */
@@ -462,7 +509,7 @@ export function targetSpreadFor(hitter: PlayerDef, state: PointState, shot: Shot
     pressure: state.ball.pressure ?? 0,
     speed: shot.flight.speed,
     lob: isLob(shot),
-    touch: shot.id === 'dejada',
+    touch: baseId(shot) === 'dejada',
   });
 }
 
@@ -522,8 +569,18 @@ export function stepHit(
   const force = options?.force;
   const forced = force === undefined ? rolled : { ...rolled, outcome: force === 'rebound' ? ('continue' as const) : force, pressure: force === 'continue' || force === 'rebound' ? rolled.pressure : 0 };
   // A ball aimed at a chosen point that strays off the court is an error, whatever the roll said.
-  const res = tgt?.miss && force === undefined && forced.outcome !== 'error' ? { ...forced, outcome: 'error' as const, pressure: 0 } : forced;
-  const guts = { ...state.guts, [attacker.id]: spendGuts(state.guts[attacker.id], shot.cost) };
+  const aimed0 = tgt?.miss && force === undefined && forced.outcome !== 'error' ? { ...forced, outcome: 'error' as const, pressure: 0 } : forced;
+  // A special shot that would win the point can still be got back by a strong defender with guts left: he pays for it, and the ball
+  // comes back under the heaviest pressure.
+  const defGuts = state.guts[teams[defSide][defIdx].id] ?? teams[defSide][defIdx].maxGuts;
+  const answered =
+    shot.kind === 'special' && force === undefined && aimed0.outcome === 'winner' && rng() < specialAnswerChance(teams[defSide][defIdx], defGuts) * (shot.answerMul ?? 1);
+  const res = answered ? { ...aimed0, outcome: 'continue' as const, pressure: MAX_PRESSURE } : aimed0;
+  const guts = {
+    ...state.guts,
+    [attacker.id]: spendGuts(state.guts[attacker.id], shot.cost),
+    ...(answered ? { [teams[defSide][defIdx].id]: spendGuts(defGuts, SPECIAL_ANSWER_COST) } : {}),
+  };
 
   const step: Step = {
     kind: state.hits === 0 ? 'return' : 'rally',
@@ -537,6 +594,7 @@ export function stepHit(
     tired: res.tired,
     powerFactor: attacker.stats.power / Math.max(0.01, hitter.stats.power),
     fit: res.fit,
+    ...(answered ? { answered: true } : {}),
     // Balls that go to a wall are always taken after the wall, the others after the bounce.
     receive: shot.wall === 'none' ? 'bounce' : 'wall',
   };
@@ -548,6 +606,7 @@ export function stepHit(
     if (
       force === 'rebound' ||
       (force === undefined &&
+        !answered &&
         next.glass &&
         !isLob(shot) &&
         shot.wall !== 'fence' &&
@@ -565,7 +624,8 @@ export function stepHit(
     const aimed = aimDepthFor(shot, rng, landX, next.landDepth ?? fixDepth, prefer?.depth, attacker.stats.accuracy);
     // A Por Cuatro that is not hit well comes back off the glass: the defender runs to the net and plays it back (a volley).
     // The defender judges the ball: he takes it early (before the glass), which is risky, or waits for the glass and runs to the net.
-    const early = shot.reboundWin !== undefined && next.lob === undefined && rng() < EARLY_TAKE;
+    // (a special he got back is played back, never fumbled)
+    const early = !answered && shot.reboundWin !== undefined && next.lob === undefined && rng() < EARLY_TAKE;
     if (early && rng() < EARLY_TAKE_ERROR - defender.stats.technique * 0.04) {
       return {
         state: { ...state, guts, hits: state.hits + 1, status: 'done', winner: side },

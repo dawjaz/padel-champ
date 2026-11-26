@@ -12,3 +12,11 @@ export const DIRECTIONS: Record<Direction, DirectionDef> = Object.fromEntries(
 export function shotsOfKind(kind: ShotKind): ShotDef[] {
   return SHOTS.filter((s) => s.kind === kind);
 }
+
+/** The special shots (one per player; the hero unlocks them by level and equips one). */
+export const SPECIALS: ShotDef[] = shotsOfKind('special');
+
+/** The ordinary shot a shot looks, sounds and counts as (a special plays as its base shot). */
+export function baseId(shot: ShotDef): string {
+  return shot.base ?? shot.id;
+}

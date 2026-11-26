@@ -881,5 +881,224 @@
       "glass": 0.05,
       "mesh": 0.1
     }
+  },
+  {
+    "id": "sp_skyrocket",
+    "downward": true,
+    "name": "Sky Rocket",
+    "kind": "special",
+    "stat": "power",
+    "power": 1.6,
+    "cost": 6,
+    "risk": 0.09,
+    "out": "mid",
+    "fit": {
+      "high": 1.3,
+      "mid": 0.7,
+      "low": 0.4
+    },
+    "advance": "net",
+    "landDepth": 6.2,
+    "wall": "back",
+    "winnerMargin": 6,
+    "overFence": true,
+    "requires": {
+      "formations": [
+        "net",
+        "mid"
+      ],
+      "heights": [
+        "high"
+      ],
+      "glass": false,
+      "air": true,
+      "hint": "a high ball out of the air, at the net or mid-court"
+    },
+    "desc": "Special. A Por Cuatro from the sky: so hard it almost always flies out of the court, even off a lob that is not short.",
+    "flight": {
+      "speed": 36,
+      "apex": 0,
+      "spin": 0.9,
+      "wallKick": 1.0,
+      "side": 0.3
+    },
+    "exitVia": "back",
+    "reboundWin": 0.7,
+    "winLandDepth": 4.6,
+    "glassChance": 0.6,
+    "errorKinds": {
+      "net": 0.45,
+      "glass": 0.3,
+      "mesh": 0.25
+    },
+    "base": "smash_x4",
+    "unlockLevel": 3,
+    "timed": true,
+    "answerMul": 0.5
+  },
+  {
+    "id": "sp_venom",
+    "downward": true,
+    "name": "Venom Vibora",
+    "kind": "special",
+    "stat": "spin",
+    "power": 1.65,
+    "cost": 6,
+    "risk": 0.08,
+    "out": "mid",
+    "fit": {
+      "high": 1.15,
+      "mid": 0.9,
+      "low": 0.65
+    },
+    "advance": "net",
+    "landDepth": 6,
+    "wall": "side",
+    "desc": "Special. A vibora with so much side spin that it dies on the side glass. Needs a high ball out of the air.",
+    "flight": {
+      "speed": 26,
+      "apex": 0,
+      "spin": -0.2,
+      "bounceMul": 0.5,
+      "reboundMul": 0.3,
+      "wallKick": 1.5,
+      "side": 2.4
+    },
+    "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
+      "glass": false,
+      "heights": [
+        "high"
+      ],
+      "hint": "only out of the air, from a high ball, from mid-court or the back",
+      "air": true
+    },
+    "glassChance": 0.9,
+    "blockAtNet": true,
+    "errorKinds": {
+      "net": 0.45,
+      "glass": 0.3,
+      "mesh": 0.25
+    },
+    "base": "vibora",
+    "unlockLevel": 6,
+    "winnerMargin": 6,
+    "timed": true
+  },
+  {
+    "id": "sp_cornerlock",
+    "winnerMargin": 8,
+    "downward": true,
+    "name": "Corner Lock",
+    "kind": "special",
+    "stat": "technique",
+    "power": 1.55,
+    "cost": 5,
+    "risk": 0.05,
+    "out": "mid",
+    "fit": {
+      "high": 1.15,
+      "mid": 0.95,
+      "low": 0.7
+    },
+    "advance": "net",
+    "landDepth": 8.6,
+    "wall": "back",
+    "desc": "Special. A bandeja into the back corner that stays there. Needs a high ball out of the air.",
+    "flight": {
+      "speed": 19,
+      "apex": 0,
+      "spin": -1.3,
+      "wallKick": 0.45,
+      "side": 0.5
+    },
+    "requires": {
+      "formations": [
+        "mid",
+        "back"
+      ],
+      "glass": false,
+      "heights": [
+        "high"
+      ],
+      "hint": "only out of the air, from mid-court or the back",
+      "air": true
+    },
+    "glassChance": 0.3,
+    "rebound": {
+      "low": 0.5,
+      "mid": 0.4,
+      "high": 0.1
+    },
+    "blockAtNet": true,
+    "errorKinds": {
+      "net": 0.2,
+      "glass": 0.45,
+      "mesh": 0.35
+    },
+    "base": "bandeja",
+    "unlockLevel": 10,
+    "edgeX": 4.3,
+    "timed": true
+  },
+  {
+    "id": "sp_freeze",
+    "winnerMargin": 8,
+    "downward": true,
+    "name": "Freeze Drop",
+    "kind": "special",
+    "stat": "technique",
+    "power": 1.5,
+    "cost": 5,
+    "risk": 0.08,
+    "out": "low",
+    "fit": {
+      "high": 0.5,
+      "mid": 0.95,
+      "low": 1.1
+    },
+    "advance": "net",
+    "landDepth": 1.0,
+    "wall": "none",
+    "glassChance": 0.0,
+    "drop": true,
+    "depthSpread": 0.4,
+    "requires": {
+      "formations": [
+        "net",
+        "mid"
+      ],
+      "heights": [
+        "low",
+        "mid"
+      ],
+      "glass": false,
+      "oppFormations": [
+        "back",
+        "mid"
+      ],
+      "hint": "drop shot: opponents not at the net, low or mid ball"
+    },
+    "desc": "Special. A drop shot that stops dead behind the net. Opponents not at the net, low or mid ball.",
+    "flight": {
+      "speed": 5,
+      "apex": 0,
+      "spin": -0.7,
+      "deaden": 0.8,
+      "bounceMul": 0.25,
+      "wallKick": 1.0,
+      "side": 0.2
+    },
+    "errorKinds": {
+      "net": 0.85,
+      "glass": 0.05,
+      "mesh": 0.1
+    },
+    "base": "dejada",
+    "unlockLevel": 15,
+    "timed": false
   }
 ]

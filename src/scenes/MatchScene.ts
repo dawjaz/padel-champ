@@ -19,10 +19,10 @@ import playersData from '../data/players.json';
 import { applyHd } from '../hd';
 import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
-import { DIRECTIONS, shotsOfKind } from '../game/catalog';
+import { baseId, DIRECTIONS, shotsOfKind, SPECIALS } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, targetMissChance } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, ringQuality, ringWindow, SECOND_SERVE_SPEED } from '../game/engine';
-import { isPowerfulSmash, playableShots, reachAgainst, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { isPowerfulSmash, playableShots, reachAgainst, specialFor, withSpecial, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -83,10 +83,10 @@ const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
 const VISUAL_HEIGHT_M = 1.75;
 
-type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off';
+type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off' | 'special';
 
-const TONE_STROKE: Record<Tone, number> = { normal: 0x0b2a5b, good: 0x0e8f5c, poor: 0xd97a00, tired: 0xc62828, off: 0x9aa7bb };
-const TONE_FILL: Record<Tone, number> = { normal: 0xffffff, good: 0xdff7ea, poor: 0xfff0d9, tired: 0xfde1e1, off: 0xeef1f6 };
+const TONE_STROKE: Record<Tone, number> = { normal: 0x0b2a5b, good: 0x0e8f5c, poor: 0xd97a00, tired: 0xc62828, off: 0x9aa7bb, special: 0xc98a00 };
+const TONE_FILL: Record<Tone, number> = { normal: 0xffffff, good: 0xdff7ea, poor: 0xfff0d9, tired: 0xfde1e1, off: 0xeef1f6, special: 0xffe9a8 };
 const NAVY_CSS = '#0b2a5b';
 /** Guts bar over/under a player: green when full, lime, orange, red below 30% of the bar. */
 const GUTS_BAR_W = 38;
@@ -98,7 +98,7 @@ export function gutsBarColor(ratio: number): number {
   return 0x4cd964;
 }
 
-const TONE_TEXT: Record<Tone, string> = { normal: '#0b2a5b', good: '#0a6b45', poor: '#9a5200', tired: '#a31f1f', off: '#8d9bb0' };
+const TONE_TEXT: Record<Tone, string> = { normal: '#0b2a5b', good: '#0a6b45', poor: '#9a5200', tired: '#a31f1f', off: '#8d9bb0', special: '#7a4a00' };
 
 interface PlayerView {
   sprite: Phaser.GameObjects.Image;
@@ -259,7 +259,9 @@ export class MatchScene extends Phaser.Scene {
     const partner = this.career ? (partnerById(profile.career.partnerId) ?? BASE_YOU[1]) : BASE_YOU[1];
     HUMAN_IDX = heroLane(profile);
     const hero = heroFrom(BASE_YOU[0], profile, boost);
-    TEAMS = [HUMAN_IDX === 0 ? [hero, partner] : [partner, hero], this.career ? this.career.opponents : DEFAULT_CPU];
+    // the partner and the opponents have their special shots (the stronger ones; see `cpuSpecial`), the hero the one of his level
+    const mate = withSpecial(partner);
+    TEAMS = [HUMAN_IDX === 0 ? [hero, mate] : [mate, hero], (this.career ? this.career.opponents : DEFAULT_CPU).map(withSpecial)];
     if (boost && profile.inventory.queued.length > 0) {
       updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: consumeQueued(d.profile.inventory) } }));
     }
@@ -1088,8 +1090,9 @@ export class MatchScene extends Phaser.Scene {
   /** The stroke: contact pose, follow-through, then back to ready. Overhead shots are played with a jump. */
   private swing(id: string, shot: ShotDef | null, aimDx = 0): void {
     const v = this.views[id];
-    const smashing = shot === null || shot.id.startsWith('smash_') || shot.id === 'rulo';
-    const grounded = shot !== null && (shot.id === 'bandeja' || shot.id === 'vibora');
+    const bid = shot === null ? null : baseId(shot);
+    const smashing = bid === null || bid.startsWith('smash_') || bid === 'rulo';
+    const grounded = bid === 'bandeja' || bid === 'vibora';
     // The rulo is hit overhead with the body turned sideways, towards the fence it is played to.
     if (shot?.id === 'rulo') this.setFacing(id, aimDx >= 0 ? 'right' : 'left');
     const prep = this.stance[id];
@@ -1288,10 +1291,12 @@ export class MatchScene extends Phaser.Scene {
     const cols = compact ? 3 : 2;
     // Direction menu: left / middle / right side by side as the ball goes on the screen, BACK alone below.
     const dirs = layout === 'directions';
+    // four rows of compact buttons (10-12: the specials on top of a long list) are a little flatter, to stay on the screen
+    const tight = items.length > 9;
     const w = dirs ? 108 : compact ? 112 : 160;
-    const h = dirs ? 56 : compact ? 44 : 48;
-    const gapY = compact ? 52 : 58;
-    const y0 = dirs ? 490 : compact ? 478 : 485;
+    const h = dirs ? 56 : tight ? 40 : compact ? 44 : 48;
+    const gapY = tight ? 46 : compact ? 52 : 58;
+    const y0 = dirs ? 490 : tight ? 470 : compact ? 478 : 485;
     items.forEach((item, i) => {
       const x = dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
       const y = dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
@@ -1327,6 +1332,16 @@ export class MatchScene extends Phaser.Scene {
       this.menu.push(gfx, bg, text);
     });
     this.busy = false;
+  }
+
+  /** The gold button of a special shot (red-edged RISKY when the guts are short). */
+  private specialButton(sp: ShotDef, hitter: PlayerDef): ButtonSpec {
+    const short = this.guts[hitter.id] < sp.cost;
+    return {
+      label: `${sp.name.toUpperCase()}\nSPECIAL [${sp.cost}]${short ? ' RISKY' : ''}`,
+      tone: 'special',
+      onPick: () => this.showDirectionMenu(sp),
+    };
   }
 
   /** Colour hint for a shot: red = RISKY (not enough guts), green = good against this ball, orange = poor. */
@@ -1443,10 +1458,13 @@ export class MatchScene extends Phaser.Scene {
       tone: (sit.signature.includes(sh.id) ? 'good' : 'normal') as Tone,
       onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
     }));
-    items.push(
-      { label: 'CHANGE', tone: 'normal', onPick: () => { this.court.sit = null; this.practiceMenu(); } },
-      { label: 'EXIT', tone: 'tired', onPick: () => this.scene.start('TitleScene') },
-    );
+    // on the practice court every special the ball allows is there to try (in a match only your own, from its level)
+    if (kind === 'rally') {
+      const hero = TEAMS[HUMAN_SIDE][HUMAN_IDX];
+      for (const sp of SPECIALS) if (specialFor({ ...hero, special: sp.id }, st)) items.unshift(this.specialButton(sp, hero));
+    }
+    // (the way out is the GO TO MAIN MENU button at the top)
+    items.push({ label: 'CHANGE', tone: 'normal', onPick: () => { this.court.sit = null; this.practiceMenu(); } });
     this.say(kind === 'return' ? 'Your return: pick the shot.' : sit.desc);
     this.showHeight(st.ball.height, st.ball.glass ? ', off the glass' : st.ball.lob === 'weak' ? ', weak lob' : '');
     this.showButtons('practice court', items);
@@ -1969,6 +1987,9 @@ export class MatchScene extends Phaser.Scene {
       tone: this.toneFor(sh, hitter),
       onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
     }));
+    // his special shot, in gold, when the ball allows it
+    const sp = specialFor(hitter, st);
+    if (sp) items.unshift(this.specialButton(sp, hitter));
     this.showHeight(st.ball.height, context);
     this.showButtons(title, items);
   }
@@ -2154,7 +2175,7 @@ export class MatchScene extends Phaser.Scene {
     this.playStep(step, state, opts);
   }
 
-  private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions): void {
+  private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions, cutDone = false): void {
     this.hideHeight();
     const st = this.point;
     // your own smash, vibora or bandeja with the timing ring: the ball comes down and you touch as the ring closes on it
@@ -2162,9 +2183,101 @@ export class MatchScene extends Phaser.Scene {
       this.timingRing('high', TEAMS[st.holder][st.hitterIdx], (q) => this.performHit(shot, direction, prefer, { ...options, timing: q }));
       return;
     }
+    // a special shot gets its moment on the screen (anyone's: yours, your partner's, the opponents')
+    if (shot.kind === 'special' && !cutDone) {
+      this.specialCutIn(TEAMS[st.holder][st.hitterIdx], shot, () => this.performHit(shot, direction, prefer, options, true));
+      return;
+    }
     const { state, step } = stepHit(TEAMS, st, shot, direction, Math.random, prefer, { ...options, positions: this.reachPositions() });
     this.courtCount(step, options?.timing);
     this.playStep(step, state);
+  }
+
+  /**
+   * The cut-in of a special shot: the court dims, a gold band sweeps across with the player (his own live picture, big) and the name of
+   * the shot, about a second, then the shot is played. A touch skips it.
+   */
+  private specialCutIn(player: PlayerDef, shot: ShotDef, done: () => void): void {
+    const v = this.views[player.id];
+    // he winds up for it (the cut-in shows his live picture): the racket over the head for an overhead, back for a drop shot
+    const overhead = ['smash_x4', 'smash_x3', 'vibora', 'bandeja'].includes(baseId(shot));
+    this.setPose(player.id, overhead ? 'smashPrep' : 'fhPrep');
+    const objs: Phaser.GameObjects.GameObject[] = [];
+    const dim = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x050b1a, 0.55).setOrigin(0, 0).setDepth(9800).setAlpha(0);
+    objs.push(dim);
+    const mine = player.id === TEAMS[HUMAN_SIDE][HUMAN_IDX].id || TEAMS[HUMAN_SIDE].some((p) => p.id === player.id);
+    const c1 = mine ? 0xffc83d : 0xff6b4a;
+    const c2 = mine ? 0xff8a1a : 0xc0265a;
+    const band = this.add.graphics().setDepth(9801);
+    objs.push(band);
+    const y0 = 150;
+    const h = 170;
+    band.fillStyle(c2, 1).fillPoints([new Phaser.Math.Vector2(-40, y0 + 18), new Phaser.Math.Vector2(WIDTH + 40, y0 - 12), new Phaser.Math.Vector2(WIDTH + 40, y0 + h - 12), new Phaser.Math.Vector2(-40, y0 + h + 18)], true);
+    band.fillStyle(c1, 1).fillPoints([new Phaser.Math.Vector2(-40, y0 + 26), new Phaser.Math.Vector2(WIDTH + 40, y0 - 4), new Phaser.Math.Vector2(WIDTH + 40, y0 + h - 20), new Phaser.Math.Vector2(-40, y0 + h + 10)], true);
+    band.lineStyle(4, 0xffffff, 0.9).lineBetween(-40, y0 + 18, WIDTH + 40, y0 - 12).lineBetween(-40, y0 + h + 18, WIDTH + 40, y0 + h - 12);
+    band.x = -WIDTH;
+    // speed lines
+    const lines = this.add.graphics().setDepth(9802);
+    objs.push(lines);
+    for (let i = 0; i < 14; i++) {
+      const ly = y0 + 10 + Math.random() * (h - 10);
+      const lx = Math.random() * WIDTH;
+      lines.lineStyle(2, 0xffffff, 0.35 + Math.random() * 0.4).lineBetween(lx, ly, lx + 40 + Math.random() * 90, ly - 4);
+    }
+    lines.setAlpha(0);
+    // the player, big, in the pose he is in (his own picture updates live)
+    const fig = this.add.image(96, y0 + h - 6, v.sprite.texture.key).setOrigin(0.5, 1).setDepth(9803).setFlipX(v.sprite.flipX);
+    fig.setScale((h * 1.05) / Math.max(1, fig.height));
+    fig.x = -120;
+    objs.push(fig);
+    const who = this.add
+      .text(WIDTH - 18, y0 + 46, player.name.toUpperCase(), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '16px', color: '#ffffff' })
+      .setOrigin(1, 0.5)
+      .setDepth(9804)
+      .setStroke('#0b2a5b', 5)
+      .setAlpha(0);
+    const name = this.add
+      .text(WIDTH - 14, y0 + 92, `${shot.name.toUpperCase()}!`, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '34px', color: '#ffffff', align: 'right' })
+      .setOrigin(1, 0.5)
+      .setDepth(9804)
+      .setStroke('#0b2a5b', 8)
+      .setScale(1.6)
+      .setAlpha(0);
+    if (name.width * 1 > WIDTH - 150) name.setFontSize(26);
+    objs.push(who, name);
+    const tag = this.add
+      .text(WIDTH - 18, y0 + 130, 'SPECIAL SHOT', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#0b2a5b' })
+      .setOrigin(1, 0.5)
+      .setDepth(9804)
+      .setAlpha(0);
+    objs.push(tag);
+    const skip = this.add.zone(0, 0, WIDTH, HEIGHT).setOrigin(0, 0).setDepth(9805).setInteractive();
+    objs.push(skip);
+    sfx('point', 0.8);
+    this.tweens.add({ targets: dim, alpha: 1, duration: 160 });
+    this.tweens.add({ targets: band, x: 0, duration: 220, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: lines, alpha: 1, delay: 120, duration: 160 });
+    this.tweens.add({ targets: lines, x: -60, delay: 120, duration: 900 });
+    this.tweens.add({ targets: fig, x: 96, delay: 90, duration: 260, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [who, tag], alpha: 1, delay: 220, duration: 160 });
+    this.tweens.add({ targets: name, alpha: 1, scale: 1, delay: 260, duration: 240, ease: 'Back.easeOut' });
+    let over = false;
+    const finish = (): void => {
+      if (over) return;
+      over = true;
+      skip.destroy();
+      this.tweens.add({
+        targets: objs.filter((o) => o !== skip),
+        alpha: 0,
+        duration: 140,
+        onComplete: () => {
+          for (const o of objs) o.destroy();
+          done();
+        },
+      });
+    };
+    skip.on('pointerdown', finish);
+    this.time.delayedCall(1250, finish);
   }
 
   /**
@@ -2303,8 +2416,8 @@ export class MatchScene extends Phaser.Scene {
     this.say(headline);
     if (from === 0) {
       impactSound(
-        racketKind(step.shot.id, step.kind === 'serve', step.shot.flight.speed),
-        step.shot.id.startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
+        racketKind(baseId(step.shot), step.kind === 'serve', step.shot.flight.speed),
+        baseId(step.shot).startsWith('smash_') || step.shot.id === 'rulo' ? 1 : Math.max(0.15, Math.min(1, step.shot.flight.speed / 30)),
       );
       this.swing(attacker.id, step.kind === 'serve' ? null : step.shot, landX - this.pos[attacker.id].x);
       // Split step: the pair that is about to receive the ball hops a little as the opponent hits it (not during a serve, nobody moves then).
@@ -2320,10 +2433,17 @@ export class MatchScene extends Phaser.Scene {
         }
       }
       if (isPowerfulSmash(step)) this.powerSmashFx();
-      this.hitFlash(attacker.id, step.kind === 'serve' ? 0.3 : Math.min(1, step.shot.flight.speed / 34 + (step.shot.id.startsWith('smash_') ? 0.4 : 0)));
+      this.hitFlash(attacker.id, step.kind === 'serve' ? 0.3 : Math.min(1, step.shot.flight.speed / 34 + (baseId(step.shot).startsWith('smash_') ? 0.4 : 0)));
     }
     // Por Cuatro (and a strong Por Tres) leave a mark where the ball hits the court.
-    this.powerStyle = step.shot.id === 'smash_x4' ? 'x4' : step.shot.id === 'smash_x3' && (step.outcome === 'winner' || step.reboundBack === true) ? 'x3' : null;
+    this.powerStyle = baseId(step.shot) === 'smash_x4' ? 'x4' : baseId(step.shot) === 'smash_x3' && (step.outcome === 'winner' || step.reboundBack === true) ? 'x3' : null;
+    if (step.answered) {
+      const saver = TEAMS[other(step.side)][step.defenderIdx];
+      this.time.delayedCall(Math.min(900, duration * 0.6), () => {
+        this.announce('SAVED!', '#5db4ff', `${saver.name} gets the ${step.shot.name} back`);
+        this.say(`${saver.name} reads the ${step.shot.name} and gets it back!`);
+      });
+    }
 
     // Everybody moves while the ball flies: the hitter's team takes up its new formation, and the player who
     // has to play the ball runs to the spot where it will be hit (after the bounce, or after the glass).
@@ -2591,7 +2711,7 @@ export class MatchScene extends Phaser.Scene {
 
   /** Counts a point the hero's side won with a winner or an ace, by the kind of shot (for the daily tasks). */
   private countDailyWin(step: Step): void {
-    const id = step.shot.id;
+    const id = baseId(step.shot);
     const w = this.dailyWins;
     if (step.outcome === 'ace') w.ace++;
     else if (id === 'smash_x3' || id === 'smash_x4') w.smash++;

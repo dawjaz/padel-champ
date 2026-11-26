@@ -46,11 +46,12 @@ export class CharacterScene extends Phaser.Scene {
     }
     applyLightScreen(this);
     screenHeader(this, 'Hero', { onBack: () => this.scene.start('TitleScene'), coins: getSave().profile.coins });
-    makeThemeButton(this, 96, 614, 164, 40, 'RESET POINTS', () => {
+    makeThemeButton(this, 64, 614, 108, 40, 'RESET POINTS', () => {
       updateSave((d) => ({ ...d, profile: respec(d.profile) }));
       this.scene.restart();
-    }, 'secondary', 15);
-    makeThemeButton(this, WIDTH - 96, 614, 164, 40, 'GEAR', () => this.scene.start('GearScene'), 'blue', 17);
+    }, 'secondary', 12);
+    makeThemeButton(this, WIDTH / 2, 614, 108, 40, 'SPECIAL', () => this.scene.start('SpecialScene'), 'primary', 15);
+    makeThemeButton(this, WIDTH - 64, 614, 108, 40, 'GEAR', () => this.scene.start('GearScene'), 'blue', 15);
     this.redraw();
   }
 

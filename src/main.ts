@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SHOTS } from './game/catalog';
 import '@fontsource/baloo-2/latin-700.css';
 import '@fontsource/baloo-2/latin-800.css';
 import '@fontsource/nunito/latin-600.css';
@@ -7,6 +8,7 @@ import '@fontsource/nunito/latin-800.css';
 import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
 import { CharacterScene } from './scenes/CharacterScene';
+import { SpecialScene } from './scenes/SpecialScene';
 import { GearScene } from './scenes/GearScene';
 import { PackScene } from './scenes/PackScene';
 import { ShopScene } from './scenes/ShopScene';
@@ -47,8 +49,9 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene],
+  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene],
 });
 
 // Dev server only: lets screenshot scripts jump to a scene.
-if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;
+// Development builds only: handles for automated checks (the game and the shot list).
+if (import.meta.env.DEV) Object.assign(window as unknown as Record<string, unknown>, { __game: game, __shots: SHOTS });
