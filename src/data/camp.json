@@ -50,7 +50,7 @@
     {
       "id": "serve",
       "name": "Serve & Return",
-      "desc": "Serve at his weak spot, then read his serve and pick the return.",
+      "desc": "Serve into the gap he leaves, then pick the right return.",
       "rounds": 6,
       "stars": [
         200,

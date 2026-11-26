@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.129: Serve & Return made easier and simpler (owner: never hit a ball, too much to read)
+- Timing windows about doubled: serve `tossWindow` 170 + 6 technique + 4 accuracy, return `returnWindow` 160 + 6 technique + 4 speed (were ~90/80 base); full quality in the inner 40% (was 30%), 0.3 at the edge. The serve is slower (ball dropped, bounce, hit at 1.15 s, was 0.76 s), the return ball takes 1.3-1.5 s from the bounce.
+- **The ring now closes on the ball itself** (follows it, `ringOn`), green in the sweet part, like Timing; before it sat at a fixed point the ball was still flying to.
+- The whole screen takes the tap while the ring runs (it was only the court).
+- Less to read: **serve** = the receiver stands off-centre and leaves a gap (middle or wide, `openSpotOf` / `receiverX`); "SERVE INTO THE GAP", touch one of three spots, then the timing. No serve kinds, no weakness text. Pressure = 0.25 + 0.4 gap / 0.2 body + 0.3 timing (+-0.08). **Return** = one big word for the serve (HIGH KICK / LOW SLICE / FAST & FLAT) and three answers: LOB / CHIQUITA / OFF GLASS (drive and the spot effects dropped).
+
 ## v0.128: Serve & Return (replaces Serve Zones), trophy tooltips
 - **Serve & Return** (camp game id still `serve`, so best scores carry over; 6 rounds, stars 200 / 320 / 430). Rounds alternate, sides change every two rounds (`lane()`); the opponent is a second `CampHero` seen from the front (`CampHero` takes `{ key, front }` now; `makeAppearance` exported from tournament.ts).
   - **Serve rounds:** the receiver's weak spot and the serve he dislikes are told (`receiverOf`); the player picks FLAT / KICK / SLICE and one of three spots in his box (MIDDLE / BODY / WIDE, `serveSpotAt`), then hits the padel serve as the ball comes up off its bounce (ring; `tossWindow` 90 + 6 technique + 5 accuracy ms, `tossQuality`). `serveOutcome`: fault risk by serve (flat riskiest, wide adds) and timing; pressure = 0.2 + 0.22 weak ball + 0.22 weak spot + pair bonus (kick wide, flat body, slice middle) + 0.2 timing + noise: ACE 100 / WEAK RETURN 70 / RETURNED 30 / STRONG RETURN 0 / FAULT 0. The receiver reacts (misses an ace, pops up a weak return, drives a strong one back).
