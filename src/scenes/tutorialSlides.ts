@@ -184,11 +184,11 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       // the ball is dropped from the hand, bounces and is struck on its way down, between knee and hip
       const top: Pt = [hit[0] + 4, hit[1] - 50];
       k.ballAt(top);
-      k.ball(top, [hit[0] + 4, 222], { ms: 380, after: () => k.ball([hit[0] + 4, 222], hit, { apex: 34, ms: 1700 }) });
+      k.ball(top, [hit[0] + 4, 222], { ms: 380, after: () => k.ball([hit[0] + 4, 222], hit, { apex: 34, ms: 1100 }) });
       k.at(500, () => k.bubble(204, 190, 'IT MUST BOUNCE FIRST', { tail: 'left', size: 10, ttl: 1500 }));
-      k.at(1500, () => { k.glow(hit[0] + 26, hit[1] - 4, 10, 44, GREEN); k.bubble(214, 150, 'HIT IT BETWEEN KNEE AND HIP', { tail: 'left', size: 10, ttl: 1500 }); });
-      k.at(500, () => k.ring(hit[0], hit[1], 1650));
-      k.at(2150, () => {
+      k.at(900, () => k.bubble(214, 150, 'HIT IT BETWEEN KNEE AND HIP', { tail: 'left', size: 10, ttl: 1500 }));
+      k.at(400, () => k.ring(hit[0], hit[1], 1100));
+      k.at(1500, () => {
         k.hero.play(strokeSteps('fh'));
         k.tap(hit[0], hit[1]);
         k.shout(100, 150, 'WHAM!', { color: GOLD });

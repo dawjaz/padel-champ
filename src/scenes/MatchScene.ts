@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { drawServeZone, serveBallH, SERVE_DUE_MS, DROP_MS } from '../art/serveDrop';
+import { serveBallH, SERVE_DUE_MS, DROP_MS } from '../art/serveDrop';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Coast, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
 import { project, unproject } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
@@ -2310,8 +2310,6 @@ export class MatchScene extends Phaser.Scene {
   private serveDrop(done: () => void): void {
     const at = { ...this.ballFloor };
     const t0 = this.time.now;
-    const zone = this.add.graphics().setDepth(9989);
-    drawServeZone(zone, project, at.x, at.z);
     this.ball.setVisible(true);
     let bounced = false;
     const tick = this.time.addEvent({
@@ -2327,7 +2325,6 @@ export class MatchScene extends Phaser.Scene {
         }
         if (ms >= SERVE_DUE_MS) {
           tick.remove();
-          zone.destroy();
           this.ballH = Math.max(0.3, h);
           done();
         }
@@ -2465,10 +2462,8 @@ export class MatchScene extends Phaser.Scene {
     if (kind === 'high') this.setPose(hitter.id, 'smashPrep');
     else if (kind === 'out') this.setPose(hitter.id, 'fhPrep');
     const ring = this.add.graphics().setDepth(9990);
-    const zone = kind === 'serve' ? this.add.graphics().setDepth(9989) : null;
-    if (zone) drawServeZone(zone, project, at.x, at.z);
     const hint = this.add
-      .text(WIDTH / 2, 470, kind === 'serve' ? 'THE BALL MUST BOUNCE: HIT IT BETWEEN KNEE\nAND HIP, WHEN THE RING CLOSES' : 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
+      .text(WIDTH / 2, 470, kind === 'serve' ? 'TOUCH WHEN THE RING\nCLOSES ON THE BALL' : 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
       .setOrigin(0.5)
       .setDepth(9996)
       .setStroke('#0b2a5b', 5);
@@ -2484,7 +2479,6 @@ export class MatchScene extends Phaser.Scene {
       tap.destroy();
       hint.destroy();
       ring.destroy();
-      zone?.destroy();
       const q = ringQuality(offMs, window);
       const ms1 = Math.min(this.time.now - t0, due + window);
       const q1 = pathAt ? pathAt(ms1) : { x: at.x, z: at.z, h: ballAt(ms1) };

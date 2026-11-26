@@ -2,9 +2,11 @@
 
 _Last updated: 2026-11-26 (v0.147)_
 
+## v0.148 (small): the serve takes 700 ms (was 1000) and the knee-hip marker is gone; see v0.147 below
+
 ## v0.147: the serve is struck after a bounce, everywhere; the shot menu is the list again
 - Owner's brief: a padel serve is underarm, after one bounce, with the ball between the knee and the hip. Rules checked (FIP rules and club guides): both feet behind the service line, the ball dropped and bounced inside the server's own area, struck at or below waist height, sent diagonally into the opposite box; a fault gives the slower second serve (already in the engine).
-- `src/art/serveDrop.ts` (pure + tested): `serveBallH(ms)` is the one ball path (hand 1.15 m, bounce, peak at the hip 0.95 m, struck at ~0.78 m after `SERVE_DUE_MS` 1000), `KNEE_M`, `HIP_M`, `inServeZone`, `drawServeZone` (the green knee-hip bracket beside the ball).
+- `src/art/serveDrop.ts` (pure + tested): `serveBallH(ms)` is the one ball path (hand 1.15 m, bounce, peak at the hip 0.95 m, struck at ~0.78 m after `SERVE_DUE_MS` 700 ms), `KNEE_M`, `HIP_M`, `inServeZone` (the zone marker was tried and removed at the owner's request; the serve was shortened from 1000 to 700 ms).
 - Match / career / quick match / Practice Court: `timingRing('serve')` uses the shared path and shows the zone and the hint; every other serve (opponents', partner's, yours with TIMING: AUTO) goes through `MatchScene.serveDrop` first (`performServe` with `dropped`, `previewServe(shot, dropped)` for a human receiver). Camp Serve & Return: your serve uses the same path and zone, and the rival drops the ball before his serve (`MinigameScene.dropBall`). Tutorial: serve and receive slides show the drop, the bounce and the zone; lesson texts say it.
 - Shot menu: default back to the plain list (setting renamed `shotMenu`, default `'list'`, so the old stored value is ignored); SETTINGS > SHOT MENU still switches to the columns if wanted. Tutorial menu lesson describes the list again.
 
