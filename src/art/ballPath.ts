@@ -103,6 +103,9 @@ export const ARRIVAL_HEIGHT: Record<Height, number> = { high: 2.0, mid: 1.0, low
 /** How high the ball rises after the back glass, by rebound class (metres): low / medium / high rebound. */
 export const REBOUND_PEAK: Record<Height, number> = { low: 0.75, mid: 1.5, high: 2.6 };
 
+/** The highest a player meets a ball after the back glass (an overhead with the racket at full stretch), metres. */
+export const REACH_MAX_H = 2.3;
+
 export const GRAVITY = 9.81;
 /** No shot is faster than this (m/s): about 125 km/h, a hard smash. */
 const MAX_SHOT_SPEED = 35;
@@ -912,7 +915,7 @@ export function buildFlight(opts: FlightOpts): Flight {
   const winning = o.outcome === 'ace' || o.outcome === 'winner';
   // Only a smash can leave the court over the fence. A rulo that comes off the mesh stays in the court.
   const exits = winning && o.shot.wall !== 'fence' && o.shot.overFence === true;
-  const run = (boost: number, carry = 1, backDamp = 1): ReturnType<typeof simulateAfterBounce> =>
+  const run = (boost: number, carry = 1, backDamp = 1, peakMul = 1): ReturnType<typeof simulateAfterBounce> =>
     simulateAfterBounce(touch, arc.T, {
       shot: o.shot,
       backDamp,
@@ -925,16 +928,29 @@ export function buildFlight(opts: FlightOpts): Flight {
       zRange: rulo ? (o.hitterSide === 0 ? [0.4, NET_Z - 0.8] : [NET_Z + 0.8, 19.6]) : undefined,
       backGlass,
       playZ: rulo ? undefined : o.hitterSide === 0 ? [WALL_MARGIN, NET_Z - 0.5] : [NET_Z + 0.5, 20 - WALL_MARGIN],
-      reboundPeak: backGlass ? REBOUND_PEAK[arrival] * (o.shot.flight.reboundMul ?? 1) : undefined,
+      reboundPeak: backGlass ? REBOUND_PEAK[arrival] * (o.shot.flight.reboundMul ?? 1) * peakMul : undefined,
       carry,
     });
   let sim = run(1);
+  let carryUsed = 1;
   // A ball that must come off the back glass has to reach it: give the first bounce more carry if it falls short.
   if (backGlass && sim.backContact < 0) {
     for (const carry of [1.25, 1.5, 1.8, 2.2, 2.8]) {
       const r = run(1, carry);
       sim = r;
+      carryUsed = carry;
       if (r.backContact >= 0) break;
+    }
+  }
+  // A high rebound that flies back towards the net would be played far over the defender's head (a hard smash came back at 3 m
+  // and was hit from there). The ball then comes off the glass lower (same speed, flatter) until it is played within reach.
+  const playedAt = (r: typeof sim): number => r.samples[r.hitIndex]?.h ?? 0;
+  if (backGlass && !winning && sim.backContact >= 0 && playedAt(sim) > REACH_MAX_H) {
+    for (const mul of [0.85, 0.72, 0.6, 0.5, 0.4, 0.32, 0.25]) {
+      const r = run(1, carryUsed, 1, mul);
+      if (r.backContact < 0) continue;
+      sim = r;
+      if (playedAt(r) <= REACH_MAX_H) break;
     }
   }
   // A winner that must not come back (the bajada): the ball dies on the opponent's side. If it would rebound over the net, the

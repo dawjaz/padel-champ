@@ -12,8 +12,9 @@ import type { CourtTheme } from './courtThemes';
  * - the crowd is darker and less saturated the higher it sits, and hazes into the theme's sky colour;
  * - nothing stands inside the walls, and the people beside the court are small, still and muted.
  *
- * `cheer` draws the same crowd (same seats, same people) celebrating: standing, arms up, scarves and flags. The match fades it in
- * for a moment after a point (see hdTextures.ts), so the crowd reacts without anything moving during a rally.
+ * `cheerGroup` draws the same crowd (same seats, same people) with one of `CHEER_GROUPS` random quarters of it celebrating:
+ * standing, arms up, scarves and flags. The match fades in none, some or all of these groups for a moment after a point (see
+ * hdTextures.ts), so the crowd reacts differently every time and nothing moves during a rally.
  */
 
 type Ctx = CanvasRenderingContext2D;
@@ -36,6 +37,8 @@ const ROWS = 9;
 const Z_END = 27;
 /** Height of the barrier (with its LED board) in front of the stands. */
 const BARRIER = 0.95;
+/** The crowd is split into this many random groups that cheer independently. */
+export const CHEER_GROUPS = 4;
 
 // ---------- colours ----------
 
@@ -187,6 +190,8 @@ interface Person {
   /** True for the side stands (false: the stands behind the far glass). */
   onSide: boolean;
   cap: boolean;
+  /** Cheer group (0 .. CHEER_GROUPS - 1). */
+  group: number;
 }
 
 function crowd(pal: Palette, rnd: () => number): Person[][] {
@@ -207,10 +212,11 @@ function crowd(pal: Palette, rnd: () => number): Person[][] {
       hairTop: 0.35 + rnd() * 0.5,
       empty: rnd() < 0.06,
       size: 0.92 + rnd() * 0.16,
-      pose: r < 0.3 ? 0 : r < 0.62 ? 1 : r < 0.82 ? 2 : r < 0.95 ? 3 : 4,
+      pose: r < 0.15 ? 0 : r < 0.55 ? 1 : r < 0.8 ? 2 : r < 0.94 ? 3 : 4,
       flag: pal.accents[Math.floor(rnd() * pal.accents.length)],
       onSide,
       cap: rnd() < 0.12,
+      group: Math.floor(rnd() * CHEER_GROUPS),
     };
   };
   const seatStep = 0.56;
@@ -369,13 +375,13 @@ function drawPerson(g: Ctx, pal: Palette, m: Person, cheer: boolean): void {
   }
 }
 
-function drawStandsLayer(g: Ctx, pal: Palette, cheer: boolean): void {
+function drawStandsLayer(g: Ctx, pal: Palette, cheerGroup: number | undefined): void {
   const people = crowd(pal, makeRng(20261126));
   for (let i = ROWS - 1; i >= 0; i--) {
     drawRowStructure(g, pal, i);
     // Back row first (it is farthest), then the side rows from the far end to the near end.
-    for (const m of people[i]) if (!m.onSide) drawPerson(g, pal, m, cheer);
-    for (const m of people[i].filter((p) => p.onSide).sort((a, b) => a.z - b.z)) drawPerson(g, pal, m, cheer);
+    for (const m of people[i]) if (!m.onSide) drawPerson(g, pal, m, m.group === cheerGroup);
+    for (const m of people[i].filter((p) => p.onSide).sort((a, b) => a.z - b.z)) drawPerson(g, pal, m, m.group === cheerGroup);
   }
   // Haze: the upper stands fade into the dark sky colour; the lower ones catch some spill light from the court.
   g.save();
@@ -398,7 +404,7 @@ function drawStandsLayer(g: Ctx, pal: Palette, cheer: boolean): void {
  * The stands, softened. Drawn at full size on a canvas of their own, then scaled down and back up (a light blur that works the
  * same in every browser), then laid onto the picture.
  */
-export function drawStands(g: Ctx, theme: CourtTheme, scale: number, cheer = false): void {
+export function drawStands(g: Ctx, theme: CourtTheme, scale: number, cheerGroup?: number): void {
   const pal = paletteOf(theme);
   const hgt = 330;
   const layer = document.createElement('canvas');
@@ -407,7 +413,7 @@ export function drawStands(g: Ctx, theme: CourtTheme, scale: number, cheer = fal
   const lg = layer.getContext('2d');
   if (!lg) return;
   lg.scale(scale, scale);
-  drawStandsLayer(lg, pal, cheer);
+  drawStandsLayer(lg, pal, cheerGroup);
   const soft = document.createElement('canvas');
   const k = 0.5;
   soft.width = Math.ceil(layer.width * k);

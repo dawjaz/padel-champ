@@ -3,7 +3,7 @@ import { SHOTS } from '../game/catalog';
 import { landingX } from '../game/court';
 import type { ShotDef } from '../game/types';
 import { SIDE_OPENINGS, sideWallSegments } from './walls';
-import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, OUTSIDE_LIMIT, type FlightOutcome } from './ballPath';
+import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, GRAVITY, magnus, OUTSIDE_LIMIT, REACH_MAX_H, type FlightOutcome } from './ballPath';
 
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const OUTCOMES: FlightOutcome[] = ['fault', 'double-fault', 'ace', 'in', 'error', 'winner', 'continue'];
@@ -296,6 +296,17 @@ describe('rules rework: glass, rebound height, weak lob, free ball', () => {
     }
   });
 
+  it('never plays a ball off the back glass out of reach over the head (a hard smash rebounds lower instead)', () => {
+    for (const id of ['smash_x3', 'smash_x4', 'bajada_fast']) {
+      for (const fz of [2, 6, 9]) {
+        for (const lx of [-3, 0, 3]) {
+          const f = buildFlight({ from: { x: 0, z: 20 - fz }, startH: 1.4, hitterSide: 0, shot: shot(id), landX: lx, outcome: 'continue', glass: true, arrival: 'high', seed: 3 });
+          expect(f.hitH, `${id} from ${fz} to ${lx}`).toBeLessThanOrEqual(REACH_MAX_H + 1e-9);
+        }
+      }
+    }
+  });
+
   it('rebounds off the back glass to the chosen height class', () => {
     const hh = (arrival: 'low' | 'mid' | 'high') => fly('bounce_shot', { glass: true, arrival }).hitH;
     expect(hh('high')).toBeGreaterThan(hh('mid'));
@@ -498,7 +509,8 @@ describe('glass rebound physics', () => {
       return Math.max(...f.path.filter((p) => p.t > g.t).map((p) => p.h));
     };
     expect(peak('mid')).toBeGreaterThan(peak('low') + 0.3);
-    expect(peak('high')).toBeGreaterThan(peak('mid') + 0.5);
+    // A high rebound of this hard ball is kept within reach of the defender (REACH_MAX_H), but it is still clearly the highest.
+    expect(peak('high')).toBeGreaterThan(peak('mid') + 0.3);
   });
 });
 

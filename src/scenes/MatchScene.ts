@@ -12,7 +12,7 @@ import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } f
 import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
-import { standHeads } from '../art/hd/venueHd';
+import { CHEER_GROUPS, standHeads } from '../art/hd/venueHd';
 import { ARENA_NET_KEY, BALL_KEY, CHEER_STRIP_H, DOT_KEY, ensureArenaTextures, ensureCheerTexture, ensureBallTextures, ensureCoinTexture, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
@@ -201,8 +201,8 @@ export class MatchScene extends Phaser.Scene {
   private serveSpots: Record<string, CourtPos> = {};
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
-  /** The cheering crowd over the stands (see crowdCheer); null until it has been rendered. */
-  private cheer: Phaser.GameObjects.Image | null = null;
+  /** The cheering crowd over the stands, one picture per group (see crowdCheer); filled in shortly after the match opens. */
+  private cheer: Phaser.GameObjects.Image[] = [];
   private headSpots: Array<{ x: number; y: number }> | null = null;
   /** Points the hero's side won with certain shots (for the daily tasks). */
   private dailyWins = { smash: 0, dejada: 0, viboraBandeja: 0, bajada: 0, ace: 0 };
@@ -557,12 +557,15 @@ export class MatchScene extends Phaser.Scene {
     const themeId = themeIdOfCity(this.career?.city);
     const { netY, backKey } = ensureArenaTextures(this, themeId);
     this.add.image(0, 0, backKey).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
-    // The cheering crowd: a second render of the stands, made just after the match has started so it does not delay the opening.
-    this.cheer = null;
-    this.time.delayedCall(600, () => {
-      if (!this.scene.isActive()) return;
-      this.cheer = this.add.image(0, 0, ensureCheerTexture(this, themeId)).setOrigin(0, 0).setDisplaySize(WIDTH, CHEER_STRIP_H).setDepth(-9).setAlpha(0);
-    });
+    // The cheering crowd, in groups (each one another render of the stands), made one by one after the match has started so they do
+    // not delay the opening.
+    this.cheer = [];
+    for (let k = 0; k < CHEER_GROUPS; k++) {
+      this.time.delayedCall(600 + k * 400, () => {
+        if (!this.scene.isActive()) return;
+        this.cheer.push(this.add.image(0, 0, ensureCheerTexture(this, themeId, k)).setOrigin(0, 0).setDisplaySize(WIDTH, CHEER_STRIP_H).setDepth(-9).setAlpha(0));
+      });
+    }
     this.paintLetterbox(backKey);
     // The net is its own strip, sorted with the players: far players stand behind it, near players in front.
     const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
@@ -1061,29 +1064,38 @@ export class MatchScene extends Phaser.Scene {
   }
 
   /**
-   * The crowd reacts once a point is over (never during a rally, so nothing pulls the eye from the ball): it stands up and cheers
-   * for a moment, and cameras flash around the stands on bigger moments (`flashes`).
+   * The crowd reacts once a point is over (never during a rally, so nothing pulls the eye from the ball). It is split into groups:
+   * after an ordinary point nobody, one, two or now and then three groups stand up and cheer (more often when the hero's team won it,
+   * and at least two after a long rally); after a game most of them, after the match everyone, with camera flashes on bigger moments.
+   * Each group stands up a little after the other, so it never looks like one switch.
    */
-  private crowdCheer(holdMs: number, flashes: number): void {
-    const cheer = this.cheer;
-    if (cheer) {
-      this.tweens.killTweensOf(cheer);
+  private crowdCheer(moment: 'point' | 'rally' | 'game' | 'match', heroWon: boolean): void {
+    const r = Math.random() - (heroWon ? 0.12 : 0);
+    let groups = r < 0.28 ? 0 : r < 0.64 ? 1 : r < 0.9 ? 2 : 3;
+    if (moment === 'rally') groups = Math.max(groups, 2);
+    if (moment === 'game') groups = Math.random() < 0.5 ? 3 : CHEER_GROUPS;
+    if (moment === 'match') groups = CHEER_GROUPS;
+    const hold = moment === 'match' ? 1800 : moment === 'game' ? 1300 : moment === 'rally' ? 1000 : 650;
+    const order = Phaser.Utils.Array.Shuffle([...this.cheer]);
+    order.slice(0, groups).forEach((img, i) => {
+      this.tweens.killTweensOf(img);
       this.tweens.chain({
-        targets: cheer,
+        targets: img,
         tweens: [
-          { alpha: 1, duration: 140, ease: 'Quad.easeOut' },
-          { alpha: 1, duration: holdMs },
-          { alpha: 0, duration: 650, ease: 'Quad.easeIn' },
+          { alpha: 1, duration: 160, delay: i * 90 + Math.random() * 160, ease: 'Quad.easeOut' },
+          { alpha: 1, duration: hold + (Math.random() - 0.5) * 400 },
+          { alpha: 0, duration: 550 + Math.random() * 300, ease: 'Quad.easeIn' },
         ],
       });
-    }
+    });
+    const flashes = moment === 'match' ? 18 : moment === 'game' ? 9 : groups >= 2 ? Math.floor(Math.random() * 4) : 0;
     if (flashes <= 0) return;
     this.headSpots ??= standHeads();
     const heads = this.headSpots;
     for (let i = 0; i < flashes; i++) {
       const at = heads[Math.floor(Math.random() * heads.length)];
       if (!at) break;
-      this.time.delayedCall(80 + Math.random() * (holdMs + 300), () => {
+      this.time.delayedCall(80 + Math.random() * (hold + 300), () => {
         const f = this.add.image(at.x, at.y - 2, DOT_KEY).setDepth(-8).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(5, 5).setAlpha(0.95);
         this.tweens.add({ targets: f, alpha: 0, displayWidth: 2, displayHeight: 2, duration: 160, ease: 'Quad.easeIn', onComplete: () => f.destroy() });
       });
@@ -3290,10 +3302,7 @@ export class MatchScene extends Phaser.Scene {
     this.refreshGuts();
     sfx('point');
     this.clearMenu();
-    const bigRally = this.point.hits >= 8;
-    if (this.matchScore.winner !== null) this.crowdCheer(1800, 18);
-    else if (res.gameWon) this.crowdCheer(1300, 9);
-    else this.crowdCheer(bigRally ? 1000 : 650, bigRally ? 5 : 0);
+    this.crowdCheer(this.matchScore.winner !== null ? 'match' : res.gameWon ? 'game' : this.point.hits >= 8 ? 'rally' : 'point', winner === HUMAN_SIDE);
 
     if (this.matchScore.winner !== null) {
       this.celebrate(this.matchScore.winner, true);

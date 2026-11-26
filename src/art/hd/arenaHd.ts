@@ -462,13 +462,13 @@ function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
   return { c, y: y0 };
 }
 
-export function renderArena(scale = 2, theme: CourtTheme = COURT_THEMES[DEFAULT_THEME_ID], opts: { cheer?: boolean } = {}): HdArena {
+export function renderArena(scale = 2, theme: CourtTheme = COURT_THEMES[DEFAULT_THEME_ID], opts: { cheerGroup?: number } = {}): HdArena {
   const { c: back, g } = canvasOf(W * scale, H * scale);
   g.scale(scale, scale);
   const rnd = makeRng(20261119);
   drawBackdrop(g, theme);
   drawRunoff(g, theme, rnd);
-  drawStands(g, theme, scale, opts.cheer === true);
+  drawStands(g, theme, scale, opts.cheerGroup);
   drawLightShafts(g, theme);
   drawBarriers(g, theme);
   drawFloor(g, rnd, theme);

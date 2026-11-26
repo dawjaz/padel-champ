@@ -1,6 +1,22 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.153)_
+_Last updated: 2026-11-26 (v0.154)_
+
+## v0.154: the crowd cheers in groups; a ball off the back glass is never played far over the head
+- Owner after the phone test: not the whole crowd at once after every point. The crowd is split into 4 random groups
+  (`CHEER_GROUPS`, venueHd.ts); `ensureCheerTexture(scene, theme, group)` renders each group cheering and keeps only the pixels that
+  differ from the plain picture, so groups can be faded in together and the walls stay in front. `crowdCheer(moment, heroWon)`:
+  after a point 0 / 1 / 2 / 3 groups (28 / 36 / 26 / 10 %, a little more when the hero's team won it), at least 2 after a rally of 8+
+  hits, 3 or 4 after a game, all after the match; each group stands up a little after the other, flashes only on bigger moments.
+  The 4 renders are made one by one 0.6 to 1.8 s after the match opens.
+- Owner's screenshot: after the opponents' smash the ball came off his back glass and was played about 3 m high (1.5 to 2 m over the
+  head) by the player at the net. Cause: a high rebound that flies back towards the net is cut where it leaves the half, still high.
+  Fix in `buildFlight` (visual only): when the play point off the back glass is above `REACH_MAX_H` (2.3 m), the rebound peak is
+  lowered step by step (same speed, flatter) until it is within reach. A scan of 3402 rally flights off the glass found 122 such
+  balls (smash x3/x4, fast bajada, sky rocket, all with high rebounds); now 0. New test; the rebound-class test allows the capped peak.
+- Not changed (noticed): a good lob that the engine has played before the glass (25% of good lobs) is met just in front of the back
+  glass at 1.8 to 2.9 m, depending on where the hitter stood.
+
 
 ## v0.153: the venue around the court (stands, crowd, boards, courtside), the crowd cheers after points
 - Owner's brief: the match view should look attractive (surroundings, crowd, lights, details) without distracting from play.

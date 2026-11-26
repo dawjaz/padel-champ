@@ -52,18 +52,34 @@ export function ensureArenaTextures(scene: Phaser.Scene, themeId = 'blue'): { ne
 }
 
 /**
- * The crowd celebrating: the same arena picture with the cheering crowd, cut down to the strip that holds the stands. The match fades
- * it in over the picture after a point. Rendered on demand (a second arena render), so call it after the match has started.
+ * One group of the crowd celebrating (see venueHd.ts, CHEER_GROUPS): the arena picture rendered with that group standing and
+ * cheering, cut down to the strip that holds the stands, and made transparent wherever it matches the plain picture. So several
+ * groups can be faded in together over the arena, and the walls in front of the stands stay as they are. Rendered on demand (a second
+ * arena render each), so call it after the match has started.
  */
-export function ensureCheerTexture(scene: Phaser.Scene, themeId = 'blue'): string {
-  const key = ARENA_CHEER_PREFIX + themeId;
+export function ensureCheerTexture(scene: Phaser.Scene, themeId: string, group: number): string {
+  const key = `${ARENA_CHEER_PREFIX}${themeId}:${group}`;
   if (scene.textures.exists(key)) return key;
-  for (const k of scene.textures.getTextureKeys()) if (k.startsWith(ARENA_CHEER_PREFIX)) scene.textures.remove(k);
-  const full = renderArena(HD_SCALE, themeById(themeId), { cheer: true }).back;
+  for (const k of scene.textures.getTextureKeys()) if (k.startsWith(ARENA_CHEER_PREFIX) && !k.startsWith(`${ARENA_CHEER_PREFIX}${themeId}:`)) scene.textures.remove(k);
+  const { backKey } = ensureArenaTextures(scene, themeId);
+  const base = scene.textures.get(backKey).getSourceImage() as HTMLCanvasElement;
+  const full = renderArena(HD_SCALE, themeById(themeId), { cheerGroup: group }).back;
   const strip = document.createElement('canvas');
   strip.width = full.width;
   strip.height = Math.ceil(CHEER_STRIP_H * HD_SCALE);
-  strip.getContext('2d')?.drawImage(full, 0, 0);
+  const g = strip.getContext('2d', { willReadFrequently: true });
+  const bg = base.getContext('2d', { willReadFrequently: true });
+  if (g && bg) {
+    g.drawImage(full, 0, 0);
+    const img = g.getImageData(0, 0, strip.width, strip.height);
+    const ref = bg.getImageData(0, 0, strip.width, strip.height).data;
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const diff = Math.abs(d[i] - ref[i]) + Math.abs(d[i + 1] - ref[i + 1]) + Math.abs(d[i + 2] - ref[i + 2]);
+      d[i + 3] = Math.min(255, diff * 24);
+    }
+    g.putImageData(img, 0, 0);
+  }
   scene.textures.addCanvas(key, strip);
   return key;
 }
