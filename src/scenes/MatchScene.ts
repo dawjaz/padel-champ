@@ -100,6 +100,19 @@ interface RunOutPlan {
   m1: number;
   m2: number;
 }
+/** The shot menu in columns by intent: where each shot stands (see `showShotMenu`). */
+export type ShotFamily = 'd' | 'n' | 'a' | 's';
+const FAMILY_OF: Record<string, [ShotFamily, number, string]> = {
+  rally_lob: ['d', 0, 'Lob'], lob: ['d', 0, 'Lob'],
+  rally_chiquita: ['d', 1, 'Chiquita'], chiquita: ['d', 1, 'Chiquita'],
+  bajada_slow: ['d', 2, 'Bajada Low'], bloqueo: ['d', 3, 'Block'], contrapared: ['d', 4, 'Contrapared'],
+  bounce_shot: ['n', 0, 'Flat shot'], flat: ['n', 0, 'Flat return'], volley: ['n', 1, 'Volley'], dejada: ['n', 2, 'Dejada'],
+  bandeja: ['a', 0, 'Bandeja'], vibora: ['a', 1, 'Vibora'], rulo: ['a', 2, 'Rulo'], smash_x3: ['a', 3, 'Por Tres'], smash_x4: ['a', 4, 'Por Cuatro'], bajada_fast: ['a', 5, 'Bajada High'],
+  sp_skyrocket: ['s', 0, 'Sky Rocket'], sp_venom: ['s', 1, 'Venom Vibora'], sp_cornerlock: ['s', 2, 'Corner Lock'], sp_freeze: ['s', 3, 'Freeze Drop'],
+};
+const FAM_FILL: Record<ShotFamily, number> = { d: 0xd6e5ff, n: 0xeef1f6, a: 0xffe0c7, s: 0xffe9a8 };
+const FAM_STROKE: Record<ShotFamily, number> = { d: 0x2f6df0, n: 0x7b8aa3, a: 0xe0620d, s: 0xc98a00 };
+
 type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off' | 'special';
 
 const TONE_STROKE: Record<Tone, number> = { normal: 0x0b2a5b, good: 0x0e8f5c, poor: 0xd97a00, tired: 0xc62828, off: 0x9aa7bb, special: 0xc98a00 };
@@ -157,6 +170,9 @@ interface ButtonSpec {
   tone: Tone;
   /** Greyed out and not clickable (the shot is not possible now). */
   disabled?: boolean;
+  /** For the column layout: the family (d defence, n neutral, a attack, s special), the place inside it, and the short label. */
+  fam?: ShotFamily;
+  slot?: number;
   onPick: () => void;
 }
 
@@ -1309,7 +1325,7 @@ export class MatchScene extends Phaser.Scene {
     this.menu = [];
   }
 
-  private showButtons(title: string, items: ButtonSpec[], layout?: 'directions'): void {
+  private showButtons(title: string, items: ButtonSpec[], layout?: 'directions' | 'columns'): void {
     this.clearMenu();
     // No caption above the buttons (the owner does not want the "who: shot (ball ...)" line); `title` stays for the callers.
     void title;
@@ -1318,17 +1334,39 @@ export class MatchScene extends Phaser.Scene {
     const cols = compact ? 3 : 2;
     // Direction menu: left / middle / right side by side as the ball goes on the screen, BACK alone below.
     const dirs = layout === 'directions';
+    const colsLayout = layout === 'columns';
+    // Columns by intent: defence | neutral | attack, each shot keeps its order; the specials in a row of their own (a fixed slot each).
+    const place = new Map<ButtonSpec, { x: number; y: number; w: number; h: number }>();
+    if (colsLayout) {
+      const count = { d: 0, n: 0, a: 0 };
+      const hasSp = items.some((it) => it.fam === 's');
+      for (const it of items) if (it.fam && it.fam !== 's') count[it.fam]++;
+      const rows = Math.max(1, Math.max(count.d, count.n, count.a)) + (hasSp ? 1 : 0);
+      const gap = Math.min(48, Math.floor(180 / rows));
+      const bh = Math.max(24, gap - 4);
+      const idx = { d: 0, n: 0, a: 0 };
+      for (const it of [...items].sort((p, q) => (p.slot ?? 0) - (q.slot ?? 0))) {
+        if (it.fam === 's') place.set(it, { x: 48 + (it.slot ?? 0) * 88, y: 454 + gap / 2, w: 84, h: bh });
+        else if (it.fam) {
+          const col = it.fam === 'd' ? 0 : it.fam === 'n' ? 1 : 2;
+          place.set(it, { x: 63 + col * 120, y: 454 + gap * ((hasSp ? 1 : 0) + idx[it.fam]++ + 0.5), w: 114, h: bh });
+        }
+      }
+    }
     // four rows of compact buttons (10-12: the specials on top of a long list) are a little flatter, to stay on the screen
     const tight = items.length > 9;
-    const w = dirs ? 108 : compact ? 112 : 160;
-    const h = dirs ? 56 : tight ? 40 : compact ? 44 : 48;
+    const baseW = dirs ? 108 : compact ? 112 : 160;
+    const baseH = dirs ? 56 : tight ? 40 : compact ? 44 : 48;
     const gapY = tight ? 46 : compact ? 52 : 58;
     const y0 = dirs ? 490 : tight ? 470 : compact ? 478 : 485;
     items.forEach((item, i) => {
-      const x = dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
-      const y = dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
+      const pl = place.get(item);
+      const w = pl ? pl.w : baseW;
+      const h = pl ? pl.h : baseH;
+      const x = pl ? pl.x : dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
+      const y = pl ? pl.y : dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
       const paint = (hover: boolean, pressed: boolean) => (g: Phaser.GameObjects.Graphics): void =>
-        drawCard(g, w, h, { fill: TONE_FILL[item.tone], stroke: TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
+        drawCard(g, w, h, { fill: item.fam ? FAM_FILL[item.fam] : TONE_FILL[item.tone], stroke: item.fam && (item.tone === 'normal' || item.tone === 'special') ? FAM_STROKE[item.fam] : TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
       const baked = bakedShape(this, x - w / 2, y - h / 2, w, h, paint(false, false));
       const gfx = baked.rt.setDepth(9100);
       const redraw = (hover: boolean, pressed = false): void => baked.repaint(paint(hover, pressed));
@@ -1336,7 +1374,7 @@ export class MatchScene extends Phaser.Scene {
       const text = this.add
         .text(x, y, item.label, {
           fontFamily: DISPLAY, resolution: HD_SCALE,
-          fontSize: dirs ? '15px' : compact ? '12px' : '14px',
+          fontSize: pl ? (item.fam === 's' ? '10px' : h >= 34 ? '13px' : '11px') : dirs ? '15px' : compact ? '12px' : '14px',
           color: TONE_TEXT[item.tone],
           align: 'center',
         })
@@ -2049,15 +2087,29 @@ export class MatchScene extends Phaser.Scene {
       return sh.menuLabel ? `${sh.menuLabel} [${sh.cost}]${tired}` : `${sh.name}\n[${sh.cost}]${tired}`;
     };
     // Only the shots that can be played now are offered.
-    const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => ({
-      label: label(sh),
-      tone: this.toneFor(sh, hitter),
-      onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
-    }));
+    const columns = getSave().settings.menu === 'columns';
+    const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => {
+      const f = FAMILY_OF[sh.id];
+      const tired = this.guts[hitter.id] < sh.cost;
+      return {
+        label: columns && f ? `${f[2]} [${sh.cost}]${tired ? '!' : ''}` : label(sh),
+        tone: this.toneFor(sh, hitter),
+        fam: columns && f ? f[0] : undefined,
+        slot: f?.[1],
+        onPick: () => (sh.fixedDirection ? this.performHit(sh, sh.fixedDirection) : this.showDirectionMenu(sh)),
+      };
+    });
     // his special shot, in gold, when the ball allows it
-    for (const sp of specialsFor(hitter, st)) items.unshift(this.specialButton(sp, hitter));
+    for (const sp of specialsFor(hitter, st)) {
+      const b = this.specialButton(sp, hitter);
+      const f = FAMILY_OF[sp.id];
+      if (columns && f) {
+        const short = this.guts[hitter.id] < sp.cost;
+        items.unshift({ ...b, label: `${f[2].toUpperCase()}\n[${sp.cost}]${short ? ' RISKY' : ''}`, fam: 's', slot: f[1] });
+      } else items.unshift(b);
+    }
     this.showHeight(st.ball.height, context);
-    this.showButtons(title, items);
+    this.showButtons(title, items, columns && items.every((it) => it.fam) ? 'columns' : undefined);
     this.tipSoon('shots');
     if (specialsFor(hitter, st).length > 0) this.tipSoon('special');
   }

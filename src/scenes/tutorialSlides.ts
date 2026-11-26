@@ -151,9 +151,9 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     run: (k) => {
       const t = SPOTS[2];
       k.hero.to(POSES.ready, 200);
-      k.at(300, () => { k.chip(244, 32, 112, '1  TYPE', { color: TC.blue }); k.tap(244, 40); });
-      k.at(1300, () => { k.chip(244, 64, 112, '2  SHOT', { color: TC.blue }); k.tap(244, 72); });
-      k.at(2300, () => { k.chip(244, 96, 112, '3  WHERE', { color: TC.orange }); k.tap(t[0], t[1]); k.glow(t[0], t[1], 46, 18, TC.orange); });
+      k.at(300, () => { k.chip(244, 28, 112, 'DEFENCE', { color: TC.blue, on: true, size: 12, h: 24 }); k.chip(244, 56, 112, 'NEUTRAL', { color: 0x7b8aa3, on: true, size: 12, h: 24 }); k.chip(244, 84, 112, 'ATTACK', { color: TC.orange, on: true, size: 12, h: 24 }); });
+      k.at(1300, () => { k.tap(244, 84); });
+      k.at(2300, () => { k.chip(244, 116, 112, 'THEN: WHERE', { color: TC.orange, on: true, size: 12, h: 24 }); k.tap(t[0], t[1]); k.glow(t[0], t[1], 46, 18, TC.orange); });
       k.at(3200, () => k.hero.to(loadPose('fhPrep'), 220));
       k.at(3700, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.shout(96, 150, 'WHAM!', { color: GOLD }); k.ball(h, t, { apex: 56, ms: 900, after: () => k.burst(t[0], t[1], 0xffffff) }); });
     },

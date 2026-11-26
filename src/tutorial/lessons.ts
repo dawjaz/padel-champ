@@ -30,7 +30,7 @@ export const LESSONS: Lesson[] = [
     id: 'basics', group: 'MATCH', title: 'THE BASICS',
     pages: [
       { head: 'THE POINT', art: 'court', text: 'Padel is played in pairs, with walls.\nEvery ball must cross the net and\nbounce in the court before it touches\nanything. After that the walls are yours.' },
-      { head: 'PICK YOUR SHOT', art: 'menu', text: 'Each shot comes from a menu:\npick the TYPE, then the SHOT,\nthen where it should land.' },
+      { head: 'PICK YOUR SHOT', art: 'menu', text: 'The menu is in columns: DEFENCE on the left,\nNEUTRAL in the middle, ATTACK on the right,\nspecials in gold on top. Pick the shot,\nthen touch where it should land.' },
       { head: 'GUTS (G)', art: 'guts', text: 'Every shot costs guts. A tired player\nis slower, weaker and less accurate.\nSoft shots recover; a shot you cannot\npay for is RISKY (red).' },
     ],
   },

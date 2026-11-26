@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.144)_
+_Last updated: 2026-11-26 (v0.145)_
+
+## v0.145: shot menu in columns by intent (owner's test, easy to undo)
+- `MatchScene.showShotMenu` draws the menu in three columns: DEFENCE (left, blue), NEUTRAL (middle, grey), ATTACK (right, orange), each shot in a fixed order inside its column (`FAMILY_OF`), the specials in a gold row on top with a fixed slot each. Quality of the shot (good / poor / tired) stays in the edge colour and the RISKY mark. The rows shrink when a column is long (`showButtons` layout `'columns'`).
+- SETTINGS > SHOT MENU: COLUMNS / LIST switches back to the old plain list (`settings.menu`), so the owner can compare on the phone. Practice Court and other menus still use the list. Prototype page: `proto/menus.html` (layouts A fixed grid, B columns, C two steps).
+- Tutorial: the menu lesson describes the columns.
 
 ## v0.144: tutorial slides corrected after the owner's look
 - Serve slide: all three spots (T, the opponent, the glass) are inside the far court; the glass serve bounces in the court first and then goes on to the side glass. Receive slide: the chips LOB / CHIQUITA / DRIVE no longer hide behind the speech bubbles (bubbles got a `ttl`). After the glass: the ball bounces in the court, then hits the side glass, then goes over the fence. Lob or door: new stage `'outside'` and cast `'side'` (the player stands outside the court beside the side glass with a door in it; LOB goes over the glass, DOOR flat through the opening).
