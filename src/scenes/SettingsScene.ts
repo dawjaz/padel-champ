@@ -40,9 +40,9 @@ export class SettingsScene extends Phaser.Scene {
     }, 'blue', 19);
     themeText(this, WIDTH / 2, 348, 'The scenes between events (a game, a match,\na tournament). A touch always skips them.', { size: 10, color: TC.sub, align: 'center' });
 
-    const menuLabel = (): string => `SHOT MENU: ${getSave().settings.menu === 'columns' ? 'COLUMNS' : 'LIST'}`;
+    const menuLabel = (): string => `SHOT MENU: ${getSave().settings.shotMenu === 'columns' ? 'COLUMNS' : 'LIST'}`;
     const menu = makeThemeButton(this, WIDTH / 2, 398, 260, 42, menuLabel(), () => {
-      updateSave((d) => ({ ...d, settings: { ...d.settings, menu: d.settings.menu === 'columns' ? 'list' : 'columns' } }));
+      updateSave((d) => ({ ...d, settings: { ...d.settings, menu: d.settings.shotMenu === 'columns' ? 'list' : 'columns' } }));
       menu.text.setText(menuLabel());
     }, 'blue', 19);
     themeText(this, WIDTH / 2, 432, 'Columns: defence | neutral | attack, specials on top.\nList: the plain list of what the ball allows.', { size: 10, color: TC.sub, align: 'center' });

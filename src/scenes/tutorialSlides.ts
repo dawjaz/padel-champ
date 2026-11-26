@@ -151,9 +151,9 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     run: (k) => {
       const t = SPOTS[2];
       k.hero.to(POSES.ready, 200);
-      k.at(300, () => { k.chip(244, 28, 112, 'DEFENCE', { color: TC.blue, on: true, size: 12, h: 24 }); k.chip(244, 56, 112, 'NEUTRAL', { color: 0x7b8aa3, on: true, size: 12, h: 24 }); k.chip(244, 84, 112, 'ATTACK', { color: TC.orange, on: true, size: 12, h: 24 }); });
+      k.at(300, () => { k.chip(244, 28, 112, 'LOB', { color: TC.blue, on: false, size: 12, h: 24 }); k.chip(244, 56, 112, 'VIBORA', { color: TC.blue, on: false, size: 12, h: 24 }); k.chip(244, 84, 112, 'DEJADA', { color: TC.blue, on: false, size: 12, h: 24 }); });
       k.at(1300, () => { k.tap(244, 84); });
-      k.at(2300, () => { k.chip(244, 116, 112, 'THEN: WHERE', { color: TC.orange, on: true, size: 12, h: 24 }); k.tap(t[0], t[1]); k.glow(t[0], t[1], 46, 18, TC.orange); });
+      k.at(2300, () => { k.chip(244, 116, 112, '2  WHERE', { color: TC.orange, on: true, size: 12, h: 24 }); k.tap(t[0], t[1]); k.glow(t[0], t[1], 46, 18, TC.orange); });
       k.at(3200, () => k.hero.to(loadPose('fhPrep'), 220));
       k.at(3700, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.shout(96, 150, 'WHAM!', { color: GOLD }); k.ball(h, t, { apex: 56, ms: 900, after: () => k.burst(t[0], t[1], 0xffffff) }); });
     },
@@ -170,7 +170,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     },
   },
   serve: {
-    stage: 'court', period: 7200, cast: 'rally',
+    stage: 'court', period: 8000, cast: 'rally',
     run: (k, c) => {
       // all three serves bounce inside the far court; the third bounces first and then goes on to the side glass
       const spots: Pt[] = [[146, 104], [186, 106], [194, 99]];
@@ -181,11 +181,14 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       k.bubble(sp[0] - (i === 2 ? 20 : 0), 52, `SERVE TO ${names[i]}`, { tail: 'down', size: 10, ttl: 3600 });
       k.hero.to(loadPose('fhPrep'), 260);
       const hit = k.head(k.hero, 'fhHit');
-      const top: Pt = [hit[0], hit[1] - 46];
+      // the ball is dropped from the hand, bounces and is struck on its way down, between knee and hip
+      const top: Pt = [hit[0] + 4, hit[1] - 50];
       k.ballAt(top);
-      k.ball(top, [hit[0], 220], { ms: 380, after: () => k.ball([hit[0], 220], hit, { apex: 24, ms: 420 }) });
-      k.at(1000, () => k.ring(hit[0], hit[1], 760));
-      k.at(1800, () => {
+      k.ball(top, [hit[0] + 4, 222], { ms: 380, after: () => k.ball([hit[0] + 4, 222], hit, { apex: 34, ms: 1700 }) });
+      k.at(500, () => k.bubble(204, 190, 'IT MUST BOUNCE FIRST', { tail: 'left', size: 10, ttl: 1500 }));
+      k.at(1500, () => { k.glow(hit[0] + 26, hit[1] - 4, 10, 44, GREEN); k.bubble(214, 150, 'HIT IT BETWEEN KNEE AND HIP', { tail: 'left', size: 10, ttl: 1500 }); });
+      k.at(500, () => k.ring(hit[0], hit[1], 1650));
+      k.at(2150, () => {
         k.hero.play(strokeSteps('fh'));
         k.tap(hit[0], hit[1]);
         k.shout(100, 150, 'WHAM!', { color: GOLD });
@@ -198,19 +201,22 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     },
   },
   receive: {
-    stage: 'court', period: 7600, cast: 'rally',
+    stage: 'court', period: 8200, cast: 'rally',
     run: (k) => {
       k.rival?.to(loadPose('fhPrep'), 240);
       k.bubble(120, 26, 'HE SERVES...', { tail: 'down', size: 12, ttl: 2300 });
-      k.at(700, () => {
+      // he drops the ball, it bounces, he strikes it
+      k.ballAt([204, 92]);
+      k.ball([204, 92], [204, 122], { ms: 380, after: () => k.ball([204, 122], [200, 104], { apex: 8, ms: 520 }) });
+      k.at(1250, () => {
         k.rival?.play(strokeSteps('fh'));
-        k.ball([186, 112], [150, 176], { apex: 46, ms: 1700, after: () => k.ball([150, 176], [122, 204], { apex: 14, ms: 800 }) });
+        k.ball([200, 104], [150, 176], { apex: 46, ms: 1700, after: () => k.ball([150, 176], [122, 204], { apex: 14, ms: 800 }) });
         k.shout(150, 124, 'SLOW MOTION', { color: GLASS, size: 20, angle: -4 });
       });
-      k.at(3000, () => { k.hero.to(POSES.ready, 200); k.bubble(100, 62, 'READ SPEED, SPIN, DIRECTION', { tail: 'down', size: 11, ttl: 1600 }); });
-      k.at(4100, () => { ['LOB', 'CHIQUITA', 'DRIVE'].forEach((t, i) => k.chip(54 + i * 102, 26, 92, t, { color: TC.blue, on: i === 1, size: 13 })); k.tap(156, 36); });
-      k.at(4900, () => k.hero.to(loadPose('fhPrep'), 220));
-      k.at(5400, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.ballAt(h); k.ball(h, [172, 110], { apex: 30, ms: 650, after: () => k.hideBall() }); });
+      k.at(3600, () => { k.hero.to(POSES.ready, 200); k.bubble(100, 62, 'READ SPEED, SPIN, DIRECTION', { tail: 'down', size: 11, ttl: 1600 }); });
+      k.at(5400, () => { ['LOB', 'CHIQUITA', 'DRIVE'].forEach((t, i) => k.chip(54 + i * 102, 26, 92, t, { color: TC.blue, on: i === 1, size: 13 })); k.tap(156, 36); });
+      k.at(6000, () => k.hero.to(loadPose('fhPrep'), 220));
+      k.at(6500, () => { const h = k.head(k.hero, 'fhHit'); k.hero.play(strokeSteps('fh')); k.ballAt(h); k.ball(h, [172, 110], { apex: 30, ms: 650, after: () => k.hideBall() }); });
     },
   },
   ring: {

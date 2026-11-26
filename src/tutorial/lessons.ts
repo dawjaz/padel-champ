@@ -30,14 +30,14 @@ export const LESSONS: Lesson[] = [
     id: 'basics', group: 'MATCH', title: 'THE BASICS',
     pages: [
       { head: 'THE POINT', art: 'court', text: 'Padel is played in pairs, with walls.\nEvery ball must cross the net and\nbounce in the court before it touches\nanything. After that the walls are yours.' },
-      { head: 'PICK YOUR SHOT', art: 'menu', text: 'The menu is in columns: DEFENCE on the left,\nNEUTRAL in the middle, ATTACK on the right,\nspecials in gold on top. Pick the shot,\nthen touch where it should land.' },
+      { head: 'PICK YOUR SHOT', art: 'menu', text: 'Each shot is a button. Only the shots the\nball allows are offered, specials in gold.\nPick one, then touch the court where\nthe ball should land.' },
       { head: 'GUTS (G)', art: 'guts', text: 'Every shot costs guts. A tired player\nis slower, weaker and less accurate.\nSoft shots recover; a shot you cannot\npay for is RISKY (red).' },
     ],
   },
   {
     id: 'serve', group: 'MATCH', title: 'SERVING AND RECEIVING',
     pages: [
-      { head: 'THE SERVE', art: 'serve', text: 'Serve to the body, the T or the glass.\nA fault gives a slower, easier second\nserve. Hit the serve as the ring closes.' },
+      { head: 'THE SERVE', art: 'serve', text: 'The ball must bounce first: drop it, then hit\nit underarm between your knee and hip.\nSend it diagonally into the opposite box.\nA fault gives a slower, easier second serve.' },
       { head: 'RECEIVING', art: 'receive', text: 'When the opponent serves, the ball flies\nin slow motion: read its speed, spin and\ndirection, THEN pick how to return it.' },
     ],
   },
@@ -137,7 +137,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'camp_serve', group: 'CAMP', title: 'SERVE AND RETURN',
     pages: [
-      { head: 'SERVE INTO THE GAP', art: 'serve', text: 'The receiver stands off-centre. Serve\ninto the gap, then hit the ball as it\ncomes up. On his serve, pick the return\nthat fits the ball.' },
+      { head: 'SERVE INTO THE GAP', art: 'serve', text: 'The receiver stands off-centre. Drop the\nball, let it bounce and serve into the gap\nas the ring closes. On his serve, pick the\nreturn that fits the ball.' },
     ],
   },
   {

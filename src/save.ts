@@ -20,7 +20,7 @@ export interface SaveData {
    */
   /** timing: 'ring' = key shots (smashes, vibora, bandeja, serves) are hit with the timing ring; 'auto' = no ring, neutral. */
   /** cutscenes: the scenes between events in full, in their short cut, or none (see art/cutscenes.ts). */
-  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto'; cutscenes: CutMode; /** The shot menu: columns by intent (defence / neutral / attack) or the plain list. */ menu: 'columns' | 'list' };
+  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto'; cutscenes: CutMode; /** The shot menu: columns by intent (defence / neutral / attack) or the plain list. */ shotMenu: 'columns' | 'list' };
   stats: { played: number; won: number; lost: number };
   profile: Profile;
   /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
@@ -47,7 +47,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full', menu: 'columns' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {}, tips: newTips() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full', shotMenu: 'list' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {}, tips: newTips() };
 }
 
 function count(v: unknown): number {
@@ -68,7 +68,8 @@ export function parseSave(raw: string | null): SaveData {
         aim: p?.settings?.aimPicked === true && p.settings.aim === 'directions' ? 'directions' : 'point',
         ...(p?.settings?.aimPicked === true ? { aimPicked: true } : {}),
         timing: p?.settings?.timing === 'auto' ? 'auto' : 'ring',
-        menu: p?.settings?.menu === 'list' ? 'list' : 'columns',
+        // the columns layout was tried in v0.145 and put back by the owner: the list is the default (an old `menu` value is ignored)
+        shotMenu: p?.settings?.shotMenu === 'columns' ? 'columns' : 'list',
         cutscenes: p?.settings?.cutscenes === 'short' || p?.settings?.cutscenes === 'off' ? p.settings.cutscenes : 'full',
       },
       stats: { played: count(p?.stats?.played), won: count(p?.stats?.won), lost: count(p?.stats?.lost) },

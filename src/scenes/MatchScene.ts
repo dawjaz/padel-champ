@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { drawServeZone, serveBallH, SERVE_DUE_MS, DROP_MS } from '../art/serveDrop';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Coast, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
 import { project, unproject } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
@@ -1925,10 +1926,15 @@ export class MatchScene extends Phaser.Scene {
    * out. After the choice the same flight carries on from where it was. The time depends on the receiver's guts (G): the fewer he
    * has, the less time. When the bar runs out the receiver never touches the ball and the server gets an ace.
    */
-  private previewServe(shot: ShotDef): void {
+  private previewServe(shot: ShotDef, dropped = false): void {
     const st = this.point;
     const server = TEAMS[st.servingSide][st.serverIdx];
     const receiver = TEAMS[other(st.servingSide)][st.receiverIdx];
+    // the server drops the ball and strikes it after the bounce, then the receiver reads it
+    if (!dropped) {
+      this.serveDrop(() => this.previewServe(shot, true));
+      return;
+    }
     const seed = Math.floor(Math.random() * 1e9);
     const probe = stepServe(TEAMS, st, shot, seededRng(seed), 'bounce');
     const startH = this.ballH;
@@ -1936,13 +1942,13 @@ export class MatchScene extends Phaser.Scene {
     const bounce = flight.events.find((e) => e.kind === 'bounce');
     // A fault is a fault whatever the receiver does: no decision, the serve just plays.
     if (probe.step.outcome === 'fault') {
-      this.performServe(shot, 'bounce', { seed });
+      this.performServe(shot, 'bounce', { seed, dropped: true });
       return;
     }
     if (!bounce || flight.duration <= 0) {
       this.showButtons(`${receiver.name}: take it...`, [
-        { label: 'AFTER BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce') },
-        { label: 'WAIT FOR THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall') },
+        { label: 'AFTER BOUNCE\nfast, clean', tone: 'normal', onPick: () => this.performServe(shot, 'bounce', { dropped: true }) },
+        { label: 'WAIT FOR THE GLASS\nmore time', tone: 'normal', onPick: () => this.performServe(shot, 'wall', { dropped: true }) },
       ]);
       return;
     }
@@ -2087,7 +2093,7 @@ export class MatchScene extends Phaser.Scene {
       return sh.menuLabel ? `${sh.menuLabel} [${sh.cost}]${tired}` : `${sh.name}\n[${sh.cost}]${tired}`;
     };
     // Only the shots that can be played now are offered.
-    const columns = getSave().settings.menu === 'columns';
+    const columns = getSave().settings.shotMenu === 'columns';
     const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => {
       const f = FAMILY_OF[sh.id];
       const tired = this.guts[hitter.id] < sh.cost;
@@ -2282,7 +2288,7 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(g);
   }
 
-  private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number; timing?: number }): void {
+  private performServe(shot: ShotDef, receive: ReceiveMode, opts?: { seed?: number; from?: number; startH?: number; timing?: number; dropped?: boolean }): void {
     this.hideHeight();
     const st = this.point;
     // your own serve with the timing ring: the ball is dropped, bounces, and you touch as the ring closes on it
@@ -2290,9 +2296,43 @@ export class MatchScene extends Phaser.Scene {
       this.timingRing('serve', TEAMS[st.servingSide][st.serverIdx], (q) => this.performServe(shot, receive, { ...opts, timing: q }));
       return;
     }
+    // every other serve (the opponents', your partner's, yours without the ring) is also dropped and struck after the bounce
+    if (opts?.timing === undefined && opts?.from === undefined && opts?.dropped !== true) {
+      this.serveDrop(() => this.performServe(shot, receive, { ...opts, dropped: true }));
+      return;
+    }
     const { state, step } = stepServe(TEAMS, st, shot, opts?.seed !== undefined ? seededRng(opts.seed) : Math.random, receive, false, opts?.timing);
     this.courtCount(step, opts?.timing);
     this.playStep(step, state, opts);
+  }
+
+  /** The serve without the ring: the ball is dropped, bounces and is struck between the knee and the hip, then `done` plays the shot. */
+  private serveDrop(done: () => void): void {
+    const at = { ...this.ballFloor };
+    const t0 = this.time.now;
+    const zone = this.add.graphics().setDepth(9989);
+    drawServeZone(zone, project, at.x, at.z);
+    this.ball.setVisible(true);
+    let bounced = false;
+    const tick = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const ms = this.time.now - t0;
+        const h = serveBallH(Math.min(ms, SERVE_DUE_MS));
+        this.setBall(at.x, at.z, h, false);
+        if (!bounced && ms >= DROP_MS) {
+          bounced = true;
+          sfx('select', 0.35);
+        }
+        if (ms >= SERVE_DUE_MS) {
+          tick.remove();
+          zone.destroy();
+          this.ballH = Math.max(0.3, h);
+          done();
+        }
+      },
+    });
   }
 
   private performHit(shot: ShotDef, direction: Direction, prefer?: AimPreference, options?: HitOptions, cutDone = false): void {
@@ -2411,24 +2451,24 @@ export class MatchScene extends Phaser.Scene {
     const at = { ...this.ballFloor };
     const hitH = this.ballH;
     const window = ringWindow(hitter);
-    const due = kind === 'serve' ? 1000 : 900;
-    const drop = 420;
+    const due = kind === 'serve' ? SERVE_DUE_MS : 900;
+    const drop = DROP_MS;
     const ballAt = (ms: number): number => {
       if (kind !== 'serve') {
         const u = Math.min(1.3, ms / due);
         return Math.max(0.3, hitH + 1.6 * (1 - u));
       }
-      // dropped from the hand, a bounce, up to the hitting height at `due`
-      if (ms < drop) return (hitH + 0.3) * (1 - (ms / drop) ** 2);
-      const u = Math.min(1.5, (ms - drop) / (due - drop));
-      return Math.max(0, hitH * (2 * u - u * u));
+      // dropped from the hand, a bounce, up to the hip and down again: struck between the knee and the hip (art/serveDrop.ts)
+      return serveBallH(ms, drop, due);
     };
     // he loads the shot while it comes: the racket back over the head (an overhead) or low behind him (the serve)
     if (kind === 'high') this.setPose(hitter.id, 'smashPrep');
     else if (kind === 'out') this.setPose(hitter.id, 'fhPrep');
     const ring = this.add.graphics().setDepth(9990);
+    const zone = kind === 'serve' ? this.add.graphics().setDepth(9989) : null;
+    if (zone) drawServeZone(zone, project, at.x, at.z);
     const hint = this.add
-      .text(WIDTH / 2, 470, 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
+      .text(WIDTH / 2, 470, kind === 'serve' ? 'THE BALL MUST BOUNCE: HIT IT BETWEEN KNEE\nAND HIP, WHEN THE RING CLOSES' : 'TOUCH WHEN THE RING\nCLOSES ON THE BALL', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '15px', color: '#ffe066', align: 'center' })
       .setOrigin(0.5)
       .setDepth(9996)
       .setStroke('#0b2a5b', 5);
@@ -2444,6 +2484,7 @@ export class MatchScene extends Phaser.Scene {
       tap.destroy();
       hint.destroy();
       ring.destroy();
+      zone?.destroy();
       const q = ringQuality(offMs, window);
       const ms1 = Math.min(this.time.now - t0, due + window);
       const q1 = pathAt ? pathAt(ms1) : { x: at.x, z: at.z, h: ballAt(ms1) };

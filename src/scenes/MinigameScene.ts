@@ -5,6 +5,7 @@ import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { project, unproject } from '../art/camera';
 import { ballPoint, buildFlight, flightDuration, type Flight } from '../art/ballPath';
 import { themeIdOfCity } from '../art/hd/courtThemes';
+import { drawServeZone, serveBallH } from '../art/serveDrop';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { ARENA_NET_KEY, BALL_KEY, ensureArenaTextures, ensureBallTextures, ensureFlatTextures, SHADOW_KEY } from '../art/hdTextures';
 import {
@@ -664,6 +665,30 @@ export class MinigameScene extends Phaser.Scene {
     this.layer.push(tip);
   }
 
+  /** The ball of a serve dropped from the hand, bounced and struck between the knee and the hip (for the rival's serve); `done` at the moment of the hit. */
+  private dropBall(at: { x: number; z: number }, dueMs: number, done: () => void): void {
+    const t0 = this.time.now;
+    const zone = this.add.graphics().setDepth(9150);
+    drawServeZone(zone, project, at.x, at.z);
+    this.layer.push(zone);
+    this.ball.setVisible(true);
+    this.ballShadow.setVisible(true);
+    this.spin(0.3, 0, at, { x: at.x, z: at.z + 1 });
+    const tick = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const ms = Math.min(this.time.now - t0, dueMs);
+        this.placeBall(at.x, at.z, serveBallH(ms, 420, dueMs));
+        if (ms >= dueMs) {
+          tick.remove();
+          zone.destroy();
+          done();
+        }
+      },
+    });
+  }
+
   /** A flat serve turns a little, a kick serve spins hard forward, a slice turns on its side with backspin. */
   private spinOfServe(kind: ServeKind, dir: number, a: { x: number; z: number }, b: { x: number; z: number }): void {
     const top = kind === 'kick' ? 1.7 : kind === 'slice' ? -0.5 : 0.5;
@@ -674,7 +699,7 @@ export class MinigameScene extends Phaser.Scene {
   /** The underhand padel serve: the ball dropped, its bounce, the hit as it comes up (the ring closes on it). */
   private serveToss(open: ServeSpot, spot: ServeSpot): void {
     this.clearLayer();
-    this.hint('TOUCH WHEN THE RING\nCLOSES ON THE BALL');
+    this.hint('THE BALL MUST BOUNCE: HIT IT BETWEEN\nKNEE AND HIP, WHEN THE RING CLOSES');
     const c = this.heroView.contact(0.75);
     const dropMs = 520;
     const due = 1150;
@@ -687,12 +712,11 @@ export class MinigameScene extends Phaser.Scene {
     this.layer.push(ring);
     const sweet = tossWindow(this.hero) * 0.4;
     let done = false;
-    // dropped from 1.2 m, bounces, comes up to 0.8 m at `due`
-    const ballH = (ms: number): number => {
-      if (ms < dropMs) return 1.2 * (1 - (ms / dropMs) ** 2);
-      const u = Math.min(1.6, (ms - dropMs) / (due - dropMs));
-      return Math.max(0, 0.8 * (2 * u - u * u));
-    };
+    // dropped from the hand, bounces, rises to the hip and drops again: struck between the knee and the hip (art/serveDrop.ts)
+    const ballH = (ms: number): number => serveBallH(ms, dropMs, due);
+    const zone = this.add.graphics().setDepth(9150);
+    drawServeZone(zone, project, c.x, c.z);
+    this.layer.push(zone);
     const hit = (offMs: number | null): void => {
       if (done) return;
       done = true;
@@ -790,7 +814,8 @@ export class MinigameScene extends Phaser.Scene {
       const land = { x: a.x, z: NET_Z + a.depth, h: 0 };
       const from = rv.contact(0.7);
       rv.prep('fhPrep', 0.6);
-      this.time.delayedCall(300, () => {
+      // he drops the ball, it bounces, and he strikes it on the way down (between knee and hip)
+      this.dropBall(from, 1000, () => {
         rv.stroke('fh', 0.6);
         sfx('hit');
         const spin = SERVE_SPIN[r.kind];
