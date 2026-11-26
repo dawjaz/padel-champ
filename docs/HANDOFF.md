@@ -1,6 +1,25 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.152)_
+_Last updated: 2026-11-26 (v0.153)_
+
+## v0.153: the venue around the court (stands, crowd, boards, courtside), the crowd cheers after points
+- Owner's brief: the match view should look attractive (surroundings, crowd, lights, details) without distracting from play.
+- New `src/art/hd/venueHd.ts`, drawn into the arena picture in court metres with the match camera: stands on three sides (9 stepped rows,
+  aisles, a seated crowd in the game's big-head proportions: shirts, skin, hair or caps, some empty seats), barriers with LED boards
+  (POR TRES / PADEL CAREER / WORLD TOUR) behind the far glass and along both sides, a dark run-off carpet lit near the court, and
+  courtside details: umpire on a high chair at the net (left), two team benches with towels, bottles, bags (right), ball kids at the far
+  corners, a TV camera with operator (far right), a photographer (far left), a ball basket.
+- Readability: the stands are drawn on their own layer and softened (down- and up-sampled, a depth of field that works without canvas
+  filters), darker and hazier the higher they go; nothing new stands inside the walls; colours come from the city theme (boards, seats,
+  carpet, crowd accents), so every city still looks different. The ad board at the foot of the far glass is gone (the barrier boards
+  behind it took its place). Theme fields `crowdStep`/`crowdAlpha` removed (unused).
+- Crowd reaction: `ensureCheerTexture` (hdTextures.ts) renders the same crowd standing with arms up, scarves and flags, cut to the top
+  160 px strip; MatchScene fades it in after every point (`crowdCheer`: 0.65 s, 1 s after a rally of 8+ hits, 1.3 s after a game, 1.8 s
+  after the match) with camera flashes in the stands on bigger moments (`standHeads()`). Nothing moves in the stands during a rally.
+- Cost: arena render about 120 ms at 6x CPU throttling (was about 30 ms), once per city theme; the cheer render (same cost) runs 0.6 s
+  after the match opens.
+- Checked in desktop Chrome at 360x640: all six themes, the match view with HUD and players, the cheer. Not checked on a phone yet.
+
 
 ## v0.152: brand C (fireball) in the game: intro, start screen, icons, title bar
 - Owner chose direction C from round 2 (the fireball). Assets and icon sets: `design/brand/README.md`.

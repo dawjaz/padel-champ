@@ -9,6 +9,9 @@ export const BALL_KEY = 'hd:ball';
 export const GLOW_KEY = 'hd:glow';
 export const ARENA_BACK_PREFIX = 'hd:arena-back:';
 export const ARENA_NET_KEY = 'hd:arena-net';
+export const ARENA_CHEER_PREFIX = 'hd:arena-cheer:';
+/** Logical height of the top strip of the arena picture that holds the crowd (the cheering crowd only changes this strip). */
+export const CHEER_STRIP_H = 160;
 
 /** Logical y (in the 360x640 screen) of the top of the net strip, filled in by `ensureArenaTextures`. */
 let netTopY = 0;
@@ -46,6 +49,23 @@ export function ensureArenaTextures(scene: Phaser.Scene, themeId = 'blue'): { ne
     netTopY = arena.netY;
   }
   return { netY: netTopY, backKey };
+}
+
+/**
+ * The crowd celebrating: the same arena picture with the cheering crowd, cut down to the strip that holds the stands. The match fades
+ * it in over the picture after a point. Rendered on demand (a second arena render), so call it after the match has started.
+ */
+export function ensureCheerTexture(scene: Phaser.Scene, themeId = 'blue'): string {
+  const key = ARENA_CHEER_PREFIX + themeId;
+  if (scene.textures.exists(key)) return key;
+  for (const k of scene.textures.getTextureKeys()) if (k.startsWith(ARENA_CHEER_PREFIX)) scene.textures.remove(k);
+  const full = renderArena(HD_SCALE, themeById(themeId), { cheer: true }).back;
+  const strip = document.createElement('canvas');
+  strip.width = full.width;
+  strip.height = Math.ceil(CHEER_STRIP_H * HD_SCALE);
+  strip.getContext('2d')?.drawImage(full, 0, 0);
+  scene.textures.addCanvas(key, strip);
+  return key;
 }
 
 export const SHADOW_KEY = 'flat:shadow';

@@ -12,7 +12,8 @@ import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } f
 import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { chooseStance, standingSpot } from '../art/stance';
 import { themeIdOfCity } from '../art/hd/courtThemes';
-import { ARENA_NET_KEY, BALL_KEY, DOT_KEY, ensureArenaTextures, ensureBallTextures, ensureCoinTexture, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
+import { standHeads } from '../art/hd/venueHd';
+import { ARENA_NET_KEY, BALL_KEY, CHEER_STRIP_H, DOT_KEY, ensureArenaTextures, ensureCheerTexture, ensureBallTextures, ensureCoinTexture, ensureFlatTextures, GLOW_KEY, RING_KEY, SHADOW_KEY } from '../art/hdTextures';
 import { impactSound, powerSmashSound, sfx } from '../audio';
 import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
@@ -200,6 +201,9 @@ export class MatchScene extends Phaser.Scene {
   private serveSpots: Record<string, CourtPos> = {};
   private pointsWon: [number, number] = [0, 0];
   private longestRally = 0;
+  /** The cheering crowd over the stands (see crowdCheer); null until it has been rendered. */
+  private cheer: Phaser.GameObjects.Image | null = null;
+  private headSpots: Array<{ x: number; y: number }> | null = null;
   /** Points the hero's side won with certain shots (for the daily tasks). */
   private dailyWins = { smash: 0, dejada: 0, viboraBandeja: 0, bajada: 0, ace: 0 };
   /** Extra guts recovery of the hero from consumables (0.1 = +10%). */
@@ -550,8 +554,15 @@ export class MatchScene extends Phaser.Scene {
   // ---------- arena: a pre-rendered, lit picture of the court (see art/hd/arenaHd.ts) ----------
 
   private drawArenaHd(): void {
-    const { netY, backKey } = ensureArenaTextures(this, themeIdOfCity(this.career?.city));
+    const themeId = themeIdOfCity(this.career?.city);
+    const { netY, backKey } = ensureArenaTextures(this, themeId);
     this.add.image(0, 0, backKey).setOrigin(0, 0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
+    // The cheering crowd: a second render of the stands, made just after the match has started so it does not delay the opening.
+    this.cheer = null;
+    this.time.delayedCall(600, () => {
+      if (!this.scene.isActive()) return;
+      this.cheer = this.add.image(0, 0, ensureCheerTexture(this, themeId)).setOrigin(0, 0).setDisplaySize(WIDTH, CHEER_STRIP_H).setDepth(-9).setAlpha(0);
+    });
     this.paintLetterbox(backKey);
     // The net is its own strip, sorted with the players: far players stand behind it, near players in front.
     const net = this.add.image(0, netY, ARENA_NET_KEY).setOrigin(0, 0).setDepth(project(0, NET_Z).y);
@@ -1047,6 +1058,36 @@ export class MatchScene extends Phaser.Scene {
       if (match) this.time.delayedCall(420, () => this.jump(p.id, 12, 300));
     }
     if (match) for (const p of TEAMS[other(winner)]) this.react(p.id, disappointSteps());
+  }
+
+  /**
+   * The crowd reacts once a point is over (never during a rally, so nothing pulls the eye from the ball): it stands up and cheers
+   * for a moment, and cameras flash around the stands on bigger moments (`flashes`).
+   */
+  private crowdCheer(holdMs: number, flashes: number): void {
+    const cheer = this.cheer;
+    if (cheer) {
+      this.tweens.killTweensOf(cheer);
+      this.tweens.chain({
+        targets: cheer,
+        tweens: [
+          { alpha: 1, duration: 140, ease: 'Quad.easeOut' },
+          { alpha: 1, duration: holdMs },
+          { alpha: 0, duration: 650, ease: 'Quad.easeIn' },
+        ],
+      });
+    }
+    if (flashes <= 0) return;
+    this.headSpots ??= standHeads();
+    const heads = this.headSpots;
+    for (let i = 0; i < flashes; i++) {
+      const at = heads[Math.floor(Math.random() * heads.length)];
+      if (!at) break;
+      this.time.delayedCall(80 + Math.random() * (holdMs + 300), () => {
+        const f = this.add.image(at.x, at.y - 2, DOT_KEY).setDepth(-8).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(5, 5).setAlpha(0.95);
+        this.tweens.add({ targets: f, alpha: 0, displayWidth: 2, displayHeight: 2, duration: 160, ease: 'Quad.easeIn', onComplete: () => f.destroy() });
+      });
+    }
   }
 
   /** Shows the player in a pose (glides into it; a stroke's preparation is wound up a little further, see `loadPose`). */
@@ -3249,6 +3290,10 @@ export class MatchScene extends Phaser.Scene {
     this.refreshGuts();
     sfx('point');
     this.clearMenu();
+    const bigRally = this.point.hits >= 8;
+    if (this.matchScore.winner !== null) this.crowdCheer(1800, 18);
+    else if (res.gameWon) this.crowdCheer(1300, 9);
+    else this.crowdCheer(bigRally ? 1000 : 650, bigRally ? 5 : 0);
 
     if (this.matchScore.winner !== null) {
       this.celebrate(this.matchScore.winner, true);

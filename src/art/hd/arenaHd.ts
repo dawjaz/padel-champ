@@ -1,6 +1,7 @@
 import { NET_Z, NET_HEIGHT_M, project, type Projected } from '../camera';
 import { BACK_WALL, OPENING_HEIGHT, openingsIn, sideWallSegments } from '../walls';
 import { COURT_THEMES, DEFAULT_THEME_ID, type CourtTheme } from './courtThemes';
+import { drawBackdrop, drawBarriers, drawCourtside, drawRunoff, drawStands } from './venueHd';
 
 /**
  * STYLIZED 2D/3D look: a faux-3D court (raised slab with visible thickness, ambient occlusion, cast shadows, specular sheen, thick glass, cylindrical posts) drawn as a high-resolution picture (Canvas2D, pure and browser-testable).
@@ -51,46 +52,20 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function drawStands(g: Ctx, rnd: () => number, theme: CourtTheme): void {
-  // Dusk arena: soft gradient and an out-of-focus crowd made of bokeh blobs (cheap: no filters).
-  const sky = g.createLinearGradient(0, 0, 0, 112);
-  sky.addColorStop(0, theme.skyTop);
-  sky.addColorStop(1, theme.skyBottom);
-  g.fillStyle = sky;
-  g.fillRect(0, 0, W, 112);
-  const tones = theme.crowd;
-  for (let row = 0; row < 5; row++) {
-    for (let x = -6; x < W + 6; x += theme.crowdStep - row * 0.4) {
-      const y = 30 + row * 14 + (rnd() - 0.5) * 3;
-      const r = 3.2 + row * 0.5 + rnd() * 1.2;
-      const gl = g.createRadialGradient(x, y, 0, x, y, r);
-      const col = tones[Math.floor(rnd() * tones.length)];
-      gl.addColorStop(0, col + theme.crowdAlpha);
-      gl.addColorStop(1, col + '00');
-      g.fillStyle = gl;
-      g.fillRect(x - r, y - r, r * 2, r * 2);
-    }
-  }
-  // Big warm spotlights with soft cones
-  for (const x of [34, W - 34]) {
-    const cone = g.createRadialGradient(x, -4, 2, x, -4, 230);
-    cone.addColorStop(0, `rgba(${theme.spot},0.3)`);
-    cone.addColorStop(0.3, `rgba(${theme.spot},0.1)`);
+/** Soft light from the lamps above the picture: two wide, faint cones over the stands. */
+function drawLightShafts(g: Ctx, theme: CourtTheme): void {
+  for (const x of [40, W - 40]) {
+    const cone = g.createRadialGradient(x, -10, 2, x, -10, 200);
+    cone.addColorStop(0, `rgba(${theme.spot},0.2)`);
+    cone.addColorStop(0.35, `rgba(${theme.spot},0.06)`);
     cone.addColorStop(1, `rgba(${theme.spot},0)`);
     g.fillStyle = cone;
-    g.fillRect(0, 0, W, 240);
+    g.fillRect(0, 0, W, 210);
   }
 }
 
 function drawFloor(g: Ctx, rnd: () => number, theme: CourtTheme): void {
   const P = project;
-  // Ground: dark soft studio floor with a pool of light
-  const ground = g.createLinearGradient(0, 96, 0, 400);
-  ground.addColorStop(0, theme.groundTop);
-  ground.addColorStop(1, theme.groundBottom);
-  g.fillStyle = ground;
-  g.fillRect(0, 96, W, 304);
-
   // Slab: the court is a raised block. Front and side faces first.
   const T = -0.45;
   const slabFront = [P(-5, 20, 0), P(5, 20, 0), P(5, 20, T), P(-5, 20, T)];
@@ -354,39 +329,10 @@ function padPost(g: Ctx, at: At, u: number, h1: number): void {
   g.lineCap = 'butt';
 }
 
-function drawAds(g: Ctx, theme: CourtTheme): void {
-  const P = project;
-  const strip = [P(-5, 0, 0), P(5, 0, 0), P(5, 0, 0.55), P(-5, 0, 0.55)];
-  const grad = g.createLinearGradient(0, strip[3].y, 0, strip[0].y);
-  grad.addColorStop(0, theme.adTop);
-  grad.addColorStop(0.5, theme.adMid);
-  grad.addColorStop(1, theme.adBottom);
-  g.fillStyle = grad;
-  poly(g, strip);
-  g.fill();
-  // Glossy LED board: bright top edge and a soft highlight
-  g.fillStyle = 'rgba(255,255,255,0.16)';
-  g.fillRect(strip[0].x, strip[3].y, strip[1].x - strip[0].x, (strip[0].y - strip[3].y) * 0.4);
-  g.fillStyle = 'rgba(255,255,255,0.7)';
-  g.fillRect(strip[0].x, strip[3].y, strip[1].x - strip[0].x, 0.9);
-  const base = P(0, 0, 0.27);
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.font = `italic 800 ${Math.round(base.scale * 0.34)}px "Trebuchet MS", "Segoe UI", Arial, sans-serif`;
-  for (const x of [-3.3, 0, 3.3]) {
-    const p = P(x, 0, 0.27);
-    g.fillStyle = 'rgba(0,0,30,0.6)';
-    g.fillText('POR TRES', p.x + 0.7, p.y + 1);
-    g.fillStyle = '#ffe066';
-    g.fillText('POR TRES', p.x, p.y);
-  }
-}
-
-function drawWalls(g: Ctx, theme: CourtTheme): void {
+function drawWalls(g: Ctx): void {
   const P = project;
   const back: At = (x, h) => P(x, 0, h);
   const BW = BACK_WALL;
-  drawAds(g, theme);
   glassBand(g, back, -5, 5, 0, BW.glass, 2, 11);
   meshBand(g, back, -5, 5, BW.glass, BW.glass + BW.mesh);
   for (let x = -5; x <= 5; x += 2.5) post(g, back, x, BW.glass + BW.mesh);
@@ -516,13 +462,18 @@ function drawNet(scale: number): { c: HTMLCanvasElement; y: number } {
   return { c, y: y0 };
 }
 
-export function renderArena(scale = 2, theme: CourtTheme = COURT_THEMES[DEFAULT_THEME_ID]): HdArena {
+export function renderArena(scale = 2, theme: CourtTheme = COURT_THEMES[DEFAULT_THEME_ID], opts: { cheer?: boolean } = {}): HdArena {
   const { c: back, g } = canvasOf(W * scale, H * scale);
   g.scale(scale, scale);
   const rnd = makeRng(20261119);
-  drawStands(g, rnd, theme);
+  drawBackdrop(g, theme);
+  drawRunoff(g, theme, rnd);
+  drawStands(g, theme, scale, opts.cheer === true);
+  drawLightShafts(g, theme);
+  drawBarriers(g, theme);
   drawFloor(g, rnd, theme);
-  drawWalls(g, theme);
+  drawCourtside(g, theme);
+  drawWalls(g);
   drawVignette(g);
   drawMenuBackdrop(g);
   const net = drawNet(scale);
