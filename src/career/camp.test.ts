@@ -152,7 +152,7 @@ describe('camp minigames', () => {
     expect(tossQuality(hero, tossWindow(hero) * 1.1)).toBe(0);
   });
   it('return: the right answer to the serve on time scores high, the wrong one low, a miss nothing', () => {
-    const r = { ...returnRound(0, seededRng(1)), kind: 'slice' as const, spot: 'T' as const };
+    const r = { ...returnRound(seededRng(1)), kind: 'slice' as const, spot: 'T' as const };
     expect(returnResult(hero, r, 'chiquita', 0).points).toBe(100);
     expect(returnResult(hero, r, 'lob', 0).points).toBeLessThan(40);
     expect(returnResult(hero, r, 'chiquita', returnWindow(hero) * 1.2).tier).toBe('error');

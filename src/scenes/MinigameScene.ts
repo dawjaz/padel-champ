@@ -27,6 +27,20 @@ const NAVY_CSS = '#0b2a5b';
 const shot = (id: string): ShotDef => SHOTS.find((s) => s.id === id)!;
 const TARGET_SHOT = 'bounce_shot';
 /** Seconds of ball flight per screen of the parabola animation (the camp is quicker than a match). */
+/** Serves fly at this pace (ms per metre), the hero's and the opponent's alike; after the bounce a little slower. */
+const SERVE_MS_PER_M = 85;
+const AFTER_BOUNCE_MS_PER_M = 115;
+/**
+ * The apex an arc needs so that it passes over the net (0.88 m in the middle, 0.92 at the sides) with some room, if it crosses it; an
+ * arc meant to end in the net (it stops at the net) is left alone.
+ */
+function netClearApex(from: { z: number; h: number }, to: { z: number; h: number }, apex: number): number {
+  if ((from.z - NET_Z) * (to.z - NET_Z) >= 0) return apex;
+  const u = (from.z - NET_Z) / (from.z - to.z);
+  const lin = from.h + (to.h - from.h) * u;
+  const need = (1.1 - lin) / (4 * u * (1 - u));
+  return Math.max(apex, need);
+}
 const FLIGHT_MS_PER_M = 55;
 
 type Landing = { x: number; depth: number; miss?: string };
@@ -168,7 +182,7 @@ export class MinigameScene extends Phaser.Scene {
     if (this.gameId === 'targets') this.zoneRound(targetZone(Math.random, this.round));
     else if (this.gameId === 'serve') {
       if (isServeRound(this.round)) this.serveRound(openSpotOf(Math.random));
-      else this.returnRound(returnRound(this.round, Math.random));
+      else this.returnRound(returnRound(Math.random));
     }
     else if (this.gameId === 'smash') this.smashRound(smashRound(this.round, Math.random));
     else this.timingRound(timingRound(this.hero, this.round, Math.random));
@@ -193,6 +207,7 @@ export class MinigameScene extends Phaser.Scene {
 
   /** Animates a ball along a parabola from `from` to `to` (court metres, heights), then calls `done`. */
   private flyArc(from: { x: number; z: number; h: number }, to: { x: number; z: number; h: number }, apex: number, done: () => void, msPerM = FLIGHT_MS_PER_M): void {
+    apex = netClearApex(from, to, apex);
     const dist = Math.hypot(to.x - from.x, to.z - from.z);
     const ms = Math.max(msPerM < FLIGHT_MS_PER_M ? 200 : 420, dist * msPerM);
     this.ball.setVisible(true);
@@ -661,7 +676,7 @@ export class MinigameScene extends Phaser.Scene {
           this.flyArc({ ...c, h: 0.1 }, { x: c.x + 0.3, z: c.z + 0.6, h: 0 }, 0.2, () => this.serveDone(0, 'MISSED', false));
           return;
         }
-        this.flyArc(from, { x: land.x * 0.5, z: NET_Z + 0.1, h: 0.4 }, 0.3, () => this.serveDone(out.points, 'FAULT', false), 85);
+        this.flyArc(from, { x: land.x * 0.5, z: NET_Z + 0.1, h: 0.4 }, 0.3, () => this.serveDone(out.points, 'FAULT', false), SERVE_MS_PER_M);
         return;
       }
       this.flyArc(from, land, 1.0, () => {
@@ -670,7 +685,7 @@ export class MinigameScene extends Phaser.Scene {
         if (out.tier === 'ace') {
           rv.react([[260, { ...POSES.ready, crouch: 10 }, inOut]]);
           const past = rollOn(from, land, 0.2);
-          this.flyVia(land, past, 0.9, () => this.serveDone(out.points, 'ACE! +100', true), 85);
+          this.flyVia(land, past, 0.9, () => this.serveDone(out.points, 'ACE! +100', true), SERVE_MS_PER_M);
           return;
         }
         const roll = rollOn(from, land, rv.z + 0.35);
@@ -684,8 +699,8 @@ export class MinigameScene extends Phaser.Scene {
           if (out.tier === 'weak') this.flyArc(meet, { x: lane * 1, z: NET_Z + 2.6, h: 0 }, 5.5, () => this.serveDone(out.points, 'WEAK RETURN +70', true));
           else if (out.tier === 'average') this.flyArc(meet, { x: 0, z: NET_Z + 6, h: 0 }, 2.4, () => this.serveDone(out.points, '+30', true));
           else this.flyArc(meet, { x: lane * 1.4, z: NET_Z + 8.6, h: 0 }, 0.9, () => this.serveDone(out.points, 'HE WAS READY', false), 55);
-        }, 85);
-      }, 85);
+        }, SERVE_MS_PER_M);
+      }, SERVE_MS_PER_M);
     };
     const tick = this.time.addEvent({
       delay: 16,
@@ -729,7 +744,7 @@ export class MinigameScene extends Phaser.Scene {
       this.time.delayedCall(300, () => {
         rv.stroke('fh', 0.6);
         sfx('hit');
-        this.flyArc(from, land, r.kind === 'kick' ? 2.0 : r.kind === 'slice' ? 1.0 : 0.6, () => this.askReturn(r, from, land), 220);
+        this.flyArc(from, land, 1.0, () => this.askReturn(r, from, land), SERVE_MS_PER_M);
         this.time.delayedCall(500, () => rv.runTo(-lane * 1.2, NET_Z - 2.6, 900));
       });
     });
@@ -777,17 +792,20 @@ export class MinigameScene extends Phaser.Scene {
     const meet = { x: meetXZ.x, z: meetXZ.z, h };
     const segs = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i].x, p.z - pts[i].z));
     const total = segs.reduce((x, y) => x + y, 0) || 1;
+    // a short beat with the ball at the bounce (the ring starts closing), then it comes on at the pace of a ball off the bounce
+    const lead = 450;
+    const due = lead + Math.max(260, total * AFTER_BOUNCE_MS_PER_M);
     const bh = meet.x - this.heroView.x < -0.2;
-    this.heroView.runTo(meet.x - (bh ? -0.55 : 0.5), meet.z + 0.35, Math.min(500, r.closeMs * 0.4), () => this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', meet.h));
+    this.heroView.runTo(meet.x - (bh ? -0.55 : 0.5), meet.z + 0.35, Math.min(500, due * 0.4), () => this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', meet.h));
     const ring = this.add.graphics().setDepth(9200);
     this.layer.push(ring);
     const t0 = this.time.now;
-    this.hitDueAt = t0 + r.closeMs;
+    this.hitDueAt = t0 + due;
     const sweet = returnWindow(this.hero) * 0.4;
     let done = false;
     const apex = r.kind === 'kick' ? 1.4 : r.kind === 'slice' ? 0.2 : 0.5;
     const at = (ms: number): { x: number; z: number; h: number } => {
-      const u = Math.max(0, ms / r.closeMs);
+      const u = Math.max(0, (ms - lead) / (due - lead));
       const uu = Math.min(1, u);
       // along the polyline (past the end it carries on along the last leg)
       let d = u * total;
@@ -804,7 +822,7 @@ export class MinigameScene extends Phaser.Scene {
       tick.remove();
       ring.clear();
       const res = returnResult(this.hero, r, shotK, offMs);
-      const from = at(Math.min(this.time.now - t0, r.closeMs * 1.2));
+      const from = at(Math.min(this.time.now - t0, due * 1.2));
       if (offMs !== null) {
         this.heroView.stroke(bh ? 'bh' : 'fh', meet.h);
         sfx('hit');
@@ -836,15 +854,15 @@ export class MinigameScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         const ms = this.time.now - t0;
-        const b = at(Math.min(ms, r.closeMs * 1.25));
+        const b = at(Math.min(ms, due * 1.25));
         this.placeBall(b.x, b.z, b.h);
-        this.ringOn(ring, b, ms, r.closeMs, sweet);
-        if (ms > r.closeMs + returnWindow(this.hero) + 150) end(null);
+        this.ringOn(ring, b, ms, due, sweet);
+        if (ms > due + returnWindow(this.hero) + 150) end(null);
       },
     });
     const tap = this.add.zone(0, 0, WIDTH, HEIGHT).setOrigin(0, 0).setDepth(9025).setInteractive();
     this.layer.push(tap);
-    tap.on('pointerdown', () => end(this.time.now - t0 - r.closeMs));
+    tap.on('pointerdown', () => end(this.time.now - t0 - due));
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
 }

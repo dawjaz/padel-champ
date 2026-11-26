@@ -390,8 +390,6 @@ export function serveOutcome(open: ServeSpot, spot: ServeSpot, q: number, rng: R
 export interface ReturnRound {
   kind: ServeKind;
   spot: ServeSpot;
-  /** From the bounce to the moment the hero meets the ball (ms). */
-  closeMs: number;
 }
 /** How well each return answers each serve (0..1): a high kick sits up for a lob, a low slice is for the chiquita, a fast flat one is
  * best let onto the glass when it goes there, or driven back when it comes at you. */
@@ -401,9 +399,8 @@ export const RETURN_FIT: Record<ServeKind, Record<ReturnShot, number>> = {
   slice: { lob: 0.35, chiquita: 1, drive: 0.5, glass: 0.45 },
 };
 export const returnFit = (r: ReturnRound, shot: ReturnShot): number => RETURN_FIT[r.kind][shot];
-export function returnRound(round: number, rng: Rng): ReturnRound {
-  const k = round / Math.max(1, campGame('serve').rounds - 1);
-  return { kind: pick(rng, SERVE_KINDS), spot: pick(rng, SERVE_SPOTS), closeMs: Math.round((1500 - 200 * k) * (0.94 + rng() * 0.12)) };
+export function returnRound(rng: Rng): ReturnRound {
+  return { kind: pick(rng, SERVE_KINDS), spot: pick(rng, SERVE_SPOTS) };
 }
 export const returnWindow = (hero: PlayerDef): number => Math.round(160 + 6 * hero.stats.technique + 4 * hero.stats.speed);
 export type ReturnTier = 'winner' | 'good' | 'weak' | 'error';

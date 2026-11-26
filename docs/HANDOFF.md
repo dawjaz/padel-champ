@@ -2,6 +2,10 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.131: no more balls through the net in the camp; serves at one pace
+- **Bug:** a CHIQUITA return flew through the net and still scored GOOD +70 (its low arc was drawn below the net top; the score was right, the picture wrong). `flyArc` now lifts any arc that crosses the net so it clears it at 1.1 m (`netClearApex`); arcs meant to end in the net stop at it and are left alone. Covers every minigame.
+- **Serve pace:** the opponent's serve flies at the same pace as the hero's (`SERVE_MS_PER_M` 85, was a slow 220). After the choice of return, the ball waits at its bounce for a short beat (450 ms, the ring already closing), then comes on at the after-bounce pace (`AFTER_BOUNCE_MS_PER_M` 115), so the ring's close is still readable. `ReturnRound.closeMs` is gone (the timing comes from the distance).
+
 ## v0.130: Serve & Return ball physics after the bounce
 - After the bounce a serve **keeps its line** (`rollOn(from, land, toZ)` in camp.ts, tested): straight on in the direction it came, off a side glass like a mirror only if it gets there first (`wall`). Before, it turned towards the receiver after the bounce, which looked like a glass contact. The receiver now moves to where the ball comes (`flyVia`: through the glass point when there is one); an ace runs on to the back glass on its line.
 - Return rounds: **OFF GLASS is offered only when the serve is going into the side glass** before it reaches the hero (`returnShotsFor(toGlass)`); a serve at you offers LOB / CHIQUITA / DRIVE (drive fit: flat 0.9, kick 0.6, slice 0.5). The big word says it: "FAST & FLAT · TO THE GLASS" / "HIGH KICK · AT YOU". The ball follows the same straight line (met before the glass, or after it when OFF GLASS is chosen).
