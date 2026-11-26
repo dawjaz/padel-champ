@@ -5,7 +5,7 @@ import type { Formation, Height, SideIndex } from './types';
  * The practice court: ready-made situations to play one shot from, again and again (no score, no career). Each rally situation is a
  * ball and the positions of both pairs; the engine's own rules decide which shots can be played from it, as in a match.
  */
-export type SituationId = 'short_lob' | 'mid_lob' | 'deep_lob' | 'off_glass' | 'net' | 'side_wall' | 'serve' | 'return';
+export type SituationId = 'short_lob' | 'mid_lob' | 'deep_lob' | 'off_glass' | 'net' | 'side_wall' | 'serve' | 'return' | 'runout';
 
 /** The ball and positions of a practice exercise (the Free Practice SETUP uses the same fields). */
 export interface PracticeSetup {
@@ -30,7 +30,7 @@ export interface Situation {
   label: string;
   /** One line under the court: what the ball is. */
   desc: string;
-  kind: 'rally' | 'serve' | 'return';
+  kind: 'rally' | 'serve' | 'return' | 'runout';
   setup?: PracticeSetup;
   /** The shots this situation is there to practise (they must be playable from it; tested). */
   signature: string[];
@@ -89,6 +89,7 @@ export const SITUATIONS: Situation[] = [
   },
   { id: 'serve', label: 'YOUR SERVE', desc: 'Serve: pick the serve, then hit it as the ring closes.', kind: 'serve', signature: [] },
   { id: 'return', label: 'RETURN', desc: 'They serve at you: read it and return it.', kind: 'return', signature: [] },
+  { id: 'runout', label: 'RUN OUT', desc: 'They smash a Por Tres out over the side wall: run out after it and play it back.', kind: 'runout', signature: [] },
 ];
 
 export const situation = (id: SituationId): Situation => SITUATIONS.find((s) => s.id === id) ?? SITUATIONS[0];

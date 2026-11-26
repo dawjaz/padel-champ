@@ -2,6 +2,13 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.136: running out of the court (out-of-court play)
+- **Rule** (FIP, see v0.95): a ball that bounced in the receivers' half and left over a side wall stays in play; the receiver may run out and play it back. In the game that is the **Por Tres** winner (it leaves over the side wall; a Por Cuatro leaves over the back wall and is lost whatever happens). `canRunOut(step)`: a Por Tres winner that is not a rebound.
+- **Engine** (`point.ts`, tested in `runout.test.ts`): `RUN_OUT_COST` 3 guts (paid made or not); `runOutChance(p, guts, timing)` = (0.25 + 0.07 x (speed - 5), 0.08..0.6) x (0.7 + 0.3 x guts share) x timing (0.6..1.4; undefined 1), at most 75%, 0 without the guts; `runOutReturn(teams, done, step, rng, timing)`: made = the point goes on with a defensive lob (high, medium, out of the air, zone back) to the hitting pair, which drops to mid-court (vibora, bandeja, volley); the runner's pair at the back; not made = the point stays won.
+- **Scene** (`MatchScene.runOutPhase`, from the end of the Por Tres flight, while the ball rolls outside): yours = a big orange **RUN OUT! [3 G]** button for 1.5 s (with a bar), then the run through the opening by the net (z 10.65 near / 9.35 far, x +-4.95) to just outside the wall (x 5.7 near / 6.2 far: as far as the screen shows), the timing ring for the shot outside, and the result: RUN OUT! (the lob flies back over the wall, the runner comes back in through the opening, everybody to their places, the rally goes on with `hitTurn`) or TOO FAR (a lunge; the point ends as before with WINNER!). The CPU and your partner go for it on their own (40% + 8% per speed point). No run-out without the guts.
+- **Practice Court:** new situation **RUN OUT** (the opponents at the net smash a Por Tres past you: press RUN OUT!); scoreboard GOT IT BACK / TOO FAR. Your own Por Tres that the CPU gets back counts as IN PLAY, not as a winner.
+- Checked in the browser: your run-out (made and not), the CPU's run-out after your Por Tres (Bruno out through the far opening; 1 of 4 made), the rally going on after a made one (the opponents then smashed again); an automated full match without errors.
+
 ## v0.135: special shots
 - **Four special shots** (`shots.json`, kind `special`, so no ordinary menu, AI pool or test sees them; `SPECIALS`, `baseId` in catalog.ts). Each is a version of an ordinary shot (`base`: its stroke, sound, look, daily counts) with the same ball rules, much stronger and much dearer:
   - **Sky Rocket** (Por Cuatro, 6 G, level 3): like a Por Cuatro but off any high ball out of the air at the net or mid-court (no short lob needed); harder to answer (`answerMul` 0.5).

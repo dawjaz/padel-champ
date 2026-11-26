@@ -140,6 +140,58 @@ export function isPowerfulSmash(step: Pick<Step, 'shot' | 'reboundBack' | 'netRe
   return baseId(step.shot) === 'smash_x4' && (step.reboundBack === true || step.netReturn === true);
 }
 
+/**
+ * Out-of-court play (FIP rules, see HANDOFF v0.95): a ball that bounced in the receivers' half and left over a side wall stays in play;
+ * the receiver may run out through the opening by the net and play it back. In the game that is the Por Tres (a Por Cuatro goes out
+ * over the back wall: lost whatever happens). The run costs `RUN_OUT_COST` guts, made or not.
+ */
+export const RUN_OUT_COST = 3;
+/** True for a step after which the defender may run out after the ball: a Por Tres winner that left over the side wall. */
+export function canRunOut(step: Pick<Step, 'kind' | 'outcome' | 'shot' | 'reboundBack'>): boolean {
+  return step.kind !== 'serve' && step.outcome === 'winner' && baseId(step.shot) === 'smash_x3' && step.reboundBack !== true;
+}
+/**
+ * The chance that a run-out gets the ball back: speed above all (25% at 5, 46% at 8), less when tired; the timing of the shot outside
+ * (0 to 1; undefined: neutral) from x0.6 to x1.4. None without the guts for it. At most 75%.
+ */
+export function runOutChance(p: PlayerDef, guts: number, timing?: number): number {
+  if (guts < RUN_OUT_COST) return 0;
+  const share = p.maxGuts > 0 ? Math.min(1, guts / p.maxGuts) : 1;
+  const base = Math.max(0.08, Math.min(0.6, 0.25 + 0.07 * (p.stats.speed - 5)));
+  const t = timing === undefined ? 1 : 0.6 + 0.8 * Math.max(0, Math.min(1, timing));
+  return Math.min(0.75, base * (0.7 + 0.3 * share) * t);
+}
+/**
+ * The run-out itself, after the step `step` (a Por Tres winner, `done` the finished state). Made: the point goes on, the ball comes
+ * back as a defensive lob (high, medium, played out of the air) to the hitting pair, which drops to mid-court; the runner's pair is at the
+ * back. Not made: the point stays won. The runner pays `RUN_OUT_COST` guts either way.
+ */
+export function runOutReturn(teams: Teams, done: PointState, step: Step, rng: Rng, timing?: number): { made: boolean; state: PointState } {
+  const runSide = other(step.side);
+  const runner = teams[runSide][step.defenderIdx];
+  const g = done.guts[runner.id] ?? runner.maxGuts;
+  const made = rng() < runOutChance(fatigued(runner, g), g, timing);
+  const guts = { ...done.guts, [runner.id]: spendGuts(g, RUN_OUT_COST) };
+  if (!made) return { made, state: { ...done, guts } };
+  // the hitting pair steps back from the net for the lob (mid-court: vibora, bandeja or a volley), the runner's pair is at the back
+  const formation: [Formation, Formation] = step.side === 0 ? ['mid', 'back'] : ['back', 'mid'];
+  return {
+    made,
+    state: {
+      ...done,
+      guts,
+      status: 'rally',
+      winner: null,
+      holder: step.side,
+      // the one of the pair the lob goes to: the hitter (he is at the net, the ball drops behind him) or his partner
+      hitterIdx: rng() < 0.5 ? step.attackerIdx : 1 - step.attackerIdx,
+      hits: done.hits + 1,
+      ball: { height: 'high', pressure: 0, lob: 'medium', glass: false, air: true, zone: 'back', speed: 14 },
+      formation,
+    },
+  };
+}
+
 /** Guts a defender spends to get a special shot back (and the guts the hitter must have on top of its cost for the CPU to try one). */
 export const SPECIAL_ANSWER_COST = 3;
 /**

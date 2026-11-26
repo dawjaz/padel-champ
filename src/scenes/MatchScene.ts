@@ -22,7 +22,7 @@ import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { baseId, DIRECTIONS, shotsOfKind, SPECIALS } from '../game/catalog';
 import { laneSign, landingX, landingZ, NET_Z, restPos, serveSetup, targetMissChance } from '../game/court';
 import { GAME_BREAK_RECOVERY_MUL, recoverGuts, ringQuality, ringWindow, SECOND_SERVE_SPEED } from '../game/engine';
-import { isPowerfulSmash, playableShots, reachAgainst, specialFor, withSpecial, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
+import { canRunOut, isPowerfulSmash, playableShots, reachAgainst, RUN_OUT_COST, runOutReturn, specialFor, withSpecial, type ReachPositions, shotLabel, startPoint, stepHit, stepServe, targetSpreadFor, unavailableReason, type HitOptions, type PointState, type Step, type Teams } from '../game/point';
 import { awardPoint, deuceLabel, isStarPoint, newScore, pointLabels, type MatchScore } from '../game/scoring';
 import type { AimPreference, CourtPos, Direction, Formation, Height, PlayerDef, ReceiveMode, ShotDef, SideIndex } from '../game/types';
 import { paceFactor } from '../game/pace';
@@ -1244,7 +1244,11 @@ export class MatchScene extends Phaser.Scene {
     if (practice && this.practice === 'court') {
       const c = this.court;
       sb.title.setText(
-        c.sit === null ? 'PRACTICE COURT' : `PRACTICE · ${situation(c.sit).label}\nWINNERS ${c.winners}  IN PLAY ${c.inPlay}  ERRORS ${c.errors}`,
+        c.sit === null
+          ? 'PRACTICE COURT'
+          : c.sit === 'runout'
+            ? `PRACTICE · RUN OUT\nGOT IT BACK ${c.inPlay}  TOO FAR ${c.errors}`
+            : `PRACTICE · ${situation(c.sit).label}\nWINNERS ${c.winners}  IN PLAY ${c.inPlay}  ERRORS ${c.errors}`,
       );
       sb.note.setText('');
       return;
@@ -1409,6 +1413,10 @@ export class MatchScene extends Phaser.Scene {
       this.courtServe(sit.kind === 'serve');
       return;
     }
+    if (sit.kind === 'runout') {
+      this.courtRunOut();
+      return;
+    }
     this.pr = { ...this.pr, ...sit.setup! };
     const st = this.practiceState(HUMAN_SIDE, HUMAN_IDX);
     this.point = st;
@@ -1521,6 +1529,35 @@ export class MatchScene extends Phaser.Scene {
       );
       this.showButtons('practice court', items);
     });
+  }
+
+  /** RUN OUT: the opponents (at the net) smash a Por Tres past you, out over the side wall; then it is up to you. */
+  private courtRunOut(): void {
+    this.pr = { ...this.pr, ball: 'high', glass: false, weakLob: false, me: 'back', opp: 'net', bounced: false, hard: false, atWall: false };
+    const x3 = shotsOfKind('rally').find((sh) => sh.id === 'smash_x3')!;
+    const dirs: Direction[] = ['parallel', 'middle', 'cross'];
+    for (let i = 0; i < 80; i++) {
+      const hitterIdx = Math.random() < 0.5 ? 0 : 1;
+      const st = this.practiceState(1, hitterIdx);
+      const r = stepHit(TEAMS, st, x3, dirs[Math.floor(Math.random() * dirs.length)], Math.random, undefined, { force: 'winner', ignoreRequires: true });
+      if (r.step.defenderIdx !== HUMAN_IDX || !canRunOut(r.step)) continue;
+      this.point = st;
+      for (const id of Object.keys(this.views)) {
+        this.setFacing(id, this.defaultFacing(id));
+        this.setPose(id, 'ready');
+      }
+      this.say(situation('runout').desc);
+      this.movePlayers(this.rallyTargets(st), 450, () => {
+        this.stopCoast();
+        const hitter = TEAMS[1][hitterIdx];
+        this.ballH = ARRIVAL_HEIGHT.high;
+        this.setBall(this.pos[hitter.id].x, this.pos[hitter.id].z, this.ballH, false);
+        this.time.delayedCall(500, () => this.playStep(r.step, r.state));
+      });
+      return;
+    }
+    this.court.sit = null;
+    this.practiceMenu();
   }
 
   /** Counts what the hero's shot did on the Practice Court (shown on the scoreboard). */
@@ -2544,6 +2581,12 @@ export class MatchScene extends Phaser.Scene {
         // When the point is over the ball is not stopped: it falls, bounces and rolls on.
         const over = ['winner', 'ace', 'error', 'double-fault', 'fault'].includes(step.outcome);
         const coast = over ? this.playCoast(flight, step.shot.flight.spin) : { ms: 0, end: null };
+        // A Por Tres that bounced in the defenders' half and left over the side wall is still in play: the defender may run out after it.
+        const exit = canRunOut(step) ? flight.events.find((e) => e.kind === 'out' && Math.abs(e.x) >= 4.7) : undefined;
+        if (exit) {
+          this.runOutPhase(step, next, headline, coast.ms, exit);
+          return;
+        }
         // A defender who has lost the point still runs after the ball until it has stopped.
         if (coast.end && !step.reboundBack && (step.outcome === 'winner' || step.outcome === 'ace')) this.chaseBall(defender.id, other(step.side), coast.end, coast.ms);
         this.afterStep(step, next, headline, coast.ms);
@@ -2615,6 +2658,159 @@ export class MatchScene extends Phaser.Scene {
     this.coastTween?.stop();
     this.coastTween = null;
     this.coastRunning = false;
+  }
+
+  /**
+   * Out-of-court play after a Por Tres (FIP rules, `canRunOut`): the defender may run out through the opening by the net after the
+   * ball and play it back. Yours: a RUN OUT! button for a moment (it costs guts), then the timing ring for the shot outside. The CPU
+   * decides by itself. Made (`runOutReturn`): a defensive lob back over the wall and the rally goes on; the runner comes back in.
+   * Not made (or not tried): the point ends as a winner (`afterStep`).
+   */
+  private runOutPhase(step: Step, next: PointState, headline: string, coastMs: number, exit: FlightEvent): void {
+    const runSide = other(step.side);
+    const runner = TEAMS[runSide][step.defenderIdx];
+    const id = runner.id;
+    const finish = (): void => this.afterStep(step, next, headline, coastMs);
+    const gutsNow = next.guts[id] ?? runner.maxGuts;
+    if (gutsNow < RUN_OUT_COST) {
+      finish();
+      return;
+    }
+    const sgn = Math.sign(exit.x) || 1;
+    // where he plays it: just outside the wall (as far as the screen shows), level with where it left, in his own half
+    const zMin = runSide === 0 ? NET_Z + 1.6 : 1.2;
+    const zMax = runSide === 0 ? 18.6 : NET_Z - 1.6;
+    const spot: CourtPos = { x: sgn * (runSide === 0 ? 5.7 : 6.2), z: Math.max(zMin, Math.min(zMax, exit.z + (runSide === 0 ? 1.2 : -1.2))) };
+    // the opening by the net on that side, in his half
+    const gate: CourtPos = { x: sgn * 4.95, z: runSide === 0 ? 10.65 : 9.35 };
+    const go = (): void => {
+      this.say(`${runner.name} runs out after it!`);
+      const d1 = Math.hypot(gate.x - this.pos[id].x, gate.z - this.pos[id].z);
+      const d2 = Math.hypot(spot.x - gate.x, spot.z - gate.z);
+      this.movePlayers({ [id]: gate }, Math.max(220, d1 * 150), () => {
+        this.movePlayers({ [id]: spot }, Math.max(200, d2 * 150), () => arrive(), {}, {}, [id]);
+      }, {}, {}, [id]);
+    };
+    const arrive = (): void => {
+      // he catches up with the ball outside: it is on his racket, a little in front of him
+      this.stopCoast();
+      const contact = { x: spot.x - sgn * 0.45, z: spot.z + (runSide === 0 ? -0.4 : 0.4) };
+      this.ballH = 0.9;
+      this.setBall(contact.x, contact.z, this.ballH, false);
+      this.ball.setVisible(true);
+      if (this.isHuman(runSide, step.defenderIdx) && getSave().settings.timing !== 'auto') this.timingRing('high', runner, (q) => resolve(q));
+      else resolve(undefined);
+    };
+    const resolve = (q: number | undefined): void => {
+      const r = runOutReturn(TEAMS, next, step, Math.random, q);
+      this.guts = { ...r.state.guts };
+      this.refreshGuts();
+      if (this.practice === 'court' && this.isHuman(runSide, step.defenderIdx)) {
+        this.court.shots++;
+        if (r.made) this.court.inPlay++;
+        else this.court.errors++;
+        this.refreshScore();
+      } else if (this.practice === 'court' && r.made && step.side === HUMAN_SIDE && step.attackerIdx === HUMAN_IDX) {
+        // your Por Tres was counted as a winner when you hit it; they got it back, so it was not one
+        this.court.winners = Math.max(0, this.court.winners - 1);
+        this.court.inPlay++;
+        this.refreshScore();
+      }
+      if (!r.made) {
+        // a stretch, a moment too late
+        this.planLunge(id, { x: spot.x + sgn * 0.6, z: spot.z }, 160, 1);
+        this.setPose(id, 'fhHit');
+        // (the WINNER! banner of the point follows; the log says why)
+        this.say(`${runner.name} gets there but cannot play it back: TOO FAR!`);
+        this.time.delayedCall(350, finish);
+        return;
+      }
+      this.announce('RUN OUT!', '#4ade80', `${runner.name} gets it back`);
+      this.say(`${runner.name} gets it back from outside the court! The rally goes on.`);
+      sfx('hit');
+      this.swing(id, null);
+      // the lob: up over the wall and back into the hitting pair's half, to the one who will play it
+      const recv = TEAMS[step.side][r.state.hitterIdx];
+      const land = restPos(step.side, r.state.hitterIdx, 'mid');
+      const from = { x: this.ballFloor.x, z: this.ballFloor.z, h: this.ballH };
+      const to = { x: land.x, z: land.z, h: ARRIVAL_HEIGHT.high };
+      const ms = 1500;
+      // everybody to their places for the next ball: the runner comes back in through the opening, his partner covers
+      const targets = this.rallyTargets(r.state);
+      const home = targets[id];
+      delete targets[id];
+      this.movePlayers(targets, ms * 0.85, undefined, { [recv.id]: 'ready' }, {}, [recv.id]);
+      this.time.delayedCall(260, () => {
+        this.movePlayers({ [id]: gate }, 520, () => this.movePlayers({ [id]: home }, 600, undefined, {}, {}, [id]), {}, {}, [id]);
+      });
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: ms,
+        onUpdate: (tw) => {
+          const u = tw.getValue() ?? 0;
+          this.setBall(from.x + (to.x - from.x) * u, from.z + (to.z - from.z) * u, from.h + (to.h - from.h) * u + 4 * 6.5 * u * (1 - u));
+        },
+        onComplete: () => {
+          this.point = r.state;
+          this.ballH = ARRIVAL_HEIGHT.high;
+          this.setBall(this.pos[recv.id].x, this.pos[recv.id].z, this.ballH, false);
+          this.hitTurn();
+        },
+      });
+    };
+    if (!this.isHuman(runSide, step.defenderIdx)) {
+      // the CPU (and your partner) goes for it most of the time when he has the legs and the guts
+      if (Math.random() < 0.4 + 0.08 * runner.stats.speed) go();
+      else finish();
+      return;
+    }
+    // yours: a big button for a moment
+    this.clearMenu();
+    const bx = WIDTH / 2;
+    const by = 500;
+    const base = this.add.graphics().setDepth(9990);
+    base.fillStyle(0xff8a1a, 1).fillRoundedRect(bx - 120, by - 34, 240, 68, 18);
+    base.lineStyle(4, 0x0b2a5b, 1).strokeRoundedRect(bx - 120, by - 34, 240, 68, 18);
+    const label = this.add
+      .text(bx, by - 6, 'RUN OUT!', { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '30px', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setDepth(9991)
+      .setStroke('#0b2a5b', 6);
+    const sub2 = this.add
+      .text(bx, by + 22, `chase it outside  [${RUN_OUT_COST} G]`, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#0b2a5b' })
+      .setOrigin(0.5)
+      .setDepth(9991);
+    const bar = this.add.graphics().setDepth(9991);
+    const hit = this.add.zone(bx - 130, by - 44, 260, 88).setOrigin(0, 0).setDepth(9992).setInteractive({ useHandCursor: true });
+    this.tweens.add({ targets: [base, label, sub2], scale: { from: 0.7, to: 1 }, duration: 200, ease: 'Back.easeOut' });
+    const t0 = this.time.now;
+    const window = 1500;
+    let decided = false;
+    const close = (): void => {
+      tick.remove();
+      for (const o of [base, label, sub2, bar, hit]) o.destroy();
+    };
+    const tick = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const left = 1 - (this.time.now - t0) / window;
+        bar.clear().fillStyle(0x0b2a5b, 0.85).fillRect(bx - 110, by + 38, 220 * Math.max(0, left), 5);
+        if (left <= 0 && !decided) {
+          decided = true;
+          close();
+          finish();
+        }
+      },
+    });
+    hit.on('pointerdown', () => {
+      if (decided) return;
+      decided = true;
+      sfx('select');
+      close();
+      go();
+    });
   }
 
   private afterStep(step: Step, next: PointState, headline: string, coastMs = 0): void {
