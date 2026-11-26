@@ -221,23 +221,6 @@ export function landShot(hero: PlayerDef, shot: ShotDef, aim: { x: number; depth
   return targetLanding(aim, rng, spread);
 }
 
-/** Serve zones: the service box is 6.95 m deep from the net and half the court wide (cross from the server's lane `lane`). */
-export const SERVICE_DEPTH = 6.95;
-export function serveZone(rng: Rng, round: number, lane: -1 | 1): Zone {
-  const k = round / Math.max(1, campGame('serve').rounds - 1);
-  // the box is on the other side of the centre line from the server: x between 0 and -lane * 5
-  // the zone glides across the box (or in depth) at a steady speed, a little faster round by round
-  const r = 1.25 - 0.25 * k;
-  const across = rng() < 0.65;
-  const centre = across ? { x: -lane * 2.5, depth: 3.8 + rng() * 2 } : { x: -lane * (1.4 + rng() * 2.2), depth: 4.2 };
-  const amp = across ? 2.4 - r : 2.6 - r;
-  return { ...centre, r, move: { dir: across ? [1, 0] : [0, 1], amp: Math.max(0.4, amp), speed: 0.7 + 1.3 * k + rng() * 0.4, phase: rng() } };
-}
-/** A serve that lands outside the service box is a fault: no points. */
-export function serveLanding(lane: -1 | 1, landing: { x: number; depth: number; miss?: string }): { x: number; depth: number; miss?: string } | null {
-  const inBox = !landing.miss && landing.depth <= SERVICE_DEPTH && landing.x * -lane >= 0 && Math.abs(landing.x) <= 5;
-  return inBox ? landing : null;
-}
 
 /**
  * Timing: the ring closes on the ball in `closeMs`; the tap is scored by how far off it is. Each round is a different ball: from another
@@ -330,4 +313,93 @@ export function smashResult(hero: PlayerDef, r: SmashRound, kind: SmashKind, tap
   if (q <= 0.4) return { outcome: kind === 'vibora' ? 'winner' : 'out', points: SMASH_TOP[kind] };
   if (q <= 1) return { outcome: 'glass', points: Math.round(60 - (30 * (q - 0.4)) / 0.6) };
   return { outcome: 'net', points: 0 };
+}
+
+/**
+ * Serve & Return: the rounds alternate. On a serve round the player picks the kind of serve and the spot (the receiver shows his weak
+ * spot and the ball he dislikes), then hits the toss as the ring closes; the points come from the pressure the serve puts on him.
+ * On a return round the opponent serves: the player reads the serve (its kind and where it goes), picks the return and hits it on time.
+ */
+export type ServeKind = 'flat' | 'kick' | 'slice';
+export type ServeSpot = 'T' | 'body' | 'wide';
+export type ReturnShot = 'lob' | 'chiquita' | 'drive' | 'glass';
+export interface Receiver {
+  weakSpot: ServeSpot;
+  weakBall: ServeKind;
+}
+export const SERVE_KINDS: ServeKind[] = ['flat', 'kick', 'slice'];
+export const SERVE_SPOTS: ServeSpot[] = ['T', 'body', 'wide'];
+const pick = <T>(rng: Rng, list: T[]): T => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
+export const isServeRound = (round: number): boolean => round % 2 === 0;
+export const receiverOf = (rng: Rng): Receiver => ({ weakSpot: pick(rng, SERVE_SPOTS), weakBall: pick(rng, SERVE_KINDS) });
+/** Where each spot is in the service box across from the server's lane (x across, depth past the net). */
+export function serveSpotAt(spot: ServeSpot, lane: -1 | 1): { x: number; depth: number } {
+  const s = -lane;
+  if (spot === 'T') return { x: s * 0.7, depth: 5.9 };
+  if (spot === 'wide') return { x: s * 4.2, depth: 5.2 };
+  return { x: s * 2.5, depth: 6.3 };
+}
+/** Pairs that work on their own: a kick out wide jumps off the side glass, a flat one at the body jams him. */
+const SERVE_COMBO: Record<ServeKind, Record<ServeSpot, number>> = {
+  flat: { T: 0.05, body: 0.08, wide: 0 },
+  kick: { T: 0, body: 0, wide: 0.08 },
+  slice: { T: 0.06, body: 0, wide: 0.03 },
+};
+/** The fault risk of each serve (a flat one is the riskiest) and of the wide spot. */
+const SERVE_FAULT: Record<ServeKind, number> = { flat: 0.12, kick: 0.05, slice: 0.06 };
+export type ServeTier = 'ace' | 'weak' | 'average' | 'strong' | 'fault';
+export const SERVE_POINTS: Record<ServeTier, number> = { ace: 100, weak: 70, average: 30, strong: 0, fault: 0 };
+/** The toss timing window (ms either side): technique and accuracy widen it. */
+export const tossWindow = (hero: PlayerDef): number => Math.round(90 + 6 * hero.stats.technique + 5 * hero.stats.accuracy);
+/** Toss quality 1 (on time) down to 0.2 at the window's edge; 0 beyond (a fault). */
+export function tossQuality(hero: PlayerDef, offMs: number | null): number {
+  if (offMs === null) return 0;
+  const q = Math.abs(offMs) / tossWindow(hero);
+  if (q <= 0.3) return 1;
+  if (q <= 1) return 1 - (0.8 * (q - 0.3)) / 0.7;
+  return 0;
+}
+/** How a serve goes: the pressure (0..1) and its tier. */
+export function serveOutcome(r: Receiver, kind: ServeKind, spot: ServeSpot, quality: number, rng: Rng): { tier: ServeTier; pressure: number; points: number } {
+  const faultRisk = (SERVE_FAULT[kind] + (spot === 'wide' ? 0.06 : 0)) * (1.6 - quality);
+  if (quality <= 0 || rng() < faultRisk) return { tier: 'fault', pressure: 0, points: 0 };
+  const pressure =
+    0.2 + (kind === r.weakBall ? 0.22 : 0) + (spot === r.weakSpot ? 0.22 : 0) + SERVE_COMBO[kind][spot] + 0.2 * quality + (rng() - 0.5) * 0.16;
+  const tier: ServeTier = pressure >= 0.85 ? 'ace' : pressure >= 0.62 ? 'weak' : pressure >= 0.42 ? 'average' : 'strong';
+  return { tier, pressure, points: SERVE_POINTS[tier] };
+}
+
+export interface ReturnRound {
+  kind: ServeKind;
+  spot: ServeSpot;
+  /** From the serve to the moment the hero meets the ball (ms). */
+  closeMs: number;
+}
+/** How well each return answers each serve (0..1): a high kick sits up for a lob, a low slice is for the chiquita, a fast flat one is
+ * best let onto the glass. */
+export const RETURN_FIT: Record<ServeKind, Record<ReturnShot, number>> = {
+  flat: { lob: 0.6, chiquita: 0.75, drive: 0.5, glass: 1 },
+  kick: { lob: 1, chiquita: 0.4, drive: 0.65, glass: 0.55 },
+  slice: { lob: 0.3, chiquita: 1, drive: 0.5, glass: 0.4 },
+};
+export function returnFit(r: ReturnRound, shot: ReturnShot): number {
+  let f = RETURN_FIT[r.kind][shot];
+  if (r.spot === 'wide' && shot === 'drive') f += 0.15; // the angle opens the line
+  if (r.spot === 'body' && shot !== 'glass') f -= 0.1; // jammed
+  return Math.max(0, Math.min(1, f));
+}
+export function returnRound(round: number, rng: Rng): ReturnRound {
+  const k = round / Math.max(1, campGame('serve').rounds - 1);
+  return { kind: pick(rng, SERVE_KINDS), spot: pick(rng, SERVE_SPOTS), closeMs: Math.round((1250 - 300 * k) * (0.92 + rng() * 0.16)) };
+}
+export const returnWindow = (hero: PlayerDef): number => Math.round(80 + 6 * hero.stats.technique + 4 * hero.stats.speed);
+export type ReturnTier = 'winner' | 'good' | 'weak' | 'error';
+/** `offMs`: the tap against the ideal moment (null: no swing). Points = 100 x how well the return fits x how well it was hit. */
+export function returnResult(hero: PlayerDef, r: ReturnRound, shot: ReturnShot, offMs: number | null): { tier: ReturnTier; points: number } {
+  if (offMs === null) return { tier: 'error', points: 0 };
+  const q = Math.abs(offMs) / returnWindow(hero);
+  const quality = q <= 0.3 ? 1 : q <= 1 ? 1 - (0.7 * (q - 0.3)) / 0.7 : 0;
+  const points = Math.round(100 * returnFit(r, shot) * quality);
+  const tier: ReturnTier = quality === 0 ? 'error' : points >= 80 ? 'winner' : points >= 50 ? 'good' : 'weak';
+  return { tier, points };
 }

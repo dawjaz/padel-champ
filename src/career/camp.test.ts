@@ -5,7 +5,7 @@ import { fixedRng, seededRng } from '../game/rng';
 import type { PlayerDef } from '../game/types';
 import {
   CAMP, CAMP_GAMES, campNow, canTry, finishTry, zoneAt, smashResult, smashRound, smashWindow, grantExtraTry, landShot, milestonesCrossed, sanitizeCamp,
-  serveLanding, serveZone, starsFor, startTry, targetZone, timingPoints, timingRound, zonePoints,
+  receiverOf, returnFit, returnResult, returnRound, returnWindow, serveOutcome, starsFor, tossQuality, tossWindow, startTry, targetZone, timingPoints, timingRound, zonePoints,
 } from './camp';
 import { newProfile, type Profile } from './profile';
 import { MAX_BOOSTS } from './gear';
@@ -104,13 +104,6 @@ describe('camp minigames', () => {
     }
     expect(aimed / 200).toBeGreaterThan(55);
   });
-  it('a serve outside the service box is a fault', () => {
-    const z = serveZone(seededRng(2), 0, -1);
-    expect(z.x).toBeGreaterThanOrEqual(0);
-    expect(serveLanding(-1, { x: 2, depth: 8 })).toBeNull();
-    expect(serveLanding(-1, { x: -1, depth: 4 })).toBeNull();
-    expect(serveLanding(-1, { x: 2, depth: 4 })).not.toBeNull();
-  });
   it('target zones move at a steady speed and stay on the court', () => {
     const rng = seededRng(6);
     for (let i = 0; i < 40; i++) {
@@ -141,16 +134,31 @@ describe('camp minigames', () => {
     const short = { ...r, lob: 'short' as const };
     expect(smashResult(hero, short, 'x4', short.closeMs).points).toBeGreaterThan(smashResult(hero, short, 'x3', short.closeMs).points);
   });
-  it('serve zones move inside the service box', () => {
-    const z = serveZone(seededRng(8), 3, 1);
-    expect(z.move).toBeDefined();
-    for (let t = 0; t < 5; t += 0.1) {
-      const at = zoneAt(z, t);
-      expect(at.x).toBeLessThanOrEqual(0.2);
-      expect(at.x).toBeGreaterThanOrEqual(-5.2);
-      expect(at.depth).toBeLessThan(6.95 + 0.6);
+  it('serve: hitting his weak spot with the ball he dislikes, on time, puts him under pressure; a mistimed toss is a fault', () => {
+    const r = receiverOf(seededRng(4));
+    const rng = seededRng(5);
+    let good = 0;
+    let bad = 0;
+    const other = <T>(list: T[], not: T): T => list.find((x) => x !== not)!;
+    for (let i = 0; i < 300; i++) {
+      good += serveOutcome(r, r.weakBall, r.weakSpot, 1, rng).points;
+      bad += serveOutcome(r, other(['flat', 'kick', 'slice'] as const as unknown as Array<typeof r.weakBall>, r.weakBall), other(['T', 'body', 'wide'] as const as unknown as Array<typeof r.weakSpot>, r.weakSpot), 1, rng).points;
     }
+    expect(good / 300).toBeGreaterThan(60);
+    expect(bad / 300).toBeLessThan(25);
+    expect(serveOutcome(r, 'kick', 'T', 0, rng).tier).toBe('fault');
+    expect(tossQuality(hero, 0)).toBe(1);
+    expect(tossQuality(hero, tossWindow(hero) * 1.1)).toBe(0);
   });
+  it('return: the right answer to the serve on time scores high, the wrong one low, a miss nothing', () => {
+    const r = { ...returnRound(0, seededRng(1)), kind: 'slice' as const, spot: 'T' as const };
+    expect(returnResult(hero, r, 'chiquita', 0).points).toBe(100);
+    expect(returnResult(hero, r, 'lob', 0).points).toBeLessThan(40);
+    expect(returnResult(hero, r, 'chiquita', returnWindow(hero) * 1.2).tier).toBe('error');
+    expect(returnResult(hero, r, 'chiquita', null).points).toBe(0);
+    expect(returnFit({ ...r, kind: 'flat', spot: 'wide' }, 'drive')).toBeCloseTo(0.65);
+  });
+
   it('timing: a finer scale (100 perfect, 90..10 inside the window, 0 out); every ball differs', () => {
     const r = timingRound(hero, 0, seededRng(1));
     expect(timingPoints(r, r.closeMs).grade).toBe('perfect');

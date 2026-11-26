@@ -2,6 +2,13 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.128: Serve & Return (replaces Serve Zones), trophy tooltips
+- **Serve & Return** (camp game id still `serve`, so best scores carry over; 6 rounds, stars 200 / 320 / 430). Rounds alternate, sides change every two rounds (`lane()`); the opponent is a second `CampHero` seen from the front (`CampHero` takes `{ key, front }` now; `makeAppearance` exported from tournament.ts).
+  - **Serve rounds:** the receiver's weak spot and the serve he dislikes are told (`receiverOf`); the player picks FLAT / KICK / SLICE and one of three spots in his box (MIDDLE / BODY / WIDE, `serveSpotAt`), then hits the padel serve as the ball comes up off its bounce (ring; `tossWindow` 90 + 6 technique + 5 accuracy ms, `tossQuality`). `serveOutcome`: fault risk by serve (flat riskiest, wide adds) and timing; pressure = 0.2 + 0.22 weak ball + 0.22 weak spot + pair bonus (kick wide, flat body, slice middle) + 0.2 timing + noise: ACE 100 / WEAK RETURN 70 / RETURNED 30 / STRONG RETURN 0 / FAULT 0. The receiver reacts (misses an ace, pops up a weak return, drives a strong one back).
+  - **Return rounds:** he serves (`returnRound`: kind and spot); the ball comes in slow motion to its bounce, the serve is named (FLAT & FAST / KICK: JUMPS HIGH / SLICE: LOW, SKIDDING · DOWN THE MIDDLE / AT THE BODY / OUT WIDE), the player picks LOB / CHIQUITA / DRIVE / OFF GLASS, then hits on time. `returnResult` = 100 x `returnFit` (kick -> lob, slice -> chiquita, flat -> off the glass; wide helps the drive, body hurts all but the glass) x timing quality (`returnWindow` 80 + 6 technique + 4 speed).
+  - The owner will compare the two halves and pick one (or keep both).
+- **Career, LAST TROPHIES:** a touch on a cup shows a bubble with the tournament and the season ("REGIONAL OPEN WARSAW / CHAMPION · SEASON 1"), gone after 2.6 s. `lastTrophies` returns the season too.
+
 ## v0.127: Target Practice easier
 - Stars 220 / 340 / 440 -> 160 / 260 / 350 (owner: too hard at level 5-6). Serve Zones redesign proposed to the owner (receive the opponent's serve and pick the return, or score the serve by the pressure it puts on the receiver); waiting for the choice.
 

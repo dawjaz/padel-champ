@@ -49,13 +49,13 @@
     },
     {
       "id": "serve",
-      "name": "Serve Zones",
-      "desc": "Serve into the zone gliding across the service box.",
+      "name": "Serve & Return",
+      "desc": "Serve at his weak spot, then read his serve and pick the return.",
       "rounds": 6,
       "stars": [
         200,
         320,
-        420
+        430
       ]
     },
     {

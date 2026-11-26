@@ -69,7 +69,33 @@ export class CalendarScene extends Phaser.Scene {
     c.x = x;
   }
 
+  private tip: Phaser.GameObjects.GameObject[] = [];
+
+  /** A speech bubble above a trophy; it goes away after a moment or with the next touch on a trophy. */
+  private trophyTip(cx: number, bottom: number, text: string): void {
+    for (const o of this.tip) o.destroy();
+    const t = themeText(this, 0, 0, text, { size: 11, color: TC.white, font: 'display', align: 'center' }).setDepth(9501);
+    const w = t.width + 20;
+    const h = t.height + 12;
+    const x = Math.max(8 + w / 2, Math.min(WIDTH - 8 - w / 2, cx));
+    const top = bottom - 8 - h;
+    t.setPosition(x, top + h / 2);
+    const g = this.add.graphics().setDepth(9500);
+    g.fillStyle(TC.navy, 0.96).fillRoundedRect(x - w / 2, top, w, h, 8);
+    g.fillTriangle(cx - 6, top + h - 1, cx + 6, top + h - 1, cx, top + h + 7);
+    g.lineStyle(2, TC.orange, 1).strokeRoundedRect(x - w / 2, top, w, h, 8);
+    this.tip = [g, t];
+    for (const o of this.tip) this.dyn.push(o);
+    const mine = this.tip;
+    this.tweens.add({ targets: mine, alpha: { from: 0, to: 1 }, duration: 120 });
+    this.time.delayedCall(2600, () => {
+      if (this.tip !== mine) return;
+      this.tweens.add({ targets: mine, alpha: 0, duration: 200, onComplete: () => { for (const o of mine) o.destroy(); } });
+    });
+  }
+
   private redraw(): void {
+    this.tip = [];
     for (const o of this.dyn) o.destroy();
     this.dyn = [];
     const p = getSave().profile;
@@ -163,6 +189,10 @@ export class CalendarScene extends Phaser.Scene {
         const x = 128 + i * 36;
         const t = bakedShape(this, x, y + 6, 32, 34, (g) => drawCup(g, 16, 19, 32, cup.division, 'gold', cityAccent(cup.city), cup.symbol));
         this.dyn.push(t.rt);
+        // a touch shows what it was won for
+        const hit = this.add.zone(x - 2, y + 2, 36, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        hit.on('pointerup', () => this.trophyTip(x + 16, y + 4, `${cup.name.toUpperCase()}\nCHAMPION · SEASON ${cup.season}`));
+        this.dyn.push(hit);
       });
     }
   }

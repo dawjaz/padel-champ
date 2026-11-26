@@ -110,13 +110,13 @@ export function sanitizeShelf(raw: unknown): CupShelf {
 
 export const sanitizeClaims = (raw: unknown): string[] => (Array.isArray(raw) ? [...new Set(raw.filter((x): x is string => typeof x === 'string' && CHALLENGES.some((c) => c.id === x)))] : []);
 
-/** The cups of the last tournaments won, newest first (at most six). */
-export function lastTrophies(history: Array<{ event: string; champion: boolean }>): Cup[] {
-  const out: Cup[] = [];
+/** The cups of the last tournaments won, newest first (at most six), with the season each was won in. */
+export function lastTrophies(history: Array<{ event: string; champion: boolean; season?: number }>): Array<Cup & { season: number }> {
+  const out: Array<Cup & { season: number }> = [];
   for (const h of [...history].reverse()) {
     if (!h.champion) continue;
     const cup = CUPS.find((c) => c.name === h.event);
-    if (cup) out.push(cup);
+    if (cup) out.push({ ...cup, season: h.season ?? 1 });
     if (out.length >= 6) break;
   }
   return out;

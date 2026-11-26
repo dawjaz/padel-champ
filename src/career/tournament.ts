@@ -60,7 +60,7 @@ export const HERO_ID = 'hero';
 const pick = <T>(list: T[], rng: Rng): T => list[Math.floor(rng() * list.length)];
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
-function makeAppearance(rng: Rng, female: boolean): Appearance {
+export function makeAppearance(rng: Rng, female: boolean): Appearance {
   const hairStyle: HairStyle = female ? pick(['long', 'ponytail', 'bun'] as HairStyle[], rng) : pick(['short', 'short', 'afro', 'bald'] as HairStyle[], rng);
   return {
     gender: female ? 'female' : 'male',

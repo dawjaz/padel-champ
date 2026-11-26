@@ -26,7 +26,9 @@ export class CampHero {
   private rig = new Rig();
   private canvas: Phaser.Textures.CanvasTexture;
   private drawn = '';
-  private view: 'back' | 'side' = 'back';
+  private view: 'back' | 'front' | 'side' = 'back';
+  /** Which way he faces when not running sideways: the hero (near half) from behind, a far-side opponent from the front. */
+  private base: 'back' | 'front';
   private flip = false;
   private lift = 0;
   private body: BodyState = newBody(0.4);
@@ -38,13 +40,15 @@ export class CampHero {
   /** Screen x of the ball (the head follows it while he waits), or null. */
   watch: number | null = null;
 
-  constructor(private scene: Phaser.Scene, private appearance: Appearance, x: number, z: number) {
+  constructor(private scene: Phaser.Scene, private appearance: Appearance, x: number, z: number, opts: { key?: string; front?: boolean } = {}) {
     this.x = x;
     this.z = z;
-    const key = 'rig:camphero';
+    this.base = opts.front ? 'front' : 'back';
+    this.view = this.base;
+    const key = opts.key ?? 'rig:camphero';
     if (scene.textures.exists(key)) scene.textures.remove(key);
     this.canvas = scene.textures.createCanvas(key, Math.round(VIEW.w * UNIT), Math.round(VIEW.h * UNIT))!;
-    this.sprite = scene.add.image(0, 0, key);
+    this.sprite = scene.add.image(0, 0, key).setFlipX(this.base === 'front');
     this.redraw(true);
     this.place();
   }
@@ -56,7 +60,7 @@ export class CampHero {
     this.x = x;
     this.z = z;
     this.lastFeet = null;
-    this.setView('back', false);
+    this.setView(this.base, false);
     this.rig.to(this.scene.time.now, POSES.ready, 120);
     this.place();
   }
@@ -77,7 +81,7 @@ export class CampHero {
     }
     const shuffle = Math.abs(dx) >= Math.abs(dz) && dist < 2.2;
     const profile = !shuffle && Math.abs(dx) >= Math.abs(dz) * 1.1;
-    this.setView(profile ? 'side' : 'back', profile && dx < 0);
+    this.setView(profile ? 'side' : this.base, profile && dx < 0);
     kickBody(this.body, -0.9);
     const start = this.stride;
     this.move = this.scene.tweens.addCounter({
@@ -98,7 +102,7 @@ export class CampHero {
       },
       onComplete: () => {
         this.move = null;
-        this.setView('back', false);
+        this.setView(this.base, false);
         this.rig.to(this.scene.time.now, POSES.ready, 160);
         done?.();
       },
@@ -120,13 +124,13 @@ export class CampHero {
 
   /** Winds up a stroke (`height`: the ball's height at contact). */
   prep(name: PoseName, height?: number): void {
-    this.setView('back', false);
+    this.setView(this.base, false);
     this.rig.to(this.scene.time.now, loadPose(name, height), name === 'smashPrep' ? 260 : 220, inOut);
   }
 
   /** A stroke from the moment of contact. */
   stroke(stance: 'fh' | 'bh' | 'ov' | 'fhv' | 'bhv', height?: number): void {
-    this.setView('back', false);
+    this.setView(this.base, false);
     this.busyUntil = this.scene.time.now + 520;
     kickBody(this.body, 1);
     this.rig.play(this.scene.time.now, strokeSteps(stance, height));
@@ -134,7 +138,7 @@ export class CampHero {
 
   /** The jumping smash from the moment of contact (`air` ms in the air, `jump` pixels per metre of scale). */
   smash(air = 340, jump = 0.55): void {
-    this.setView('back', false);
+    this.setView(this.base, false);
     this.busyUntil = this.scene.time.now + air + 520;
     this.rig.play(this.scene.time.now, smashSteps(air));
     this.hop(project(this.x, this.z).scale * jump, air);
@@ -142,7 +146,7 @@ export class CampHero {
 
   /** Any sequence of poses (a cheer, a shrug). */
   react(steps: Step[]): void {
-    this.setView('back', false);
+    this.setView(this.base, false);
     this.busyUntil = this.scene.time.now + steps.reduce((a, s) => a + s[0], 0);
     this.rig.play(this.scene.time.now, steps);
   }
@@ -164,11 +168,12 @@ export class CampHero {
     this.scene.tweens.add({ targets: this, lift: 0, delay: ms * 0.42, duration: ms * 0.58, ease: 'Quad.easeIn', onComplete: () => kickBody(this.body, -2) });
   }
 
-  private setView(view: 'back' | 'side', flip: boolean): void {
-    if (view === this.view && flip === this.flip) return;
+  private setView(view: 'back' | 'front' | 'side', flip: boolean): void {
+    if (view === this.view && flip === this.flip && this.drawn !== '') return;
     this.view = view;
     this.flip = flip;
-    this.sprite.setFlipX(flip);
+    // the front view is drawn as seen from behind and mirrored (as in a match)
+    this.sprite.setFlipX(view === 'front' ? !flip : flip);
     this.redraw(true);
   }
 
@@ -208,6 +213,6 @@ export class CampHero {
 
   /** Where the racket meets a ball for a stroke (court metres): a little to his right and in front. */
   contact(h = 1): { x: number; z: number; h: number } {
-    return { x: this.x + 0.5, z: this.z - 0.35, h };
+    return this.base === 'front' ? { x: this.x - 0.5, z: this.z + 0.35, h } : { x: this.x + 0.5, z: this.z - 0.35, h };
   }
 }
