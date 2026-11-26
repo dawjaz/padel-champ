@@ -1,0 +1,24 @@
+{
+  "perDay": 2,
+  "perWeek": 2,
+  "dayCoins": 30,
+  "weekCoins": 100,
+  "dayGoals": [
+    { "id": "d_trials2", "text": "Play 2 camp trials", "kind": "trials", "n": 2 },
+    { "id": "d_stars4", "text": "Earn 4 stars in camp trials", "kind": "stars", "n": 4 },
+    { "id": "d_best2", "text": "Get 2 stars in one trial", "kind": "best", "n": 2 },
+    { "id": "d_best3", "text": "Get 3 stars in one trial", "kind": "best", "n": 3 },
+    { "id": "d_targets2", "text": "Get 2 stars in Target Practice", "kind": "best", "n": 2, "game": "targets" },
+    { "id": "d_serve2", "text": "Get 2 stars in Serve & Return", "kind": "best", "n": 2, "game": "serve" },
+    { "id": "d_timing2", "text": "Get 2 stars in Timing", "kind": "best", "n": 2, "game": "timing" },
+    { "id": "d_smash2", "text": "Get 2 stars in Smash Show", "kind": "best", "n": 2, "game": "smash" }
+  ],
+  "weekGoals": [
+    { "id": "w_trials4", "text": "Play 4 camp trials", "kind": "trials", "n": 4 },
+    { "id": "w_stars9", "text": "Earn 9 stars in camp trials", "kind": "stars", "n": 9 },
+    { "id": "w_perfect2", "text": "Get 3 stars in 2 trials", "kind": "perfect", "n": 2 },
+    { "id": "w_games3", "text": "Play 3 different camp games", "kind": "games", "n": 3 },
+    { "id": "w_games4", "text": "Play all 4 camp games", "kind": "games", "n": 4 },
+    { "id": "w_perfect1", "text": "Get 3 stars in a trial", "kind": "perfect", "n": 1 }
+  ]
+}

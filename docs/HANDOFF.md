@@ -2,6 +2,12 @@
 
 _Last updated: 2026-11-26 (v0.137)_
 
+## v0.139: camp goals (daily and weekly goals from the minigames)
+- `src/career/campGoals.ts` (pure, tested in `campGoals.test.ts`; lists and coins in `src/data/campGoals.json`): two goals a day (30 coins each) and two a week (100 each), drawn from a pool (seeded by the day / the Monday, no two of the same kind). Kinds: `trials` (play n), `stars` (earn n in total), `best` (n stars in one trial, optionally in one named game), `perfect` (n three-star trials), `games` (n different games). State in `save.campGoals` (a log of the day's and the week's trials, ids already paid); real days and weeks like the daily tasks (`dayKey`, `weekKey`).
+- Deliberately NOT part of the daily tasks / daily bonus: the camp is closed while a tournament is on, so a camp goal could be unreachable and must never hold back the daily bonus.
+- A trial counts when its reward is collected (`CampResultScene.collect`). New scene `CampGoalsScene` (progress bars, CLAIM); the camp screen has a GOALS button next to the fragments card, orange when a goal is waiting.
+- Not done (owner: later with all the sounds): camp sounds. The star thresholds were judged OK after the owner's play.
+
 ## v0.138: owner fixes (Por Cuatro ball, skill points at level 5, new-gear stars)
 - **Ball off the screen:** a hard Por Cuatro that bounced and left over the back wall rose to 14 m outside (the coast kept its upward speed). `buildCoast` now also scales the vertical speed when the ball leaves over a fence (`OVER_FENCE_KEEP`) and caps it at 2 m/s up (`OVER_FENCE_MAX_UP`): the highest point outside is now about 4.7 m, in view.
 - **Skill points stuck at level 5:** the cap rose every 5 levels but 2 points a level fill 7 attributes faster, so the hero at level 5 had 3 points and every attribute at the cap. `levelsPerCap` 5 -> 3 (cap 6 at level 4, 10 at level 16) and `pointsEarned` is clamped to what the attributes can hold at the top (42), so no point is ever stuck; test: at every level the room under the cap >= points earned. Balance note: heroes are a little stronger at levels 4 to 15 than before (the cap used to bind); `simBalance` / `simEconomy` use the same functions.
