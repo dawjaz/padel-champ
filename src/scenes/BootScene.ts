@@ -4,7 +4,7 @@ import { applyHd } from '../hd';
 import { COLORS, css, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
 import { loadThemeFonts } from '../theme';
 
-/** Loads everything listed in assets.ts, then opens the title screen. */
+/** Loads everything listed in assets.ts, then plays the intro (SplashScene -> StartScene -> TitleScene). */
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
@@ -23,6 +23,6 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     applyHd(this);
     // The theme fonts must be ready before the first scene creates text, otherwise it would be drawn in a fallback font.
-    void loadThemeFonts().then(() => this.scene.start('TitleScene'));
+    void loadThemeFonts().then(() => this.scene.start('SplashScene'));
   }
 }

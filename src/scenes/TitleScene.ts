@@ -7,7 +7,7 @@ import { BUILD_ID, GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PR
 import { dayKey, hasWaiting } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
 import { getSave } from '../save';
-import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, drawXp, iconChip, makeThemeButton, TC, themeText } from '../theme';
+import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, drawXp, iconChip, makeThemeButton, SPORT, TC, themeText } from '../theme';
 
 
 export class TitleScene extends Phaser.Scene {
@@ -26,7 +26,9 @@ export class TitleScene extends Phaser.Scene {
     bar.fillRect(0, 0, WIDTH, 58);
     bar.fillStyle(TC.navyDark, 1);
     bar.fillRect(0, 55, WIDTH, 3);
-    themeText(this, 14, 32, GAME_TITLE, { size: 28, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
+    // The brand's one-line logo (POR tag + TRES) in the bar.
+    const barLogo = this.add.image(12, 30, 'logo_bar').setOrigin(0, 0.5).setDepth(6);
+    barLogo.setScale(44 / barLogo.height);
     for (const o of coinPill(this, WIDTH - 12, 29, profile.coins)) (o as Phaser.GameObjects.Graphics).setDepth?.(6);
 
     // The hero on a pale stage, with a name plate (level and XP) over the feet.
@@ -59,7 +61,9 @@ export class TitleScene extends Phaser.Scene {
       for (const o of list) (o as Phaser.GameObjects.GameObject & { setVisible: (v: boolean) => unknown }).setVisible(on);
     };
 
-    makeThemeButton(this, WIDTH / 2, 410, 328, 60, 'CAREER', () => this.scene.start('CalendarScene'), 'primary', 26);
+    // CAREER in the brand's sport lettering (slanted Anton with a red shadow), like the logo.
+    const career = makeThemeButton(this, WIDTH / 2, 410, 328, 60, 'CAREER', () => this.scene.start('CalendarScene'), 'primary', 30);
+    (career.text as Phaser.GameObjects.Text).setFontFamily(SPORT).setFontStyle('italic').setLetterSpacing(2).setPadding(8, 4, 12, 4).setShadow(3, 3, '#a81f14', 0, true, true);
 
     const note = themeText(this, WIDTH / 2, 586, '', { size: 12, color: TC.sub, origin: [0.5, 0.5] });
     const flash = (msg: string): void => {

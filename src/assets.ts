@@ -11,7 +11,13 @@ export interface AssetEntry {
 }
 
 export const ASSETS: { images: AssetEntry[]; audio: AssetEntry[] } = {
-  images: [],
+  images: [
+    // Brand (PorTres, direction C, see design/brand-proposals): the logo layers share one frame, so they stack for the intro.
+    ...['all', 'word', 'por', 'tag', 'flame', 'shards', 'ball'].map((k) => ({ key: `logo_${k}`, path: `brand/logo_${k}.png` })),
+    { key: 'logo_bar', path: 'brand/logo_bar.png' },
+    { key: 'brand_cracks', path: 'brand/cracks.png' },
+    { key: 'start_bg', path: 'brand/start_bg.jpg' },
+  ],
   audio: [],
 };
 

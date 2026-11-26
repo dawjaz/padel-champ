@@ -92,3 +92,8 @@ After a point the ball is simulated freely (`buildCoast`); it is visual only.
 - Written PorTres in the logo and the store (the capital T keeps the two words visible); the all-capitals UI writes POR TRES with a space, because PORTRES in capitals runs into one word (owner, v0.151). The store subtitle carries the word "padel" for search; the name itself stays short and ownable.
 - Rejected after a web check: Golden Point (several scorekeeping apps), Padel Heroes, Padel Clash, Padel Pro and Court Legends (existing apps/games), Vibora (a padel racket brand), Bandeja (four apps with that name). Padelheads stays as the runner-up (a compound with "head" near the padel brand HEAD). Por Cuatro is kept for a sequel or mode; "Padel x Cuatro" is an Argentine tournament. Bajada World was free but weak.
 - The repository, `package.json` name and the save key `padel-champ-26:save` keep the old working name on purpose (the key would wipe every save). Checklist for names, domains and trademark: `docs/NAMING.md`.
+
+## 2026-11-26: brand direction C (fireball)
+- After three rounds (A modern, B retro, C fireball, D comic; then C2-C4, D2; then C+C2 mixes) the owner chose C: skewed Anton with speed cuts, a POR tag, a fireball through cracked glass, navy/orange/gold.
+- No full rebrand: the UI palette was already navy/orange/gold; two tones aligned, UI fonts kept. Anton only for brand moments.
+- Launch flow gets an intro and a TAP TO PLAY start screen; the studio splash waits for a studio name.

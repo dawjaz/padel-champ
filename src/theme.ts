@@ -19,11 +19,11 @@ export const TC = {
   blue: 0x1e6bff,
   blueLight: 0x4b8bff,
   orange: 0xd93f00,
-  orangeLight: 0xf0642a,
+  orangeLight: 0xff5a1f, // the logo's orange (brand C)
   bg: 0xeaf1fa,
   sky: 0xbfd8ff,
   sky2: 0xd7e7fc,
-  gold: 0xffb800,
+  gold: 0xffc21f, // between the old gold and the logo's #ffd23f
   goldDark: 0xb47a00,
   white: 0xffffff,
   sub: 0x44566f,
@@ -32,6 +32,8 @@ export const TC = {
 } as const;
 
 export const DISPLAY = '"Baloo 2", "Trebuchet MS", "Segoe UI", sans-serif';
+/** The brand's sport lettering (logo, intro, the CAREER button). Anton has no italic: canvas slants it. */
+export const SPORT = '"Anton", "Impact", sans-serif';
 export const BODY = '"Nunito", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
 
 export const tcss = (c: number): string => '#' + c.toString(16).padStart(6, '0');
@@ -39,7 +41,7 @@ export const tcss = (c: number): string => '#' + c.toString(16).padStart(6, '0')
 /** Resolves when the theme fonts are ready (call before the first scene creates text). */
 export function loadThemeFonts(): Promise<unknown> {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve();
-  const wanted = ['800 24px "Baloo 2"', '700 24px "Baloo 2"', '600 14px "Nunito"', '700 14px "Nunito"', '800 14px "Nunito"'];
+  const wanted = ['800 24px "Baloo 2"', '700 24px "Baloo 2"', '600 14px "Nunito"', '700 14px "Nunito"', '800 14px "Nunito"', '400 24px "Anton"'];
   return Promise.all(wanted.map((f) => document.fonts.load(f))).catch(() => undefined);
 }
 

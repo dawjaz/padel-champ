@@ -93,7 +93,7 @@ function speedLines(seed, { n = 14, x0 = 0, x1 = 1024, y0 = 0, y1 = 1024, ang = 
   return out;
 }
 
-function icon() {
+function icon(part = 'all') {
   const bx = 590, by = 420, r = 178;
   const defs = `<defs>
     <radialGradient id="cbg" cx="0.58" cy="0.42" r="0.75"><stop offset="0" stop-color="#3b1f7a"/><stop offset="0.45" stop-color="${NAVY2}"/><stop offset="1" stop-color="${NAVY}"/></radialGradient>
@@ -102,17 +102,21 @@ function icon() {
     <linearGradient id="cglass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${CYAN}" stop-opacity="0.22"/><stop offset="1" stop-color="${CYAN}" stop-opacity="0.06"/></linearGradient>
   </defs>`;
   const glass = `<rect x="-20" y="-20" width="1064" height="1064" fill="url(#cglass)"/>`;
-  return svg(1024, 1024, `${defs}<rect width="1024" height="1024" fill="url(#cbg)"/>${glass}
+  const back = `<rect width="1024" height="1024" fill="url(#cbg)"/>${glass}
     ${cracks(bx, by, 4, { n: 13, rMin: 380, rMax: 700, w: 13, color: '#d8f6ff' })}
     <rect width="1024" height="1024" fill="url(#cglow)"/>
-    ${speedLines(9, { n: 16, x0: 0, x1: 700, y0: 520, y1: 1100, ang: -38, op: 0.55, w: [4, 12] })}
-    ${flame('cf', bx, by, -10, 1060, r * 2.25, 3)}
+    ${speedLines(9, { n: 16, x0: 0, x1: 700, y0: 520, y1: 1100, ang: -38, op: 0.55, w: [4, 12] })}`;
+  const front = `${flame('cf', bx, by, -10, 1060, r * 2.25, 3)}
     ${shards(bx, by, 7, { n: 7, r0: 230, r1: 400, s0: 60, s1: 110 })}
-    ${ball(bx, by, r, { id: 'cball', rot: -40, outline: NAVY, ow: 18 })}
-  `);
+    ${ball(bx, by, r, { id: 'cball', rot: -40, outline: NAVY, ow: 18 })}`;
+  // Android adaptive icon: the front is scaled into the 66% safe zone of the 108 dp canvas.
+  if (part === 'back') return svg(1024, 1024, defs + back);
+  if (part === 'front') return svg(1024, 1024, `${defs}<g transform="translate(512 512) scale(0.62) translate(-560 -470)">${front}</g>`);
+  return svg(1024, 1024, `${defs}${back}${front}`);
 }
 
-function logo() {
+function logo(parts = ['bg', 'word', 'por', 'tag', 'flame', 'shards', 'ball']) {
+  const on = (k, str) => (parts.includes(k) ? str : '');
   const W = 1600, H = 700;
   const anton = font('anton', 400);
   const tres = layout(anton, 'TRES', 380, { tracking: 0.02 });
@@ -132,27 +136,30 @@ function logo() {
   const T = (dx, dy) => `translate(${tx + dx} ${ty + dy}) skewX(${skew})`;
   const porW = por.bbox.w;
   const porX = tx + 30, porY = ty - tres.bbox.h - 40;
-  const body = `${defs}<rect width="${W}" height="${H}" fill="url(#lbg)"/>
+  const body = `${defs}${on('bg', `<rect width="${W}" height="${H}" fill="url(#lbg)"/>
     <polygon points="0,${H * 0.74} ${W},${H * 0.30} ${W},${H * 0.335} 0,${H * 0.775}" fill="${ORANGE}"/><polygon points="0,${H * 0.80} ${W},${H * 0.36} ${W},${H * 0.37} 0,${H * 0.81}" fill="${GOLD}"/>
-    ${speedLines(21, { n: 22, x0: -100, x1: W, y0: 60, y1: H, ang: 0, op: 0.22, w: [3, 9] })}
-    <g transform="${T(16, 16)}"><path d="${word}" fill="${RED}" stroke="${RED}" stroke-width="26" stroke-linejoin="round"/></g>
+    ${speedLines(21, { n: 22, x0: -100, x1: W, y0: 60, y1: H, ang: 0, op: 0.22, w: [3, 9] })}`)}
+    ${on('word', `<g transform="${T(16, 16)}"><path d="${word}" fill="${RED}" stroke="${RED}" stroke-width="26" stroke-linejoin="round"/></g>
     <g transform="${T(0, 0)}"><path d="${word}" fill="none" stroke="${NAVY}" stroke-width="26" stroke-linejoin="round"/></g>
-    <g transform="${T(0, 0)}" mask="url(#lcut)"><path d="${word}" fill="url(#lfill)"/></g>
-    ${flame('lf', tx + tres.bbox.w + 70, ty - tres.bbox.h - 10, tx + tres.bbox.w - 360, ty - tres.bbox.h + 150, 120, 5).replace('<g>', '<g opacity="0.0">')}
-    <g transform="translate(${porX} ${porY}) skewX(${skew})">
+    <g transform="${T(0, 0)}" mask="url(#lcut)"><path d="${word}" fill="url(#lfill)"/></g>`)}
+    ${on('por', `<g transform="translate(${porX} ${porY}) skewX(${skew})">
       <rect x="-26" y="${-por.bbox.h - 22}" width="${porW + 52}" height="${por.bbox.h + 44}" fill="${ORANGE}" stroke="${NAVY}" stroke-width="10"/>
       <path d="${joined(por)}" fill="${WHITE}"/>
-    </g>
-    ${flame('lf2', tx + tres.bbox.w + 120, porY - 10, tx + tres.bbox.w - 260, porY + 80, 150, 8)}
-    ${shards(tx + tres.bbox.w + 120, porY - 10, 12, { n: 6, r0: 100, r1: 180, s0: 30, s1: 54 })}
-    ${ball(tx + tres.bbox.w + 120, porY - 10 + 0, 66, { id: 'lball', rot: -35, outline: NAVY, ow: 12 })}
-    <g transform="translate(${tx + 70} ${ty + 96}) skewX(${skew})">
+    </g>`)}
+    ${on('flame', flame('lf2', tx + tres.bbox.w + 120, porY - 10, tx + tres.bbox.w - 260, porY + 80, 150, 8))}
+    ${on('shards', shards(tx + tres.bbox.w + 120, porY - 10, 12, { n: 6, r0: 100, r1: 180, s0: 30, s1: 54 }))}
+    ${on('ball', ball(tx + tres.bbox.w + 120, porY - 10 + 0, 66, { id: 'lball', rot: -35, outline: NAVY, ow: 12 }))}
+    ${on('tag', `<g transform="translate(${tx + 70} ${ty + 96}) skewX(${skew})">
       <rect x="-20" y="-58" width="${tag.bbox.w + 40}" height="74" fill="${NAVY}" stroke="${WHITE}" stroke-width="5"/>
       <path d="${joined(tag)}" fill="${WHITE}"/>
-    </g>`;
+    </g>`)}`;
   return svg(W, H, body);
 }
 
 save('out/C_icon.svg', icon());
+save('out/C_icon_back.svg', icon('back'));
+save('out/C_icon_front.svg', icon('front'));
 save('out/C_logo.svg', logo());
-export { flame, cracks, shards, speedLines };
+const LAYERS = { word: ['word'], por: ['por'], tag: ['tag'], flame: ['flame'], shards: ['shards'], ball: ['ball'], all: ['word', 'por', 'tag', 'flame', 'shards', 'ball'] };
+for (const [k, p] of Object.entries(LAYERS)) save(`out/Cl_${k}.svg`, logo(p));
+export { flame, cracks, shards, speedLines, logo };

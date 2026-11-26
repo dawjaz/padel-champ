@@ -8,6 +8,9 @@ public/assets/
   audio/     music and sound effects (ogg + mp3 for cross-browser support)
 ```
 
+## Brand
+`public/assets/brand/`: the PorTres logo and its layers, the bar logo, intro and start-screen art (see `design/brand/README.md`).
+
 ## Adding an image
 1. Put `toro.png` in `public/assets/sprites/`.
 2. Register it in `src/assets.ts`:

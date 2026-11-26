@@ -1,6 +1,14 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.151)_
+_Last updated: 2026-11-26 (v0.152)_
+
+## v0.152: brand C (fireball) in the game: intro, start screen, icons, title bar
+- Owner chose direction C from round 2 (the fireball). Assets and icon sets: `design/brand/README.md`.
+- Launch flow: BootScene -> **SplashScene** (about 1.9 s, a touch skips: the fireball flies in, glass cracks with a flash and a shake, TRES slides in, the POR tag drops, PADEL CAREER slides in; built from logo layers in one frame) -> **StartScene** (night court, the logo, the player's own hero in the smash pose, pulsing TAP TO PLAY) -> TitleScene.
+- TitleScene: the one-line logo (`logo_bar`) in the bar; CAREER in the sport lettering (Anton, slanted, red shadow). Anton is loaded (`@fontsource/anton`, `SPORT` in theme.ts) and is meant only for brand moments.
+- Palette: `TC.orangeLight` = the logo orange #ff5a1f, `TC.gold` #ffc21f. Web: favicons, apple-touch-icon, `manifest.webmanifest`, theme colour #0a0f2e.
+- Left for the end (owner): the studio splash ("<studio> presents") before the intro, once the owner has a studio name.
+- Checked in desktop Chrome at 360x640: intro frames, start screen, title screen. Not checked on a phone yet.
 
 ## Brand proposals (no game change): logo and app icon, four directions
 - `design/brand-proposals/` (README there): A modern (Unbounded, navy + lime, the por tres path), B retro 8-bit (pixel title, pixel racket), C dynamic sport (Anton skewed, fireball through glass), D comic (the real game hero smashing, comic POR TRES! in the game colours). SVG sources, PNG previews and the generators.

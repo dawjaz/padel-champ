@@ -6,6 +6,7 @@ import '@fontsource/baloo-2/latin-800.css';
 import '@fontsource/nunito/latin-600.css';
 import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
+import '@fontsource/anton/latin-400.css';
 import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
 import { CharacterScene } from './scenes/CharacterScene';
@@ -37,6 +38,8 @@ import { TipScene } from './scenes/TipScene';
 import { SeasonEndScene } from './scenes/SeasonEndScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { TitleScene } from './scenes/TitleScene';
+import { SplashScene } from './scenes/SplashScene';
+import { StartScene } from './scenes/StartScene';
 
 // Portrait layout (360x640 logical), drawn on a canvas HD_SCALE times bigger and scaled to fit any screen.
 const game = new Phaser.Game({
@@ -54,7 +57,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, SeasonEndScene, CutsceneScene],
+  scene: [BootScene, SplashScene, StartScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, SeasonEndScene, CutsceneScene],
 });
 
 

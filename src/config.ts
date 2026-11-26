@@ -6,7 +6,7 @@ export const HEIGHT = 640;
  */
 export const GAME_TITLE = 'POR TRES';
 export const GAME_SUBTITLE = 'PADEL CAREER';
-export const GAME_VERSION = '0.151';
+export const GAME_VERSION = '0.152';
 declare const __BUILD__: string;
 /** Short git hash of the deployed build (set by vite.config.ts), or 'dev' when running locally. */
 /** Free Practice (a tuning tool) is hidden from the title menu; set to true to show it again. */
