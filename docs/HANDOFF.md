@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.127: Target Practice easier
+- Stars 220 / 340 / 440 -> 160 / 260 / 350 (owner: too hard at level 5-6). Serve Zones redesign proposed to the owner (receive the opponent's serve and pick the return, or score the serve by the pressure it puts on the receiver); waiting for the choice.
+
 ## v0.126: UI fixes after the owner's review
 - **Title:** the "x played x won" line is gone (the spot is used for the locked-button flash message only); COLLECTION and SETTINGS are centred as a pair.
 - **Shop, BOOSTS:** each button shows a drawn icon of the item (`src/art/boostArt.ts`: isotonic bottle, gel sachet, grip tape roll, balls) on a disc, what it gives (`short`: "+2 MAX G") and the price with a coin; the names are gone (the bag line below still names what you hold).
