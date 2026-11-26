@@ -1,6 +1,10 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.145)_
+_Last updated: 2026-11-26 (v0.146)_
+
+## v0.146: season trophies in the trophy cabinet
+- `CupsScene` has a third mode (CUPS -> SEASONS -> SETS): one trophy per finished season from `career.seasons` (gold top 3, silver top 10, bronze the rest; grey for seasons still to play), details on touch. `SeasonEndScene` says a trophy was added. Reached from HERO > TROPHIES.
+- Owner's decisions (18:31): the other ring games keep the current timing (maybe a cosmetic input-lag compensation later, see BACKLOG idea); balance stays as is; tutorial to be extended/updated only after he decides on the shot menu layout (v0.145). Next topic: how and when to move to Unity or Unreal.
 
 ## v0.145: shot menu in columns by intent (owner's test, easy to undo)
 - `MatchScene.showShotMenu` draws the menu in three columns: DEFENCE (left, blue), NEUTRAL (middle, grey), ATTACK (right, orange), each shot in a fixed order inside its column (`FAMILY_OF`), the specials in a gold row on top with a fixed slot each. Quality of the shot (good / poor / tired) stays in the edge colour and the RISKY mark. The rows shrink when a column is long (`showButtons` layout `'columns'`).

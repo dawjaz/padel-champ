@@ -3,6 +3,7 @@ import { WIDTH } from '../config';
 import { CHALLENGES, CUPS, challengeProgress, goldCount, type Cup } from '../career/cups';
 import { divisionById } from '../career/tournament';
 import { cityAccent, drawCup } from '../art/cupArt';
+import { drawIcon } from '../art/icons';
 import { getSave } from '../save';
 import { applyLightScreen, bakedShape, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
@@ -13,13 +14,19 @@ const CELL_W = 112;
 const CELL_H = 100;
 const CH_PER_PAGE = 5;
 
-type Mode = 'cups' | 'sets';
+type Mode = 'cups' | 'seasons' | 'sets';
+const NEXT_MODE: Record<Mode, Mode> = { cups: 'seasons', seasons: 'sets', sets: 'cups' };
+const MODE_LABEL: Record<Mode, string> = { cups: 'SEASONS', seasons: 'SETS', sets: 'CUPS' };
+/** The season trophy: gold for the world top 3, silver for the top 10, bronze for the rest. */
+export const seasonMetal = (place: number): 'gold' | 'silver' | 'bronze' => (place <= 3 ? 'gold' : place <= 10 ? 'silver' : 'bronze');
+const METAL_FILL = { gold: 0xffc933, silver: 0xc3ccd9, bronze: 0xd08a4a } as const;
 
 /** The cup cabinet: a cup for every city and division, grey until it is won (gold for a title, silver for a lost final). */
 export class CupsScene extends Phaser.Scene {
   private mode: Mode = 'cups';
   private page = 0;
   private selected: string | null = null;
+  private selectedSeason: number | null = null;
 
   constructor() {
     super('CupsScene');
@@ -35,6 +42,7 @@ export class CupsScene extends Phaser.Scene {
     this.mode = 'cups';
     this.page = 0;
     this.selected = null;
+    this.selectedSeason = null;
     this.render(true);
   }
 
@@ -47,16 +55,18 @@ export class CupsScene extends Phaser.Scene {
     const silvers = CUPS.filter((c) => (shelf[c.id]?.silver ?? 0) > 0 && !(shelf[c.id]?.gold > 0)).length;
     themeText(this, WIDTH / 2, 76, `${goldCount(shelf)} / ${CUPS.length} GOLD   ·   ${silvers} SILVER`, { size: 12, color: TC.sub, font: 'display' });
     if (this.mode === 'cups') this.renderCups();
+    else if (this.mode === 'seasons') this.renderSeasons();
     else this.renderSets();
     const pages = this.pageCount();
     makeThemeButton(this, 36, 614, 40, 36, '<', () => { this.page = (this.page + pages - 1) % pages; this.selected = null; this.render(); }, 'secondary', 16);
     themeText(this, 76, 614, `${this.page + 1}/${pages}`, { size: 12, color: TC.navy, font: 'display' });
     makeThemeButton(this, 116, 614, 40, 36, '>', () => { this.page = (this.page + 1) % pages; this.selected = null; this.render(); }, 'secondary', 16);
-    makeThemeButton(this, 202, 614, 84, 36, this.mode === 'cups' ? 'SETS' : 'CUPS', () => { this.mode = this.mode === 'cups' ? 'sets' : 'cups'; this.page = 0; this.selected = null; this.render(); }, 'blue', 13);
+    makeThemeButton(this, 202, 614, 84, 36, MODE_LABEL[this.mode], () => { this.mode = NEXT_MODE[this.mode]; this.page = 0; this.selected = null; this.render(); }, 'blue', 13);
     makeThemeButton(this, 300, 614, 96, 36, 'ACHIEVEMENTS', () => this.scene.start('AchievementsScene', { from: this.from }), 'secondary', 9);
   }
 
   private pageCount(): number {
+    if (this.mode === 'seasons') return 1;
     return Math.ceil((this.mode === 'cups' ? CUPS.length : CHALLENGES.length) / (this.mode === 'cups' ? PER_PAGE : CH_PER_PAGE));
   }
 
@@ -83,6 +93,45 @@ export class CupsScene extends Phaser.Scene {
       });
     });
     this.renderInfo(CUPS.find((c) => c.id === this.selected));
+  }
+
+  /** One trophy for every finished season (its metal by the final place in the world), grey for the ones still to play. */
+  private renderSeasons(): void {
+    const done = getSave().profile.career.seasons;
+    const current = getSave().profile.career.season;
+    const first = done.length > 0 ? done[0].season : 1;
+    for (let i = 0; i < PER_PAGE; i++) {
+      const n = first + i;
+      const rec = done.find((s) => s.season === n);
+      const x = 12 + (i % COLS) * CELL_W;
+      const y = 92 + Math.floor(i / COLS) * CELL_H;
+      const sel = this.selectedSeason === n;
+      const metal = rec ? seasonMetal(rec.place) : null;
+      const card = this.add.graphics().setPosition(x + 3, y);
+      drawCard(card, CELL_W - 6, CELL_H - 6, { radius: 12, stroke: sel ? TC.orange : metal === 'gold' ? TC.goldDark : TC.navy, fill: metal === 'gold' ? 0xfff3d6 : TC.white, shadow: 2 });
+      bakedShape(this, x + 6, y + 4, CELL_W - 12, 66, (g) => {
+        const cx = (CELL_W - 12) / 2;
+        g.fillStyle(metal ? METAL_FILL[metal] : TC.track, 1).fillCircle(cx, 36, 28).lineStyle(3, TC.navy, 1).strokeCircle(cx, 36, 28);
+        g.lineStyle(2, 0xffffff, metal ? 0.6 : 0.2).strokeCircle(cx, 36, 22);
+        drawIcon(g, 'trophy', cx, 36, 28, metal ? TC.navy : TC.sub);
+      });
+      themeText(this, x + CELL_W / 2, y + 76, `SEASON ${n}`, { size: 10, color: rec ? TC.navy : TC.sub, font: 'display' });
+      themeText(this, x + CELL_W / 2, y + 88, rec ? `#${rec.place} IN THE WORLD` : n === current ? 'IN PROGRESS' : 'TO PLAY', { size: 8, color: rec ? TC.orange : TC.sub });
+      this.add.zone(x + 3, y, CELL_W - 6, CELL_H - 6).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerup', () => {
+        this.selectedSeason = this.selectedSeason === n ? null : n;
+        this.render();
+      });
+    }
+    const rec = done.find((s) => s.season === this.selectedSeason);
+    const g = this.add.graphics().setPosition(12, 500);
+    drawCard(g, WIDTH - 24, 96, { radius: 14 });
+    if (!rec) {
+      themeText(this, WIDTH / 2, 548, done.length ? 'TAP A TROPHY FOR DETAILS' : 'FINISH A SEASON (24 WEEKS) TO WIN THE FIRST ONE', { size: 12, color: TC.sub, font: 'display', wrap: WIDTH - 48 });
+      return;
+    }
+    themeText(this, WIDTH / 2, 522, `SEASON ${rec.season}: #${rec.place} IN THE WORLD`, { size: 15, color: TC.navy, font: 'display' });
+    themeText(this, WIDTH / 2, 550, `${rec.points.toLocaleString('en-US')} POINTS  ·  ${rec.events} TOURNAMENTS  ·  ${rec.titles} ${rec.titles === 1 ? 'TITLE' : 'TITLES'}`, { size: 10, color: TC.orange });
+    themeText(this, WIDTH / 2, 578, `${seasonMetal(rec.place).toUpperCase()} TROPHY: TOP 3 GOLD, TOP 10 SILVER, THE REST BRONZE`, { size: 9, color: TC.blue });
   }
 
   private renderInfo(cup: Cup | undefined): void {

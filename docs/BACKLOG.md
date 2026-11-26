@@ -55,3 +55,7 @@ Ask the owner for the full list before redesigning (they offered to write it out
 
 ## 3D prototype (owner: yes, but later)
 Separate prototype branch with three.js. Not before the match mechanics are developed further.
+
+## Later, cosmetic (owner, 2026-11-26)
+- Touch-lag compensation (`SMASH_INPUT_LAG`, 50 ms) is only in Smash Show. The other ring games (camp Timing, Serve & Return, the match ring) feel right to the owner for now; if "good timing but a miss" is reported there, apply the same idea.
+- Tutorial: extend and update the lessons for anything new, but only after the owner has chosen the shot menu layout (columns or list, v0.145).

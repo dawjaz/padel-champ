@@ -53,7 +53,8 @@ export class SeasonEndScene extends Phaser.Scene {
       themeText(this, WIDTH / 2, 452, items.slice(1).map((i) => i.text).join('   '), { size: 14, color: TC.navy, font: 'display' });
       themeText(this, WIDTH / 2, 472, 'ADDED TO YOUR BAG', { size: 10, color: TC.sub });
     }
-    themeText(this, WIDTH / 2, 516, `SEASON ${r.season + 1} BEGINS WITH ${r.carried.toLocaleString('en-US')} POINTS\n(HALF OF YOUR POINTS CARRY OVER)`, { size: 12, color: TC.sub, align: 'center' });
+    themeText(this, WIDTH / 2, 494, 'A SEASON TROPHY WAS ADDED TO YOUR TROPHY CABINET', { size: 10, color: TC.orange, font: 'display' });
+    themeText(this, WIDTH / 2, 524, `SEASON ${r.season + 1} BEGINS WITH ${r.carried.toLocaleString('en-US')} POINTS\n(HALF OF YOUR POINTS CARRY OVER)`, { size: 12, color: TC.sub, align: 'center' });
     if (r.paid) sfx('win');
     this.time.delayedCall(900, () => showTip(this, 'season'));
     makeThemeButton(this, WIDTH / 2, 584, 280, 52, `START SEASON ${r.season + 1}`, () => {

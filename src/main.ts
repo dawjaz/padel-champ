@@ -61,6 +61,7 @@ const game = new Phaser.Game({
 
 
 
+
 // Dev server only: lets screenshot scripts jump to a scene.
 // Development builds only: handles for automated checks (the game and the shot list).
 if (import.meta.env.DEV) Object.assign(window as unknown as Record<string, unknown>, { __game: game, __shots: SHOTS, __players: playersData });
