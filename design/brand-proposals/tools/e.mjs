@@ -94,3 +94,4 @@ function logo() {
 
 save('out/C2_icon.svg', icon());
 save('out/C2_logo.svg', logo());
+export { racket, slashes, CREST, pts };

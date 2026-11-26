@@ -21,6 +21,10 @@ Round 2 (owner rejected A and B, liked C best, did not like D): three more dynam
 
 All fonts are OFL (free for commercial use). Letters are converted to outlines, so the SVGs do not depend on installed fonts.
 
+Round 3 (owner: keep only C and C2, mix them, two solutions; everything else rejected): `tools/i.mjs`, `svg/H1_*`, `svg/H2_*`.
+- H1: the C2 crest in C colours (navy, orange-gold rim, cracked glass), flame from the racket carrying the ball, C lettering (skewed Anton, speed cuts, POR tag) on a C2 banner.
+- H2: the C2 crest in black and lime with C's fireball and glass shards, C lettering in white-to-lime with an orange shadow.
+
 ## Files
 - `svg/`: vector sources of A, C, D (logos and 1024 px icons). B is pixel art: `png/B_icon.png` (48 px grid at 1024), `png/B_logo.png` (170x82 grid at x10).
 - `png/*_icon_512.png`: previews.

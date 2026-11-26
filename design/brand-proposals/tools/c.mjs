@@ -155,3 +155,4 @@ function logo() {
 
 save('out/C_icon.svg', icon());
 save('out/C_logo.svg', logo());
+export { flame, cracks, shards, speedLines };
