@@ -4,7 +4,7 @@ import { sfx } from '../audio';
 import { drawIcon } from '../art/icons';
 import { drawGear } from '../art/gearArt';
 import { WIDTH } from '../config';
-import { setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, itemsOfBrand, markSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, itemsOfBrand, markItemSeen, SLOT_LABEL, SLOTS, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
 import { heroFrom, heroLook, levelOf } from '../career/profile';
 import playersData from '../data/players.json';
 import { STAT_KEYS } from '../game/attributes';
@@ -64,6 +64,14 @@ export class GearScene extends Phaser.Scene {
     return g;
   }
 
+  /** The pulsing gold star that marks something new. */
+  private star(x: number, y: number, size: number): void {
+    const star = this.add.graphics().setDepth(10).setPosition(x, y);
+    drawIcon(star, 'star', 0, 0, size, TC.gold);
+    this.tweens.add({ targets: star, scale: 1.25, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.dyn.push(star);
+  }
+
   private save(fn: (inv: Inventory) => Inventory): void {
     updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: fn(d.profile.inventory) } }));
     this.redraw();
@@ -75,14 +83,9 @@ export class GearScene extends Phaser.Scene {
       o.destroy();
     }
     this.dyn = [];
-    let p = getSave().profile;
+    const p = getSave().profile;
     const level = levelOf(p.xp);
-    // What is new in the slot on screen is seen now; the other slots show a star until they are opened.
-    const seenInv = markSeen(p.inventory, this.slot, level);
-    if (seenInv !== p.inventory) {
-      updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: markSeen(d.profile.inventory, this.slot, level) } }));
-      p = getSave().profile;
-    }
+    // A star stays on a new model (its row, its brand tab, its slot) until the player taps that model.
     const inv = p.inventory;
 
     // Stage: the hero as he looks now (or in the model he is trying on), his stats in a table with the change a tapped model makes.
@@ -132,12 +135,7 @@ export class GearScene extends Phaser.Scene {
       this.dyn.push(ic);
       this.label(x + 33, y + 50, SLOT_LABEL[s], 10, sel ? TC.orange : TC.navy).setDepth(6);
       this.label(x + 33, y + 62, g ? g.name.split(' ')[0] : 'EMPTY', 9, TC.sub).setDepth(6);
-      if (!sel && hasNewIn(inv, s, level)) {
-        const star = this.add.graphics().setDepth(6).setPosition(x + 55, y + 12);
-        drawIcon(star, 'star', 0, 0, 20, TC.gold);
-        this.tweens.add({ targets: star, scale: 1.25, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-        this.dyn.push(star);
-      }
+      if (!sel && hasNewIn(inv, s, level)) this.star(x + 55, y + 12, 20);
     });
 
     // Sheet: brand tabs and the four models of this brand in this slot.
@@ -163,6 +161,7 @@ export class GearScene extends Phaser.Scene {
       this.dyn.push(dot);
       this.label(x + 25.5, y + 21, br.name.toUpperCase(), 8, sel ? TC.orange : TC.navy);
       this.label(x + 25.5, y + 32, `${own}/4`, 9, own > 0 ? TC.navy : TC.sub);
+      if (hasNewInBrand(inv, this.slot, br.id, level)) this.star(x + 45, y + 4, 16);
     });
     const br = brandById(this.brand)!;
     this.label(WIDTH / 2, 382, `${br.name.toUpperCase()}: ${br.tag.toUpperCase()}`, 12, TC.blue);
@@ -177,6 +176,7 @@ export class GearScene extends Phaser.Scene {
       const g = this.tile(12, y, WIDTH - 24, 50, { stroke: picked ? TC.blue : on ? TC.orange : TC.navy, radius: 14, fill: usable ? TC.white : 0xf1f4f9 }, () => {
         // a tap shows what the model does to the stats; the button on the row wears it
         this.sel = picked ? null : it.id;
+        if (isNewItem(inv, it, level)) updateSave((d) => ({ ...d, profile: { ...d.profile, inventory: markItemSeen(d.profile.inventory, it.id) } }));
         this.redraw();
       });
       const rc = RARITY_COLOR[it.rarity];
@@ -189,6 +189,7 @@ export class GearScene extends Phaser.Scene {
       this.dyn.push(tint, ic);
       const name = this.label(66, y + 17, it.name, 14, usable ? TC.navy : TC.sub, 0, true);
       this.label(66, y + 36, bonusText(it.bonus), 11, usable ? TC.orange : TC.sub, 0);
+      if (isNewItem(inv, it, level)) this.star(66 + name.width + 14, y + 15, 18);
       if (picked && usable) {
         // WEAR / REMOVE: the button that changes the equipment
         const text = on ? 'REMOVE' : 'WEAR';

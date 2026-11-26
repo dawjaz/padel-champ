@@ -109,7 +109,13 @@ export function levelProgress(xp: number): number {
 export const statCap = (level: number): number =>
   Math.min(levels.statMax, levels.capBase + Math.floor((Math.max(1, level) - 1) / levels.levelsPerCap));
 
-export const pointsEarned = (level: number): number => levels.startPoints + (Math.max(1, level) - 1) * levels.pointsPerLevel;
+/**
+ * Skill points earned up to this level; never more than the attributes can take at the top (so none are ever stuck). The caps
+ * (`statCap`) rise fast enough that every point earned can be spent at once: with 2 points a level and 7 attributes, a cap that rose
+ * every 5 levels left the hero at level 5 with 3 points he could not place (every attribute already at the cap).
+ */
+export const pointsEarned = (level: number): number =>
+  Math.min(levels.startPoints + (Math.max(1, level) - 1) * levels.pointsPerLevel, STAT_KEYS.length * (levels.statMax - levels.startStat));
 
 export const pointsSpent = (alloc: Alloc): number => STAT_KEYS.reduce((n, k) => n + alloc[k], 0);
 

@@ -1035,6 +1035,8 @@ const ROLL_DECEL = 1.6;
 const OUTSIDE_ROLL_DECEL = 2.8;
 /** A ball that leaves over the fence is checked by the fence and the air outside, so it drops just behind it (not into the stands). */
 const OVER_FENCE_KEEP = 0.45;
+/** ...and it does not fly on upwards either (a hard Por Cuatro came off the court at 4.5 m and went up to 14 m, off the screen): m/s. */
+const OVER_FENCE_MAX_UP = 2;
 /**
  * Outside the court the ball is stopped by the hoardings and the people behind them: it never flies on into the stands (they are only a
  * picture). Metres beyond the side fence, beyond the far back wall (the stands start right behind the boards) and beyond the near one.
@@ -1091,6 +1093,7 @@ export function buildCoast(flight: Flight, spin: number): Coast {
   if (!inside) {
     vx *= OVER_FENCE_KEEP;
     vz *= OVER_FENCE_KEEP;
+    vy = Math.min(vy * OVER_FENCE_KEEP, OVER_FENCE_MAX_UP);
   }
   let rolling = false;
   const e = clamp(0.62 + 0.04 * spin, 0.5, 0.7);
@@ -1149,6 +1152,7 @@ export function buildCoast(flight: Flight, spin: number): Coast {
           inside = false;
           vx *= OVER_FENCE_KEEP;
           vz *= OVER_FENCE_KEEP;
+          vy = Math.min(vy * OVER_FENCE_KEEP, OVER_FENCE_MAX_UP);
         } else {
           const glass = mat === 'glass';
           x = Math.sign(x) * 5;
@@ -1165,6 +1169,7 @@ export function buildCoast(flight: Flight, spin: number): Coast {
           inside = false;
           vx *= OVER_FENCE_KEEP;
           vz *= OVER_FENCE_KEEP;
+          vy = Math.min(vy * OVER_FENCE_KEEP, OVER_FENCE_MAX_UP);
         } else {
           const glass = mat === 'glass';
           z = z <= 0 ? 0 : 20;

@@ -20,7 +20,19 @@ describe('levels', () => {
     expect(statCap(1)).toBe(levels.capBase);
     expect(statCap(levels.maxLevel)).toBe(levels.statMax);
     const room = STAT_KEYS.length * (levels.statMax - levels.startStat);
-    expect(pointsEarned(levels.maxLevel)).toBeGreaterThanOrEqual(room); // a maxed hero is reachable
+    expect(pointsEarned(levels.maxLevel)).toBe(room); // a maxed hero is reachable and no point is ever stuck
+  });
+
+  it('every point earned can be spent at once: the room under the cap is never smaller than the points (owner: level 5, points stuck)', () => {
+    for (let level = 1; level <= levels.maxLevel; level++) {
+      const roomNow = STAT_KEYS.length * (statCap(level) - levels.startStat);
+      expect(pointsEarned(level), `level ${level}`).toBeLessThanOrEqual(roomNow);
+    }
+    // the hero from the report: level 5, everything at the old cap of 5
+    let p = { ...newProfile(), xp: xpToReach(5) };
+    for (const k of STAT_KEYS) p = spend(p, k);
+    expect(freePoints(p)).toBeGreaterThan(0);
+    expect(STAT_KEYS.some((k) => canSpend(p, k))).toBe(true);
   });
 });
 

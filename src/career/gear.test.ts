@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { Appearance, PlayerDef } from '../game/types';
-import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, BRANDS, ownedOfBrand, setBonusOf, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
+import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, markItemSeen, BRANDS, ownedOfBrand, setBonusOf, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
 import { award, heroFrom, newProfile, spend, xpToReach } from './profile';
 
 const look: Appearance = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' };
@@ -186,5 +186,20 @@ describe('brand set bonus', () => {
     for (const b of BRANDS) expect(b.set).toHaveLength(2);
     expect(ownedOfBrand(newInventory(), 'adaro')).toBe(5);
     expect(ownedOfBrand(newInventory(), 'bavole')).toBe(0);
+  });
+
+  it('the star follows the new model: slot, brand tab and the model row, until that model is tapped', () => {
+    let inv = newInventory();
+    const rare = GEAR.find((g) => g.rarity === 'rare' && g.minLevel <= 5)!;
+    inv = { ...inv, owned: [...inv.owned, rare.id] };
+    const lvl = rare.minLevel;
+    expect(isNewItem(inv, rare, lvl)).toBe(true);
+    expect(hasNewInBrand(inv, rare.slot, rare.brand, lvl)).toBe(true);
+    for (const b of BRANDS) if (b.id !== rare.brand) expect(hasNewInBrand(inv, rare.slot, b.id, lvl), b.id).toBe(false);
+    const seen = markItemSeen(inv, rare.id);
+    expect(isNewItem(seen, rare, lvl)).toBe(false);
+    expect(hasNewInBrand(seen, rare.slot, rare.brand, lvl)).toBe(false);
+    expect(hasNewIn(seen, rare.slot, lvl)).toBe(false);
+    expect(markItemSeen(seen, rare.id)).toBe(seen);
   });
 });

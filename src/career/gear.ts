@@ -209,6 +209,17 @@ export function newItemsOfSlot(inv: Inventory, slot: Slot, level: number): GearI
 
 export const hasNewIn = (inv: Inventory, slot: Slot, level: number): boolean => newItemsOfSlot(inv, slot, level).length > 0;
 
+/** This model is new: owned, can be worn now, not looked at yet (the star on its row, on its brand tab and on its slot). */
+export const isNewItem = (inv: Inventory, g: GearItem, level: number): boolean => inv.owned.includes(g.id) && level >= g.minLevel && !inv.seen.includes(g.id);
+
+/** Is there a new model of this brand in this slot (the star on the brand tab)? */
+export const hasNewInBrand = (inv: Inventory, slot: Slot, brand: string, level: number): boolean => itemsOfBrand(slot, brand).some((g) => isNewItem(inv, g, level));
+
+/** The player looked at this model (tapped it): it is not news any more. */
+export function markItemSeen(inv: Inventory, id: string): Inventory {
+  return inv.seen.includes(id) ? inv : { ...inv, seen: [...inv.seen, id] };
+}
+
 /** The player opened this slot: what is new in it counts as seen. */
 export function markSeen(inv: Inventory, slot: Slot, level: number): Inventory {
   const fresh = newItemsOfSlot(inv, slot, level);
