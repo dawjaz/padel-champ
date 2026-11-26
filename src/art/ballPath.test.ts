@@ -307,6 +307,16 @@ describe('rules rework: glass, rebound height, weak lob, free ball', () => {
     }
   });
 
+  it('meets a deep lob played before the glass within reach, not far over the head at the glass', () => {
+    for (const id of ['lob', 'rally_lob']) {
+      for (const fz of [2, 6, 9]) {
+        const f = buildFlight({ from: { x: 0, z: 20 - fz }, startH: 1.0, hitterSide: 0, shot: shot(id), landX: 2, outcome: 'continue', glass: false, seed: 1 });
+        expect(f.hitH, `${id} from ${fz}`).toBeLessThanOrEqual(REACH_MAX_H + 1e-9);
+        expect(f.events.some((e) => e.kind === 'glass' && e.t <= f.duration), `${id} from ${fz}: before the glass`).toBe(false);
+      }
+    }
+  });
+
   it('rebounds off the back glass to the chosen height class', () => {
     const hh = (arrival: 'low' | 'mid' | 'high') => fly('bounce_shot', { glass: true, arrival }).hitH;
     expect(hh('high')).toBeGreaterThan(hh('mid'));

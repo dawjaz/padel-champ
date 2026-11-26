@@ -546,6 +546,25 @@ function simulateAfterBounce(
       }
     }
   }
+  // Never far over the head: a ball that would be met above reach (a deep lob that bounces and climbs towards the glass, played
+  // before it gets there) is met where it is still within reach, the nearest such moment (on the rise, or on the way down).
+  // Balls played off the back glass are handled by lowering the rebound instead (see buildFlight).
+  if (!o.backGlass && samples[hitIndex] && samples[hitIndex].h > REACH_MAX_H) {
+    let best = -1;
+    for (let i = hitIndex - 1; i >= from; i--) {
+      if (samples[i].h <= REACH_MAX_H) {
+        best = i;
+        break;
+      }
+    }
+    for (let i = hitIndex + 1; i <= to; i++) {
+      if (samples[i].h <= REACH_MAX_H) {
+        if (best < 0 || i - hitIndex < hitIndex - best) best = i;
+        break;
+      }
+    }
+    if (best >= 0) hitIndex = best;
+  }
   return { samples, events, hitIndex, end, backContact };
 }
 

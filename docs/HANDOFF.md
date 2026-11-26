@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.154)_
+_Last updated: 2026-11-26 (v0.155)_
+
+## v0.155 (small): a deep lob played before the glass is met within reach
+- The case noted in v0.154: a good lob that the engine plays before the glass bounced 1.5 m from the glass, climbed and was met at the
+  glass at 1.8 to 2.9 m. `simulateAfterBounce` now moves any play point above `REACH_MAX_H` (balls not played off the back glass) to
+  the nearest moment the ball is within reach, here on the rise just after the bounce (about 1.9 to 2.3 m). Visual only.
+  Scan of 3402 rally flights before the glass and 3402 off it: none played above 2.3 m. New test.
+
 
 ## v0.154: the crowd cheers in groups; a ball off the back glass is never played far over the head
 - Owner after the phone test: not the whole crowd at once after every point. The crowd is split into 4 random groups
@@ -14,8 +21,7 @@ _Last updated: 2026-11-26 (v0.154)_
   Fix in `buildFlight` (visual only): when the play point off the back glass is above `REACH_MAX_H` (2.3 m), the rebound peak is
   lowered step by step (same speed, flatter) until it is within reach. A scan of 3402 rally flights off the glass found 122 such
   balls (smash x3/x4, fast bajada, sky rocket, all with high rebounds); now 0. New test; the rebound-class test allows the capped peak.
-- Not changed (noticed): a good lob that the engine has played before the glass (25% of good lobs) is met just in front of the back
-  glass at 1.8 to 2.9 m, depending on where the hitter stood.
+- Noticed then, fixed in v0.155: a good lob played before the glass was met at the glass at 1.8 to 2.9 m.
 
 
 ## v0.153: the venue around the court (stands, crowd, boards, courtside), the crowd cheers after points
