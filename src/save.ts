@@ -44,6 +44,7 @@ export interface KeyValueStore {
   removeItem(key: string): void;
 }
 
+// The storage key keeps the old working name on purpose: renaming it would wipe every existing save.
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {

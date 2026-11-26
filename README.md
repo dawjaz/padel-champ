@@ -1,4 +1,6 @@
-# Padel Champ
+# PorTres: Padel Career
+
+_(working name until 2026-11-26: Padel Champ; the repository, the package name and the save key keep the old name on purpose.)_
 
 A command-based padel game for phones (portrait), inspired by NES-era command sports games.
 Pick a shot, your opponent picks a response, guts (stamina) decide the rest.

@@ -1,4 +1,4 @@
-# Padel Champ
+# PorTres: Padel Career (repo and save key still say padel-champ)
 
 Mobile-first (portrait, 360x640) command-based padel game in the spirit of 8/16-bit "command soccer" games
 (think Captain Tsubasa, 1988), with a **stylized 2D/3D look** (Canvas2D-drawn, volume-shaded, no real 3D engine), a TV-broadcast court view and comic big-head characters.

@@ -376,9 +376,9 @@ function drawAds(g: Ctx, theme: CourtTheme): void {
   for (const x of [-3.3, 0, 3.3]) {
     const p = P(x, 0, 0.27);
     g.fillStyle = 'rgba(0,0,30,0.6)';
-    g.fillText('PADEL CHAMP 26', p.x + 0.7, p.y + 1);
+    g.fillText('PORTRES', p.x + 0.7, p.y + 1);
     g.fillStyle = '#ffe066';
-    g.fillText('PADEL CHAMP 26', p.x, p.y);
+    g.fillText('PORTRES', p.x, p.y);
   }
 }
 

@@ -86,3 +86,9 @@ After a point the ball is simulated freely (`buildCoast`); it is visual only.
 - **Golden point: the receiving pair chooses the receiving side** (not implemented yet; today the side is fixed).
 - **Partners keep their own halves on serve** is confirmed (the v0.7 reading was right; `serveSetup` and `CENTRE_SERVE_X` stay).
 - **Real 3D (three.js)** will be a separate prototype branch, but NOT now. Focus first: deepening the match mechanics.
+
+## 2026-11-26: the game is called PorTres (store title "PorTres: Padel Career")
+- Chosen by the owner from ten proposals. "Por tres" is the padel shot where the ball bounces in the court, hits the side glass and leaves over the fence; it is the finisher of the game (RUN OUT) and the number allows a sequel ("Por Cuatro").
+- Written PorTres (one word) in the logo and the store; the UI draws everything in capitals (PORTRES). The store subtitle carries the word "padel" for search; the name itself stays short and ownable.
+- Rejected after a web check: Golden Point (several scorekeeping apps), Padel Heroes, Padel Clash, Padel Pro and Court Legends (existing apps/games), Vibora (a padel racket brand), Bandeja (four apps with that name). Padelheads stays as the runner-up (a compound with "head" near the padel brand HEAD). Por Cuatro is kept for a sequel or mode; "Padel x Cuatro" is an Argentine tournament. Bajada World was free but weak.
+- The repository, `package.json` name and the save key `padel-champ-26:save` keep the old working name on purpose (the key would wipe every save). Checklist for names, domains and trademark: `docs/NAMING.md`.

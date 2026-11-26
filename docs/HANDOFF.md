@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.149)_
+_Last updated: 2026-11-26 (v0.150)_
+
+## v0.150: the game is called PorTres
+- Owner's decision (2026-11-26): name **PorTres**, store title **PorTres: Padel Career**. Reasons, rejected names and the web check are in DECISIONS.md; the checklist for trademark, domains, stores and social handles (to be done by hand) is `docs/NAMING.md`.
+- In the game: `GAME_TITLE = 'PORTRES'`, new `GAME_SUBTITLE = 'PADEL CAREER'` (config.ts); title bar, footer line, court banners (`arenaHd.ts`), `index.html` title, README and CLAUDE.md heading. Repository, `package.json` name and the save key `padel-champ-26:save` are unchanged on purpose (the key would erase every save).
+- Open: logo and icon design, animated title and studio splash (needs the studio name), store texts. Name has not been searched in the trademark registers (only the web).
 
 ## v0.149: tutorial matched to the current game
 - Lessons: THE TIMING RING and SPECIAL SHOTS now say that special shots need the ring too (green = full shot, otherwise a normal shot); RECEIVING says the opponent drops the ball and serves after the bounce. The `special` slide shows the ball, the ring, the tap on green and only then the four level chips (they hid the ring at the top before). Serve slide and menu lesson were already right (bounce first, knee-hip bubble, plain list).

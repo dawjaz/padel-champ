@@ -3,7 +3,7 @@ import type { IconKind } from '../art/icons';
 import { addToon } from '../art/toonTexture';
 import { heroLook, levelOf, xpToReach } from '../career/profile';
 import { tournamentActive } from '../career/careerFlow';
-import { BUILD_ID, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH } from '../config';
+import { BUILD_ID, GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH } from '../config';
 import { dayKey, hasWaiting } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
 import { getSave } from '../save';
@@ -26,7 +26,7 @@ export class TitleScene extends Phaser.Scene {
     bar.fillRect(0, 0, WIDTH, 58);
     bar.fillStyle(TC.navyDark, 1);
     bar.fillRect(0, 55, WIDTH, 3);
-    themeText(this, 14, 32, 'PADEL CHAMP', { size: 28, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
+    themeText(this, 14, 32, GAME_TITLE, { size: 28, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
     for (const o of coinPill(this, WIDTH - 12, 29, profile.coins)) (o as Phaser.GameObjects.Graphics).setDepth?.(6);
 
     // The hero on a pale stage, with a name plate (level and XP) over the feet.
@@ -119,7 +119,7 @@ export class TitleScene extends Phaser.Scene {
     practice.push(...makeThemeButton(this, WIDTH / 2, 602, 240, 40, 'BACK', () => { showList(practice, false); showList(tiles, true); }, 'secondary').parts);
     showList(practice, false);
 
-    themeText(this, 16, HEIGHT - 3, `${GAME_TITLE}  v${GAME_VERSION} (${BUILD_ID})`, { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
+    themeText(this, 16, HEIGHT - 3, `${GAME_TITLE}: ${GAME_SUBTITLE}  v${GAME_VERSION} (${BUILD_ID})`, { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
   }
 
   /** Name plate at the foot of the stage: name, level badge and the XP bar with numbers. */
