@@ -2,6 +2,9 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.132: the walls are a hard limit for the camp players
+- A receiver went into the side glass to play a wide serve with his forehand. `CampHero` keeps every player 0.45 m inside the glass (`WALL_ROOM`, `clampX`, in `runTo` and `teleport`), and `stanceFor(ball)` picks where to stand: forehand if there is room between the ball and the glass, else backhand (both the hero and the opponent; mirrored for the front view). Used for the receiver in serve rounds and the hero in return rounds.
+
 ## v0.131: no more balls through the net in the camp; serves at one pace
 - **Bug:** a CHIQUITA return flew through the net and still scored GOOD +70 (its low arc was drawn below the net top; the score was right, the picture wrong). `flyArc` now lifts any arc that crosses the net so it clears it at 1.1 m (`netClearApex`); arcs meant to end in the net stop at it and are left alone. Covers every minigame.
 - **Serve pace:** the opponent's serve flies at the same pace as the hero's (`SERVE_MS_PER_M` 85, was a slow 220). After the choice of return, the ball waits at its bounce for a short beat (450 ms, the ring already closing), then comes on at the after-bounce pace (`AFTER_BOUNCE_MS_PER_M` 115), so the ring's close is still readable. `ReturnRound.closeMs` is gone (the timing comes from the distance).

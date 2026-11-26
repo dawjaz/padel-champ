@@ -10,6 +10,10 @@ import type { PoseName } from '../art/pose';
 import type { Appearance } from '../game/types';
 
 const UNIT = 0.55;
+/** The walls are a hard limit: a player's body stays this far inside the side glass and the back glass (court metres). */
+export const WALL_ROOM = 0.45;
+export const clampX = (x: number): number => Math.max(-5 + WALL_ROOM, Math.min(5 - WALL_ROOM, x));
+const clampZ = (z: number): number => Math.max(WALL_ROOM, Math.min(20 - WALL_ROOM, z));
 const HEIGHT_M = 1.75;
 const RUN_CYCLE_M = 1.7;
 const SHUFFLE_CYCLE_M = 0.9;
@@ -55,6 +59,8 @@ export class CampHero {
 
   /** Sets him down somewhere at once. */
   teleport(x: number, z: number): void {
+    x = clampX(x);
+    z = clampZ(z);
     this.move?.stop();
     this.move = null;
     this.x = x;
@@ -67,6 +73,8 @@ export class CampHero {
 
   /** Runs (or side-steps, for a short move across) to (x, z) in `ms`, then waits in the ready pose. */
   runTo(x: number, z: number, ms: number, done?: () => void): void {
+    x = clampX(x);
+    z = clampZ(z);
     this.move?.stop();
     const sx = this.x;
     const sz = this.z;
@@ -209,6 +217,20 @@ export class CampHero {
     ctx.setTransform(UNIT, 0, 0, UNIT, -VIEW.x * UNIT, -VIEW.y * UNIT);
     drawOps(ctx, buildToon(this.appearance, this.view, pose, false));
     this.canvas.refresh();
+  }
+
+  /**
+   * Where he stands to meet a ball at `ball` (court metres): with his forehand if there is room for it between the ball and the glass,
+   * with the backhand otherwise.
+   */
+  stanceFor(ball: { x: number; z: number }): { x: number; z: number; fh: boolean } {
+    const front = this.base === 'front';
+    // his forehand side on the screen: right for the hero (seen from behind), left for an opponent (seen from the front)
+    const fhX = front ? ball.x + 0.5 : ball.x - 0.5;
+    const bhX = front ? ball.x - 0.55 : ball.x + 0.55;
+    const z = front ? ball.z - 0.35 : ball.z + 0.35;
+    const fh = Math.abs(fhX - clampX(fhX)) < 1e-6 || Math.abs(bhX - clampX(bhX)) > 1e-6;
+    return { x: clampX(fh ? fhX : bhX), z: clampZ(z), fh };
   }
 
   /** Where the racket meets a ball for a stroke (court metres): a little to his right and in front. */

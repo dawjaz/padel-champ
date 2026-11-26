@@ -690,8 +690,10 @@ export class MinigameScene extends Phaser.Scene {
         }
         const roll = rollOn(from, land, rv.z + 0.35);
         const meet = { x: roll.x, z: roll.z, h: 0.9 };
-        rv.runTo(meet.x + 0.5, meet.z - 0.35, 260);
-        const fh = meet.x < rv.x;
+        // he gets there inside the glass: forehand if there is room, backhand otherwise
+        const st = rv.stanceFor(meet);
+        rv.runTo(st.x, st.z, 260);
+        const fh = st.fh;
         this.flyVia(land, { ...roll, h: meet.h }, 0.3, () => {
           rv.stroke(fh ? 'fh' : 'bh', meet.h);
           sfx('hit');
@@ -795,8 +797,9 @@ export class MinigameScene extends Phaser.Scene {
     // a short beat with the ball at the bounce (the ring starts closing), then it comes on at the pace of a ball off the bounce
     const lead = 450;
     const due = lead + Math.max(260, total * AFTER_BOUNCE_MS_PER_M);
-    const bh = meet.x - this.heroView.x < -0.2;
-    this.heroView.runTo(meet.x - (bh ? -0.55 : 0.5), meet.z + 0.35, Math.min(500, due * 0.4), () => this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', meet.h));
+    const st = this.heroView.stanceFor(meet);
+    const bh = !st.fh;
+    this.heroView.runTo(st.x, st.z, Math.min(500, due * 0.4), () => this.heroView.prep(bh ? 'bhPrep' : 'fhPrep', meet.h));
     const ring = this.add.graphics().setDepth(9200);
     this.layer.push(ring);
     const t0 = this.time.now;
