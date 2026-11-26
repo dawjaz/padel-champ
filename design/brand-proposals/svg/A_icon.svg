@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" ><defs>
+    <linearGradient id="aibg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b3fa0"/><stop offset="1" stop-color="#0a1640"/></linearGradient>
+    <radialGradient id="aiglow" cx="0.81" cy="0.29" r="0.45"><stop offset="0" stop-color="#d9f53c" stop-opacity="0.35"/><stop offset="1" stop-color="#d9f53c" stop-opacity="0"/></radialGradient>
+    <linearGradient id="aitail" gradientUnits="userSpaceOnUse" x1="148" y1="150" x2="380" y2="846"><stop offset="0" stop-color="#d9f53c" stop-opacity="0"/><stop offset="0.7" stop-color="#d9f53c" stop-opacity="1"/></linearGradient>
+    <linearGradient id="aiglass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ce1ff" stop-opacity="0.38"/><stop offset="1" stop-color="#5ce1ff" stop-opacity="0.12"/></linearGradient>
+  </defs><rect width="1024" height="1024" fill="url(#aibg)"/><rect width="1024" height="1024" fill="url(#aiglow)"/><rect x="80" y="866" width="864" height="10" rx="5" fill="#ffffff" opacity="0.16"/><polygon points="566,520 770,486 770,866 566,866" fill="url(#aiglass)" stroke="#5ce1ff" stroke-width="10" stroke-linejoin="round"/>
+    <polygon points="566,520 770,486 770,506 566,540" fill="#5ce1ff" opacity="0.85"/>
+    <path d="M 600 610 L 690 560 M 600 668 L 650 640" stroke="#ffffff" stroke-width="12" stroke-linecap="round" opacity="0.5"/><path d="M 148 150 L 380 846" fill="none" stroke="url(#aitail)" stroke-width="46" stroke-linecap="round"/>
+    <path d="M 380 846 Q 580 120 830 300" fill="none" stroke="#d9f53c" stroke-width="46" stroke-linecap="round"/><g stroke="#ffffff" stroke-width="14" stroke-linecap="round" opacity="0.9">
+    <path d="M 380 846 m -70 -4 l -44 -8"/><path d="M 380 846 m -50 -46 l -32 -32"/><path d="M 380 846 m 66 4 l 44 -2"/></g><g stroke="#d9f53c" stroke-width="12" stroke-linecap="round" opacity="0.55"><path d="M 900 196 l 50 -40"/><path d="M 946 262 l 56 -26"/></g><defs><radialGradient id="aiballg" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#f4ff9a"/><stop offset="0.55" stop-color="#d9f53c"/><stop offset="1" stop-color="#9fbf12"/></radialGradient>
+  <clipPath id="aiballc"><circle cx="0" cy="0" r="112"/></clipPath></defs>
+  <g transform="translate(830 300) rotate(-30)">
+    
+    <circle r="112" fill="url(#aiballg)"/>
+    <g clip-path="url(#aiballc)"><path d="M -69.44 -87.36 Q -2.24 0 -69.44 87.36 M 69.44 -87.36 Q 2.24 0 69.44 87.36" fill="none" stroke="#ffffff" stroke-width="12.32" stroke-linecap="round" opacity="0.95"/></g>
+  </g></svg>
