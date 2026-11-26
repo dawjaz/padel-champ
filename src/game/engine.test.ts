@@ -15,6 +15,8 @@ import {
   spendGuts,
   RISKY_PER_G,
   type HitInput,
+  DUEL,
+  forcedErrorChance,
   ringQuality,
   timingEffect,
 } from './engine';
@@ -308,5 +310,33 @@ describe('special shot timing', () => {
     expect(specialTimingError(undefined)).toBeLessThan(specialTimingError(0.5));
     expect(specialTimingError(0.5)).toBeLessThan(specialTimingError(0));
     expect(specialTimingError(0)).toBeLessThanOrEqual(0.5);
+  });
+});
+
+describe('forced errors and the stat gap (v0.157)', () => {
+  it('a ball under pressure adds a forced error chance, flagged as forced; no pressure, no forced errors', () => {
+    expect(forcedErrorChance(player({}), 0)).toBe(0);
+    expect(forcedErrorChance(player({}), 0.1)).toBeGreaterThan(0.08);
+    let forced = 0;
+    let plain = 0;
+    for (let seed = 1; seed <= 2000; seed++) {
+      const r = resolveHit(hit({ incoming: { ...MID, pressure: 0.12 }, rng: seededRng(seed) }));
+      if (r.outcome === 'error' && r.forced) forced++;
+      const q = resolveHit(hit({ incoming: { ...MID, pressure: 0 }, rng: seededRng(seed) }));
+      if (q.outcome === 'error' && q.forced) plain++;
+    }
+    expect(forced).toBeGreaterThan(150);
+    expect(plain).toBe(0);
+  });
+
+  it('a good defender with clean technique handles pressure better', () => {
+    expect(forcedErrorChance(player({ defense: 8, technique: 8 }), 0.1)).toBeLessThan(forcedErrorChance(player({ defense: 3, technique: 3 }), 0.1));
+  });
+
+  it('attributes count less in the rally duel (DUEL.statGap < 1), but more is still better', () => {
+    expect(DUEL.statGap).toBeLessThan(1);
+    const score = (v: number) => resolveHit(hit({ attacker: player({ [shot('bandeja').stat]: v }) })).attackScore;
+    expect(score(8)).toBeGreaterThan(score(5));
+    expect(score(8) - score(5)).toBeLessThan(30 * shot('bandeja').power);
   });
 });

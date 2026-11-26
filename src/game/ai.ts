@@ -54,6 +54,9 @@ function gapX(centre: number, opp: CourtPos[], rng: Rng): number {
   return best[Math.min(best.length - 1, Math.floor(rng() * best.length))];
 }
 
+/** CPU tuning that the balance scripts may adjust (scripts/simRealism.ts). `lobWeight`: how readily the CPU lobs (1 = as before v0.157). */
+export const CPU_TACTICS = { lobWeight: 0.7 };
+
 /**
  * CPU / partner choice of shot and direction for a return or rally hit. Hitters look for holes in the opponents' set-up and
  * run them around: `opp` are the opponents' real positions (they move). With them the hitter prefers
@@ -84,6 +87,8 @@ export function pickHit(
     else if (atBack) tactic = s.id.includes('chiquita') || s.id === 'dejada' ? 2.2 : isLob(s) ? 0.5 : 1;
     // The niche shots (vibora, bandeja, contrapared) almost never came up in CPU play (0.1% of hits): a pair that can play them should.
     if (NICHE_SHOTS.includes(s.id)) tactic *= NICHE_WEIGHT;
+    // Lobs are a big part of padel, but the CPU played them on 43-45% of its hits (real pairs: far fewer): a little less often.
+    if (isLob(s)) tactic *= CPU_TACTICS.lobWeight;
     // A pair does not throw away points: the riskiest shots (the fast bajada ends in the net or the glass about a third of the time) are chosen less often.
     tactic *= Math.max(RISK_FLOOR, 1 - s.risk * RISK_AVERSION);
     return Math.max(0.05, hitter.stats[s.stat] * s.power * s.fit[state.ball.height] * affordable * tactic);

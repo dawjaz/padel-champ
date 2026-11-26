@@ -1,6 +1,32 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.156)_
+_Last updated: 2026-11-26 (v0.157)_
+
+## v0.157: forced errors, a smaller stat-gap effect, fewer CPU lobs, answerable specials, gaps back on the aiming map
+- Owner's brief: forced errors about 15%; fast bajada errors 25-30% (were about 40% for the player); smaller effect of stat gaps;
+  somewhat fewer CPU lobs; specials a little more answerable at low levels; and (after the v0.156 phone test) the aiming heat map was
+  almost all red against a pair at the net: bring the gaps back. All tuned with `scripts/simRealism.ts` (new, kept; CPU v CPU, 5
+  set-ups; env overrides GAP / FORCED / SPREAD / LOB / FAST_R).
+- engine.ts `DUEL` = { statGap 0.5, statPivot 5, forcedPerPressure 1.3, spread 20 }:
+  - `duelPlayer`: in a rally duel attributes count as 5 + (v - 5) x 0.5 (serves unchanged).
+  - `forcedErrorChance`: a ball that comes in under pressure adds 1.3 x pressure x handling (1.3 - 0.06 x avg(defence, technique),
+    0.75..1.2) to the error chance; such an error is flagged (`HitResult.forced`, `Step.forcedError`), the log says "Forced error!".
+- point.ts `REACH_TUNE` = { cover 0.5, volleyGapMul 3 }: a ball that flies past a volleying defender counts as 3x further than it
+  passes (gaps beside and between net players are back; a ball straight at him is still his); the second defender closes half of
+  what he can reach (was all).
+- point.ts `specialAnswerChance` = 0.03 x (defence + speed) - 0.09 (15% at 8, 21% at 10, 33% at 14, 39% at 16; was 0/10/30/40%).
+- ai.ts `CPU_TACTICS.lobWeight` 0.7 (lob share of CPU hits 43-45% -> 36-38%).
+- shots.json: bajada_fast risk 0.14 (was 0.26), winnerMargin 51; bajada_slow winnerMargin 27.
+- Results (simRealism, 300 matches per set-up; before = v0.156): default teams W 42.9 -> 33.6%, unforced errors 56.8 -> 47.1%,
+  forced 0 -> 19.0%, shots/point 8.5 -> 7.8; even 4v4 forced 14.6%, 7v7 12.2%, 5v6 14.4%, 7v4 24.2%. Real pro men: W 38-48,
+  UE 29-45, FE 13-29, 8-11 shots. Ordinary shots at a 3-level edge (7v4): volley 19.8 -> 6.7% winners, bandeja 22.3 -> 12.8,
+  dejada 28.6 -> 4.7, vibora 39 -> 32.5, bajadas 28-29 -> 7-9. Point win rate of the weaker pair barely moved (5v6 40.9 -> 39.3%,
+  7v4 18 -> 20%): better players now win points by forcing errors instead of by easy winners.
+- Hero spamming bajadas aimed middle-deep (full matches): slow 15-24% winners, 5-12% errors; fast 9-24% winners, 22-32% errors.
+- Heat map against a net pair (green/yellow/red share, fast bajada): before v0.156 43/33/24, v0.156 0/19/81, now 26/35/39.
+- Guts: tired-hit share between the v0.155 and v0.156 levels (simBalance).
+- Next: phone test; then maybe the point-level stat gap if the owner still finds stronger opponents too dominant.
+
 
 ## v0.156: the bajada is no longer a free point; reach to the ball's path; a winner visibly passes the defender
 - Owner's choice after the realism analysis (`docs/analysis/`): points 1 and 4 first, with the slow bajada at about 20% winners like

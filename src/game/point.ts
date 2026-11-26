@@ -25,6 +25,13 @@ export interface ReachPositions {
  * - Both defenders cover the court: the better placed one counts, and the other closes part of what is left (a ball into the middle is
  *   not a gap that neither can reach).
  */
+/**
+ * Reach tuning: `cover` = how much of the remaining gap the second defender closes (1 = all he can reach, 0 = only the nearer one
+ * counts); `volleyGapMul` = a ball that flies past a volleying defender counts as this many times further away than it passes (he has
+ * a split second to react; >1 keeps real gaps beside and between players at the net).
+ */
+export const REACH_TUNE = { cover: 0.5, volleyGapMul: 3 };
+
 export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideIndex, formation: Formation, shot: ShotDef, landX: number, depth: number, at: ReachPositions = {}): number {
   const z = landingZ(defSide, depth);
   const hitter: CourtPos = at.hitter ?? { x: 0, z: defSide === 0 ? NET_Z - REACH_DEFAULT_RUN / 2 : NET_Z + REACH_DEFAULT_RUN / 2 };
@@ -39,8 +46,9 @@ export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideInd
     let flown = dist;
     if (inAir) {
       const t = trackGap(spot, hitter, landX, z);
-      if (t.gap < gap) {
-        gap = t.gap;
+      const tg = t.gap * REACH_TUNE.volleyGapMul;
+      if (tg < gap) {
+        gap = tg;
         flown = at.hitter ? t.dist : REACH_DEFAULT_RUN * (t.dist / Math.max(1e-6, Math.hypot(landX - hitter.x, z - hitter.z)));
       }
     }
@@ -49,7 +57,7 @@ export function reachAgainst(defenders: [PlayerDef, PlayerDef], defSide: SideInd
   }
   const hi = Math.max(f[0], f[1]);
   const lo = Math.min(f[0], f[1]);
-  return Math.min(1, hi + ((1 - hi) * (lo - floor)) / (1 - floor));
+  return Math.min(1, hi + (REACH_TUNE.cover * (1 - hi) * (lo - floor)) / (1 - floor));
 }
 /**
  * Shares of the three kinds of lob: deep (into the court, it bounces), medium (the back third, played out of the air with a
@@ -127,6 +135,8 @@ export interface Step {
   airDist?: number;
   /** Por Cuatro: the defender tried to take it before the glass and fumbled it (the point goes to the hitter). */
   earlyError?: boolean;
+  /** This error came from the pressure of the incoming ball (a forced error), not from the shot's own risk. */
+  forcedError?: boolean;
   /** A special shot the defender got back (it would have been a winner; he paid guts for it). */
   answered?: boolean;
   /** Por Cuatro that was not hit well: the ball comes back off the glass and the defender, now at the net, plays it back. */
@@ -306,13 +316,16 @@ export const withSpecial = (p: PlayerDef): PlayerDef => {
 };
 
 /**
- * The chance that a defender gets a special shot back that would have been a winner: only good defenders with guts left (up to 40%
- * for defence and speed 8 with full guts, 10% at 5 and 5, none with less than `SPECIAL_ANSWER_COST` guts).
+ * The chance that a defender gets back a special shot that would have been a winner, with guts left to pay for it (none with less than
+ * `SPECIAL_ANSWER_COST`), scaled by how full his guts bar is: `PER_POINT x (defence + speed) - OFFSET`, at most 40%. Since v0.157 a
+ * weak pair answers one now and then too (15% at defence + speed 8, 21% at 10, 33% at 14, 39% at 16; before: 0, 10, 30, 40%).
  */
+export const SPECIAL_ANSWER_PER_POINT = 0.03;
+export const SPECIAL_ANSWER_OFFSET = 0.09;
 export function specialAnswerChance(defender: PlayerDef, guts: number): number {
   if (guts < SPECIAL_ANSWER_COST) return 0;
   const share = defender.maxGuts > 0 ? Math.min(1, guts / defender.maxGuts) : 1;
-  return Math.max(0, Math.min(0.4, 0.05 * (defender.stats.defense + defender.stats.speed - 8))) * share;
+  return Math.max(0, Math.min(0.4, SPECIAL_ANSWER_PER_POINT * (defender.stats.defense + defender.stats.speed) - SPECIAL_ANSWER_OFFSET)) * share;
 }
 
 /** The shot's name as the player is told it (a Por Cuatro that stays in the court is a Powerful Smash). */
@@ -725,6 +738,7 @@ export function stepHit(
     powerFactor: attacker.stats.power / Math.max(0.01, hitter.stats.power),
     fit: res.fit,
     ...(answered ? { answered: true } : {}),
+    ...(res.outcome === 'error' && res.forced === true ? { forcedError: true } : {}),
     // Balls that go to a wall are always taken after the wall, the others after the bounce.
     receive: shot.wall === 'none' ? 'bounce' : 'wall',
   };

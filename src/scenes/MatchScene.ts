@@ -3262,6 +3262,8 @@ export class MatchScene extends Phaser.Scene {
         endPoint(
           step.shot.wall === 'fence'
             ? `${attacker.name} mishits the rulo straight into the fence. Error!`
+            : step.forcedError
+            ? `Under pressure, ${attacker.name} ${this.errorText(step)}. Forced error!`
             : `${attacker.name} ${this.errorText(step)}. Error!`,
         );
         break;

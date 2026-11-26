@@ -275,7 +275,7 @@ describe('who plays the ball, lost balls and the two bajadas', () => {
     const fast = shot('bajada_fast');
     const slow = shot('bajada_slow');
     expect(fast.flight.speed).toBeGreaterThan(slow.flight.speed + 10);
-    expect(fast.risk).toBeGreaterThan(slow.risk * 3);
+    expect(fast.risk).toBeGreaterThan(slow.risk * 2);
     expect(slow.flight.spin).toBeLessThan(0);
     expect(slow.flight.side).toBeGreaterThan(0);
     expect((slow.rebound?.low ?? 0)).toBeGreaterThan(0.7);
@@ -829,8 +829,10 @@ describe('owner shots of v0.55: bandeja, vibora, flat shot, dejada, contrapared,
     const pair: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
     const net: [CourtPos, CourtPos] = [restPos(1, 0, 'net'), restPos(1, 1, 'net')];
     const hitter = { x: -2.5, z: 18.5 };
-    // deep middle behind a pair at the net: the ball passes between them about 1.5 m from each, so they reach it
-    expect(reachAgainst(pair, 1, 'net', shot('bajada_slow'), 0, 9, { defenders: net, hitter })).toBeGreaterThan(0.9);
+    // a ball that flies right past a player at the net is volleyed; the deep middle between them stays a gap (since v0.157 a ball
+    // that passes a volleyer counts as REACH_TUNE.volleyGapMul times further away: he has a split second to react)
+    expect(reachAgainst(pair, 1, 'net', shot('bajada_slow'), -2.5, 9, { defenders: net, hitter })).toBeGreaterThan(0.95);
+    expect(reachAgainst(pair, 1, 'net', shot('bajada_slow'), 0, 9, { defenders: net, hitter })).toBeLessThan(0.75);
     // the same spot against a pair at the back: both are 2.5 m away, the second closes part of the gap
     const back: [CourtPos, CourtPos] = [restPos(1, 0, 'back'), restPos(1, 1, 'back')];
     const both = reachAgainst(pair, 1, 'back', shot('bajada_fast'), 0, 9, { defenders: back, hitter });

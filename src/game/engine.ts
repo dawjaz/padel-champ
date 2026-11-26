@@ -26,6 +26,30 @@ export const SECOND_SERVE_RETURN = 1.2;
 export const RISKY_PER_G = 0.15;
 /** Random spread added to each side's score. */
 export const RANDOM_SPREAD = 20;
+
+/**
+ * Rally duel tuning (v0.157, tuned against real match statistics, see docs/analysis and scripts/simRealism.ts):
+ * - `statGap`: in the attack-v-defence duel of a rally hit the attributes count relative to `statPivot`, scaled by this (1 = as they
+ *   are). Below 1 a stronger player still wins more, but one or two attribute points no longer turn ordinary shots into sure winners.
+ * - `spread`: the random spread of each side's score in a rally hit (serves keep RANDOM_SPREAD): more luck, smaller stat edges.
+ * - `forcedPerPressure`: forced errors. A ball that comes in under pressure (the previous shot beat the defence without winning) is
+ *   harder to play: the error chance grows by this times the pressure, less for a good defender with good technique.
+ */
+export const DUEL = { statGap: 0.5, statPivot: 5, forcedPerPressure: 1.3, spread: RANDOM_SPREAD };
+const duelStat = (v: number): number => DUEL.statPivot + (v - DUEL.statPivot) * DUEL.statGap;
+/** The player as he counts in the duel (attributes pulled towards the pivot, see DUEL.statGap). */
+export function duelPlayer(p: PlayerDef): PlayerDef {
+  if (DUEL.statGap === 1) return p;
+  const stats = { ...p.stats };
+  for (const k of Object.keys(stats) as Array<keyof typeof stats>) stats[k] = duelStat(stats[k]);
+  return { ...p, stats };
+}
+/** Extra (forced) error chance of a ball that comes in under `pressure`: a solid defender with clean technique handles it better. */
+export function forcedErrorChance(hitter: PlayerDef, pressure: number): number {
+  if (pressure <= 0) return 0;
+  const handling = clamp(1.3 - 0.06 * ((hitter.stats.defense + hitter.stats.technique) / 2), 0.75, 1.2);
+  return clamp(DUEL.forcedPerPressure * pressure * handling, 0, 0.45);
+}
 /** Rally length after which every extra hit adds a little error chance. */
 export const FATIGUE_START = 6;
 export const FATIGUE_STEP = 0.02;
@@ -150,6 +174,8 @@ export interface HitResult {
   fit: number;
   /** Pressure on the next hit (only after a narrow attack lead). */
   pressure: number;
+  /** The error came from the pressure of the incoming ball (a forced error), not from the shot's own risk. */
+  forced?: boolean;
 }
 
 /**
@@ -165,17 +191,20 @@ export function resolveHit(i: HitInput): HitResult {
   const special = i.shot.kind === 'special' ? specialTimingError(i.timing) : 0;
   const chance = clamp((errorChance(i.attacker, i.shot, i.direction, i.rallyLength, i.landX, missing) + lowOffGlass) * te.risk + special, MIN_ERROR, MAX_ERROR);
 
-  if (i.rng() < chance) {
-    return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance, tired, fit, pressure: 0 };
+  const forcedChance = forcedErrorChance(i.attacker, i.incoming.pressure);
+  const roll = i.rng();
+  if (roll < chance + forcedChance) {
+    return { outcome: 'error', attackScore: 0, defenseScore: 0, errorChance: chance + forcedChance, tired, fit, pressure: 0, ...(roll >= chance ? { forced: true } : {}) };
   }
 
+  const atk = duelPlayer(i.attacker);
   let attackScore =
-    i.attacker.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (i.shot.ignorePressure === true ? 1 : 1 - i.incoming.pressure) +
-    i.rng() * RANDOM_SPREAD;
+    atk.stats[i.shot.stat] * 10 * i.shot.power * i.direction.attack * fit * (i.shot.ignorePressure === true ? 1 : 1 - i.incoming.pressure) +
+    i.rng() * DUEL.spread;
   attackScore *= te.attack;
   const airBonus = i.airTake === true ? (i.defenderFormation === 'net' ? AIR_DEFENSE.net : AIR_DEFENSE.mid) : 1;
   const defenseScore =
-    defenseRating(i.defender, i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus * (i.reach ?? 1) + i.rng() * RANDOM_SPREAD;
+    defenseRating(duelPlayer(i.defender), i.direction, i.shot.reboundChase ? (i.defenderFormation ?? 'back') : undefined, i.shot.drop === true ? (i.defenderFormation ?? 'back') : undefined) * airBonus * (i.reach ?? 1) + i.rng() * DUEL.spread;
 
   const diff = attackScore - defenseScore;
   const margin = i.shot.winnerMargin ?? WINNER_MARGIN;

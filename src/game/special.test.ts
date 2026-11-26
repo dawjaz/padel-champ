@@ -58,7 +58,10 @@ describe('special shots', () => {
     const wall: PlayerDef = { ...cpu[0], stats: { ...cpu[0].stats, defense: 9, speed: 9 } };
     expect(specialAnswerChance(wall, wall.maxGuts)).toBeCloseTo(0.4);
     expect(specialAnswerChance(wall, SPECIAL_ANSWER_COST - 1)).toBe(0);
-    expect(specialAnswerChance({ ...cpu[0], stats: { ...cpu[0].stats, defense: 4, speed: 4 } }, 10)).toBe(0);
+    // since v0.157 a weak defender answers one now and then too (15% with full guts), never more than a strong one
+    const weak = { ...cpu[0], stats: { ...cpu[0].stats, defense: 4, speed: 4 } };
+    expect(specialAnswerChance(weak, weak.maxGuts)).toBeCloseTo(0.15);
+    expect(specialAnswerChance(weak, weak.maxGuts)).toBeLessThan(specialAnswerChance(wall, wall.maxGuts));
     const teams: Teams = [[you[0], you[1]], [wall, { ...wall, id: 'wall2' }]];
     const rng = seededRng(9);
     let answered = 0;
