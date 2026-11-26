@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Padel Champ: shot menu prototypes</title>
+<style>
+:root{--navy:#0b2a5b;--blue:#2f6df0;--orange:#ff7a1a;--gold:#f2b705;--grey:#8d9bb0;--bg:#e9f0fb}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--navy)}
+h1{font-size:20px;margin:14px 12px 4px}p.n{margin:0 12px 10px;font-size:13px;color:#46618f}
+.sc{display:flex;flex-wrap:wrap;gap:6px;margin:0 12px 12px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.sc button{border:2px solid var(--navy);background:#fff;border-radius:10px;padding:6px 9px;font-weight:700;font-size:12px;color:var(--navy);cursor:pointer}
+.sc button.on{background:var(--orange);color:#fff}
+.row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;padding:0 8px 20px}
+.col{width:360px}.col h2{font-size:15px;margin:0 0 2px}.col .d{font-size:12px;color:#46618f;margin:0 0 6px;min-height:48px}
+.phone{width:360px;height:640px;border-radius:22px;border:3px solid var(--navy);background:linear-gradient(#17306b 0 18%,#2a5cc0 18% 100%);position:relative;overflow:hidden}
+.court{position:absolute;left:0;right:0;top:0;height:462px}
+.court svg{width:100%;height:100%}
+.cap{position:absolute;left:0;right:0;top:8px;text-align:center;color:#fff;font-weight:800;font-size:13px;text-shadow:0 2px 0 var(--navy)}
+.menu{position:absolute;left:0;right:0;bottom:0;height:178px;background:#0b2a5b;padding:6px 6px;overflow:hidden}
+.b{position:absolute;flex-wrap:wrap;border:2px solid var(--navy);border-radius:9px;background:#fff;color:var(--navy);font-weight:800;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1.05;cursor:default;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.b small{display:block;margin-left:4px;font-weight:600;opacity:.7}
+.b.def{background:#cfe0ff;border-color:#2f6df0}.b.neu{background:#e8ecf2;border-color:#7b8aa3}.b.atk{background:#ffd9bd;border-color:#e0620d}
+.b.sp{background:linear-gradient(#ffe066,#f2b705);border-color:#8a5d00}
+.b.off{opacity:.28;filter:grayscale(1)}.b.empty{display:none}
+.b.hot{outline:3px solid #fff}
+.tag{position:absolute;right:6px;top:4px;font-size:9px;color:#8fb0ee;font-weight:700}
+h3{margin:6px 12px;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 12px 30px}
+.grid .cell{background:#fff;border:2px solid var(--navy);border-radius:12px;padding:6px}
+.cell .t{font-size:11px;font-weight:800;margin-bottom:4px}
+.mini{position:relative;height:178px;background:#0b2a5b;border-radius:8px;overflow:hidden;width:360px;transform:scale(.8);transform-origin:top left;margin-bottom:-36px}
+.cellwrap{width:288px;height:142px;overflow:hidden}
+.legend{margin:0 12px 10px;font-size:12px}.legend span{display:inline-block;padding:2px 8px;border-radius:8px;border:2px solid;margin-right:6px;font-weight:700}
+</style></head><body>
+<h1>Shot menu: three layouts</h1>
+<p class="n">Phone-size mock-ups (360 x 640). Pick a ball situation: the menu of each layout changes. Tap the buttons of the two-step layout (C). Below: all situations side by side, to see which layout keeps buttons in place.</p>
+<div class="legend"><span style="background:#cfe0ff;border-color:#2f6df0">DEFENCE</span><span style="background:#e8ecf2;border-color:#7b8aa3">NEUTRAL</span><span style="background:#ffd9bd;border-color:#e0620d">ATTACK</span><span style="background:#ffe066;border-color:#8a5d00">SPECIAL</span></div>
+<div class="sc" id="sc"></div>
+<div class="row" id="row"></div>
+<h3>Stability: the same menu over six different balls (read each row left to right)</h3>
+<div class="grid" id="grid"></div>
+<script>
+// family: d = defence, n = neutral, a = attack. order = the fixed place inside the family.
+const SHOTS=[
+ {id:'rally_lob',n:'Lob',c:0,f:'d',o:0,sl:[0,0]},
+ {id:'rally_chiquita',n:'Chiquita',c:1,f:'d',o:1,sl:[1,0]},
+ {id:'bajada_slow',n:'Bajada Low',c:1,f:'d',o:2,sl:[2,0],r:{glass:true,h:['mid','high']}},
+ {id:'bloqueo',n:'Block',c:0,f:'d',o:3,sl:[3,0],r:{f:['net'],h:['low','mid'],air:true,hard:true}},
+ {id:'contrapared',n:'Contrapared',c:1,f:'d',o:4,sl:[0,1],r:{f:['back'],h:['low','mid'],glass:false,air:false,wall:true}},
+ {id:'bounce_shot',n:'Flat shot',c:1,f:'n',o:0,sl:[1,1],r:{f:['mid','back'],air:false}},
+ {id:'volley',n:'Volley',c:1,f:'n',o:1,sl:[2,1],r:{glass:false,air:true}},
+ {id:'dejada',n:'Dejada',c:1,f:'n',o:2,sl:[3,1],r:{f:['net','mid'],h:['low','mid'],glass:false,opp:['back','mid']}},
+ {id:'bandeja',n:'Bandeja',c:1,f:'a',o:0,sl:[0,2],r:{f:['mid','back'],glass:false,h:['high'],air:true}},
+ {id:'vibora',n:'Vibora',c:2,f:'a',o:1,sl:[1,2],r:{f:['mid','back'],glass:false,h:['high'],air:true}},
+ {id:'rulo',n:'Rulo',c:3,f:'a',o:2,sl:[2,2],r:{h:['high'],glass:false,zone:'mid',air:true}},
+ {id:'smash_x3',n:'Por Tres',c:2,f:'a',o:3,sl:[3,2],r:{f:['net','mid'],h:['mid','high'],weak:true,glass:false,air:true}},
+ {id:'smash_x4',n:'Por Cuatro',c:2,f:'a',o:4,sl:[0,3],r:{f:['net','mid'],h:['mid','high'],weak:true,glass:false,air:true}},
+ {id:'bajada_fast',n:'Bajada High',c:3,f:'a',o:5,sl:[1,3],r:{glass:true,h:['mid','high']}},
+];
+const SPECIALS=[
+ {id:'sp_skyrocket',n:'Sky Rocket',r:{f:['net','mid'],h:['high'],glass:false,air:true}},
+ {id:'sp_venom',n:'Venom Vibora',r:{f:['mid','back'],glass:false,h:['high'],air:true}},
+ {id:'sp_cornerlock',n:'Corner Lock',r:{f:['mid','back'],glass:false,h:['high'],air:true}},
+ {id:'sp_freeze',n:'Freeze Drop',r:{f:['net','mid'],h:['low','mid'],glass:false,opp:['back','mid']}},
+];
+const SIT=[
+ {n:'Mid-court, high ball, out of the air',f:'mid',h:'high',air:true,glass:false,weak:false,wall:false,opp:'back',hard:false,zone:'mid'},
+ {n:'Back, low ball after the bounce',f:'back',h:'low',air:false,glass:false,weak:false,wall:false,opp:'net',hard:false,zone:'back'},
+ {n:'Off the back glass, mid ball',f:'back',h:'mid',air:false,glass:true,weak:false,wall:false,opp:'mid',hard:false,zone:'back'},
+ {n:'At the net, weak lob',f:'net',h:'high',air:true,glass:false,weak:true,wall:false,opp:'back',hard:false,zone:'net'},
+ {n:'At the net, hard low ball',f:'net',h:'low',air:true,glass:false,weak:false,wall:false,opp:'net',hard:true,zone:'net'},
+ {n:'Back, ball by the side wall',f:'back',h:'mid',air:false,glass:false,weak:false,wall:true,opp:'mid',hard:false,zone:'back'},
+];
+function ok(r,s){ if(!r) return true;
+ if(r.f&&!r.f.includes(s.f))return false; if(r.h&&!r.h.includes(s.h))return false;
+ if(r.glass!==undefined&&r.glass!==s.glass)return false; if(r.air!==undefined&&r.air!==s.air)return false;
+ if(r.weak&&!s.weak)return false; if(r.wall&&!s.wall)return false; if(r.hard&&!s.hard)return false;
+ if(r.opp&&!r.opp.includes(s.opp))return false; if(r.zone&&r.zone!==s.zone)return false; return true;}
+const avail=(s)=>({shots:SHOTS.filter(x=>ok(x.r,s)),sp:SPECIALS.filter(x=>ok(x.r,s))});
+const L=(txt)=>txt;
+function btn(x,y,w,h,cls,txt,fs,extra=''){return `<div class="b ${cls}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;font-size:${fs}px;${extra}">${txt}</div>`}
+const FAM={d:'def',n:'neu',a:'atk'};
+// A: the fixed grid: every shot has its own place, the ones that cannot be played are greyed
+function menuA(s){const a=avail(s),ids=new Set(a.shots.map(x=>x.id)),sids=new Set(a.sp.map(x=>x.id));let h='<span class="tag">A  FIXED GRID</span>';
+ const W=84,H=28,gx=4,gy=3,x0=8,y0=18;
+ SPECIALS.forEach((p,i)=>{h+=btn(x0+i*(W+gx),y0,W,H,'sp'+(sids.has(p.id)?'':' off'),p.n.replace(' ','<br>'),9)});
+ SHOTS.forEach(p=>{const [cx,cy]=p.sl;h+=btn(x0+cx*(W+gx),y0+(cy+1)*(H+gy),W,H,FAM[p.f]+(ids.has(p.id)?'':' off'),p.n.replace(' ','<br>'),9)});
+ return h}
+// B: columns by intent; the specials in a bar of their own, always in the same place
+function menuB(s){const a=avail(s);let h='<span class="tag">B  COLUMNS BY INTENT</span>';
+ const W=112,H=30,gx=5,x0=8,y0=18;
+ SPECIALS.forEach((p,i)=>{ if(a.sp.includes(p)) h+=btn(x0+i*(84+4),y0,84,H,'sp',p.n.replace(' ','<br>'),9)});
+ ['d','n','a'].forEach((f,ci)=>{a.shots.filter(x=>x.f===f).sort((p,q)=>p.o-q.o).forEach((p,ri)=>{h+=btn(x0+ci*(W+gx),y0+H+5+ri*(H-1),W,H-4,FAM[f],p.n,11)})});
+ return h}
+// C: two steps: four fixed category buttons, then the shots of the one touched
+function menuC(s,open){const a=avail(s);let h='<span class="tag">C  TWO STEPS</span>';
+ const cats=[['d','DEFENCE'],['n','NEUTRAL'],['a','ATTACK'],['s','SPECIAL']];
+ cats.forEach(([f,t],i)=>{const n=f==='s'?a.sp.length:a.shots.filter(x=>x.f===f).length;
+  h+=btn(8+i*88,18,84,38,(f==='s'?'sp':FAM[f])+(n?'':' off')+(open===f?' hot':''),`${t}<small style="flex-basis:100%;margin:0">${n} available</small>`,10,'cursor:pointer" data-c="'+f)});
+ const list=open==='s'?a.sp:a.shots.filter(x=>x.f===open).sort((p,q)=>p.o-q.o);
+ list.forEach((p,i)=>{const col=i%2,row=Math.floor(i/2);h+=btn(8+col*174,64+row*34,170,30,open==='s'?'sp':FAM[open],p.n,12)});
+ if(!list.length) h+=`<div style="position:absolute;left:0;right:0;top:92px;text-align:center;color:#8fb0ee;font-size:12px;font-weight:700">NOTHING HERE FOR THIS BALL</div>`;
+ return h}
+const VARS=[
+ {k:'A',t:'A. Fixed grid',d:'Every shot has its own place for good. What the ball does not allow is greyed. Muscle memory, but 18 small buttons.',f:menuA},
+ {k:'B',t:'B. Columns by intent',d:'Left: defence, middle: neutral, right: attack. Available shots fill their column, specials in their own bar. Recommended.',f:menuB},
+ {k:'C',t:'C. Two steps',d:'Four fixed buttons, then the shots of the one you touched. Smallest menu, one touch more per shot.',f:menuC},
+];
+let cur=0; const open={0:'a'};
+const court=`<svg viewBox="0 0 360 462" preserveAspectRatio="none"><rect width="360" height="462" fill="#1a2f66"/><polygon points="100,70 260,70 340,330 20,330" fill="#2f6fd0"/><rect x="100" y="40" width="160" height="30" fill="#203a7c" stroke="#9fdcff"/><rect x="60" y="190" width="240" height="10" fill="#eaf1fa"/><polygon points="20,330 340,330 360,462 0,462" fill="#3a80e8"/><circle cx="210" cy="250" r="7" fill="#f6e84a" stroke="#0b2a5b" stroke-width="2"/></svg>`;
+function phone(v,i){const s=SIT[cur];const cat=v.k==='C'?(open[cur]||'a'):null;
+ return `<div class="col"><h2>${v.t}</h2><p class="d">${v.d}</p><div class="phone"><div class="court">${court}</div><div class="cap">${s.n.toUpperCase()}</div><div class="menu" data-v="${v.k}">${v.k==='C'?v.f(s,cat):v.f(s)}</div></div></div>`}
+function draw(){
+ document.getElementById('sc').innerHTML=SIT.map((s,i)=>`<button class="${i===cur?'on':''}" data-i="${i}">${i+1}. ${s.n}</button>`).join('');
+ document.getElementById('row').innerHTML=VARS.map(phone).join('');
+ document.getElementById('grid').innerHTML=VARS.map(v=>`<div style="grid-column:1/-1;font-weight:800;margin-top:6px">${v.t}</div>`+SIT.map((s,i)=>`<div class="cell"><div class="t">${i+1}. ${s.n}</div><div class="cellwrap"><div class="mini">${v.k==='C'?v.f(s,['d','n','a','s'].find(f=>f==='a')):v.f(s)}</div></div></div>`).join('')).join('');
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(b){cur=+b.dataset.i;draw();return}
+ const c=e.target.closest('[data-c]');if(c){open[cur]=c.dataset.c;draw()}});
+draw();
+</script></body></html>
