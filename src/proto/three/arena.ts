@@ -198,7 +198,7 @@ export function buildArena(theme: CourtTheme): Arena {
       g.fillRect(0, 0, 512, 32);
       g.fillStyle = '#ffffff';
       g.font = '800 18px Trebuchet MS, sans-serif';
-      for (let x = 10; x < 512; x += 170) g.fillText('PORTRES', x, 23);
+      for (let x = 10; x < 512; x += 170) g.fillText('POR TRES', x, 23);
     }),
   });
   for (const [x, z, r, w] of [[0, -0.9, 0, 12], [0, 20.9, 0, 12], [-6.1, 10, Math.PI / 2, 22], [6.1, 10, Math.PI / 2, 22]] as Array<[number, number, number, number]>) {

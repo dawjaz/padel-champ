@@ -1,6 +1,8 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.150)_
+_Last updated: 2026-11-26 (v0.151)_
+
+## v0.151 (small): the all-capitals UI writes POR TRES with a space (`GAME_TITLE`), the logo and store keep PorTres
 
 ## v0.150: the game is called PorTres
 - Owner's decision (2026-11-26): name **PorTres**, store title **PorTres: Padel Career**. Reasons, rejected names and the web check are in DECISIONS.md; the checklist for trademark, domains, stores and social handles (to be done by hand) is `docs/NAMING.md`.

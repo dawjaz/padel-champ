@@ -89,6 +89,6 @@ After a point the ball is simulated freely (`buildCoast`); it is visual only.
 
 ## 2026-11-26: the game is called PorTres (store title "PorTres: Padel Career")
 - Chosen by the owner from ten proposals. "Por tres" is the padel shot where the ball bounces in the court, hits the side glass and leaves over the fence; it is the finisher of the game (RUN OUT) and the number allows a sequel ("Por Cuatro").
-- Written PorTres (one word) in the logo and the store; the UI draws everything in capitals (PORTRES). The store subtitle carries the word "padel" for search; the name itself stays short and ownable.
+- Written PorTres in the logo and the store (the capital T keeps the two words visible); the all-capitals UI writes POR TRES with a space, because PORTRES in capitals runs into one word (owner, v0.151). The store subtitle carries the word "padel" for search; the name itself stays short and ownable.
 - Rejected after a web check: Golden Point (several scorekeeping apps), Padel Heroes, Padel Clash, Padel Pro and Court Legends (existing apps/games), Vibora (a padel racket brand), Bandeja (four apps with that name). Padelheads stays as the runner-up (a compound with "head" near the padel brand HEAD). Por Cuatro is kept for a sequel or mode; "Padel x Cuatro" is an Argentine tournament. Bajada World was free but weak.
 - The repository, `package.json` name and the save key `padel-champ-26:save` keep the old working name on purpose (the key would wipe every save). Checklist for names, domains and trademark: `docs/NAMING.md`.

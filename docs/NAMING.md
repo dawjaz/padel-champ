@@ -1,7 +1,7 @@
 # Naming: PorTres
 
 Decision: see DECISIONS.md (2026-11-26). Store title: **PorTres: Padel Career** (App Store title limit 30 characters, this one is 22).
-Writing: PorTres (logo, store, social), PORTRES (in-game UI), "Por Tres" only when the shot is meant.
+Writing: PorTres (logo, store, social), POR TRES (in-game UI, all capitals), "Por Tres" when the shot is meant. Never PORTRES in capitals.
 
 ## What was checked (web search only, 2026-11-26)
 No game, app or brand named PorTres / Por Tres was found. Results for "tres" are card games and dice games (other category, no conflict).
