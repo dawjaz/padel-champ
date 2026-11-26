@@ -382,8 +382,9 @@ export const tossQuality = (hero: PlayerDef, offMs: number | null): number => qu
 /** How a serve goes: into the gap is pressure, at the body some, where he stands little; timing adds; a missed ball is a fault. */
 export function serveOutcome(open: ServeSpot, spot: ServeSpot, q: number, rng: Rng): { tier: ServeTier; pressure: number; points: number } {
   if (q <= 0 || rng() < (0.04 + (spot === 'wide' ? 0.03 : 0)) * (1.6 - q)) return { tier: 'fault', pressure: 0, points: 0 };
-  const pressure = 0.25 + (spot === open ? 0.4 : spot === 'body' ? 0.2 : 0) + 0.3 * q + (rng() - 0.5) * 0.16;
-  const tier: ServeTier = pressure >= 0.86 ? 'ace' : pressure >= 0.62 ? 'weak' : pressure >= 0.42 ? 'average' : 'strong';
+  // an ace needs the gap, a clean hit and some luck (about one serve in four of those)
+  const pressure = 0.2 + (spot === open ? 0.35 : spot === 'body' ? 0.2 : 0) + 0.3 * q + (rng() - 0.5) * 0.2;
+  const tier: ServeTier = pressure >= 0.9 ? 'ace' : pressure >= 0.62 ? 'weak' : pressure >= 0.42 ? 'average' : 'strong';
   return { tier, pressure, points: SERVE_POINTS[tier] };
 }
 

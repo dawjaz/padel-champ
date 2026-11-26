@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { project } from '../art/camera';
 import { kickBody, newBody, runEase, stepBody, type BodyPose, type BodyState } from '../art/bodyDynamics';
-import { easeOut, inOut, loadPose, poseSignature, Rig, smashSteps, splitSteps, strokeSteps, type Step } from '../art/rig';
+import { easeOut, inOut, loadPose, lungePose, poseSignature, Rig, smashSteps, splitSteps, strokeSteps, type Step } from '../art/rig';
 import { buildToon } from '../art/toon/character';
 import { POSES, runFrame, RUN_FRAMES, SHUFFLE_FRAMES, shuffleFrame } from '../art/toon/character';
 import { drawOps, VIEW } from '../art/toon/ops';
@@ -150,6 +150,14 @@ export class CampHero {
     this.busyUntil = this.scene.time.now + air + 520;
     this.rig.play(this.scene.time.now, smashSteps(air));
     this.hop(project(this.x, this.z).scale * jump, air);
+  }
+
+  /** A late, stretching stroke at a ball he cannot quite reach (a lunge to the `dir` side of the screen). */
+  dive(stance: 'fh' | 'bh', height: number, dir: number): void {
+    this.setView(this.base, false);
+    this.busyUntil = this.scene.time.now + 620;
+    kickBody(this.body, -1.2);
+    this.rig.play(this.scene.time.now, strokeSteps(stance, height, lungePose(POSES.ready, this.base === 'front' ? -dir : dir, 1)));
   }
 
   /** Any sequence of poses (a cheer, a shrug). */

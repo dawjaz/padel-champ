@@ -11,8 +11,6 @@ import {
 } from '../career/camp';
 import { CampHero } from './campHero';
 import { makeAppearance } from '../career/tournament';
-import { inOut } from '../art/rig';
-import { POSES } from '../art/toon/character';
 import { heroFrom, heroLook } from '../career/profile';
 import { SHOTS } from '../game/catalog';
 import { NET_Z } from '../game/court';
@@ -206,7 +204,7 @@ export class MinigameScene extends Phaser.Scene {
   }
 
   /** Animates a ball along a parabola from `from` to `to` (court metres, heights), then calls `done`. */
-  private flyArc(from: { x: number; z: number; h: number }, to: { x: number; z: number; h: number }, apex: number, done: () => void, msPerM = FLIGHT_MS_PER_M): void {
+  private flyArc(from: { x: number; z: number; h: number }, to: { x: number; z: number; h: number }, apex: number, done: () => void, msPerM = FLIGHT_MS_PER_M): number {
     apex = netClearApex(from, to, apex);
     const dist = Math.hypot(to.x - from.x, to.z - from.z);
     const ms = Math.max(msPerM < FLIGHT_MS_PER_M ? 200 : 420, dist * msPerM);
@@ -225,6 +223,7 @@ export class MinigameScene extends Phaser.Scene {
       },
       onComplete: done,
     });
+    return ms;
   }
 
   /** A ball rolling on from its bounce to `to` (court metres), through the side glass point first if it hits one. */
@@ -683,8 +682,12 @@ export class MinigameScene extends Phaser.Scene {
         const rv = this.rival!;
         // after the bounce it keeps its line (off the side glass only if it gets there)
         if (out.tier === 'ace') {
-          rv.react([[260, { ...POSES.ready, crouch: 10 }, inOut]]);
+          // he goes for it all the same, and gets there a moment too late
           const past = rollOn(from, land, 0.2);
+          const passing = rollOn(from, land, rv.z + 0.35);
+          const st = rv.stanceFor(passing);
+          const ms = Math.hypot(passing.x - land.x, passing.z - land.z) * SERVE_MS_PER_M;
+          rv.runTo(rv.x + (st.x - rv.x) * 0.7, st.z, Math.max(160, ms * 0.9), () => rv.dive(st.fh ? 'fh' : 'bh', 0.7, Math.sign(st.x - rv.x) || 1));
           this.flyVia(land, past, 0.9, () => this.serveDone(out.points, 'ACE! +100', true), SERVE_MS_PER_M);
           return;
         }
@@ -846,11 +849,25 @@ export class MinigameScene extends Phaser.Scene {
         return;
       }
       const rv = this.rival!;
-      const to = shotK === 'lob' ? { x: -lane * 1.5, z: 1.4, h: 0 } : shotK === 'chiquita' ? { x: rv.x + 0.6, z: NET_Z - 1.4, h: 0 } : { x: 0.4, z: 4.5, h: 0 };
-      this.flyArc(from, to, shotK === 'lob' ? 6.5 : shotK === 'chiquita' ? 0.9 : 2.2, () => {
-        if (res.tier !== 'winner') rv.stroke('fhv', 1);
+      const to =
+        shotK === 'lob' ? { x: -lane * 1.5, z: 1.4, h: 0 } :
+        shotK === 'chiquita' ? { x: rv.x + 0.6, z: NET_Z - 1.4, h: 0 } :
+        shotK === 'drive' ? { x: -lane * 3.4, z: 3.6, h: 0 } :
+        { x: 0.4, z: 4.5, h: 0 };
+      const won = res.tier === 'winner';
+      const ms = this.flyArc(from, to, shotK === 'lob' ? 6.5 : shotK === 'chiquita' ? 0.9 : shotK === 'drive' ? 0.8 : 2.2, () => {
+        if (!won) rv.stroke(shotK === 'lob' ? 'ov' : st2.fh ? 'fhv' : 'bhv', shotK === 'chiquita' ? 0.4 : 1);
         finish();
       });
+      // he goes for every ball: back for a lob, in and low for a chiquita, across for the rest; a winner beats him by a step
+      const goal = shotK === 'lob' ? { x: to.x, z: Math.max(1.0, to.z + 0.6) } : { x: to.x, z: shotK === 'chiquita' ? to.z - 0.6 : Math.min(rv.z, to.z + 2) };
+      const st2 = rv.stanceFor(goal);
+      const k = won ? 0.65 : 1;
+      this.time.delayedCall(90, () =>
+        rv.runTo(rv.x + (st2.x - rv.x) * k, rv.z + (st2.z - rv.z) * k, Math.max(180, ms * 0.8), () => {
+          if (won) rv.dive(st2.fh ? 'fh' : 'bh', shotK === 'chiquita' ? 0.3 : 1, Math.sign(st2.x - rv.x) || 1);
+        }),
+      );
     };
     const tick = this.time.addEvent({
       delay: 16,

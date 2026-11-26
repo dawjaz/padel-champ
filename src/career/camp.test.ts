@@ -147,6 +147,14 @@ describe('camp minigames', () => {
     expect(good / 300).toBeGreaterThan(70);
     expect(bad / 300).toBeLessThan(35);
     expect(serveOutcome(open, open, 0, rng).tier).toBe('fault');
+    // aces are earned: even into the gap on time, only about one in four
+    let aces = 0;
+    for (let i = 0; i < 1000; i++) if (serveOutcome(open, open, 1, rng).tier === 'ace') aces++;
+    expect(aces).toBeGreaterThan(150);
+    expect(aces).toBeLessThan(350);
+    let bodyAces = 0;
+    for (let i = 0; i < 1000; i++) if (serveOutcome(open, 'body', 1, rng).tier === 'ace') bodyAces++;
+    expect(bodyAces).toBe(0);
     expect(tossQuality(hero, 0)).toBe(1);
     expect(tossQuality(hero, tossWindow(hero) * 0.9)).toBeGreaterThan(0.3);
     expect(tossQuality(hero, tossWindow(hero) * 1.1)).toBe(0);

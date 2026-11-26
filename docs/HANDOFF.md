@@ -2,6 +2,11 @@
 
 _Last updated: 2026-11-24 (v0.105)_
 
+## v0.133: Serve & Return kept whole; harder aces; the opponent fights for every ball
+- Owner: keep both halves. Sounds later with all the others.
+- **Aces rarer:** pressure 0.2 + 0.35 gap / 0.2 body + 0.3 timing + noise +-0.1, ace from 0.9: into the gap on time about one in four is an ace (tested 15-35%), at the body never. Stars unchanged (200 / 320 / 430).
+- **No freezing:** the opponent goes for every ball, as in a match. On an ace he runs at the ball's line and dives a step short (`CampHero.dive`: a late stroke with the lunge legs). On the hero's return he moves for it: back for a lob, in and low for a chiquita, across for a drive or a ball off the glass, and volleys it (or the lob overhead); against a winner he gets most of the way and dives. `flyArc` returns its duration (for timing the chase). The drive return now has its own line (down the side).
+
 ## v0.132: the walls are a hard limit for the camp players
 - A receiver went into the side glass to play a wide serve with his forehand. `CampHero` keeps every player 0.45 m inside the glass (`WALL_ROOM`, `clampX`, in `runTo` and `teleport`), and `stanceFor(ball)` picks where to stand: forehand if there is room between the ball and the glass, else backhand (both the hero and the opponent; mirrored for the front view). Used for the receiver in serve rounds and the hero in return rounds.
 
