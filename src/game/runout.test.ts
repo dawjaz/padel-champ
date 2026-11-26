@@ -40,9 +40,12 @@ describe('running out of the court', () => {
     expect(runOutChance(p(8), p(8).maxGuts)).toBeCloseTo(0.46);
     expect(runOutChance(p(5), RUN_OUT_COST - 1)).toBe(0);
     expect(runOutChance(p(5), RUN_OUT_COST)).toBeLessThan(runOutChance(p(5), p(5).maxGuts));
-    expect(runOutChance(p(5), p(5).maxGuts, 1)).toBeCloseTo(0.35);
     expect(runOutChance(p(5), p(5).maxGuts, 0)).toBeCloseTo(0.15);
-    expect(runOutChance(p(10), p(10).maxGuts, 1)).toBeLessThanOrEqual(0.75);
+    // a clean touch on the ring (green) nearly always gets it back
+    expect(runOutChance(p(5), p(5).maxGuts, 1)).toBeGreaterThan(0.9);
+    expect(runOutChance(p(5), p(5).maxGuts, 1)).toBeLessThanOrEqual(0.97);
+    expect(runOutChance(p(5), p(5).maxGuts, 0.8)).toBeGreaterThan(runOutChance(p(5), p(5).maxGuts, 0.5));
+    expect(runOutChance(p(10), p(10).maxGuts)).toBeLessThanOrEqual(0.75);
   });
 
   it('made: the point goes on with a defensive lob to the hitting pair; not made: it stays won; the runner pays either way', () => {

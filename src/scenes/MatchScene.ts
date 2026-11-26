@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
+import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Coast, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
 import { project, unproject } from '../art/camera';
 import { IDENTITY, launchSpin, rotate, type Mat3, type Vec3 } from '../art/spin';
 import { poseOf, type Facing, type PoseName, type Stance } from '../art/pose';
@@ -89,6 +89,16 @@ const DIRECTION_ORDER: Direction[] = ['parallel', 'middle', 'cross'];
 /** How tall a character looks on screen, in court metres (chibi: big head, so a bit exaggerated). */
 const VISUAL_HEIGHT_M = 1.75;
 
+/** How far outside the court the run-out ball is kept (the screen ends there). */
+const RUN_OUT_MAX_X = 6;
+/** A run-out that can be played: where he meets the ball, how much slower than life the ball moves, when it is there, how long his two legs of the run take (ms). */
+interface RunOutPlan {
+  contact: CourtPos;
+  stretch: number;
+  hitMs: number;
+  m1: number;
+  m2: number;
+}
 type Tone = 'normal' | 'good' | 'poor' | 'tired' | 'off' | 'special';
 
 const TONE_STROKE: Record<Tone, number> = { normal: 0x0b2a5b, good: 0x0e8f5c, poor: 0xd97a00, tired: 0xc62828, off: 0x9aa7bb, special: 0xc98a00 };
@@ -2329,7 +2339,7 @@ export class MatchScene extends Phaser.Scene {
    * serve) and a ring closes on it; the player touches anywhere as it closes. The quality (0 to 1) goes to the engine: a clean hit is
    * safer and stronger, a mistimed one riskier and weaker. A grade flashes over the ball.
    */
-  private timingRing(kind: 'serve' | 'high' | 'out', hitter: PlayerDef, done: (q: number) => void): void {
+  private timingRing(kind: 'serve' | 'high' | 'out', hitter: PlayerDef, done: (q: number) => void, pathAt?: (ms: number) => { x: number; z: number; h: number }): void {
     const at = { ...this.ballFloor };
     const hitH = this.ballH;
     const window = ringWindow(hitter);
@@ -2367,9 +2377,11 @@ export class MatchScene extends Phaser.Scene {
       hint.destroy();
       ring.destroy();
       const q = ringQuality(offMs, window);
-      this.ballH = Math.max(0.3, ballAt(Math.min(this.time.now - t0, due + window)));
-      this.setBall(at.x, at.z, this.ballH, false);
-      const p = project(at.x, at.z, this.ballH);
+      const ms1 = Math.min(this.time.now - t0, due + window);
+      const q1 = pathAt ? pathAt(ms1) : { x: at.x, z: at.z, h: ballAt(ms1) };
+      this.ballH = Math.max(0.3, q1.h);
+      this.setBall(q1.x, q1.z, this.ballH, false);
+      const p = project(q1.x, q1.z, this.ballH);
       const grade = q >= 0.95 ? 'PERFECT!' : q >= 0.6 ? 'GOOD' : q > 0 ? 'LATE' : 'MISTIMED';
       const t = this.add
         .text(p.x, p.y - 26, grade, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: q >= 0.95 ? '20px' : '16px', color: q >= 0.95 ? '#4ade80' : q >= 0.6 ? '#ffe066' : '#ff9a6a' })
@@ -2384,9 +2396,9 @@ export class MatchScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         const ms = this.time.now - t0;
-        const h = ballAt(ms);
-        this.setBall(at.x, at.z, h, false);
-        const p = project(at.x, at.z, h);
+        const q0 = pathAt ? pathAt(ms) : { x: at.x, z: at.z, h: ballAt(ms) };
+        this.setBall(q0.x, q0.z, q0.h, false);
+        const p = project(q0.x, q0.z, q0.h);
         const u = Math.min(1, ms / due);
         const green = Math.abs(ms - due) <= window * 0.4;
         ring.clear().lineStyle(green ? 4 : 3, green ? 0x4ade80 : 0xffffff, 0.95).strokeCircle(p.x, p.y, Math.max(7, 64 * (1 - u) + 8));
@@ -2565,7 +2577,25 @@ export class MatchScene extends Phaser.Scene {
     // A Por Tres that bounced in his half and left over the side wall: the ball hangs in the air at the wall while the runner decides
     // (the whole match waits), so everything of this ball stops there (see `runOutPhase`).
     const runner = TEAMS[other(step.side)][step.defenderIdx];
-    const exit = canRunOut(step) && (next.guts[runner.id] ?? runner.maxGuts) >= RUN_OUT_COST ? flight.events.find((e) => e.kind === 'out' && Math.abs(e.x) >= 4.7) : undefined;
+    let exit = canRunOut(step) && (next.guts[runner.id] ?? runner.maxGuts) >= RUN_OUT_COST ? flight.events.find((e) => e.kind === 'out' && Math.abs(e.x) >= 4.7 && e.t >= flight.duration * 0.97) : undefined;
+    // it is only offered when the runner can reach the ball while it is still playable (see `runOutPlan`); a defender who sees a Por
+    // Tres going over the wall sets off for the door while the ball is still in the air, so he is by the door when it hangs
+    const coast = exit ? buildCoast(flight, step.shot.flight.spin) : undefined;
+    let plan: RunOutPlan | null = null;
+    if (exit && coast && flight.duration > 0 && from < 1) {
+      const runSide = other(step.side);
+      const sgn = Math.sign(exit.x) || 1;
+      const here = this.pos[runner.id];
+      const door = { x: sgn * 4.95, z: doorShot(runSide, { x: sgn * 5.5, z: 12 }).gate.z };
+      const flightMs = duration * (Math.min(1, Math.max(from + 0.05, exit.t / flight.duration)) - from);
+      const per = this.runOutPace(runner);
+      const dist = Math.hypot(door.x - here.x, door.z - here.z);
+      const k = dist > 0 ? Math.min(1, flightMs / (dist * per / Math.max(0.77, this.freshness(runner.id)))) : 1;
+      const reach: CourtPos = { x: here.x + (door.x - here.x) * k, z: here.z + (door.z - here.z) * k };
+      plan = this.runOutPlan(runner, runSide, reach, coast);
+      if (plan) targets[runner.id] = reach;
+    }
+    if (!plan) exit = undefined;
     const hangU = exit && flight.duration > 0 && from < 1 ? Math.min(1, Math.max(from + 0.05, exit.t / flight.duration)) : 1;
     const remain = duration * (hangU - from);
     this.movePlayers(targets, remain, undefined, endPose, endFacing);
@@ -2620,7 +2650,7 @@ export class MatchScene extends Phaser.Scene {
       },
       onComplete: () => {
         if (exit) {
-          this.runOutPhase(step, next, headline, exit, buildCoast(flight, step.shot.flight.spin).path, resume);
+          this.runOutPhase(step, next, headline, exit, coast!, plan!, resume);
           return;
         }
         settle();
@@ -2694,6 +2724,41 @@ export class MatchScene extends Phaser.Scene {
     this.coastRunning = false;
   }
 
+  /** Ms per metre of a run-out sprint: a little quicker than his pace in the rally (about 3.8 m/s at speed 5), not the 6.7 m/s it was. */
+  private runOutPace(p: PlayerDef): number {
+    return 0.88 * Math.max(220, Math.min(360, 300 - 12 * (p.stats.speed - 5)));
+  }
+
+  /**
+   * Can the runner get to the ball? The ball carries on along the path physics gives it outside the court (`buildCoast`: it falls,
+   * bounces, the fence took some speed off it); he meets it at hitting height (0.5 to 1.4: on its way down, or after the bounce), outside the side wall
+   * and in his own half, when it comes to him at his ordinary running pace (through the door by the net, then out to the ball) and
+   * with the ring (0.9 s) closing as he arrives. The ball is allowed to be up to 2.3x slower than life for that (it floats like a high lob). null: out of reach, so no
+   * run-out is offered and the point is simply lost.
+   */
+  private runOutPlan(runner: PlayerDef, runSide: SideIndex, from: CourtPos, coast: Coast): RunOutPlan | null {
+    const zMin = runSide === 0 ? NET_Z + 1.0 : 1.2;
+    const zMax = runSide === 0 ? 18.6 : NET_Z - 1.0;
+    const per = this.runOutPace(runner);
+    const fresh = Math.max(0.77, this.freshness(runner.id));
+    const path = coast.path;
+    for (let i = 2; i < path.length; i++) {
+      const s = path[i];
+      if (s.h < 0.5 || s.h > 1.4) continue;
+      if (Math.abs(s.x) < 5.25 || s.z < zMin || s.z > zMax) continue;
+      const sgn = Math.sign(s.x);
+      const cx = sgn * Math.min(Math.abs(s.x), RUN_OUT_MAX_X);
+      const gate: CourtPos = { x: sgn * 4.95, z: doorShot(runSide, { x: cx, z: s.z }).gate.z };
+      const spot: CourtPos = { x: cx + sgn * 0.45, z: s.z + (runSide === 0 ? 0.4 : -0.4) };
+      const m1 = Math.max(260, Math.hypot(gate.x - from.x, gate.z - from.z) * per) / fresh;
+      const m2 = Math.max(240, Math.hypot(spot.x - gate.x, spot.z - gate.z) * per) / fresh;
+      const natural = s.t * TIME_SCALE * 1000;
+      const stretch = Math.max(1, (m1 + m2 + 300) / natural);
+      if (stretch <= 2.3) return { contact: { x: cx, z: s.z }, stretch, hitMs: natural * stretch, m1, m2 };
+    }
+    return null;
+  }
+
   /**
    * Out-of-court play after a Por Tres (FIP rules, `canRunOut`): the defender may run out through the opening by the net after the
    * ball and play it back. The ball HANGS in the air at the wall and the match waits; yours: a RUN OUT! button (it costs guts), the
@@ -2702,7 +2767,7 @@ export class MatchScene extends Phaser.Scene {
    * closes as the ball comes down on the racket. Made (`runOutReturn`): the rally goes on, but a ball from outside is very hard to keep
    * in play. Not made (or not tried): the point ends as a winner (`resume`: the rest of the flight, then `afterStep`).
    */
-  private runOutPhase(step: Step, next: PointState, headline: string, exit: FlightEvent, outside: Sample[], resume: () => void): void {
+  private runOutPhase(step: Step, next: PointState, headline: string, exit: FlightEvent, coast: Coast, plan: RunOutPlan, resume: () => void): void {
     const runSide = other(step.side);
     const runner = TEAMS[runSide][step.defenderIdx];
     const id = runner.id;
@@ -2711,68 +2776,65 @@ export class MatchScene extends Phaser.Scene {
     this.powerStyle = null;
     this.trail = [];
     this.drawTrail();
-    this.setBall(exit.x, exit.z, Math.max(0.8, exit.h), false);
-    const hangX = this.ballFloor.x;
-    const hangZ = this.ballFloor.z;
-    const hangH = this.ballH = Math.max(0.8, exit.h);
-    // where he meets it: just outside the wall (as far as the screen shows), where the ball's own path takes it (it keeps its direction,
-    // so a ball coming off the glass drifts towards the net), in his own half
-    const zMin = runSide === 0 ? NET_Z + 1.0 : 1.2;
-    const zMax = runSide === 0 ? 18.6 : NET_Z - 1.0;
-    const spotX = runSide === 0 ? 5.7 : 6.2;
-    const way = outside.find((p) => Math.abs(p.x) >= spotX) ?? outside[outside.length - 1] ?? { z: exit.z };
-    const spot: CourtPos = { x: sgn * spotX, z: Math.max(zMin, Math.min(zMax, way.z)) };
-    const contact: CourtPos = { x: spot.x - sgn * 0.45, z: spot.z + (runSide === 0 ? -0.4 : 0.4) };
+    const p0 = coast.path[0];
+    this.setBall(p0.x, p0.z, p0.h, false);
+    const hangX = p0.x;
+    const hangZ = p0.z;
+    const hangH = (this.ballH = p0.h);
+    // where he meets the ball (the ball's own path, see `runOutPlan`) and the door by the net on that side, in his half
+    const contact: CourtPos = plan.contact;
+    const spot: CourtPos = { x: contact.x + sgn * 0.45, z: contact.z + (runSide === 0 ? 0.4 : -0.4) };
     const door = doorShot(runSide, contact);
-    // the opening by the net on that side, in his half
     const gate: CourtPos = { x: sgn * 4.95, z: door.gate.z };
+    // (the screen ends a little way outside the wall: the ball is kept inside it)
+    const posAt = (ms: number): { x: number; z: number; h: number } => {
+      const p = ballPoint(coast.path, Math.max(0, Math.min(1, ms / plan.stretch / (coast.duration * TIME_SCALE * 1000))));
+      return { ...p, x: Math.sign(p.x) * Math.min(Math.abs(p.x), RUN_OUT_MAX_X) };
+    };
     let mode: RunOutMode = 'lob';
     const extras: Phaser.GameObjects.GameObject[] = [];
     const clearExtras = (): void => {
       for (const o of extras.splice(0)) o.destroy();
     };
 
-    // --- the run: ordinary running pace (not faster than in the match), the ball comes down in the same time
+    // --- the run at his ordinary pace; the ball carries on along its own path (the real bounces outside the court, a little slower than
+    // life so that he can get there) and comes to the racket as the ring closes
+    const RING = 900;
     const go = (): void => {
       this.say(`${runner.name} runs out after it!`);
-      const per = Math.max(220, Math.min(360, 300 - 12 * (runner.stats.speed - 5)));
-      const here = this.pos[id];
-      const d1 = Math.hypot(gate.x - here.x, gate.z - here.z);
-      const d2 = Math.hypot(spot.x - gate.x, spot.z - gate.z);
-      const fresh = Math.max(0.77, this.freshness(id));
-      const m1 = Math.max(260, d1 * per) / fresh;
-      const m2 = Math.max(240, d2 * per) / fresh;
-      const T = Math.max(1100, m1 + m2);
-      let waiting = 2;
-      const oneDone = (): void => {
-        if (--waiting === 0) arrive();
-      };
-      this.movePlayers({ [id]: gate }, m1, () => this.movePlayers({ [id]: spot }, m2, oneDone, {}, {}, [id]), {}, {}, [id]);
-      // the ball carries on over the wall and comes down by the spot where he meets it, high above the racket (the ring takes it from there)
-      const HIGH = 0.9 + 1.6;
+      this.movePlayers({ [id]: gate }, plan.m1, () => this.movePlayers({ [id]: spot }, plan.m2, undefined, {}, {}, [id]), {}, {}, [id]);
+      const lead = Math.max(1, plan.hitMs - RING);
       this.tweens.addCounter({
         from: 0,
         to: 1,
-        duration: T,
-        ease: 'Sine.easeOut',
+        duration: lead,
         onUpdate: (tw) => {
-          const u = tw.getValue() ?? 0;
-          const h = hangH + (HIGH - hangH) * u + 1.3 * 4 * u * (1 - u) * (hangH > HIGH ? 0.3 : 1);
-          this.setBall(hangX + (contact.x - hangX) * u, hangZ + (contact.z - hangZ) * u, h, false);
+          const p = posAt((tw.getValue() ?? 0) * lead);
+          this.setBall(p.x, p.z, p.h, false);
         },
-        onComplete: oneDone,
+        onComplete: () => arrive(lead),
       });
-      if (human) this.runOutChoice(door, T, (m) => (mode = m), extras);
+      if (human) this.runOutChoice(door, plan.hitMs, (m) => (mode = m), extras);
       else if (door.open && Math.random() < 0.3 + 0.4 * door.window) mode = 'door';
     };
-    const arrive = (): void => {
+    const arrive = (lead: number): void => {
       clearExtras();
       this.stopCoast();
-      this.ballH = 0.9;
-      this.setBall(contact.x, contact.z, 0.9 + 1.6, false);
       this.ball.setVisible(true);
-      if (human && getSave().settings.timing !== 'auto') this.timingRing('out', runner, (q) => resolve(q));
-      else resolve(undefined);
+      const pathAt = (ms: number): { x: number; z: number; h: number } => posAt(lead + ms);
+      if (human && getSave().settings.timing !== 'auto') this.timingRing('out', runner, (q) => resolve(q), pathAt);
+      else {
+        this.tweens.addCounter({
+          from: 0,
+          to: 1,
+          duration: RING,
+          onUpdate: (tw) => {
+            const p = pathAt((tw.getValue() ?? 0) * RING);
+            this.setBall(p.x, p.z, p.h, false);
+          },
+          onComplete: () => resolve(undefined),
+        });
+      }
     };
     const resolve = (q: number | undefined): void => {
       const useDoor = mode === 'door' && door.open;
@@ -2795,17 +2857,17 @@ export class MatchScene extends Phaser.Scene {
         this.planLunge(id, { x: spot.x + sgn * 0.6, z: spot.z }, 160, 1);
         this.setPose(id, 'fhHit');
         this.say(useDoor ? `${runner.name} gets there but the ball does not find the door!` : `${runner.name} gets there but cannot play it back: TOO FAR!`);
-        // the ball drops to the ground outside and the point is over (the WINNER! banner of the point follows)
-        const h0 = this.ballH;
+        // the ball carries on along its own path outside and the point is over (the WINNER! banner of the point follows)
+        const t1 = plan.hitMs;
         this.tweens.addCounter({
           from: 0,
           to: 1,
-          duration: 380,
+          duration: 600,
           onUpdate: (tw) => {
-            const u = tw.getValue() ?? 0;
-            this.setBall(contact.x + sgn * 0.5 * u, contact.z, h0 * (1 - u * u), false);
+            const p = posAt(t1 + (tw.getValue() ?? 0) * 600);
+            this.setBall(p.x, p.z, p.h, false);
           },
-          onComplete: () => this.afterStep(step, next, headline, 380),
+          onComplete: () => this.afterStep(step, next, headline, 600),
         });
         return;
       }

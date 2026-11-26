@@ -152,14 +152,17 @@ export function canRunOut(step: Pick<Step, 'kind' | 'outcome' | 'shot' | 'reboun
 }
 /**
  * The chance that a run-out gets the ball back: speed above all (25% at 5, 46% at 8), less when tired; the timing of the shot outside
- * (0 to 1; undefined: neutral) from x0.6 to x1.4. None without the guts for it. At most 75%.
+ * (0 to 1; undefined: neutral, at most 75%) from x0.6 to x1.4, and a clean touch (0.6 up to 1) closes most of the gap to a sure thing: PERFECT is 97%. None without the guts for it.
  */
 export function runOutChance(p: PlayerDef, guts: number, timing?: number): number {
   if (guts < RUN_OUT_COST) return 0;
   const share = p.maxGuts > 0 ? Math.min(1, guts / p.maxGuts) : 1;
-  const base = Math.max(0.08, Math.min(0.6, 0.25 + 0.07 * (p.stats.speed - 5)));
-  const t = timing === undefined ? 1 : 0.6 + 0.8 * Math.max(0, Math.min(1, timing));
-  return Math.min(0.75, base * (0.7 + 0.3 * share) * t);
+  const base = Math.max(0.08, Math.min(0.6, 0.25 + 0.07 * (p.stats.speed - 5))) * (0.7 + 0.3 * share);
+  if (timing === undefined) return Math.min(0.75, base);
+  const q = Math.max(0, Math.min(1, timing));
+  // a clean touch on the ring (green) almost always gets the ball back: the better the timing over 0.6, the more of what is left
+  const clean = q >= 0.6 ? (q - 0.6) / 0.4 : 0;
+  return Math.min(0.97, base * (0.6 + 0.8 * q) + (1 - base) * 0.95 * clean);
 }
 /** How a run-out is played back: a lob over the wall (safe) or a flat ball through the door by the net (only where the angles allow it). */
 export type RunOutMode = 'lob' | 'door';
