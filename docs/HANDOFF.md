@@ -1,6 +1,19 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.159)_
+_Last updated: 2026-11-27 (v0.160)_
+
+## v0.160: timing rings judge the moment the finger landed; Smash Show takes a touch anywhere
+- Owner: in Smash Show (Por Tres / Por Cuatro) a touch when the ring was green or at the ball gave MISSED or TOO LATE.
+- Two bugs, measured in the browser (MinigameScene tap at the due time):
+  1. The Smash Show (and Timing) tap zone covered only the court (y < 392): a touch lower on the screen, where the thumb rests and the
+     smash buttons had been, was ignored -> MISSED. Now the whole screen above QUIT (`TAP_ZONE_H` 600).
+  2. Every timing ring read `scene.time.now` in the touch handler, which runs when the browser gets to the event: 128 ms after the touch
+     in a slow headless browser, tens of ms on a busy phone -> good touches judged late. New `src/touchTime.ts`: the DOM event's
+     `timeStamp` (same performance clock as Phaser's scene clock, which is performance.now() at each frame start), with a fallback
+     for stamps that look foreign or stale. Used by Smash Show, Timing, Serve, Return and the match's timing ring. Smash Show keeps
+     its 50 ms display-lag allowance (`SMASH_INPUT_LAG`).
+- Check: tap at the due time -> before BACK IN PLAY (and +100 ms TOO LATE), now the full Por Cuatro (+165); a tap at y 560 counts.
+
 
 ## v0.159 (small): Corner Lock aims at a corner, not anywhere on the court
 - Owner: Corner Lock is a bandeja that dies in a back corner, so the player should choose the left or the right corner, not a spot.

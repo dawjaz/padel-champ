@@ -22,6 +22,7 @@ import { getSave } from '../save';
 import { applyHd } from '../hd';
 import { sfx } from '../audio';
 import { DISPLAY, makeThemeButton, TC, themeText } from '../theme';
+import { eventStamp, touchTime } from '../touchTime';
 
 const NAVY_CSS = '#0b2a5b';
 
@@ -51,6 +52,9 @@ type Landing = { x: number; depth: number; miss?: string };
  * lands with the hero's real spread), read the glass (tap where a ball will be played after the back glass), timing (tap as the ring
  * closes). Scores come from camp.ts; the result screen pays the reward.
  */
+/** Timing rounds take a touch anywhere above the QUIT button at the bottom. */
+const TAP_ZONE_H = 600;
+
 export class MinigameScene extends Phaser.Scene {
   private gameId: CampGameId = 'targets';
   private round = 0;
@@ -424,13 +428,14 @@ export class MinigameScene extends Phaser.Scene {
         }
       },
     });
-    const tap = this.add.zone(0, 0, WIDTH, 392).setOrigin(0, 0).setDepth(9020).setInteractive();
+    // the whole screen above the QUIT button (a thumb rests low), judged at the moment the finger landed (see touchTime.ts)
+    const tap = this.add.zone(0, 0, WIDTH, TAP_ZONE_H).setOrigin(0, 0).setDepth(9020).setInteractive();
     this.layer.push(tap);
-    tap.on('pointerdown', () => {
+    tap.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
       if (done) return;
       tick.remove();
       ring.clear();
-      end(this.time.now - t0);
+      end(touchTime(this.time.now, performance.now(), eventStamp(ptr)) - t0);
     });
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
@@ -543,13 +548,15 @@ export class MinigameScene extends Phaser.Scene {
         }
       },
     });
-    const tap = this.add.zone(0, 0, WIDTH, 392).setOrigin(0, 0).setDepth(9020).setInteractive();
+    // the whole screen above the QUIT button (a thumb rests low: a touch below the court used to be ignored, "MISSED"), judged at
+    // the moment the finger landed, not when the busy phone got round to it (see touchTime.ts)
+    const tap = this.add.zone(0, 0, WIDTH, TAP_ZONE_H).setOrigin(0, 0).setDepth(9020).setInteractive();
     this.layer.push(tap);
-    tap.on('pointerdown', () => {
+    tap.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
       if (done) return;
       tick.remove();
       // what he sees on screen is a few frames behind the clock, so a touch is judged that much earlier
-      end(this.time.now - t0 - SMASH_INPUT_LAG);
+      end(touchTime(this.time.now, performance.now(), eventStamp(ptr)) - t0 - SMASH_INPUT_LAG);
     });
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
@@ -781,7 +788,7 @@ export class MinigameScene extends Phaser.Scene {
     });
     const tap = this.add.zone(0, 0, WIDTH, HEIGHT).setOrigin(0, 0).setDepth(9025).setInteractive();
     this.layer.push(tap);
-    tap.on('pointerdown', () => hit(this.time.now - t0 - due));
+    tap.on('pointerdown', (ptr: Phaser.Input.Pointer) => hit(touchTime(this.time.now, performance.now(), eventStamp(ptr)) - t0 - due));
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
 
@@ -948,7 +955,7 @@ export class MinigameScene extends Phaser.Scene {
     });
     const tap = this.add.zone(0, 0, WIDTH, HEIGHT).setOrigin(0, 0).setDepth(9025).setInteractive();
     this.layer.push(tap);
-    tap.on('pointerdown', () => end(this.time.now - t0 - due));
+    tap.on('pointerdown', (ptr: Phaser.Input.Pointer) => end(touchTime(this.time.now, performance.now(), eventStamp(ptr)) - t0 - due));
     this.layer.push({ destroy: () => tick.remove() } as unknown as Phaser.GameObjects.GameObject);
   }
 }

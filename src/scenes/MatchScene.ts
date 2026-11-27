@@ -19,6 +19,7 @@ import { racketKind } from '../sfxKind';
 import { HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
+import { eventStamp, touchTime } from '../touchTime';
 import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { baseId, DIRECTIONS, shotsOfKind, SPECIALS } from '../game/catalog';
@@ -2584,7 +2585,8 @@ export class MatchScene extends Phaser.Scene {
         if (ms > due + window + 150) finish(null);
       },
     });
-    tap.on('pointerdown', () => finish(this.time.now - t0 - due));
+    // judged at the moment the finger landed, not when the busy phone got round to the event (see touchTime.ts)
+    tap.on('pointerdown', (ptr: Phaser.Input.Pointer) => finish(touchTime(this.time.now, performance.now(), eventStamp(ptr)) - t0 - due));
   }
 
   /** The flight of the ball for a step (the same seed always gives the same flight). */
