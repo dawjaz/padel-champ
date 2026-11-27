@@ -217,6 +217,7 @@
     },
     "glassChance": 0.2,
     "winnerMargin": 60,
+    "pressureMult": 0.5,
     "blockAtNet": true
   },
   {

@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-26 (v0.157)_
+_Last updated: 2026-11-27 (v0.158)_
+
+## v0.158 (small): the flat drive puts half the pressure on the next player
+- Owner: three flats from the back into the deep middle against a pair at the net, three points. Simulation (thousands of such
+  flats): the flat itself never wins (winnerMargin 60), the net player usually volleys it; but the reply ended in an error 13-17% of
+  the time (forced 8-10%), about twice real padel (balls from the back: 90%+ stay in play).
+- `pressureMult` (so far serves only) now also scales the pressure of rally hits (engine.ts resolveHit); `flat.pressureMult` 0.5.
+  Replies to a flat into the deep middle: errors 13-17% -> 9-12.5% (forced 2-5%); points won after a flat -3 to -8 points.
+  Whole game unchanged within noise (simRealism). Test added.
+
 
 ## v0.157: forced errors, a smaller stat-gap effect, fewer CPU lobs, answerable specials, gaps back on the aiming map
 - Owner's brief: forced errors about 15%; fast bajada errors 25-30% (were about 40% for the player); smaller effect of stat gaps;

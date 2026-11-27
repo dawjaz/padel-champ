@@ -206,7 +206,7 @@ export interface ShotDef {
   /** Half-range of the random landing depths around `landDepth` in metres (default 1.5). */
   depthSpread?: number;
   lowGlassRisk?: number;
-  /** Serves only: scales the pressure put on the receiver. */
+  /** Scales the pressure put on the next player (serves: on the receiver; rally shots since v0.158, e.g. the flat drive 0.5). */
   pressureMult?: number;
   /** Drop shot: the defender has to run for it, so speed counts for more than defence and a defender at the back is badly placed. */
   drop?: boolean;

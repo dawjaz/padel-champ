@@ -215,7 +215,7 @@ export function resolveHit(i: HitInput): HitResult {
   const lob = i.shot.flight.apex >= LOB_APEX;
   if (diff > margin && !lob) outcome = 'winner';
 
-  const pressure = outcome === 'continue' ? clamp(diff / 200, 0, MAX_PRESSURE) : 0;
+  const pressure = outcome === 'continue' ? clamp((diff / 200) * (i.shot.pressureMult ?? 1), 0, MAX_PRESSURE) : 0;
   return { outcome, attackScore, defenseScore, errorChance: chance, tired, fit, pressure };
 }
 

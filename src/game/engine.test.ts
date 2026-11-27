@@ -340,3 +340,13 @@ describe('forced errors and the stat gap (v0.157)', () => {
     expect(score(8) - score(5)).toBeLessThan(30 * shot('bandeja').power);
   });
 });
+
+describe('pressure of a rally shot (v0.158)', () => {
+  it('a shot with pressureMult puts proportionally less pressure on the next player', () => {
+    const rng = () => seededRng(7);
+    const full = resolveHit(hit({ shot: shot('flat'), rng: rng() }));
+    const half = resolveHit(hit({ shot: { ...shot('flat'), pressureMult: 1 }, rng: rng() }));
+    expect(shot('flat').pressureMult).toBe(0.5);
+    if (half.outcome === 'continue' && half.pressure > 0) expect(full.pressure).toBeCloseTo(half.pressure * 0.5);
+  });
+});
