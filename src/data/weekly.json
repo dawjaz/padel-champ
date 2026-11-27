@@ -4,15 +4,77 @@
   "bonusPack": "gear",
   "tasksPerWeek": 3,
   "tasks": [
-    { "id": "w-play6", "text": "Play 6 career matches", "stat": "played", "n": 6 },
-    { "id": "w-win3", "text": "Win 3 career matches", "stat": "won", "n": 3 },
-    { "id": "w-win5", "text": "Win 5 career matches", "stat": "won", "n": 5 },
-    { "id": "w-points90", "text": "Win 90 points", "stat": "points", "n": 90 },
-    { "id": "w-rally14", "text": "Play a rally of 14 hits", "stat": "rally", "n": 14 },
-    { "id": "w-smash8", "text": "Win 8 points with a smash", "stat": "smash", "n": 8 },
-    { "id": "w-dejada4", "text": "Win 4 points with a Dejada", "stat": "dejada", "n": 4 },
-    { "id": "w-vb8", "text": "Win 8 points with a Vibora or Bandeja", "stat": "viboraBandeja", "n": 8 },
-    { "id": "w-bajada6", "text": "Win 6 points with a Bajada", "stat": "bajada", "n": 6 },
-    { "id": "w-ace6", "text": "Serve 6 aces", "stat": "ace", "n": 6 }
+    {
+      "id": "w-play6",
+      "text": "Play 6 career matches",
+      "stat": "played",
+      "n": 6
+    },
+    {
+      "id": "w-win3",
+      "text": "Win 3 career matches",
+      "stat": "won",
+      "n": 3
+    },
+    {
+      "id": "w-win5",
+      "text": "Win 5 career matches",
+      "stat": "won",
+      "n": 5
+    },
+    {
+      "id": "w-points90",
+      "text": "Win 90 points",
+      "stat": "points",
+      "n": 90
+    },
+    {
+      "id": "w-rally14",
+      "text": "Play a rally of 14 hits",
+      "stat": "rally",
+      "n": 14
+    },
+    {
+      "id": "w-smash8",
+      "text": "Win 8 points with a smash",
+      "stat": "smash",
+      "n": 8
+    },
+    {
+      "id": "w-dejada4",
+      "text": "Win 4 points with a Dejada",
+      "stat": "dejada",
+      "n": 4
+    },
+    {
+      "id": "w-vb8",
+      "text": "Win 8 points with a Vibora or Bandeja",
+      "stat": "viboraBandeja",
+      "n": 8
+    },
+    {
+      "id": "w-bajada6",
+      "text": "Win 6 points with a Bajada",
+      "stat": "bajada",
+      "n": 6
+    },
+    {
+      "id": "w-ace6",
+      "text": "Serve 6 aces",
+      "stat": "ace",
+      "n": 6
+    },
+    {
+      "id": "w-camp3",
+      "text": "Play 3 camp trials",
+      "stat": "campTrials",
+      "n": 3
+    },
+    {
+      "id": "w-campstars6",
+      "text": "Earn 6 stars in camp trials",
+      "stat": "campStars",
+      "n": 6
+    }
   ]
 }

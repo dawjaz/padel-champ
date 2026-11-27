@@ -5,6 +5,7 @@ import { BRANDS, GEAR, itemsOfBrand, ownedOfBrand, setBonusOf, SET_BONUS, SET_PI
 import { drawGear, shade } from '../art/gearArt';
 import { STAT_KEYS } from '../game/attributes';
 import { getSave } from '../save';
+import { showTip } from '../tutorial/tips';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const RARITY_COLOR: Record<Rarity, number> = { common: 0x8d9bb0, rare: TC.blue, epic: 0x9b3df0, legendary: 0xf2a900 };
@@ -25,6 +26,7 @@ export class CollectionScene extends Phaser.Scene {
     const worn = setBonusOf(getSave().profile.inventory);
     if (worn) this.brand = Math.max(0, BRANDS.findIndex((b) => b.id === worn.brand.id));
     this.render(true);
+    this.time.delayedCall(250, () => showTip(this, 'collection'));
   }
 
   private render(first = false): void {

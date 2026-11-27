@@ -7,7 +7,7 @@
 /** Which drawing a page uses (see art/tutorialArt.ts). */
 export type ArtId =
   | 'court' | 'menu' | 'guts' | 'serve' | 'receive' | 'ring' | 'glass' | 'aim' | 'runout' | 'runout2' | 'special' | 'hero' | 'gear'
-  | 'career' | 'practice' | 'camp' | 'targets' | 'smash' | 'toss' | 'retire' | 'shop' | 'partner' | 'tasks' | 'season';
+  | 'career' | 'practice' | 'camp' | 'targets' | 'smash' | 'toss' | 'retire' | 'shop' | 'partner' | 'tasks' | 'season' | 'cups' | 'ranking' | 'collection';
 
 export interface LessonPage {
   head: string;
@@ -107,13 +107,32 @@ export const LESSONS: Lesson[] = [
   {
     id: 'tasks', group: 'CAREER', title: 'DAILY AND WEEKLY TASKS',
     pages: [
-      { head: 'SMALL GOALS, BIG REWARDS', art: 'tasks', text: 'Three tasks every day and three every week,\nplayed in career matches. Each pays coins.\nFinish all three for a bonus, and a daily\nlogin gives more every day in a row.' },
+      { head: 'SMALL GOALS, BIG REWARDS', art: 'tasks', text: 'Three tasks every day and three every week,\nfrom career matches and camp trials. Each\npays coins. Finish all three for a bonus;\na daily login pays more every day in a row.' },
     ],
   },
   {
     id: 'season', group: 'CAREER', title: 'THE END OF A SEASON',
     pages: [
       { head: 'SEASON COMPLETE', art: 'season', text: 'A season is 24 weeks. At the end you get\nyour place in the world ranking, and coins\nand packs for it, plus more for every title.\nPlay at least 8 tournaments to earn it.' },
+    ],
+  },
+  {
+    id: 'cups', group: 'CAREER', title: 'TROPHIES AND CUPS',
+    pages: [
+      { head: 'THE CUP CABINET', art: 'cups', text: 'Win a tournament for a gold cup, lose the\nfinal for a silver one. Every city and\ndivision has its own cup. CUPS, SEASONS\nand SETS show everything you have won.' },
+      { head: 'SET CHALLENGES', art: 'cups', text: 'Win gold in every cup of a set, or a number\nof different cups, to earn coins and Gear\nPacks once. Only gold cups count.\nOpen SETS to see what is still missing.' },
+    ],
+  },
+  {
+    id: 'ranking', group: 'CAREER', title: 'RANKING AND RECORDS',
+    pages: [
+      { head: 'YOUR PLACE IN THE WORLD', art: 'ranking', text: 'Tournaments earn ranking points. They set\nyour place in WORLD and, at the end of a\nseason, your SEASONS trophy. RECORDS keeps\nyour personal bests: streaks, aces, rallies.' },
+    ],
+  },
+  {
+    id: 'collection', group: 'HERO', title: 'THE COLLECTION',
+    pages: [
+      { head: 'GOTTA HAVE THEM ALL', art: 'collection', text: 'Every piece of gear from the shop and the\npacks is listed here. Grey ones are still to\nfind and show the level they need. Pieces\nyou own show their bonus; wear them in GEAR.' },
     ],
   },
   {
@@ -125,7 +144,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'camp', group: 'CAMP', title: 'TRAINING CAMP',
     pages: [
-      { head: 'FOUR MINIGAMES', art: 'camp', text: 'Three tries a week when no tournament\nis on. Stars pay coins, boosts and Gear\nPack fragments. GOALS adds two daily\nand two weekly targets.' },
+      { head: 'FOUR MINIGAMES', art: 'camp', text: 'Three tries a week when no tournament\nis on. Stars pay coins, boosts and Gear\nPack fragments. GOALS adds camp targets.\nTrials also count for daily and weekly tasks.' },
     ],
   },
   {

@@ -2,7 +2,7 @@
 // Same facts as the daily tasks (career matches only); the numbers and the task list live in src/data/weekly.json.
 
 import data from '../data/weekly.json';
-import { mergeFacts, mulberry, seedOf, type DailyFacts, type DailyStat, type TaskDef } from './daily';
+import { mergeCampTrial, mergeFacts, mulberry, seedOf, type DailyFacts, type DailyStat, type TaskDef } from './daily';
 import type { Profile } from './profile';
 
 export const WEEKLY_TASKS = data.tasks as TaskDef[];
@@ -45,6 +45,11 @@ export function weeklyTasksOf(week: string): TaskDef[] {
     out.push(t);
   }
   return out;
+}
+
+export function addWeeklyCampTrial(w: Weekly, week: string, stars: number): Weekly {
+  const cur = refreshWeek(w, week);
+  return { ...cur, progress: mergeCampTrial(cur.progress, stars) };
 }
 
 export function addWeeklyFacts(w: Weekly, week: string, f: DailyFacts): Weekly {

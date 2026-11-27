@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { addTrial } from '../career/campGoals';
-import { dayKey } from '../career/daily';
-import { weekKey } from '../career/weekly';
+import { addCampTrial, dayKey } from '../career/daily';
+import { addWeeklyCampTrial, weekKey } from '../career/weekly';
 import { campGame, finishTry, starsFor, type CampGameId, type CampReward } from '../career/camp';
 import { consumableById } from '../career/gear';
 import { rewardedAd } from '../ads';
@@ -36,7 +36,13 @@ export class CampResultScene extends Phaser.Scene {
     if (this.collected) return;
     const r = finishTry(getSave().profile, this.gameId, this.score, Math.random, double);
     const now = new Date();
-    updateSave((d) => ({ ...d, profile: r.profile, campGoals: addTrial(d.campGoals, dayKey(now), weekKey(now), this.gameId, r.reward.stars) }));
+    updateSave((d) => ({
+      ...d,
+      profile: r.profile,
+      campGoals: addTrial(d.campGoals, dayKey(now), weekKey(now), this.gameId, r.reward.stars),
+      daily: addCampTrial(d.daily, dayKey(now), r.reward.stars),
+      weekly: addWeeklyCampTrial(d.weekly, weekKey(now), r.reward.stars),
+    }));
     this.collected = r.reward;
     sfx('win');
     this.render();

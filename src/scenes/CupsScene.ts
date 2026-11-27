@@ -6,6 +6,7 @@ import { divisionById } from '../career/tournament';
 import { cityAccent, drawCup } from '../art/cupArt';
 import { drawIcon } from '../art/icons';
 import { getSave } from '../save';
+import { showTip } from '../tutorial/tips';
 import { applyLightScreen, bakedShape, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 const COLS = 3;
@@ -45,6 +46,7 @@ export class CupsScene extends Phaser.Scene {
     this.selected = null;
     this.selectedSeason = null;
     this.render(true);
+    this.time.delayedCall(250, () => showTip(this, 'cups'));
   }
 
   private render(first = false): void {

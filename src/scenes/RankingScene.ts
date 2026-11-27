@@ -6,6 +6,7 @@ import { ONLINE_SOURCE, positionOf, visibleRows, WORLD_SOURCE, worldRanking, typ
 import { recordRows } from '../career/recordsView';
 import { partnerById, WEEKS } from '../career/season';
 import { getSave } from '../save';
+import { showTip } from '../tutorial/tips';
 import { applyLightScreen, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
 
 type Tab = 'world' | 'seasons' | 'records' | 'online';
@@ -36,6 +37,7 @@ export class RankingScene extends Phaser.Scene {
   create(): void {
     applyLightScreen(this);
     this.redraw();
+    this.time.delayedCall(250, () => showTip(this, 'ranking'));
   }
 
   private redraw(): void {

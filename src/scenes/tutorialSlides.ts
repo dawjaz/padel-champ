@@ -490,6 +490,42 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       k.at(4000, () => k.bubble(120, 176, 'THE DEEPER THE LOB, THE HARDER THE POR CUATRO', { tail: 'down', size: 10 }));
     },
   },
+  cups: {
+    stage: 'gold', period: 8000, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      const cups: Array<[string, number, number]> = [['GOLD', 0xffc933, 56], ['SILVER', 0xc3ccd9, 156], ['NOT YET', 0x8d9bb0, 256]];
+      cups.forEach(([t, col, x], i) => {
+        k.at(400 + i * 900, () => { k.icon('trophy', x, 90, 46, col); k.chip(x, 140, 84, t, { color: col === 0x8d9bb0 ? TC.navy : TC.blue, on: i < 2, size: 11, h: 24 }); if (i < 2) k.burst(x, 90, 0xffffff); });
+      });
+      k.at(3400, () => k.bubble(106, 40, 'TITLE = GOLD · LOST FINAL = SILVER', { tail: 'down', size: 10, ttl: 2600 }));
+      k.at(6200, () => { k.icon('coin', 100, 196, 28, TC.gold); k.icon('boost', 212, 196, 28, TC.navy); k.bubble(156, 168, 'SETS PAY COINS AND PACKS', { tail: 'down', size: 10, ttl: 1600 }); });
+    },
+  },
+  ranking: {
+    stage: 'gold', period: 8000, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      const places = ['#9 IN THE WORLD', '#7 IN THE WORLD', '#4 IN THE WORLD'];
+      places.forEach((t, i) => k.at(500 + i * 1300, () => { k.chip(156, 190 - i * 36, 170, t, { color: i === 2 ? TC.orange : TC.blue, on: true, size: 13, h: 28 }); k.icon('star', 50, 160 - i * 36, 22, TC.gold); }));
+      k.at(4600, () => { k.hero.play(celebrateSteps(false)); k.flash(0xffffff); k.bubble(156, 60, 'MORE POINTS, A BETTER PLACE', { tail: 'down', size: 10, ttl: 2000 }); });
+      k.at(6400, () => k.bubble(156, 200, 'RECORDS KEEPS YOUR BESTS', { tail: 'up', size: 10, ttl: 1400 }));
+    },
+  },
+  collection: {
+    stage: 'burst', period: 8000, cast: 'solo',
+    run: (k) => {
+      k.hero.to(POSES.ready, 200);
+      const kinds: IconKind[] = ['top', 'shorts', 'shoes', 'racket', 'bag', 'top', 'racket', 'shoes'];
+      kinds.forEach((kind, i) => {
+        const x = 52 + (i % 4) * 68;
+        const y = 56 + Math.floor(i / 4) * 66;
+        k.at(300 + i * 450, () => { k.icon(kind, x, y, 30, i < 5 ? TC.navy : 0x8d9bb0); if (i < 5) k.burst(x, y, 0xffffff); });
+      });
+      k.at(4200, () => k.chip(156, 176, 150, 'COLLECTION 5 / 120', { color: TC.orange, on: true, size: 12, h: 26 }));
+      k.at(5600, () => k.bubble(156, 120, 'GREY = STILL TO FIND', { tail: 'up', size: 10, ttl: 1800 }));
+    },
+  },
 };
 
 // ---------- the engine ----------
@@ -704,7 +740,7 @@ export function buildSlide(scene: Phaser.Scene, id: ArtId, ox: number, oy: numbe
       for (const a of actors) a.destroy();
       for (const o of perm) o.destroy();
     },
-  };
+};
 }
 
 void tcss;

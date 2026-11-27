@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { T, N, done, setLang, getLang, parseLang, LANGS, LANG_LABEL, missingTexts } from './i18n';
+import { LESSONS } from './tutorial/lessons';
+import { lookup, T, N, done, setLang, getLang, parseLang, LANGS, LANG_LABEL, missingTexts } from './i18n';
 import { ES } from './i18n/es';
 
 describe('i18n', () => {
@@ -89,6 +90,16 @@ describe('i18n', () => {
     expect(T('Dani: Chiquita middle!\n[12] RISKY')).toBe('Dani: Chiquita centro!\n[12] ARRIESGADO');
     setLang('en');
     expect(T('Bruno: Bajada Low Speed middle!')).toBe('Bruno: Bajada Low Speed middle!');
+  });
+
+  it('fits the Spanish lesson texts on a card (lines up to 52 characters)', () => {
+    for (const l of LESSONS) {
+      for (const pg of l.pages) {
+        const es = lookup(pg.text);
+        expect(es, `${l.id}: ${pg.head}`).toBeDefined();
+        for (const line of (es ?? '').split('\n')) expect(line.length, `${l.id}: ${line}`).toBeLessThanOrEqual(52);
+      }
+    }
   });
 });
 

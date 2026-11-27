@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { newProfile } from './profile';
 import type { DailyFacts } from './daily';
-import { addWeeklyFacts, claimWeeklyBonus, claimWeeklyTask, daysLeft, newWeekly, sanitizeWeekly, weekKey, weeklyBonusReady, weeklyTasksOf, weeklyViews, weeklyWaiting, WEEKLY_BONUS_COINS, WEEKLY_TASK_COINS } from './weekly';
+import { addWeeklyCampTrial, addWeeklyFacts, claimWeeklyBonus, claimWeeklyTask, daysLeft, newWeekly, sanitizeWeekly, weekKey, weeklyBonusReady, weeklyTasksOf, weeklyViews, weeklyWaiting, WEEKLY_BONUS_COINS, WEEKLY_TASK_COINS } from './weekly';
+
+/** A week of everything: a big match and three camp trials with three stars each. */
+const everything = (w: ReturnType<typeof newWeekly>, week: string): ReturnType<typeof newWeekly> => {
+  let r = addWeeklyFacts(w, week, big);
+  for (let i = 0; i < 3; i++) r = addWeeklyCampTrial(r, week, 3);
+  return r;
+};
 
 const big: DailyFacts = { won: true, points: 500, longestRally: 99, smash: 99, dejada: 99, viboraBandeja: 99, bajada: 99, ace: 99 };
 
@@ -21,13 +28,13 @@ describe('weekly challenges', () => {
     expect(weeklyTasksOf('2026-11-23')).toEqual(t);
   });
   it('a new week starts with empty progress', () => {
-    const w = addWeeklyFacts(newWeekly(), '2026-11-23', big);
+    const w = everything(newWeekly(), '2026-11-23');
     expect(weeklyViews(w, '2026-11-23').every((v) => v.done)).toBe(true);
     expect(weeklyViews(w, '2026-11-30').every((v) => v.have === 0)).toBe(true);
   });
   it('pays each task once, then the bonus with a pack once', () => {
     let p = newProfile();
-    let w = addWeeklyFacts(newWeekly(), '2026-11-23', big);
+    let w = everything(newWeekly(), '2026-11-23');
     expect(weeklyWaiting(w, '2026-11-23')).toBe(true);
     for (const v of weeklyViews(w, '2026-11-23')) {
       const r = claimWeeklyTask(p, w, '2026-11-23', v.def.id)!;

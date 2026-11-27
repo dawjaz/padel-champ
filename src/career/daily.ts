@@ -1,10 +1,10 @@
 // Daily rewards and tasks: a login reward on a 7-day streak and three tasks a day (plus a bonus for all three). Pure (no Phaser), tested.
-// Only career matches count (a quick match is a sparring). The numbers and the task list live in src/data/daily.json.
+// Career matches count (a quick match is a sparring), and so do the training camp trials. The numbers and the task list live in src/data/daily.json.
 
 import data from '../data/daily.json';
 import type { Profile } from './profile';
 
-export type DailyStat = 'played' | 'won' | 'points' | 'rally' | 'smash' | 'dejada' | 'viboraBandeja' | 'bajada' | 'ace';
+export type DailyStat = 'played' | 'won' | 'points' | 'rally' | 'smash' | 'dejada' | 'viboraBandeja' | 'bajada' | 'ace' | 'campTrials' | 'campStars';
 
 export interface TaskDef {
   id: string;
@@ -137,6 +137,16 @@ export function mergeFacts(progress: Partial<Record<DailyStat, number>>, f: Dail
   add('bajada', f.bajada);
   add('ace', f.ace);
   return pr;
+}
+
+/** Adds one finished training camp trial (and the stars it earned) to a progress record. */
+export function mergeCampTrial(progress: Partial<Record<DailyStat, number>>, stars: number): Partial<Record<DailyStat, number>> {
+  return { ...progress, campTrials: (progress.campTrials ?? 0) + 1, campStars: (progress.campStars ?? 0) + Math.max(0, stars) };
+}
+
+export function addCampTrial(d: Daily, today: string, stars: number): Daily {
+  const cur = refresh(d, today);
+  return { ...cur, progress: mergeCampTrial(cur.progress, stars) };
 }
 
 export function addFacts(d: Daily, today: string, f: DailyFacts): Daily {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newProfile } from './profile';
-import { addFacts, bonusReady, claimBonus, claimLogin, claimTask, dayKey, hasWaiting, loginReward, loginStatus, newDaily, previousDay, sanitizeDaily, STREAK_LENGTH, taskViews, tasksOf, TASKS, type DailyFacts } from './daily';
+import { addCampTrial, addFacts, bonusReady, claimBonus, claimLogin, claimTask, dayKey, hasWaiting, loginReward, loginStatus, newDaily, previousDay, sanitizeDaily, STREAK_LENGTH, taskViews, tasksOf, TASKS, type DailyFacts } from './daily';
 
 const facts = (o: Partial<DailyFacts> = {}): DailyFacts => ({ won: true, points: 24, longestRally: 12, smash: 3, dejada: 1, viboraBandeja: 2, bajada: 1, ace: 2, ...o });
 
@@ -60,6 +60,8 @@ describe('daily tasks', () => {
     let d = newDaily();
     // Several matches are enough to finish any task of the day.
     for (let i = 0; i < 3; i++) d = addFacts(d, today, facts({ points: 40, longestRally: 20, smash: 5, dejada: 3, viboraBandeja: 5, bajada: 3, ace: 5 }));
+    d = addCampTrial(d, today, 3);
+    d = addCampTrial(d, today, 3);
     const views = taskViews(d, today);
     expect(views.every((v) => v.done)).toBe(true);
     for (const v of views) {
@@ -72,6 +74,13 @@ describe('daily tasks', () => {
     const b = claimBonus(p, d, today)!;
     expect(b.profile.coins).toBeGreaterThan(p.coins);
     expect(claimBonus(b.profile, b.daily, today)).toBeNull();
+  });
+  it('a camp trial counts as a trial and its stars add up', () => {
+    let d = addCampTrial(newDaily(), '2026-11-23', 2);
+    d = addCampTrial(d, '2026-11-23', 3);
+    expect(d.progress.campTrials).toBe(2);
+    expect(d.progress.campStars).toBe(5);
+    expect(addCampTrial(d, '2026-11-24', 1).progress).toEqual({ campTrials: 1, campStars: 1 });
   });
   it('rally is a maximum, other counts add up, and a new day clears the progress', () => {
     let d = addFacts(newDaily(), '2026-11-23', facts({ longestRally: 7, points: 10 }));
