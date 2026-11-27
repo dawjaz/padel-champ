@@ -34,6 +34,7 @@ public/assets/
 - Sound ideas (check the licence of each file, CC0 or CC-BY, and record it below): padel/tennis ball hits, a ball bouncing on a
   court, a glass door/wall knock, a chain-link fence rattle, a tennis net cord. Good sources: OpenGameArt ("100 CC0 metal and wood SFX",
   "100 CC0 SFX"), Kenney "Impact Sounds" (CC0), Freesound (filter by CC0).
+- **Full wish list (Polish, owner searches the libraries): `docs/SOUNDS.md`** (sections A-H, priorities 1-3, search terms; owner decided against synthesised and the old Freesound #345759 cuts).
 - Current recording: `sfx/*.wav` are cut from Freesound #345759 ("padel-practice" by refrain) by `tools/cut_sounds.py`; licence UNCONFIRMED. Kinds: racket_strong, racket_soft, racket_spin, racket_serve, floor, glass, mesh. Audition at `/sounds.html`.
 - UI beeps (`sfx('select')`, `sfx('point')`, ...) are still square-wave placeholders.
 
