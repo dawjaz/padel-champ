@@ -16,7 +16,7 @@ _Last updated: 2026-11-27 (v0.165)_
 - Checked: a real match in Spanish (toss, serve, menu, commentary, ball height banner) and the screen walks; no gaps except names.
 - Not checked on a full rally to the end of a match (point endings, game and match texts are covered by pattern tests only).
 - The `DEBUG.` hints in Settings are only shown with the dev server or `?debug`, players never see them.
-- Still to do: Spanish store listing and privacy page, new store screenshots in both languages, a Spanish check of the final build on a phone.
+- Spanish store texts done (no game change): `store/listing-es.md`, `store/privacy-policy-es.md`, `public/privacy.html` has both languages (`#es`). Still to do: new store screenshots in both languages, a Spanish check of the final build on a phone, a native speaker reading the texts.
 
 ## v0.164: Spanish edition (owner: we release in Spanish too; Spanish padel shot names stay in both languages)
 - Language is a setting (`settings.language`, default `en`, kept on reset). Switch: TITLE (small button under the coins) and SETTINGS > IDIOMA.

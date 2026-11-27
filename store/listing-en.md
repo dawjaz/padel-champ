@@ -93,4 +93,4 @@ _Same text as the Google Play full description above._
   Toropad, Noctra, Adaro, Hedron and Syrix read like real padel brands. Rename them to clearly invented names before release
   (store reviewers and rights holders object to look-alikes). The store text above avoids all of them.
 - Ads and in-app purchases are not in the game yet. When they come, update this text, the privacy policy and both stores' data forms.
-- The keywords and descriptions are English only. See the owner's decision on Spanish.
+- The Spanish listing is `listing-es.md` (same limits, checked by the same script); the privacy page has both languages.
