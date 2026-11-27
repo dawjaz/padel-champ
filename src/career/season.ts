@@ -5,7 +5,7 @@ import calendarData from '../data/calendar.json';
 import partnersData from '../data/partners.json';
 import { gutsFor } from '../game/attributes';
 import type { PlayerDef } from '../game/types';
-import { divisionById } from './tournament';
+import { currentEventName, divisionById } from './tournament';
 
 export interface CalendarEvent {
   id: string;
@@ -180,7 +180,7 @@ export function sanitizeCareer(raw: unknown): Career {
   const history = (Array.isArray(o.history) ? o.history : [])
     .filter((h): h is HistoryEntry => !!h && typeof h.event === 'string' && typeof h.division === 'string' && !!divisionById(h.division))
     .slice(-HISTORY_LIMIT)
-    .map((h) => ({ season: n(h.season, 1), event: h.event, division: h.division, roundsWon: n(h.roundsWon, 0, 4), champion: h.champion === true }));
+    .map((h) => ({ season: n(h.season, 1), event: currentEventName(h.event), division: h.division, roundsWon: n(h.roundsWon, 0, 4), champion: h.champion === true }));
   return {
     season: n(o.season, 1),
     week: n(o.week, 1, WEEKS),

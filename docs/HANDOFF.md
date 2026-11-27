@@ -1,6 +1,22 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.165)_
+_Last updated: 2026-11-27 (v0.166)_
+
+## v0.166: camp tasks, tutorial, privacy button, division names, living start screen
+- **Camp:** smash show star thresholds are now 250 / 450 / 600 (`camp.json`). A finished trial counts for daily and weekly tasks
+  (`campTrials`, `campStars`; `addCampTrial`, `addWeeklyCampTrial`; tasks `camp1`, `campstars3`, `w-camp3`, `w-campstars6`). Possible issue to
+  watch: the camp is closed while a tournament is in progress, so these tasks may be unreachable then (the daily bonus needs all three).
+  Camp sounds wait for the final sound pass.
+- **Tutorial:** new lessons `cups`, `ranking`, `collection` (with slide scripts); tasks and camp lesson texts updated; the cups, ranking and
+  collection screens show their tip on first visit. Spanish lesson texts are tested to fit a card (<= 52 characters per line).
+- **Settings:** PRIVACY POLICY button opens `https://dawjaz.github.io/padel-champ/privacy.html` (`#es` in the Spanish edition).
+- **Division names (owner chose the PorTres own-brand set):** PT Rise / Bronze / Silver / Gold / Platinum, PT Premier II / I (were Premier
+  P2 / P1), Grand Slam Cup (was Major). Ids and balance unchanged. `currentEventName()` in `career/tournament.ts` maps names saved in older
+  histories (used by `lastTrophies` and the history loader). Gear brands stay as they are (owner decision).
+- **Start screen:** sweeping light beams, a rallying ball with a shadow, sparkles round the logo (`StartScene.addLife`).
+- **Still to do (in this order, at the very end before release):** all sounds (including the camp's), then hide the Practice Court
+  (`SHOW_FREE_PRACTICE`). Before release ask the owner for the developer name, contact e-mail and release date in the privacy policy.
+  The studio icon and studio board are next (owner will ask).
 
 ## v0.165: Spanish edition completed (owner: translate everything; nicknames yes; MENÚ instead of MENÚ PRINCIPAL)
 - All texts now have a Spanish version: tutorial lessons and slides, cutscene captions, shots and their descriptions, tasks, goals, cups,

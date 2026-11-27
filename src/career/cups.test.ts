@@ -56,12 +56,14 @@ describe('lastTrophies', () => {
       { event: 'Club Cup Doha', champion: true },
       { event: 'Regional Open Warsaw', champion: false },
       { event: 'Regional Open Warsaw', champion: true },
-      ...Array.from({ length: 6 }, () => ({ event: 'FIP Silver Athens', champion: true })),
+      ...Array.from({ length: 6 }, () => ({ event: 'PT Silver Athens', champion: true })),
     ];
     const t = lastTrophies(h);
     expect(t).toHaveLength(6);
-    expect(t.every((c) => c.name === 'FIP Silver Athens')).toBe(true);
+    expect(t.every((c) => c.name === 'PT Silver Athens')).toBe(true);
     expect(lastTrophies(h.slice(0, 3)).map((c) => c.name)).toEqual(['Regional Open Warsaw', 'Club Cup Doha']);
+    // A history saved before the rename still finds its cups.
+    expect(lastTrophies([{ event: 'FIP Silver Athens', champion: true }, { event: 'Premier P1 Milan', champion: true }, { event: 'Major Doha', champion: true }]).map((c) => c.name)).toEqual(['Grand Slam Cup Doha', 'PT Premier I Milan', 'PT Silver Athens']);
     expect(lastTrophies([{ event: 'Nowhere Cup', champion: true }])).toEqual([]);
   });
 });

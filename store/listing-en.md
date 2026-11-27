@@ -88,9 +88,8 @@ _Same text as the Google Play full description above._
 ---
 
 ## Before you submit
-- **Names that belong to others.** Division names in the game use real organisations: "FIP Rise / Bronze / Silver / Gold / Platinum"
-  (FIP is the International Padel Federation) and "Premier P2 / P1", "Major" (Premier Padel's tour levels). Gear brands Bavolé,
-  Toropad, Noctra, Adaro, Hedron and Syrix read like real padel brands. Rename them to clearly invented names before release
-  (store reviewers and rights holders object to look-alikes). The store text above avoids all of them.
+- **Names that belong to others.** The division names are now the game's own ("PT Rise / Bronze / Silver / Gold / Platinum", "PT Premier II / I",
+  "Grand Slam Cup"; v0.166). The owner decided to keep the gear brands Bavolé, Toropad, Noctra, Adaro, Hedron and Syrix as they are.
+  They read like real padel brands, so recheck them once more before the store review. The store text above avoids all of them.
 - Ads and in-app purchases are not in the game yet. When they come, update this text, the privacy policy and both stores' data forms.
 - The Spanish listing is `listing-es.md` (same limits, checked by the same script); the privacy page has both languages.

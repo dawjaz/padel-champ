@@ -2,7 +2,7 @@
 // Pure (no Phaser), tested. Challenges (sets of golden cups) pay coins and packs once.
 
 import cupsData from '../data/cups.json';
-import { divisionById, DIVISIONS } from './tournament';
+import { currentEventName, divisionById, DIVISIONS } from './tournament';
 import { EVENTS } from './season';
 
 export type CupKind = 'gold' | 'silver';
@@ -115,7 +115,7 @@ export function lastTrophies(history: Array<{ event: string; champion: boolean; 
   const out: Array<Cup & { season: number }> = [];
   for (const h of [...history].reverse()) {
     if (!h.champion) continue;
-    const cup = CUPS.find((c) => c.name === h.event);
+    const cup = CUPS.find((c) => c.name === currentEventName(h.event));
     if (cup) out.push({ ...cup, season: h.season ?? 1 });
     if (out.length >= 6) break;
   }

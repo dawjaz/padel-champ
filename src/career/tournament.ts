@@ -181,3 +181,11 @@ export function prizeFor(division: Division, roundsWon: number): Prize {
   if (roundsWon >= shares.length) prize.pack = division.titlePack;
   return prize;
 }
+
+/** Event names saved before v0.166 used the old division names; this maps them to the current ones (a saved history keeps working). */
+export const currentEventName = (event: string): string =>
+  event
+    .replace(/^FIP (Rise|Bronze|Silver|Gold|Platinum) /, 'PT $1 ')
+    .replace(/^Premier P2 /, 'PT Premier II ')
+    .replace(/^Premier P1 /, 'PT Premier I ')
+    .replace(/^Major /, 'Grand Slam Cup ');

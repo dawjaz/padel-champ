@@ -8,6 +8,9 @@ import { getLang, LANG_LABEL, T, type Lang } from '../i18n';
 /** A label made of a name and a value, both translated (the button text itself is not looked up as one key). */
 const pair = (name: string, value: string): string => `${T(name)}: ${T(value)}`;
 
+/** The published privacy policy (public/privacy.html on the game's site). */
+export const PRIVACY_URL = 'https://dawjaz.github.io/padel-champ/privacy.html';
+
 export class SettingsScene extends Phaser.Scene {
   constructor() {
     super('SettingsScene');
@@ -68,6 +71,12 @@ export class SettingsScene extends Phaser.Scene {
       const next: Lang = getLang() === 'en' ? 'es' : 'en';
       updateSave((d) => ({ ...d, settings: { ...d.settings, language: next } }));
       this.scene.restart();
+    }, 'blue', 19);
+    y += BTN + 14;
+
+    // The privacy policy lives on the game's web page (it opens in the browser; the Spanish page for the Spanish edition).
+    makeThemeButton(this, WIDTH / 2, y, 260, BTN, 'PRIVACY POLICY', () => {
+      window.open(PRIVACY_URL + (getLang() === 'es' ? '#es' : ''), '_blank', 'noopener');
     }, 'blue', 19);
     y += BTN + 14;
 

@@ -370,7 +370,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
   career: {
     stage: 'burst', period: 7600, cast: 'duo',
     run: (k) => {
-      const ev = ['CLUB CUP', 'REGIONAL OPEN', 'FIP RISE'];
+      const ev = ['CLUB CUP', 'REGIONAL OPEN', 'PT RISE'];
       ev.forEach((e, i) => k.at(300 + i * 900, () => k.chip(156, 22 + i * 28, 150, e, { color: TC.orange, on: i === 2, size: 12, h: 24 })));
       k.at(3600, () => { k.hero.play(highFiveSteps(1)); k.mate?.play(highFiveSteps(-1)); k.shout(156, 100, 'WIN!', { color: GOLD, size: 34 }); k.icon('trophy', 156, 170, 44, TC.gold); k.flash(0xffffff); });
       k.at(5000, () => k.bubble(156, 130, 'ONE MATCH PER TIE', { tail: 'down', size: 11, ttl: 2000 }));

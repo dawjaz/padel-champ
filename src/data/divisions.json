@@ -32,7 +32,7 @@
   },
   {
    "id": "rise",
-   "name": "FIP Rise",
+   "name": "PT Rise",
    "draw": 16,
    "minLevel": 6,
    "minRank": 0,
@@ -47,7 +47,7 @@
   },
   {
    "id": "bronze",
-   "name": "FIP Bronze",
+   "name": "PT Bronze",
    "draw": 16,
    "minLevel": 9,
    "minRank": 0,
@@ -62,7 +62,7 @@
   },
   {
    "id": "silver",
-   "name": "FIP Silver",
+   "name": "PT Silver",
    "draw": 16,
    "minLevel": 12,
    "minRank": 0,
@@ -77,7 +77,7 @@
   },
   {
    "id": "gold",
-   "name": "FIP Gold",
+   "name": "PT Gold",
    "draw": 16,
    "minLevel": 15,
    "minRank": 0,
@@ -92,7 +92,7 @@
   },
   {
    "id": "platinum",
-   "name": "FIP Platinum",
+   "name": "PT Platinum",
    "draw": 16,
    "minLevel": 18,
    "minRank": 0,
@@ -107,7 +107,7 @@
   },
   {
    "id": "p2",
-   "name": "Premier P2",
+   "name": "PT Premier II",
    "draw": 16,
    "minLevel": 21,
    "minRank": 400,
@@ -122,7 +122,7 @@
   },
   {
    "id": "p1",
-   "name": "Premier P1",
+   "name": "PT Premier I",
    "draw": 16,
    "minLevel": 24,
    "minRank": 900,
@@ -137,7 +137,7 @@
   },
   {
    "id": "major",
-   "name": "Major",
+   "name": "Grand Slam Cup",
    "draw": 16,
    "minLevel": 27,
    "minRank": 1800,

@@ -12,7 +12,7 @@
     { "id": "set_bronze", "name": "Bronze Pair", "divisions": ["bronze"], "coins": 300, "packs": { "gear": 1 } },
     { "id": "set_silver", "name": "Silver Pair", "divisions": ["silver"], "coins": 400, "packs": { "gear": 1 } },
     { "id": "set_gold", "name": "Gold Standard", "divisions": ["gold"], "coins": 800, "packs": { "premium": 1 } },
-    { "id": "set_major", "name": "Major Winner", "divisions": ["major"], "coins": 1000, "packs": { "premium": 1 } },
+    { "id": "set_major", "name": "Grand Slam Winner", "divisions": ["major"], "coins": 1000, "packs": { "premium": 1 } },
     { "id": "set_elite", "name": "Elite Four", "divisions": ["platinum", "p2", "p1", "finals"], "coins": 1500, "packs": { "premium": 2 } },
     { "id": "region_spain", "name": "King of Spain", "cities": ["Barcelona", "Madrid", "Malaga", "Sevilla", "Valencia"], "coins": 800, "packs": { "premium": 1 } },
     { "id": "region_poland", "name": "Pride of Poland", "cities": ["Warsaw", "Gdansk"], "coins": 400, "packs": { "gear": 1 } },
