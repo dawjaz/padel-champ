@@ -9,7 +9,7 @@ import { newCareer, sanitizeCareer, type Career } from './season';
 import { applyLook, gearBonus, legacyRefund, newInventory, sanitizeInventory, syncUnlocks, type Boost, type Inventory } from './gear';
 import { newCamp, sanitizeCamp, type CampState } from './camp';
 import { emptyShelf, sanitizeClaims, sanitizeShelf, type CupShelf } from './cups';
-import { gutsFor, STAT_KEYS } from '../game/attributes';
+import { gutsFor, statFromShown, STAT_KEYS } from '../game/attributes';
 import { SPECIALS } from '../game/catalog';
 import type { Appearance, Gender, PlayerDef, StatKey } from '../game/types';
 
@@ -28,8 +28,10 @@ export interface Profile {
   heroSide: HeroSide;
   xp: number;
   coins: number;
-  /** Skill points put into each attribute (on top of `levels.startStat`). */
+  /** Skill points put into each attribute (on top of `levels.startStat`), on the shown 1-20 scale. */
   alloc: Alloc;
+  /** The attribute scale of `alloc`: 20 since v0.162 (older saves had none and a 1-10 scale; `sanitizeProfile` converts them). */
+  statScale: 20;
   /** Gear, consumables (see gear.ts). */
   inventory: Inventory;
   /** The cup cabinet and the cup challenges already paid (see cups.ts). */
@@ -78,7 +80,7 @@ export function withGender(p: Profile, gender: Gender): Profile {
   return { ...p, gender, name: p.name === from.name ? to.name : p.name, nick: p.nick === from.nick ? to.nick : p.nick };
 }
 
-export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', heroSide: 'left', cups: emptyShelf(), cupClaims: [], camp: newCamp(), xp: 0, coins: 0, alloc: emptyAlloc(), inventory: newInventory(), career: newCareer() });
+export const newProfile = (): Profile => ({ name: DEFAULT_NAME, nick: DEFAULT_NICK, gender: 'male', heroSide: 'left', cups: emptyShelf(), cupClaims: [], camp: newCamp(), xp: 0, coins: 0, alloc: emptyAlloc(), statScale: 20, inventory: newInventory(), career: newCareer() });
 
 /** The special shots the hero has unlocked at his level (in the order they unlock). */
 export const unlockedSpecials = (level: number): string[] =>
@@ -111,6 +113,12 @@ export function levelProgress(xp: number): number {
  */
 export const statCap = (level: number): number =>
   Math.min(levels.statMax, levels.capBase + Math.floor(Math.max(1, level) / levels.levelsPerCap));
+
+/**
+ * Highest value one attribute may have with gear on: the level cap plus `levels.gearHeadroom`, never above `statMax`. Gear adds to
+ * the skill points only up to here, so a strong set helps a lot early but does not fill the scale long before the top levels.
+ */
+export const gearCap = (level: number): number => Math.min(levels.statMax, statCap(level) + levels.gearHeadroom);
 
 /** The next level at which the cap rises (null once the cap is at its maximum). */
 export const nextCapLevel = (level: number): number | null =>
@@ -162,6 +170,27 @@ export function award(p: Profile, r: Reward): Profile {
   return { ...p, xp, coins: p.coins + r.coins, inventory: { ...inv, packs } };
 }
 
+/**
+ * Fits wanted skill points under a per-attribute limit and a total budget. When the total is too big every attribute gives up
+ * points in proportion (the largest remainders keep one more), so no attribute loses everything just because it comes last.
+ */
+export function fitAlloc(want: Alloc, perStat: number, budget: number): Alloc {
+  const lim = Math.max(0, perStat);
+  const clamped = Object.fromEntries(STAT_KEYS.map((k) => [k, Math.max(0, Math.min(lim, Math.floor(want[k] ?? 0)))])) as Alloc;
+  const sum = STAT_KEYS.reduce((n, k) => n + clamped[k], 0);
+  const room = Math.max(0, Math.floor(budget));
+  if (sum <= room) return clamped;
+  const share = STAT_KEYS.map((k) => ({ k, exact: (clamped[k] * room) / sum }));
+  const out = Object.fromEntries(share.map(({ k, exact }) => [k, Math.floor(exact)])) as Alloc;
+  let left = room - STAT_KEYS.reduce((n, k) => n + out[k], 0);
+  for (const { k } of [...share].sort((a, b) => (b.exact - Math.floor(b.exact)) - (a.exact - Math.floor(a.exact)))) {
+    if (left <= 0) break;
+    out[k]++;
+    left--;
+  }
+  return out;
+}
+
 /** Makes a stored profile safe: whole numbers, nothing above the level cap, never more points than earned. */
 export function sanitizeProfile(raw: unknown): Profile {
   const o = (raw ?? {}) as Partial<Record<string, unknown>>;
@@ -169,23 +198,33 @@ export function sanitizeProfile(raw: unknown): Profile {
   const xp = n(o.xp);
   const level = levelOf(xp);
   const src = (o.alloc ?? {}) as Partial<Record<string, unknown>>;
-  const alloc = emptyAlloc();
-  let left = pointsEarned(level);
-  for (const k of STAT_KEYS) {
-    const v = Math.min(n(src[k]), statCap(level) - levels.startStat, left);
-    alloc[k] = Math.max(0, v);
-    left -= alloc[k];
-  }
+  // A save from before v0.162 counted on a 1-10 scale: every old point is two now (same strength), then the new caps apply.
+  const legacy = o.statScale !== 20;
+  const want = Object.fromEntries(STAT_KEYS.map((k) => [k, n(src[k]) * (legacy ? 2 : 1)])) as Alloc;
+  const alloc = fitAlloc(want, statCap(level) - levels.startStat, pointsEarned(level));
   const gender: Gender = o.gender === 'female' ? 'female' : 'male';
-  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, heroSide: o.heroSide === 'right' ? 'right' : 'left', cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), camp: sanitizeCamp(o.camp), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
+  return { name: cleanName(o.name, MAX_NAME, HERO_DEFAULTS[gender].name), nick: cleanName(o.nick, MAX_NICK, HERO_DEFAULTS[gender].nick), gender, heroSide: o.heroSide === 'right' ? 'right' : 'left', cups: sanitizeShelf(o.cups), cupClaims: sanitizeClaims(o.cupClaims), camp: sanitizeCamp(o.camp), xp, coins: n(o.coins) + legacyRefund(o.inventory), alloc, statScale: 20, inventory: sanitizeInventory(o.inventory, level), career: sanitizeCareer(o.career) };
 }
 
-/** The playable hero: the base player with the attributes of the profile plus gear (and the boost of the queued consumables), capped at `statMax`, and the look of the equipped gear. */
-export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef {
+/**
+ * The hero's attributes on the shown 1-20 scale: skill points plus gear (gear only up to `gearCap`), then the boost of the
+ * queued consumables for one match on top, never above `statMax`.
+ */
+export function heroPoints(p: Profile, boost?: Boost): Record<StatKey, number> {
   const gear = gearBonus(p.inventory);
-  const stats = Object.fromEntries(
-    STAT_KEYS.map((k) => [k, Math.min(levels.statMax, statValue(p, k) + gear[k] + (boost?.stats[k] ?? 0))]),
+  const withGear = gearCap(levelOf(p.xp));
+  return Object.fromEntries(
+    STAT_KEYS.map((k) => {
+      const base = statValue(p, k);
+      return [k, Math.min(levels.statMax, Math.max(base, Math.min(withGear, base + gear[k])) + (boost?.stats[k] ?? 0))];
+    }),
   ) as Record<StatKey, number>;
+}
+
+/** The playable hero: the base player with the attributes of `heroPoints` on the mechanics scale (halved), guts to match, the unlocked specials and the look of the equipped gear. */
+export function heroFrom(base: PlayerDef, p: Profile, boost?: Boost): PlayerDef {
+  const pts = heroPoints(p, boost);
+  const stats = Object.fromEntries(STAT_KEYS.map((k) => [k, statFromShown(pts[k])])) as Record<StatKey, number>;
   const specials = unlockedSpecials(levelOf(p.xp));
   return { ...base, name: p.name, nick: p.nick, stats, maxGuts: gutsFor(stats.stamina) + (boost?.maxGuts ?? 0), appearance: heroLook(p, base.appearance), ...(specials.length > 0 ? { specials } : {}) };
 }

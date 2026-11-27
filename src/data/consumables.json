@@ -19,22 +19,22 @@
   {
    "id": "grip_tape",
    "name": "Grip Tape",
-   "desc": "+2 technique",
+   "desc": "+4 technique",
    "stats": {
-    "technique": 2
+    "technique": 4
    },
    "price": 70,
-   "short": "+2 TECHNIQUE"
+   "short": "+4 TECHNIQUE"
   },
   {
    "id": "fresh_balls",
    "name": "Fresh Balls",
-   "desc": "+2 spin",
+   "desc": "+4 spin",
    "stats": {
-    "spin": 2
+    "spin": 4
    },
    "price": 70,
-   "short": "+2 SPIN"
+   "short": "+4 SPIN"
   }
  ],
  "maxBoosts": 2

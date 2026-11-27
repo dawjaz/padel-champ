@@ -1,12 +1,22 @@
 {
   "maxLevel": 30,
-  "startStat": 4,
-  "startPoints": 2,
-  "pointsPerLevel": 2,
-  "statMax": 10,
-  "capBase": 5,
-  "levelsPerCap": 5,
+  "startStat": 8,
+  "startPoints": 4,
+  "pointsPerLevel": 3,
+  "statMax": 20,
+  "capBase": 10,
+  "levelsPerCap": 3,
+  "gearHeadroom": 4,
   "xpBase": 600,
   "xpExp": 1.5,
-  "reward": { "xpPlayed": 40, "xpWin": 60, "xpPerPoint": 2, "xpPerRallyHit": 1, "rallyHitsFrom": 8, "coinsPlayed": 20, "coinsWin": 30, "coinsPerPoint": 1 }
+  "reward": {
+    "xpPlayed": 40,
+    "xpWin": 60,
+    "xpPerPoint": 2,
+    "xpPerRallyHit": 1,
+    "rallyHitsFrom": 8,
+    "coinsPlayed": 20,
+    "coinsWin": 30,
+    "coinsPerPoint": 1
+  }
 }

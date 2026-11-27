@@ -63,5 +63,7 @@ Separate prototype branch with three.js. Not before the match mechanics are deve
 ## Before release (decided 2026-11-27)
 - Hide the Practice Court button on the title screen (keep the code, bring it back with a flag like `SHOW_FREE_PRACTICE`) and centre COLLECTION and SETTINGS in the bottom row.
 - Settings: add a PRIVACY POLICY button that opens https://dawjaz.github.io/padel-champ/privacy.html; fill in developer name, email and date in `store/privacy-policy.md` and `public/privacy.html`.
-- Online ranking: login is not built yet. Recommendation: play without an account by default; Sign in with Apple (required on iOS when other social logins exist) + Google; hosted backend (Firebase or Supabase); upload only records and ranking points; delete-account button; extend the privacy policy first.
-- Attribute scale: 1-10 fills up too early because gear and consumables add points (the total is clamped to `statMax` 10). Consider 1-20 or 1-100 and rescale `levels.json`, `gear.json`, `partners.json`, `opponents.json`, `divisions.json`.
+- Online ranking: login is not built yet. Decided: play without an account by default; Sign in with Apple + Google; backend Supabase (owner's choice); upload only records and ranking points; delete-account button; extend the privacy policy first.
+- Attribute scale: done in v0.162 (1-20 on screen, gear headroom).
+- Rackets: redesign the racket art (shapes, faces, colours, grips) after real padel rackets (diamond, teardrop, round), original designs only.
+- Monthly editions (after release): themed seasons, rotating challenges, limited cosmetics, a monthly online ranking.

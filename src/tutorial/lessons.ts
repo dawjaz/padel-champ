@@ -77,7 +77,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'hero', group: 'HERO', title: 'HERO AND SKILL POINTS',
     pages: [
-      { head: 'SKILL POINTS', art: 'hero', text: 'Every level gives 2 skill points.\nSpend them on the seven attributes.\nThe shaded part of a bar unlocks at\nlevels 5, 10, 15 and so on.' },
+      { head: 'SKILL POINTS', art: 'hero', text: 'Every level gives 3 skill points.\nAttributes go from 1 to 20. The shaded\npart of a bar unlocks at levels 3, 6, 9\nand so on. Gear adds a little more.' },
     ],
   },
   {

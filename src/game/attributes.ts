@@ -6,6 +6,18 @@ import type { PlayerDef, StatKey } from './types';
 export const STAT_KEYS: StatKey[] = ['power', 'spin', 'technique', 'accuracy', 'stamina', 'speed', 'defense'];
 export const NEUTRAL = 5;
 
+/**
+ * The player sees the attributes on a 1-20 scale (since v0.162); the mechanics keep the 1-10 scale above, in half steps.
+ * `PlayerDef.stats` is always on the mechanics scale: the hero's skill points and gear are on the shown scale and are divided
+ * by `STAT_SCALE` once, in `heroFrom` (career/profile.ts). Partners and opponents are stored on the mechanics scale and only
+ * multiplied for the screen with `shownStat`.
+ */
+export const STAT_SCALE = 2;
+/** An attribute (or an average of attributes) as the player sees it, 1-20. */
+export const shownStat = (v: number): number => Math.round(v * STAT_SCALE * 10) / 10;
+/** A shown value (1-20) on the mechanics scale (0.5-10). */
+export const statFromShown = (v: number): number => v / STAT_SCALE;
+
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
 /** Guts (the stamina bar) of a player: 10 at stamina 5. */

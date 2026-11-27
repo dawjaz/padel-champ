@@ -7,7 +7,9 @@ import { gutsFor, STAT_KEYS } from '../src/game/attributes';
 import type { Teams } from '../src/game/point';
 import { seededRng } from '../src/game/rng';
 import { makePair } from '../src/career/tournament';
-import { statCap, pointsEarned, heroFrom, newProfile, emptyAlloc } from '../src/career/profile';
+import { statCap, pointsEarned, heroFrom, newProfile, emptyAlloc, xpToReach } from '../src/career/profile';
+import { BRANDS, itemsOfBrand, SLOTS, type Slot } from '../src/career/gear';
+import levels from '../src/data/levels.json';
 import type { PlayerDef, SideIndex, StatKey } from '../src/game/types';
 import { playMatch, type Tally } from './simCore';
 
@@ -44,11 +46,20 @@ function fatigue(n: number): void {
 
 function hero(level: number): PlayerDef {
   // Spread the points evenly over the seven attributes up to the cap (what a balanced player does).
-  const p = newProfile();
+  const p = { ...newProfile(), xp: xpToReach(level) };
   const alloc = emptyAlloc();
   let left = pointsEarned(level);
-  const cap = statCap(level) - 4;
-  for (let round = 0; left > 0 && round < 20; round++) for (const k of STAT_KEYS) if (left > 0 && alloc[k] < cap) { alloc[k]++; left--; }
+  const cap = statCap(level) - levels.startStat;
+  for (let round = 0; left > 0 && round < 40; round++) for (const k of STAT_KEYS) if (left > 0 && alloc[k] < cap) { alloc[k]++; left--; }
+  // GEAR=1: the best model of one brand in every slot that the level allows (a full set, so the set bonus counts too).
+  if (process.env.GEAR === '1') {
+    const equipped: Partial<Record<Slot, string>> = {};
+    for (const slot of SLOTS) {
+      const best = itemsOfBrand(slot, BRANDS[0].id).filter((g) => g.minLevel <= level).pop();
+      if (best) equipped[slot] = best.id;
+    }
+    return heroFrom(YOU[0], { ...p, alloc, inventory: { ...p.inventory, owned: Object.values(equipped) as string[], equipped } });
+  }
   return heroFrom(YOU[0], { ...p, alloc });
 }
 

@@ -2,7 +2,7 @@ import playersData from '../data/players.json';
 import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import { award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, nextCapLevel, statValue, unspend, xpToReach, unlockedSpecials } from './profile';
+import { fitAlloc, gearCap, heroPoints, emptyAlloc, award, canSpend, freePoints, heroFrom, levelOf, levelProgress, matchReward, newProfile, pointsEarned, respec, sanitizeProfile, spend, withGender, heroLane, heroLook, HERO_DEFAULTS, statCap, nextCapLevel, statValue, unspend, xpToReach, unlockedSpecials } from './profile';
 import type { PlayerDef } from '../game/types';
 
 describe('levels', () => {
@@ -23,21 +23,35 @@ describe('levels', () => {
     expect(pointsEarned(levels.maxLevel)).toBe(room); // a maxed hero is reachable and no point is ever stuck
   });
 
-  it('the cap opens ON levels 5, 10, 15 ... (owner: reached level 5 and could not spend)', () => {
-    expect(statCap(4)).toBe(levels.capBase);
-    expect(statCap(5)).toBe(levels.capBase + 1);
-    expect(statCap(9)).toBe(levels.capBase + 1);
-    expect(statCap(10)).toBe(levels.capBase + 2);
-    expect(nextCapLevel(1)).toBe(5);
-    expect(nextCapLevel(5)).toBe(10);
+  it('the cap opens ON levels 3, 6, 9 ... (owner: reached a cap level and could not spend)', () => {
+    const step = levels.levelsPerCap;
+    expect(statCap(step - 1)).toBe(levels.capBase);
+    expect(statCap(step)).toBe(levels.capBase + 1);
+    expect(statCap(2 * step - 1)).toBe(levels.capBase + 1);
+    expect(statCap(2 * step)).toBe(levels.capBase + 2);
+    expect(nextCapLevel(1)).toBe(step);
+    expect(nextCapLevel(step)).toBe(2 * step);
     expect(nextCapLevel(levels.maxLevel)).toBeNull();
-    // the hero from the report: level 5, everything already at the old cap of 5 -> can spend again
-    let p = { ...newProfile(), xp: xpToReach(5) };
-    for (const k of STAT_KEYS) p = spend(p, k);
+    // a hero on a cap level with everything at the cap of the level before can spend again
+    let p = { ...newProfile(), xp: xpToReach(2 * step) };
+    for (const k of STAT_KEYS) p = spend(spend(p, k), k);
     expect(freePoints(p)).toBeGreaterThan(0);
     expect(STAT_KEYS.some((k) => canSpend(p, k))).toBe(true);
-    // at level 5 all the points earned so far fit under the new cap
-    expect(pointsEarned(5)).toBeLessThanOrEqual(STAT_KEYS.length * (statCap(5) - levels.startStat));
+  });
+
+  it('1-20 scale: the attributes keep growing to the last levels, skill points never pile up', () => {
+    expect(levels.statMax).toBe(20);
+    expect(levels.startStat * 2).toBeLessThanOrEqual(levels.statMax); // the start is the old 4 of 10
+    for (let l = 1; l <= levels.maxLevel; l++) {
+      const room = STAT_KEYS.length * (statCap(l) - levels.startStat);
+      // at most one level's worth of points waits for the next cap
+      expect(pointsEarned(l) - room).toBeLessThanOrEqual(levels.pointsPerLevel * levels.levelsPerCap);
+      expect(gearCap(l)).toBeGreaterThanOrEqual(statCap(l));
+      expect(gearCap(l)).toBeLessThanOrEqual(levels.statMax);
+    }
+    // nothing reaches 20 from skill points before level 30, and gear cannot get there before level 18
+    expect(statCap(levels.maxLevel - 1)).toBeLessThan(levels.statMax);
+    expect(gearCap(17)).toBeLessThan(levels.statMax);
   });
 });
 
@@ -97,6 +111,39 @@ describe('rewards', () => {
   });
 });
 
+describe('the 1-20 scale for old saves', () => {
+  it('an old save keeps its strength: every old point is two now, inside the new caps and budget', () => {
+    // level 9 on the old scale: 2 + 8*2 = 18 points, cap 6 of 10 (2 above the start of 4)
+    const xp = xpToReach(9);
+    const old = { xp, alloc: { power: 2, spin: 2, technique: 2, accuracy: 2, stamina: 2, speed: 2, defense: 2 } };
+    const p = sanitizeProfile(old);
+    expect(p.statScale).toBe(20);
+    for (const k of STAT_KEYS) expect(statValue(p, k)).toBe(12); // old 6 of 10 = 12 of 20
+    expect(freePoints(p)).toBeGreaterThanOrEqual(0);
+    // a new save is not doubled again
+    expect(sanitizeProfile(p).alloc).toEqual(p.alloc);
+  });
+
+  it('an old save with more than the new budget gives back points evenly, never below zero free points', () => {
+    const xp = xpToReach(25);
+    const old = { xp, alloc: { power: 6, spin: 6, technique: 6, accuracy: 6, stamina: 6, speed: 6, defense: 6 } };
+    const p = sanitizeProfile(old);
+    expect(freePoints(p)).toBeGreaterThanOrEqual(0);
+    const vals = STAT_KEYS.map((k) => statValue(p, k));
+    expect(Math.max(...vals) - Math.min(...vals)).toBeLessThanOrEqual(1);
+    for (const v of vals) expect(v).toBeLessThanOrEqual(statCap(25));
+  });
+
+  it('fitAlloc trims in proportion and keeps the sum on the budget', () => {
+    const want = { ...emptyAlloc(), power: 10, speed: 5 };
+    const out = fitAlloc(want, 8, 9);
+    expect(out.power + out.speed).toBe(9);
+    expect(out.power).toBeLessThanOrEqual(8);
+    expect(out.power).toBeGreaterThan(out.speed);
+    expect(fitAlloc(want, 20, 100)).toEqual(want);
+  });
+});
+
 describe('storage safety', () => {
   it('junk becomes a valid profile, cheating is cut to the earned points and the cap', () => {
     expect(sanitizeProfile(null)).toEqual(newProfile());
@@ -111,8 +158,9 @@ describe('storage safety', () => {
     const base = { id: 'toro', name: 'Toro', stats: {}, maxGuts: 1, appearance: {} } as unknown as PlayerDef;
     const p = spend(spend(award(newProfile(), { xp: xpToReach(6), coins: 0 }), 'stamina'), 'stamina');
     const hero = heroFrom(base, p);
-    expect(hero.stats.stamina).toBe(levels.startStat + 2);
-    expect(hero.stats.power).toBe(levels.startStat);
+    expect(hero.stats.stamina).toBe((levels.startStat + 2) / 2);
+    expect(hero.stats.power).toBe(levels.startStat / 2);
+    expect(heroPoints(p).stamina).toBe(levels.startStat + 2);
     expect(hero.maxGuts).toBe(Math.round(6 + 0.8 * hero.stats.stamina));
     expect(hero.id).toBe('toro');
   });

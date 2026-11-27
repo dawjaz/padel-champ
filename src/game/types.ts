@@ -32,7 +32,7 @@ export interface PlayerDef {
   name: string;
   /** Nickname shown after the name (every player has one). */
   nick?: string;
-  /** Attributes on a 1-10 scale (5 = neutral). */
+  /** Attributes on the mechanics scale 1-10, half steps allowed (5 = neutral); the player sees them doubled, 1-20 (see `STAT_SCALE`). */
   stats: Record<StatKey, number>;
   /** Derived from stamina (`gutsFor`); kept here so that the scenes read one number. */
   maxGuts: number;

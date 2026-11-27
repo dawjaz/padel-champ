@@ -1,5 +1,6 @@
 // Gear and consumables of the hero. Pure (no Phaser), tested. Data: src/data/gear.json, src/data/consumables.json.
-// Rule: total attribute = base + skill points + gear (+ a boost for one match), never above `levels.statMax`.
+// Rule (shown 1-20 scale): total attribute = base + skill points + gear (gear up to the level cap + `levels.gearHeadroom`),
+// then a boost for one match on top, never above `levels.statMax`. See `heroPoints` in profile.ts.
 // An item can be equipped only from its `minLevel`; items with `unlock` come to the inventory at that level (packs add more in B4).
 
 import consumablesData from '../data/consumables.json';
@@ -36,7 +37,7 @@ export interface Brand {
   tag: string;
   /** Light, main, dark and accent colour. */
   colors: string[];
-  /** Set bonus: +1 to the first stat with 3 pieces of the brand equipped, +1 to both with 5. */
+  /** Set bonus: +`SET_BONUS` to the first stat with 3 pieces of the brand equipped, to both with 5. */
   set: StatKey[];
 }
 
@@ -128,6 +129,9 @@ export function unequip(inv: Inventory, slot: Slot): Inventory {
   return { ...inv, equipped };
 }
 
+/** What a set bonus adds to each of its attributes (shown 1-20 scale; it was +1 on the old 1-10 scale). */
+export const SET_BONUS = 2;
+
 /** Pieces needed for the first and the full set bonus. */
 export const SET_PIECES = [3, 5] as const;
 
@@ -162,7 +166,7 @@ export function gearBonus(inv: Inventory): Record<StatKey, number> {
     if (!g) continue;
     for (const [k, v] of Object.entries(g.bonus)) sum[k as StatKey] += v ?? 0;
   }
-  for (const k of setBonusOf(inv)?.stats ?? []) sum[k] += 1;
+  for (const k of setBonusOf(inv)?.stats ?? []) sum[k] += SET_BONUS;
   return sum;
 }
 

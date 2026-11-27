@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
-import { BRANDS, GEAR, itemsOfBrand, ownedOfBrand, setBonusOf, SET_PIECES, SLOT_LABEL, SLOTS, type Rarity } from '../career/gear';
+import { BRANDS, GEAR, itemsOfBrand, ownedOfBrand, setBonusOf, SET_BONUS, SET_PIECES, SLOT_LABEL, SLOTS, type Rarity } from '../career/gear';
 import { drawGear, shade } from '../art/gearArt';
 import { STAT_KEYS } from '../game/attributes';
 import { getSave } from '../save';
@@ -58,8 +58,8 @@ export class CollectionScene extends Phaser.Scene {
       themeText(this, WIDTH - 16, y, on ? 'ACTIVE' : '', { size: 11, font: 'display', color: TC.orange, origin: [1, 0.5] });
     };
     themeText(this, 16, 128, `SET BONUS  (WORN ${pieces}/5)`, { size: 12, font: 'display', origin: [0, 0.5] });
-    line(SET_PIECES[0], 146, `+1 ${a}`);
-    line(SET_PIECES[1], 162, `+1 ${a}  +1 ${b}`);
+    line(SET_PIECES[0], 146, `+${SET_BONUS} ${a}`);
+    line(SET_PIECES[1], 162, `+${SET_BONUS} ${a}  +${SET_BONUS} ${b}`);
 
     // Grid: a row per slot, a column per model (common to legendary). An item you own is drawn in full colour, one you do not own is faded.
     const gx = 78;

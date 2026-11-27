@@ -97,3 +97,8 @@ After a point the ball is simulated freely (`buildCoast`); it is visual only.
 - After three rounds (A modern, B retro, C fireball, D comic; then C2-C4, D2; then C+C2 mixes) the owner chose C: skewed Anton with speed cuts, a POR tag, a fireball through cracked glass, navy/orange/gold.
 - No full rebrand: the UI palette was already navy/orange/gold; two tones aligned, UI fonts kept. Anton only for brand moments.
 - Launch flow gets an intro and a TAP TO PLAY start screen; the studio splash waits for a studio name.
+
+## 2026-11-27: attributes shown on 1-20, mechanics stay 1-10
+Owner asked for a longer progression (power was maxed at level 6). The scale shown to the player is 1-20; the engine keeps 1-10 in
+half steps (`STAT_SCALE` 2), so every tuned formula, the opponents and the partners keep working unchanged. Gear is limited to the level
+cap + `gearHeadroom` so it cannot fill the scale early. Old saves are converted (old point = two new points, fitted to the new caps).

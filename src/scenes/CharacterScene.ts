@@ -3,8 +3,7 @@ import { showTip } from '../tutorial/tips';
 import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
 import { WIDTH } from '../config';
-import { gearBonus } from '../career/gear';
-import { withGender, canSpend, canUnspend, freePoints, heroLook, levelOf, levelProgress, respec, spend, statCap, nextCapLevel, statValue, unspend, xpToReach } from '../career/profile';
+import { gearCap, heroPoints, withGender, canSpend, canUnspend, freePoints, heroLook, levelOf, levelProgress, respec, spend, statCap, nextCapLevel, statValue, unspend, xpToReach } from '../career/profile';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { StatKey } from '../game/types';
@@ -114,7 +113,7 @@ export class CharacterScene extends Phaser.Scene {
     this.text(WIDTH / 2, 180, free > 0 ? `${free} SKILL POINT${free === 1 ? '' : 'S'} TO SPEND` : 'NO FREE SKILL POINTS', 13, free > 0 ? TC.white : TC.sub);
 
     const cap = statCap(level);
-    const gear = gearBonus(p.inventory);
+    const withGear = heroPoints(p);
     const max = levels.statMax;
     STAT_KEYS.forEach((k, i) => {
       const y = 194 + i * 46;
@@ -131,12 +130,12 @@ export class CharacterScene extends Phaser.Scene {
       this.dyn.push(ic);
       this.text(62, y + 14, LABEL[k], 14, TC.navy, 0, true);
       this.text(62, y + 31, HINT[k], 10, TC.sub, 0);
-      // Bar: value in blue, gear bonus in orange, the part above the level cap shaded.
-      const bx0 = 168;
-      const bw = 72;
+      // Bar: value in blue, gear bonus in orange (only what counts: gear stops at the cap + headroom), the part above the level cap shaded.
+      const bx0 = 166;
+      const bw = 66;
       const g = this.add.graphics();
       drawBar(g, bx0, y + 14, bw, 14, v / max, TC.blue);
-      const bonus = Math.min(gear[k], max - v);
+      const bonus = withGear[k] - v;
       if (bonus > 0) {
         g.fillStyle(TC.orange, 1);
         g.fillRoundedRect(bx0 + 1 + (bw - 2) * (v / max), y + 15, (bw - 2) * (bonus / max), 12, 3);
@@ -148,8 +147,8 @@ export class CharacterScene extends Phaser.Scene {
         g.lineBetween(bx0 + 1 + (bw - 2) * (cap / max), y + 12, bx0 + 1 + (bw - 2) * (cap / max), y + 30);
       }
       this.dyn.push(g);
-      this.text(246, y + 21, String(v), 16, TC.navy, 0, true);
-      if (gear[k] > 0) this.text(260, y + 21, `+${gear[k]}`, 11, TC.orange, 0);
+      this.text(237, y + 21, String(v), 16, TC.navy, 0, true);
+      if (bonus > 0) this.text(259, y + 21, `+${bonus}`, 11, TC.orange, 0);
       const ok = canSpend(p, k);
       const b = makeThemeButton(this, 330, y + 21, 32, 32, '+', () => {
         updateSave((d) => ({ ...d, profile: spend(d.profile, k) }));
@@ -178,6 +177,6 @@ export class CharacterScene extends Phaser.Scene {
       updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
       this.redraw();
     })) this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-    this.text(WIDTH / 2, 557, nextCapLevel(level) ? `SHADED PART OF THE BAR UNLOCKS AT LEVEL ${nextCapLevel(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
+    this.text(WIDTH / 2, 557, nextCapLevel(level) ? `SHADED PART UNLOCKS AT LEVEL ${nextCapLevel(level)} · GEAR UP TO ${gearCap(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
   }
 }

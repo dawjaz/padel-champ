@@ -1,6 +1,26 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.161)_
+_Last updated: 2026-11-27 (v0.162)_
+
+## v0.162: attributes on a 1-20 scale (owner: power maxed at level 6)
+- Cause: gear and boosts were added on top of the level cap (total clamped only at 10), so a full set filled the 1-10 scale early
+  (in `simBalance` with gear a balanced hero reached 10 everywhere at level 15; one stat could hit 10 around level 6).
+- The player sees 1-20; the mechanics keep 1-10 in half steps. `STAT_SCALE` 2, `shownStat`, `statFromShown` in `game/attributes.ts`.
+  `PlayerDef.stats` stays on the mechanics scale: the hero's points and gear are divided once in `heroFrom`; partners and opponents
+  keep their data and are doubled only on screen (PARTNERS cards, the OPPONENT / YOU line in the bracket).
+- `levels.json`: startStat 8 (= old 4), statMax 20, startPoints 4, pointsPerLevel 3, capBase 10, levelsPerCap 3 (cap 10 + level/3: 20
+  only at level 30), new `gearHeadroom` 4. Earned points match the cap room at every level (test), so points never pile up.
+- New rule (`heroPoints`, `gearCap` in profile.ts): skill points up to the level cap; gear adds only up to cap + 4 (never above 20);
+  a match boost goes on top. HERO shows the counting gear (`+4` in orange), the footnote says `GEAR UP TO n`. GEAR shows 1-20.
+- Gear numbers unchanged (now worth half on the mechanics scale); set bonus `SET_BONUS` 2 (= old +1); boosts Grip Tape / Fresh Balls
+  +4 (= old +2). Tutorial texts: 3 skill points per level, cap levels 3, 6, 9.
+- Old saves (`profile.statScale` missing): every old point becomes two, then `fitAlloc` fits them under the new caps and budget
+  in proportion; returned points show as free skill points. Checked with an old level-14 save: 9 points came back, no errors.
+- `scripts/simBalance.ts career` got `GEAR=1` (a full set of the best models allowed) and sets the hero's XP. Match wins per division
+  with gear, before -> after: Club 76 -> 64, Rise 88 -> 79, Bronze 90 -> 78, Silver 85 -> 72, Gold 87 -> 83, Platinum 61 -> 71,
+  P2 52 -> 71, P1 59 -> 69, Major 57 -> 68. Flatter curve; late game a bit easier because the hero still has room for gear there.
+  Tune with `gearHeadroom` or the division ratings after play.
+
 
 ## Store materials (2026-11-27, no game change except `public/privacy.html`)
 - `store/`: English listing for Google Play and the App Store (limits checked by `store/check.py`), privacy policy (source + hosted

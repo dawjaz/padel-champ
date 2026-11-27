@@ -11,7 +11,7 @@ with level; **gear** that adds attribute points (for example "these shoes: +2 po
 and paid packs (not now); offline first; audience from about 12 years (see ROADMAP).
 
 ## 1. Attributes and what they do in the engine
-**Seven attributes** (1-99 on screen later; the engine uses the 1-10 style scale, 5 = neutral, so today's balance is kept at 5):
+**Seven attributes** (1-20 on screen since v0.162; the engine uses 1-10 in half steps, 5 = neutral, so today's balance is kept at 5):
 
 | Attribute | What it drives (all in `src/game/attributes.ts`) |
 |---|---|

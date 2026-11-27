@@ -6,7 +6,7 @@ import { WIDTH } from '../config';
 import { buyPartner, choosePartner, tournamentActive } from '../career/careerFlow';
 import { PARTNERS } from '../career/season';
 import { levelOf } from '../career/profile';
-import { STAT_KEYS } from '../game/attributes';
+import { shownStat, STAT_KEYS } from '../game/attributes';
 import { showTip } from '../tutorial/tips';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawBar, drawCard, makeThemeButton, screenHeader, TC, themeText } from '../theme';
@@ -86,7 +86,7 @@ export class PartnerScene extends Phaser.Scene {
       rb.fillRoundedRect(x + 8, y + 8, 40, 20, 10);
       rb.lineStyle(2, TC.navy, 1);
       rb.strokeRoundedRect(x + 8, y + 8, 40, 20, 10);
-      text(x + 28, y + 18, avg.toFixed(1), 12, TC.navy);
+      text(x + 28, y + 18, shownStat(avg).toFixed(1), 12, TC.navy);
       if (chosen || (!owned && !lvlOk)) {
         const chip = add(this.add.graphics());
         chip.fillStyle(chosen ? TC.green : TC.white, 1);
@@ -127,7 +127,7 @@ export class PartnerScene extends Phaser.Scene {
         text(x + 28, ry + 5, abbr, 9, TC.sub, 0);
         const b = add(this.add.graphics());
         drawBar(b, x + 56, ry, 78, 9, def.stats[key] / 10, TC.blue);
-        text(x + 154, ry + 5, String(def.stats[key]), 11, TC.navy, 1);
+        text(x + 154, ry + 5, String(shownStat(def.stats[key])), 11, TC.navy, 1);
       });
       const z = add(this.add.zone(x + 82, y + 78, 164, 156).setInteractive({ useHandCursor: true }));
       z.on('pointerdown', () => {

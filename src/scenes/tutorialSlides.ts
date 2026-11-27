@@ -7,6 +7,7 @@ import { HD_SCALE } from '../config';
 import { DISPLAY, TC, tcss } from '../theme';
 import type { ArtId } from '../tutorial/lessons';
 import { StageActor } from './stageActor';
+import levels from '../data/levels.json';
 
 /**
  * The comic slides of the graphic tutorial: a framed panel with the cutscenes' own characters (the match's rig) acting the lesson out
@@ -351,7 +352,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       const rows: Array<[IconKind, string, number]> = [['power', 'POWER', 50], ['speed', 'SPEED', 100], ['technique', 'TECHNIQUE', 150]];
       rows.forEach(([ic, txt, y], i) => k.at(500 + i * 1100, () => { k.icon(ic, 44, y, 26, TC.navy); k.chip(226, y, 130, `${txt}  +1`, { color: TC.orange, on: true, size: 13 }); k.burst(226, y, 0xffffff); }));
       k.at(4200, () => { k.hero.play(celebrateSteps(false)); k.shout(156, 60, 'LEVEL UP!', { color: GOLD, size: 30 }); k.flash(0xffffff); });
-      k.at(5200, () => k.bubble(156, 196, '2 SKILL POINTS EVERY LEVEL', { tail: 'up', size: 11, ttl: 1700 }));
+      k.at(5200, () => k.bubble(156, 196, `${levels.pointsPerLevel} SKILL POINTS EVERY LEVEL`, { tail: 'up', size: 11, ttl: 1700 }));
     },
   },
   gear: {

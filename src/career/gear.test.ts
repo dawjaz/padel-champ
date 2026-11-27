@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
 import type { Appearance, PlayerDef } from '../game/types';
-import { addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, markItemSeen, BRANDS, ownedOfBrand, setBonusOf, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
-import { award, heroFrom, newProfile, spend, xpToReach } from './profile';
+import { SET_BONUS, addBoost, applyLook, boostOf, canEquip, consumeQueued, type Inventory, CONSUMABLES, equip, GEAR, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, markItemSeen, BRANDS, ownedOfBrand, setBonusOf, itemsOfBrand, itemsOfSlot, legacyRefund, markSeen, MAX_BOOSTS, MAX_QUEUED, newInventory, sanitizeInventory, SLOTS, syncUnlocks, toggleQueued, unequip, unlockedBetween } from './gear';
+import { award, gearCap, heroFrom, heroPoints, newProfile, spend, statValue, xpToReach } from './profile';
 
 const look: Appearance = { gender: 'male', skin: '#c68642', hairStyle: 'short', hairColor: '#111111', shirt: '#e8554e', bottom: '#2b2b5e', bottomStyle: 'shorts', shoes: '#ffffff', racket: '#f2a33a' };
 
@@ -81,20 +81,41 @@ describe('the hero with gear and boosts', () => {
   it('gear adds to the attributes and never past the maximum', () => {
     let p = award(newProfile(), { xp: xpToReach(5), coins: 0 });
     p = { ...p, inventory: equip(own(p.inventory, 'toropad_shoes_2'), 'toropad_shoes_2', 5) };
-    expect(heroFrom(base, p).stats.power).toBe(levels.startStat + 1);
-    for (let i = 0; i < 20; i++) p = spend(p, 'power');
-    expect(heroFrom(base, p).stats.power).toBeLessThanOrEqual(levels.statMax);
+    expect(heroPoints(p).power).toBe(levels.startStat + 1);
+    expect(heroFrom(base, p).stats.power).toBe((levels.startStat + 1) / 2); // the mechanics scale is half the shown one
+    for (let i = 0; i < 40; i++) p = spend(p, 'power');
+    expect(heroPoints(p).power).toBeLessThanOrEqual(levels.statMax);
+    expect(heroFrom(base, p).stats.power).toBeLessThanOrEqual(10);
+  });
+
+  it('gear lifts an attribute only up to the level cap plus the headroom (owner: power maxed at level 6)', () => {
+    // level 6 with a full Toropad set of basic models: lots of power from gear
+    let p = award(newProfile(), { xp: xpToReach(6), coins: 0 });
+    for (const s of SLOTS) {
+      const id = `toropad_${s}_1`;
+      p = { ...p, inventory: equip(own(p.inventory, id), id, 6) };
+    }
+    for (let i = 0; i < 40; i++) p = spend(p, 'power');
+    const gear = gearBonus(p.inventory).power;
+    expect(gear).toBeGreaterThan(levels.gearHeadroom);
+    expect(heroPoints(p).power).toBe(gearCap(6));
+    expect(heroPoints(p).power).toBeLessThan(levels.statMax);
+    // gear never takes an attribute below its skill points, and an attribute without gear is just the points
+    for (const k of STAT_KEYS) expect(heroPoints(p)[k]).toBeGreaterThanOrEqual(statValue(p, k));
+    // at the top level the headroom ends at the maximum
+    expect(gearCap(levels.maxLevel)).toBe(levels.statMax);
   });
 
   it('the chosen boost lifts one match and is used up', () => {
     let inv = addBoost(addBoost(newInventory(), 'grip_tape'), 'gel');
     inv = toggleQueued(inv, 'grip_tape');
     const boost = boostOf(inv);
-    expect(boost.stats.technique).toBe(2);
+    expect(boost.stats.technique).toBe(4);
     expect(boost.maxGuts).toBe(0); // the gel was not chosen
     const p = { ...newProfile(), inventory: inv };
-    expect(heroFrom(base, p, boost).stats.technique).toBe(levels.startStat + 2);
-    expect(heroFrom(base, p).stats.technique).toBe(levels.startStat);
+    expect(heroPoints(p, boost).technique).toBe(levels.startStat + 4);
+    expect(heroFrom(base, p, boost).stats.technique).toBe((levels.startStat + 4) / 2);
+    expect(heroFrom(base, p).stats.technique).toBe(levels.startStat / 2);
     const after = consumeQueued(inv);
     expect(after.queued).toEqual([]);
     expect(after.boosts).toEqual(['gel']);
@@ -166,15 +187,15 @@ describe('brand set bonus', () => {
   const SIX = ['top', 'shorts', 'shoes', 'racket', 'bag'] as const;
   const base = (inv: Inventory): number => Object.values(gearBonus(inv)).reduce((a, b) => a + b, 0);
   const rawSum = (inv: Inventory): number => SLOTS.reduce((a, s) => a + Object.values(gearById(inv.equipped[s] ?? '')?.bonus ?? {}).reduce((x, y) => x + (y ?? 0), 0), 0);
-  it('two pieces give nothing, three give +1 to the first stat, five +1 to two', () => {
+  it('two pieces give nothing, three give the bonus to the first stat, five to two', () => {
     expect(setBonusOf(wear('bavole', SIX.slice(0, 2)))?.stats).toEqual([]);
     expect(base(wear('bavole', SIX.slice(0, 2)))).toBe(rawSum(wear('bavole', SIX.slice(0, 2))));
     const three = wear('bavole', SIX.slice(0, 3));
     expect(setBonusOf(three)?.stats).toEqual(['power']);
-    expect(base(three)).toBe(rawSum(three) + 1);
+    expect(base(three)).toBe(rawSum(three) + SET_BONUS);
     const five = wear('bavole', SIX);
     expect(setBonusOf(five)?.stats).toEqual(['power', 'spin']);
-    expect(base(five)).toBe(rawSum(five) + 2);
+    expect(base(five)).toBe(rawSum(five) + 2 * SET_BONUS);
   });
   it('mixed brands: the brand with the most pieces counts; nothing equipped gives none', () => {
     expect(setBonusOf({ ...newInventory(), equipped: {} })).toBeNull();

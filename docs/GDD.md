@@ -121,7 +121,7 @@ Prototype match: first to 2 games. Serve alternates every game and the serving t
 ## Characters (placeholders)
 You: Toro (male, power) and Mia (female, technique/speed). Rivals: Bruno (male, defense wall) and Ines
 (female, all-rounder). Names and looks are placeholders. Mixed-gender pairs are allowed by the game.
-Stats are 1-10: power, technique, speed, defense.
+Stats are 1-20 on screen (1-10 in the engine): power, spin, technique, accuracy, stamina, speed, defense.
 
 ## Planned
 - More realistic positions and partner movement, glass rebounds that change where the ball ends up

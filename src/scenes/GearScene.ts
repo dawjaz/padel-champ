@@ -5,16 +5,14 @@ import { sfx } from '../audio';
 import { drawIcon } from '../art/icons';
 import { drawGear } from '../art/gearArt';
 import { WIDTH } from '../config';
-import { setBonusOf, BRANDS, brandById, equip, gearBonus, gearById, hasNewIn, hasNewInBrand, isNewItem, itemsOfBrand, markItemSeen, SLOT_LABEL, SLOTS, tierOf, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
-import { heroFrom, heroLook, levelOf } from '../career/profile';
-import playersData from '../data/players.json';
+import { setBonusOf, BRANDS, brandById, equip, gearById, hasNewIn, hasNewInBrand, isNewItem, itemsOfBrand, markItemSeen, SLOT_LABEL, SLOTS, tierOf, unequip, type GearItem, type Inventory, type Slot } from '../career/gear';
+import { heroPoints, heroLook, levelOf, statValue } from '../career/profile';
+import levels from '../data/levels.json';
 import { STAT_KEYS } from '../game/attributes';
-import type { PlayerDef } from '../game/types';
 import { tournamentActive } from '../career/careerFlow';
 import { getSave, updateSave } from '../save';
 import { applyLightScreen, drawCard, drawStage, screenHeader, TC, themeText } from '../theme';
 
-const HERO = (playersData.you as unknown as PlayerDef[])[0];
 const RARITY_COLOR: Record<string, number> = { common: 0x8d9bb0, rare: TC.blue, epic: 0x9b3df0, legendary: 0xf2a900 };
 const SHORT: Record<string, string> = { power: 'POW', spin: 'SPIN', technique: 'TECH', accuracy: 'ACC', stamina: 'STA', speed: 'SPD', defense: 'DEF' };
 
@@ -96,9 +94,9 @@ export class GearScene extends Phaser.Scene {
     const shown = preview ?? inv;
     this.dyn.push(drawStage(this, WIDTH / 2, 120, 50));
     this.dyn.push(addToon(this, WIDTH / 2, 168, 100, heroLook({ gender: p.gender, inventory: shown }), 'front'));
-    const now = heroFrom(HERO, p).stats;
-    const after = preview ? heroFrom(HERO, { ...p, inventory: preview }).stats : now;
-    const gear = gearBonus(shown);
+    // the attributes as the player sees them (1-20); gear counts only up to the level cap + headroom
+    const now = heroPoints(p);
+    const after = preview ? heroPoints({ ...p, inventory: preview }) : now;
     STAT_KEYS.forEach((k, i) => {
       const y = 186 + i * 17;
       const delta = after[k] - now[k];
@@ -106,15 +104,15 @@ export class GearScene extends Phaser.Scene {
       this.label(150, y, String(after[k]), 12, delta > 0 ? TC.green : delta < 0 ? TC.orange : TC.navy, 1, true);
       if (preview) {
         this.label(160, y, delta === 0 ? '' : `${delta > 0 ? '+' : ''}${delta}`, 11, delta > 0 ? TC.green : TC.orange, 0);
-      } else if (gear[k] > 0) {
-        this.label(160, y, `+${gear[k]} gear`, 10, TC.orange, 0);
+      } else if (after[k] > statValue(p, k)) {
+        this.label(160, y, `+${after[k] - statValue(p, k)} gear`, 10, TC.orange, 0);
       }
       // a small bar: how far the stat is from the top
       const bar = this.add.graphics();
       bar.fillStyle(TC.track, 1);
       bar.fillRoundedRect(204, y - 4, 74, 8, 4);
       bar.fillStyle(delta < 0 ? TC.orange : delta > 0 ? TC.green : TC.blue, 1);
-      bar.fillRoundedRect(204, y - 4, Math.max(5, (74 * after[k]) / 10), 8, 4);
+      bar.fillRoundedRect(204, y - 4, Math.max(5, (74 * after[k]) / levels.statMax), 8, 4);
       this.dyn.push(bar);
     });
     const set = setBonusOf(shown);
