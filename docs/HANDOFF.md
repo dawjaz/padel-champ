@@ -2,6 +2,16 @@
 
 _Last updated: 2026-11-27 (v0.161)_
 
+## Store materials (2026-11-27, no game change except `public/privacy.html`)
+- `store/`: English listing for Google Play and the App Store (limits checked by `store/check.py`), privacy policy (source + hosted
+  page `public/privacy.html`; placeholders for the developer's name, email and date), 8 captioned screenshots for Google Play
+  (1080 x 1920) and for iPhone 6.9" (1320 x 2868), the Play feature graphic (1024 x 500); `store/compose.py` rebuilds them from
+  `store/raw/` (canvas snapshots taken with a demo level-14 save in the dev build; start and title screens from the production build).
+- The privacy policy is true for the current build: no account, no analytics, no ads, no purchases, saves only on the device.
+  Update it before ads, purchases or an online ranking ship.
+- Flagged for the owner before release: divisions named after real organisations (FIP ..., Premier P2/P1, Major) and gear brands
+  that read like real padel brands (Bavolé, Toropad, Noctra, Adaro, Hedron, Syrix). Screenshots avoid screens that show them.
+
 ## v0.161: Settings trimmed (debug mode keeps AIM / TIMING / SHOT MENU); QUIT in the tutorial
 - Owner: remove AIM, TIMING and SHOT MENU from Settings but keep them for debugging. New `src/debug.ts`: `DEBUG` = dev server or
   `?debug` in the address; `playSettings()` = the saved choices in debug mode, otherwise `PLAY_DEFAULTS` (tap the spot, ring,
