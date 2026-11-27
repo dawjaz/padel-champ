@@ -7,7 +7,8 @@
 // Names that are Spanish padel terms (Bandeja, Vibora, Bajada, Dejada, Chiquita, Rulo, Por Tres, Por Cuatro, Contrapared,
 // Bloqueo...) are the same in both languages: they are not in the Spanish table on purpose.
 
-import { ES } from './i18n/es';
+import { ES, patternEs } from './i18n/es';
+import { phrase } from './i18n/phrases';
 
 export type Lang = 'en' | 'es';
 export const LANGS: Lang[] = ['en', 'es'];
@@ -37,14 +38,60 @@ export const setLang = (l: Lang): void => {
   if (import.meta.env.DEV) devShared().lang = current;
 };
 
+const norm = (t: string): string => t.replace(/\s+/g, ' ').trim().toLowerCase();
+let ci: Map<string, string> | null = null;
+const isUpper = (t: string): boolean => t === t.toUpperCase() && t !== t.toLowerCase();
+const sentence = (t: string): string => (t.length === 0 ? t : t[0] + t.slice(1).toLowerCase());
+
+/** One line: the exact entry, else the same words in another case or spacing (shown in the case it was asked in), else a gear name or a sentence built from parts. */
+function lookupLine(text: string, depth = 0): string | undefined {
+  const exact = ES[text];
+  if (exact !== undefined) return exact;
+  if (!ci) {
+    ci = new Map();
+    for (const [k, v] of Object.entries(ES)) if (!ci.has(norm(k))) ci.set(norm(k), v);
+  }
+  const v = ci.get(norm(text)) ?? patternEs(text) ?? phrase(text, (part, d) => lookupLine(part, d) ?? part, depth);
+  if (v === undefined) return undefined;
+  if (isUpper(text)) return v.toUpperCase();
+  return isUpper(v) ? sentence(v) : v;
+}
+
+/** The Spanish text for an English one (several lines are translated line by line), or undefined when nothing in it is known. */
+export function lookup(text: string): string | undefined {
+  const whole = lookupLine(text);
+  if (whole !== undefined || !text.includes('\n')) return whole;
+  const lines = text.split('\n');
+  const out = lines.map((l) => lookupLine(l));
+  return out.some((o) => o !== undefined) ? lines.map((l, i) => out[i] ?? l).join('\n') : undefined;
+}
+
+/** Lines of a text (or the text itself) with no Spanish version, for the gap report. */
+function unknownParts(text: string): string[] {
+  if (lookupLine(text) !== undefined) return [];
+  if (!text.includes('\n')) return [text];
+  return text.split('\n').filter((l) => lookupLine(l) === undefined && /[A-Za-z]{4,}/.test(l));
+}
+
 /** The translation of an English text in the current language (English when there is none). */
 export function T(text: string, ...args: unknown[]): string {
-  if (current === 'es' && ES[text] === undefined && text.trim() !== '' && !isSpanish(text) && !finals.has(text)) {
-    missing.add(text);
-    if (import.meta.env.DEV) devShared().missing.add(text);
+  const es = current === 'es' ? lookup(text) : undefined;
+  if (current === 'es' && text.trim() !== '' && !isSpanish(text) && !finals.has(text)) {
+    for (const part of unknownParts(text)) {
+      if (part.trim() === '' || isSpanish(part)) continue;
+      missing.add(part);
+      if (import.meta.env.DEV) devShared().missing.add(part);
+    }
   }
-  const out = current === 'es' && ES[text] !== undefined ? ES[text] : text;
+  const out = es ?? text;
   return args.length === 0 ? out : out.replace(/\{(\d+)\}/g, (m, i: string) => (args[Number(i)] !== undefined && args[Number(i)] !== null ? String(args[Number(i)]) : m));
+}
+
+/** The Spanish text for display (no placeholders, no gap report): used for texts that were already translated once or are set directly. */
+export function show(text: string): string {
+  if (current !== 'es') return text;
+  if (import.meta.env.DEV) for (const part of unknownParts(text)) if (!isSpanish(part) && /[A-Za-z]{4,}/.test(part)) devShared().direct.add(part);
+  return lookup(text) ?? text;
 }
 
 /** Like `T` for a name from a data file: the English name with an optional Spanish one given by the data (`es` field). */
@@ -59,9 +106,9 @@ export const parseLang = (v: unknown): Lang => (v === 'es' ? 'es' : 'en');
 export const missingTexts = (): string[] => [...missing].sort();
 
 /** Dev only: one state shared by every copy of this module the dev server loads, so the browser walk test can read it. */
-function devShared(): { lang: Lang; missing: Set<string> } {
-  const g = globalThis as unknown as { __i18nDev?: { lang: Lang; missing: Set<string> } };
-  g.__i18nDev ??= { lang: 'en', missing: new Set() };
+function devShared(): { lang: Lang; missing: Set<string>; direct: Set<string> } {
+  const g = globalThis as unknown as { __i18nDev?: { lang: Lang; missing: Set<string>; direct: Set<string> } };
+  g.__i18nDev ??= { lang: 'en', missing: new Set(), direct: new Set() };
   return g.__i18nDev;
 }
 

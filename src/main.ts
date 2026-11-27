@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import './i18nPhaser';
 import { SHOTS } from './game/catalog';
 import playersData from './data/players.json';
 import '@fontsource/baloo-2/latin-700.css';

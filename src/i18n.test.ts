@@ -66,4 +66,29 @@ describe('i18n', () => {
     T('ZZ SPANISH PROBE');
     expect(missingTexts()).toContain('ZZ SPANISH PROBE');
   });
+
+  it('finds the same words in another case and translates gear names by pattern', () => {
+    setLang('es');
+    expect(T('Play 2 career matches')).toBe('Juega 2 partidos de carrera');
+    expect(T('PLAY 2 CAREER MATCHES')).toBe('JUEGA 2 PARTIDOS DE CARRERA');
+    expect(T('Bavolé Pro Shirt')).toBe('Camiseta Pro Bavolé');
+    expect(T('Toropad Basic Shorts')).toBe('Pantalón corto Básico Toropad');
+    expect(T('BAVOLÉ ELITE SHOES')).toBe('ZAPATILLAS ÉLITE BAVOLÉ');
+    setLang('en');
+    expect(T('Bavolé Pro Shirt')).toBe('Bavolé Pro Shirt');
+  });
+
+  it('translates the match commentary built from parts and keeps names', () => {
+    setLang('es');
+    expect(T('Bruno: Bajada Low Speed middle!')).toBe('Bruno: Bajada baja velocidad centro!');
+    expect(T('Ines: Lob parallel! (risky)')).toBe('Ines: Globo paralela! (arriesgado)');
+    expect(T('Lucy wins the point with a winner!')).toBe('¡Lucy gana el punto con un golpe ganador!');
+    expect(T('Dani did not decide in time and never touched it. ACE!  >  POINT TO YOU')).toContain('PUNTO PARA TÚ');
+    expect(T('HEADS! You win the toss and serve first.')).toBe('¡CARA! Ganas el sorteo y sacas primero.');
+    expect(T('Bruno: Por Tres, which way?')).toBe('Bruno: Por Tres, ¿hacia dónde?');
+    expect(T('Dani: Chiquita middle!\n[12] RISKY')).toBe('Dani: Chiquita centro!\n[12] ARRIESGADO');
+    setLang('en');
+    expect(T('Bruno: Bajada Low Speed middle!')).toBe('Bruno: Bajada Low Speed middle!');
+  });
 });
+

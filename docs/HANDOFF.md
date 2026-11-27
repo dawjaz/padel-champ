@@ -1,6 +1,22 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.164)_
+_Last updated: 2026-11-27 (v0.165)_
+
+## v0.165: Spanish edition completed (owner: translate everything; nicknames yes; MENÚ instead of MENÚ PRINCIPAL)
+- All texts now have a Spanish version: tutorial lessons and slides, cutscene captions, shots and their descriptions, tasks, goals, cups,
+  rivals' lines, shop items, match texts. Spanish padel names stay (Bandeja, Víbora, Bajada, Dejada, Chiquita, Rulo, Por Tres, Por Cuatro,
+  Contrapared, Bloqueo, Sky Rocket, Corner Lock, Freeze Drop).
+- `src/i18nPhaser.ts`: in Spanish mode every `Text.setText` (and so every `add.text`) is translated with `show()`, so the commentary and
+  labels built without a `T` call are covered too. English mode returns the text untouched.
+- `src/i18n/phrases.ts`: sentence patterns for the match commentary (`Bruno: Bajada Low Speed middle!`, point endings, run out, coin
+  toss, practice labels). Captures are translated again; names stay. `src/i18n.ts` `lookup()` also matches the same words in another case,
+  translates several lines one by one, and gear names by pattern (`patternEs`: `Bavolé Pro Shirt` -> `Camiseta Pro Bavolé`).
+- Tests: `src/i18n.data.test.ts` (every shown text of the data files has a Spanish version), `src/i18n.source.test.ts` (every `T('...')`
+  literal has one), more cases in `src/i18n.test.ts`. 523 passing.
+- Checked: a real match in Spanish (toss, serve, menu, commentary, ball height banner) and the screen walks; no gaps except names.
+- Not checked on a full rally to the end of a match (point endings, game and match texts are covered by pattern tests only).
+- The `DEBUG.` hints in Settings are only shown with the dev server or `?debug`, players never see them.
+- Still to do: Spanish store listing and privacy page, new store screenshots in both languages, a Spanish check of the final build on a phone.
 
 ## v0.164: Spanish edition (owner: we release in Spanish too; Spanish padel shot names stay in both languages)
 - Language is a setting (`settings.language`, default `en`, kept on reset). Switch: TITLE (small button under the coins) and SETTINGS > IDIOMA.
