@@ -21,8 +21,12 @@ export interface Appearance {
   headband?: string;
   /** Cap (head slot): colour of the crown; the brim is a darker shade. */
   cap?: string;
-  /** Shape of the racket head (default: oval). */
+  /** Shape of the racket head (default: one picked from the colours, see `shapeFor`). */
   racketShape?: 'diamond' | 'teardrop' | 'round';
+  /** The striking face: fibreglass (light, the basic and pro models) or carbon (dark, technical and elite). Default carbon. */
+  racketFace?: 'glass' | 'carbon';
+  /** Accent colour of the racket graphics (the brand's accent). */
+  racketAccent?: string;
   /** Wristband on the racket hand. */
   wristband?: string;
 }

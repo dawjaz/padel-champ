@@ -1,6 +1,21 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.162)_
+_Last updated: 2026-11-27 (v0.163)_
+
+## v0.163: padel rackets at real proportions (owner: they looked like tennis rackets, too cartoonish)
+- `src/art/racketShape.ts` (pure, tested): one racket model in centimetres for every picture. FIP limits: 45.5 cm long, 26 cm wide,
+  grip 13 cm (handle max 20), solid face with 11 mm holes (9-13 allowed), an open throat (two arms around the heart), frame
+  protector on top, wrist cord. Shapes from the right-half profiles in `HALF`: round widest at 30.6 cm, teardrop 34.2, diamond 36.6
+  (diamond: straighter sides, flatter top). `shapeFor` gives CPU players a stable shape from their colours.
+- Character (`racketOps` in toon/character.ts): `TOON_CM` 2.4 units per cm (head about 60% of the shoulders), thin outlines, frame
+  colour, carbon or fibreglass face, a diagonal sweep in the frame colour, an accent stripe, holes, protector, grip with overgrip.
+  `racketEnds` (smear) uses the same face range. `Appearance.racketFace` / `racketAccent` come from the equipped racket
+  (`applyLook`: technical and elite = carbon, basic and pro = fibreglass; accent = brand accent).
+- Gear art (`drawGear`, collection, gear list, packs): same geometry; tiers differ (basic plain, pro + sweep, technical carbon weave,
+  elite gold stripe and face trim). Slot icon and the shape icon in the GEAR list use it too.
+- Preview tools: `npx vite-node scripts/racketPreview.ts out.svg` (the three shapes), `scripts/toonPreview.ts out.svg <shape>` (poses).
+- Store screenshots now show the old rackets and the old 1-10 HERO screen: retake them right before release (see the plan).
+
 
 ## v0.162: attributes on a 1-20 scale (owner: power maxed at level 6)
 - Cause: gear and boosts were added on top of the level cap (total clamped only at 10), so a full set filled the 1-10 scale early

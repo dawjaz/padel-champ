@@ -1,4 +1,5 @@
 import type { Appearance } from '../../game/types';
+import { racketGeom, RACKET, shapeFor, TOON_CM, type Pt as RPt } from '../racketShape';
 import { ellipsePath, luma, rotateAbout, scaleAbout, shadeHex, translate, type Mat, type Op, type PathOp, rectPath } from './ops';
 
 /**
@@ -121,6 +122,8 @@ export interface ToonLook {
   shoes: string;
   racket: string;
   racketShape: NonNullable<Appearance['racketShape']>;
+  racketFace: NonNullable<Appearance['racketFace']>;
+  racketAccent: string;
   /** Body width factor (1 = male default). */
   build: number;
   female: boolean;
@@ -145,7 +148,9 @@ export function lookOf(a: Appearance): ToonLook {
     skirt: a.bottomStyle === 'skirt',
     shoes: a.shoes,
     racket: a.racket,
-    racketShape: a.racketShape ?? 'teardrop',
+    racketShape: a.racketShape ?? shapeFor(a.racket + a.shirt),
+    racketFace: a.racketFace ?? 'carbon',
+    racketAccent: a.racketAccent ?? (luma(a.racket) > 0.6 ? '#14213D' : '#f6d743'),
     build: female ? 0.9 : 1,
     female,
     band: a.headband,
@@ -171,21 +176,40 @@ function limbs(segs: Array<[string, number]>, color: string, sh = 0.28): Op[] {
   return out;
 }
 
-function racketOps(c: string, shape_: ToonLook['racketShape']): Op[] {
-  const hi = shadeHex(c, 1.25);
-  const face = {
-    round: ellipsePath(0, -70, 24, 25),
-    teardrop: 'M0 -100 C 20 -100 26 -80 24 -64 C 22 -48 10 -40 0 -40 C -10 -40 -22 -48 -24 -64 C -26 -80 -20 -100 0 -100 Z',
-    diamond: 'M0 -104 C 14 -100 26 -78 26 -66 C 24 -52 10 -42 0 -38 C -10 -42 -24 -52 -26 -66 C -26 -78 -14 -100 0 -104 Z',
-  }[shape_];
-  const holes: Array<[number, number]> = [[-9, -84], [0, -86], [9, -84], [-14, -74], [-5, -74], [5, -74], [14, -74], [-14, -64], [-5, -64], [5, -64], [14, -64], [-9, -54], [0, -54], [9, -54]];
+/** A padel racket at real proportions (see art/racketShape.ts), handle end at the local origin, pointing up; `TOON_CM` units per cm. */
+function racketOps(L: Pick<ToonLook, 'racket' | 'racketShape' | 'racketFace' | 'racketAccent'>): Op[] {
+  const g = racketGeom(L.racketShape);
+  const k = TOON_CM;
+  const d = (pts: RPt[], close = true): string => 'M' + pts.map(([x, y]) => `${R(x * k * 10) / 10} ${R(y * k * 10) / 10}`).join('L') + (close ? 'Z' : '');
+  const c = L.racket;
+  const carbon = L.racketFace === 'carbon';
+  const face = carbon ? '#1d222b' : '#e8ebf0';
+  const hole = carbon ? '#0a0d12' : '#a9b1bd';
+  const gw = (RACKET.gripW / 2) * k;
+  const bw = (RACKET.buttW / 2) * k;
+  const top = -RACKET.gripTo * k;
+  const wraps: Op[] = [];
+  for (let y = -4; y > top + 2; y -= 4.2) wraps.push(p(`M${-gw} ${R(y)}L${gw} ${R(y - 2.6)}`, { stroke: '#ffffff', sw: 0.9, a: 0.28 }));
   return [
-    p(rectPath(-3.4, -44, 6.8, 40, 3), { fill: '#1d2a4a', stroke: OUTLINE, sw: 2 }),
-    p(rectPath(-3.4, -30, 6.8, 5), { fill: '#f2f2f2', a: 0.85 }),
-    p(face, { fill: c, stroke: OUTLINE, sw: 8 }),
-    p(face, { fill: '#fbfbf6', stroke: c, sw: 5 }),
-    ...holes.map(([x, y]) => p(ellipsePath(x, y, 2.2, 2.2), { fill: shadeHex(c, 0.7), a: 0.8 })),
-    p('M-14 -92 C -8 -97 6 -97 12 -92', { stroke: hi, sw: 2.5, cap: 'round', a: 0.9 }),
+    // wrist cord, grip with an overgrip, butt cap
+    p(`M-2 2 C -9 9 -7 18 0 18 C 6 18 8 10 2 2`, { stroke: '#2a2f3a', sw: 1.4, cap: 'round' }),
+    p(rectPath(-gw, top, gw * 2, -top, 2), { fill: '#262b36', stroke: OUTLINE, sw: 1.4 }),
+    ...wraps,
+    p(rectPath(-bw, -3, bw * 2, 4, 1.5), { fill: L.racketAccent, stroke: OUTLINE, sw: 1.2 }),
+    // frame: head and the two throat arms (the heart between them stays open)
+    p(d(g.head), { fill: c }),
+    p(d(g.arms[0]), { fill: c }),
+    p(d(g.arms[1]), { fill: c }),
+    p(d(g.face), { fill: face }),
+    p(d(g.sweep), { fill: c, a: carbon ? 0.95 : 0.9 }),
+    p(d(g.stripe), { fill: L.racketAccent }),
+    ...g.holes.map(([x, y]) => p(ellipsePath(x * k, y * k, RACKET.holeR * k, RACKET.holeR * k), { fill: hole, a: 0.85 })),
+    // frame protector on the top, a soft highlight on the left of the frame, then the thin outlines
+    p(d(g.protector, false), { stroke: '#0b0f16', sw: 2.6, a: 0.45, cap: 'round' }),
+    p(d(g.outline.filter(([x, y]) => x < -2 && y < -24), false), { stroke: '#ffffff', sw: 1.1, a: 0.4, cap: 'round' }),
+    p(d(g.outline), { stroke: OUTLINE, sw: 1.8 }),
+    p(d(g.face), { stroke: shadeHex(c, 0.6), sw: 0.8, a: 0.8 }),
+    p(d(g.heart), { stroke: OUTLINE, sw: 1.4 }),
   ];
 }
 
@@ -387,8 +411,8 @@ export function buildToonLook(L: ToonLook, view: ToonView = 'front', pose: ToonP
   const racketPart: Op[] = inFrontR ? frontOps : u;
   racketPart.push(...armTo([sx(137), 114], [hx, P.hand[1]], P.elbow ? [sx(P.elbow[0]), P.elbow[1]] : undefined, L.shirt, 1));
   // Front view, a follow-through over the shoulder: the racket head goes behind the head and shoulders (drawn first).
-  if (!back && P.racketBehind) behindOps.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
-  else racketPart.push({ k: 'g', m: rk.m, ops: racketOps(L.racket, L.racketShape) });
+  if (!back && P.racketBehind) behindOps.push({ k: 'g', m: rk.m, ops: racketOps(L) });
+  else racketPart.push({ k: 'g', m: rk.m, ops: racketOps(L) });
   racketPart.push(...handOps([hx, P.hand[1]]));
   if (L.wristband) racketPart.push(p(`M${R(hx - 9)} ${R(P.hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
   if (P.off === 'grip') {
@@ -519,7 +543,7 @@ function buildSide(L: ToonLook, P: PoseSpec, shadow: boolean): Op[] {
 
   // racket arm (near), racket, hand
   u.push(...arm([104, 114], hand, L.shirt, sk));
-  u.push({ k: 'g', m: racketM, ops: racketOps(L.racket, L.racketShape) });
+  u.push({ k: 'g', m: racketM, ops: racketOps(L) });
   u.push(...handOps(hand, false));
   if (L.wristband) u.push(p(`M${R(hand[0] - 9)} ${R(hand[1] - 12)} q9 5 18 0`, { stroke: L.wristband, sw: 5, cap: 'round' }));
   if (P.off === 'grip') {

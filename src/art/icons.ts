@@ -1,6 +1,7 @@
 // Small vector icons for the menu screens (gear slots, attributes, coins, boosts), drawn with Phaser Graphics.
 // Each icon fits a square of `size` px centred on (x, y). No assets needed.
 
+import { racketGeom, RACKET } from './racketShape';
 import type Phaser from 'phaser';
 
 export type IconKind =
@@ -40,13 +41,29 @@ export function drawIcon(g: Phaser.GameObjects.Graphics, kind: IconKind, x: numb
       g.fillStyle(dark, 0.55);
       g.fillRect(X(2), Y(12), 12 * u, 1.4 * u);
       break;
-    case 'racket':
-      g.strokeEllipse(X(7), Y(6), 9 * u, 11 * u);
-      g.fillStyle(color, 0.35);
-      g.fillEllipse(X(7), Y(6), 9 * u, 11 * u);
+    case 'racket': {
+      // a padel racket (solid face, open throat, short grip), slightly tilted
+      const geo = racketGeom('teardrop');
+      const k = 15.5 / RACKET.length;
+      const t = -0.35;
+      const Q = ([px, py]: [number, number]): { x: number; y: number } => {
+        const lx = px * k;
+        const ly = (py + RACKET.length / 2) * k;
+        return { x: X(8 + lx * Math.cos(t) - ly * Math.sin(t)), y: Y(8 + lx * Math.sin(t) + ly * Math.cos(t)) };
+      };
       g.fillStyle(color, 1);
-      g.fillRect(X(6), Y(11), 2 * u, 5 * u);
+      for (const part of [geo.head, geo.arms[0], geo.arms[1]]) g.fillPoints(part.map(Q), true);
+      const grip = [[-RACKET.gripW / 2, -RACKET.gripTo], [RACKET.gripW / 2, -RACKET.gripTo], [RACKET.gripW / 2, 0], [-RACKET.gripW / 2, 0]] as Array<[number, number]>;
+      g.fillPoints(grip.map(Q), true);
+      g.fillStyle(dark, 0.32);
+      g.fillPoints(geo.face.map(Q), true);
+      g.fillStyle(color, 1);
+      for (const h of geo.holes.filter((_, i) => i % 3 === 0)) {
+        const c = Q(h);
+        g.fillCircle(c.x, c.y, Math.max(0.5, 0.5 * u));
+      }
       break;
+    }
     case 'wristband':
       g.fillRoundedRect(X(3), Y(5), 10 * u, 6 * u, 2 * u);
       g.fillStyle(dark, 0.45);
@@ -139,20 +156,16 @@ export function drawIcon(g: Phaser.GameObjects.Graphics, kind: IconKind, x: numb
   }
 }
 
-/** The outline of a racket head by shape, for the GEAR list: a small side-on silhouette with a handle, centred on (x, y). */
+/** The outline of a padel racket by shape (head, open throat, grip) at real proportions, for the GEAR list, centred on (x, y). */
 export function drawRacketShape(g: Phaser.GameObjects.Graphics, shape: 'diamond' | 'teardrop' | 'round' | undefined, x: number, y: number, size: number, color: number): void {
-  const u = size / 20;
+  const geo = racketGeom(shape ?? 'teardrop');
+  const k = size / RACKET.length;
+  const P = ([px, py]: [number, number]): { x: number; y: number } => ({ x: x + px * k, y: y + (py + RACKET.length / 2) * k });
+  g.lineStyle(Math.max(1.2, size * 0.06), color, 1);
+  g.strokePoints(geo.outline.map(P), true);
+  g.lineStyle(Math.max(0.8, size * 0.035), color, 1);
+  g.strokePoints(geo.heart.map(P), true);
   g.fillStyle(color, 1);
-  g.lineStyle(Math.max(1.4, u * 1.6), color, 1);
-  const P = (px: number, py: number): { x: number; y: number } => ({ x: x + px * u, y: y + py * u });
-  const poly = (pts: Array<[number, number]>): void => {
-    g.beginPath();
-    pts.forEach(([a, b], i) => (i === 0 ? g.moveTo(P(a, b).x, P(a, b).y) : g.lineTo(P(a, b).x, P(a, b).y)));
-    g.closePath();
-    g.strokePath();
-  };
-  if (shape === 'round') g.strokeCircle(P(0, -3).x, P(0, -3).y, 6.8 * u);
-  else if (shape === 'diamond') poly([[0, -10], [6.5, -5], [5, -1.5], [0, 3], [-5, -1.5], [-6.5, -5], [-3.2, -9.2]]);
-  else poly([[0, -10.5], [5.4, -7.5], [5.8, -3.5], [2.2, 2.6], [-2.2, 2.6], [-5.8, -3.5], [-5.4, -7.5]]);
-  g.fillRect(P(-1, 3).x, P(-1, 3).y, 2 * u, 7 * u);
+  const a = P([-RACKET.gripW / 2, -RACKET.gripTo]);
+  g.fillRect(a.x, a.y, RACKET.gripW * k, RACKET.gripTo * k);
 }

@@ -3,6 +3,7 @@
 
 import type Phaser from 'phaser';
 import { brandById, type GearItem } from '../career/gear';
+import { inside, racketGeom, RACKET } from './racketShape';
 
 const OUTLINE = 0x0b2a5b;
 
@@ -71,32 +72,62 @@ export function drawGear(g: Phaser.GameObjects.Graphics, it: GearItem, cx: numbe
     stroke([[-19, 12.4], [20, 12.4]], shade(OUTLINE, 0.5), 0.8);
     rect(-17, -7, -13, 6, 0xffffff, 0.2, false);
   } else if (it.slot === 'racket') {
+    // A padel racket at real proportions (art/racketShape.ts): solid face with holes, an open throat, a short grip with a
+    // wrist cord. Basic and pro models have a light fibreglass face, technical and elite a carbon one (with a weave).
     rot = -0.5;
-    const s = 1.7;
-    const head: Pt[] =
-      it.shape === 'diamond'
-        ? ([[0, -10], [6.5, -5], [5, -1.5], [0, 3], [-5, -1.5], [-6.5, -5], [-3.2, -9.2]] as Pt[]).map(([x, y]) => [x * s, y * s - 4])
-        : it.shape === 'round'
-          ? Array.from({ length: 28 }, (_, i): Pt => [Math.cos((i / 28) * Math.PI * 2) * 11.5, Math.sin((i / 28) * Math.PI * 2) * 11.5 - 6])
-          : ([[0, -10.5], [5.4, -7.5], [5.8, -3.5], [2.2, 2.6], [-2.2, 2.6], [-5.8, -3.5], [-5.4, -7.5]] as Pt[]).map(([x, y]) => [x * s, y * s - 4]);
-    // Handle first (behind the frame), then the strings, then the frame.
-    rect(-2.4, 6, 2.4, 19, 0x2b3350);
-    for (const y of [9, 12, 15]) stroke([[-2.4, y], [2.4, y + 1.6]], 0xffffff, 1, 0.7);
-    rect(-3, 18, 3, 20, accent);
-    fill(head, 0xffffff, 0.85, false);
-    const ys = head.map((p) => p[1]);
-    const xs = head.map((p) => p[0]);
-    const y0 = Math.min(...ys);
-    const y1 = Math.max(...ys);
-    const x0 = Math.min(...xs);
-    const x1 = Math.max(...xs);
-    for (let y = y0 + 3; y < y1 - 1; y += 3.4) stroke([[x0 + 2, y], [x1 - 2, y]], base, 0.6, 0.45);
-    for (let x = x0 + 3; x < x1 - 1; x += 3.4) stroke([[x, y0 + 2], [x, y1 - 2]], base, 0.6, 0.45);
-    g.lineStyle(Math.max(2, 5.4 * u), OUTLINE, 1);
-    g.strokePoints(head.map(P), true);
-    g.lineStyle(Math.max(1.4, 3.2 * u), base, 1);
-    g.strokePoints(head.map(P), true);
-    stroke([[-3.4, y1 - 0.5], [0, 7], [3.4, y1 - 0.5]], dark, 2.6);
+    const geo = racketGeom(it.shape ?? 'teardrop');
+    const k = 41 / RACKET.length;
+    const mid = RACKET.length / 2;
+    const at = (pts: Pt[]): Pt[] => pts.map(([x, y]): Pt => [x * k, (y + mid) * k]);
+    const carbon = it.rarity === 'epic' || it.rarity === 'legendary';
+    const elite = it.rarity === 'legendary';
+    const lum = (((base >> 16) & 255) * 0.3 + ((base >> 8) & 255) * 0.59 + (base & 255) * 0.11) / 255;
+    const faceCol = carbon ? 0x1d222b : lum > 0.75 ? 0xd5dbe4 : shade(base, 0.8);
+    const thin = Math.max(0.8, 0.9 * u);
+    const poly = (pts: Pt[], color: number, alpha = 1): void => {
+      g.fillStyle(color, alpha);
+      g.fillPoints(at(pts).map(P), true);
+    };
+    const outline = (pts: Pt[], color: number, w: number, close = true, alpha = 1): void => {
+      g.lineStyle(Math.max(0.7, w * u), color, alpha);
+      g.strokePoints(at(pts).map(P), close);
+    };
+    // wrist cord, grip (overgrip with wraps), butt cap
+    const gw = RACKET.gripW / 2;
+    stroke(at([[-0.6, 0.3], [-1.6, 2], [-0.8, 3.4], [0.8, 3.4], [1.6, 2], [0.6, 0.3]]), 0x2a2f3a, 0.6, 0.7);
+    fill(at([[-gw, -RACKET.gripTo], [gw, -RACKET.gripTo], [gw, 0], [-gw, 0]]), 0x262b36, 1, false);
+    for (let y = -1.6; y > -RACKET.gripTo + 0.8; y -= 2) stroke(at([[-gw, y], [gw, y - 1.1]]), 0xffffff, 0.4, 0.18);
+    fill(at([[-RACKET.buttW / 2, -1.3], [RACKET.buttW / 2, -1.3], [RACKET.buttW / 2, 0.4], [-RACKET.buttW / 2, 0.4]]), accent, 1, false);
+    // frame (head + throat arms), the face, the graphics, the holes
+    poly(geo.head, base);
+    poly(geo.arms[0], base);
+    poly(geo.arms[1], base);
+    poly(geo.face, faceCol);
+    if (carbon) {
+      // a fine carbon weave: short diagonal ticks inside the face
+      const zone = geo.face;
+      let row = 0;
+      for (let y = -RACKET.length + 2; y < -RACKET.faceFrom - 1; y += 1.8, row++) {
+        for (let x = -12 + (row % 2) * 0.9; x < 12; x += 1.8) {
+          const q: Pt = [x, y];
+          if (inside(zone, q)) stroke(at([q, [q[0] + 0.7, q[1] - 0.7]]), 0xffffff, 0.3, 0.06);
+        }
+      }
+    }
+    if (it.rarity !== 'common') poly(geo.sweep, base, 0.92);
+    poly(geo.stripe, elite ? 0xf2c230 : accent);
+    for (const [x, y] of geo.holes) {
+      const c = P(at([[x, y]])[0]);
+      g.fillStyle(carbon ? 0x0a0d12 : 0xa9b1bd, 0.9);
+      g.fillCircle(c.x, c.y, Math.max(0.45, RACKET.holeR * k * u));
+    }
+    // frame protector, highlight, outlines
+    outline(geo.protector, 0x0b0f16, 1.3, false, 0.5);
+    outline(geo.outline.filter(([x, y]) => x < -2 && y < -24), 0xffffff, 0.6, false, 0.45);
+    if (elite) outline(geo.face, 0xf2c230, 0.5, true, 0.9);
+    g.lineStyle(thin, OUTLINE, 1);
+    g.strokePoints(at(geo.outline).map(P), true);
+    g.strokePoints(at(geo.heart).map(P), true);
   } else {
     // Bag: a duffel with a handle, a pocket and a strap.
     stroke([[-8, -6], [-8, -12], [8, -12], [8, -6]], OUTLINE, 3.6);

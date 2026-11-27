@@ -5,6 +5,7 @@
 
 import { mixPose, POSES, type PoseSpec } from './toon/character';
 import type { PoseName } from './pose';
+import { RACKET, TOON_CM } from './racketShape';
 
 type Pt = [number, number];
 export type Ease = (t: number) => number;
@@ -275,7 +276,7 @@ export function racketEnds(P: PoseSpec): [Pt, Pt] {
     const ls = Math.sin(L);
     return [lc * (x - 100) - ls * (y - 190) + 100, ls * (x - 100) + lc * (y - 190) + 190 + P.crouch];
   };
-  return [at(-44), at(-100)];
+  return [at(-RACKET.faceFrom * TOON_CM), at(-RACKET.length * TOON_CM)];
 }
 
 /** A short text of a pose rounded to half units: two poses with the same signature look the same (no need to draw again). */

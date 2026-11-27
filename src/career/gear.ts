@@ -187,6 +187,11 @@ export function applyLook(base: Appearance, inv: Inventory): Appearance {
   const racket = item('racket');
   if (racket?.color) a.racket = racket.color;
   if (racket?.shape) a.racketShape = racket.shape;
+  if (racket) {
+    a.racketFace = racket.rarity === 'epic' || racket.rarity === 'legendary' ? 'carbon' : 'glass';
+    const accent = brandById(racket.brand)?.colors[3];
+    if (accent) a.racketAccent = accent;
+  }
   return a;
 }
 
