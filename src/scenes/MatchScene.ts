@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { serveBallH, SERVE_DUE_MS, DROP_MS } from '../art/serveDrop';
 import { ARRIVAL_HEIGHT, ballPoint, buildCoast, buildFlight, flightDuration, HIT_HEIGHT_M, speedAt, TIME_SCALE, type Coast, type Flight, type FlightEvent, type Sample } from '../art/ballPath';
 import { project, unproject } from '../art/camera';
@@ -350,7 +351,7 @@ export class MatchScene extends Phaser.Scene {
     bakedShape(this, bx, 5, 200, 46, (g) => drawCard(g, 200, 46, { fill: TC.navy, stroke: TC.navyDark, radius: 12, shadow: 3 }), 6).rt.setDepth(9990);
     const rowY = [18, 38];
     const sbText = (x: number, y: number, str: string, size: number, color: string, ox: number): Phaser.GameObjects.Text =>
-      this.add.text(x, y, str, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color }).setOrigin(ox, 0.5).setDepth(10000);
+      this.add.text(x, y, T(str), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color }).setOrigin(ox, 0.5).setDepth(10000);
     const gamesBoxes = bakedShape(this, bx + 118, rowY[0] - 9, 30, rowY[1] - rowY[0] + 18, (g) => {
       for (const y of rowY) {
         g.fillStyle(TC.white, 1);
@@ -800,7 +801,7 @@ export class MatchScene extends Phaser.Scene {
   /** A big, short-lived banner such as ACE! in the middle of the court, with the shot that won it underneath. */
   private announce(text: string, color: string, sub?: string, y = 205, size = 34): void {
     const t = this.add
-      .text(WIDTH / 2, y, text, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color })
+      .text(WIDTH / 2, y, T(text), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color })
       .setOrigin(0.5)
       .setStroke(NAVY_CSS, 8)
       .setShadow(0, 4, NAVY_CSS, 0, true, true)
@@ -2072,7 +2073,7 @@ export class MatchScene extends Phaser.Scene {
         const spinLvl = spinAmount >= 1.2 ? 2 : spinAmount >= 0.6 ? 1 : 0;
         const chipColors = ['#0e8f5c', '#b47a00', '#c62828'];
         const chip = (x: number, text: string, lvl: number): Phaser.GameObjects.Container => {
-          const label = this.add.text(0, 0, text, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '13px', color: chipColors[lvl] }).setOrigin(0.5);
+          const label = this.add.text(0, 0, T(text), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '13px', color: chipColors[lvl] }).setOrigin(0.5);
           const pill = this.add.graphics();
           pill.fillStyle(0xffffff, 1).fillRoundedRect(-label.width / 2 - 10, -12, label.width + 20, 24, 12);
           pill.lineStyle(2.5, 0x0b2a5b, 1).strokeRoundedRect(-label.width / 2 - 10, -12, label.width + 20, 24, 12);
@@ -3184,8 +3185,8 @@ export class MatchScene extends Phaser.Scene {
     const draw: Array<() => void> = [];
     for (const it of items) {
       const g = this.add.graphics().setDepth(9990);
-      const t1 = this.add.text(it.x, y - 8, it.title, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '24px', color: it.on ? '#ffffff' : '#9aa7bb' }).setOrigin(0.5).setDepth(9991).setStroke('#0b2a5b', 5);
-      const t2 = this.add.text(it.x, y + 18, it.sub, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '10px', color: it.on ? '#0b2a5b' : '#6b7a90' }).setOrigin(0.5).setDepth(9991);
+      const t1 = this.add.text(it.x, y - 8, T(it.title), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '24px', color: it.on ? '#ffffff' : '#9aa7bb' }).setOrigin(0.5).setDepth(9991).setStroke('#0b2a5b', 5);
+      const t2 = this.add.text(it.x, y + 18, T(it.sub), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '10px', color: it.on ? '#0b2a5b' : '#6b7a90' }).setOrigin(0.5).setDepth(9991);
       const z = this.add.zone(it.x - 78, y - 32, 156, 64).setOrigin(0, 0).setDepth(9992);
       if (it.on) z.setInteractive({ useHandCursor: true });
       const paint = (): void => {

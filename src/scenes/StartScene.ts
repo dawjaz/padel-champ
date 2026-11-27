@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { BUILD_ID, GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, HEIGHT, WIDTH } from '../config';
 import { applyHd } from '../hd';
 import { heroLook } from '../career/profile';
@@ -41,7 +42,7 @@ export class StartScene extends Phaser.Scene {
     this.tweens.add({ targets: logo, scale: logo.scale * 1.03, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     this.add.rectangle(WIDTH / 2, 576, WIDTH, 42, 0x0a0f2e, 0.72);
-    const tap = this.add.text(WIDTH / 2, 576, 'TAP TO PLAY', { fontFamily: SPORT, fontSize: '26px', fontStyle: 'italic', color: '#ffffff', resolution: 2 })
+    const tap = this.add.text(WIDTH / 2, 576, T('TAP TO PLAY'), { fontFamily: SPORT, fontSize: '26px', fontStyle: 'italic', color: '#ffffff', resolution: 2 })
       .setOrigin(0.5).setPadding(8, 4, 14, 4).setShadow(3, 3, '#e8261c', 0, true, true).setLetterSpacing(2);
     this.tweens.add({ targets: tap, alpha: 0.35, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     themeText(this, WIDTH / 2, HEIGHT - 8, `${GAME_TITLE}: ${GAME_SUBTITLE}  v${GAME_VERSION} (${BUILD_ID})`, { size: 8, color: TC.white, weight: '600' }).setAlpha(0.6);

@@ -11,6 +11,7 @@ import { newCampGoals, sanitizeCampGoals, type CampGoals } from './career/campGo
 import { newProfile, sanitizeProfile, type Profile } from './career/profile';
 import { newTips, sanitizeTips, type TipState } from './tutorial/lessons';
 import { sanitizeCutHistory, type CutHistory, type CutMode } from './art/cutscenes';
+import { parseLang, setLang, type Lang } from './i18n';
 
 export interface SaveData {
   version: 2;
@@ -20,7 +21,7 @@ export interface SaveData {
    */
   /** timing: 'ring' = key shots (smashes, vibora, bandeja, serves) are hit with the timing ring; 'auto' = no ring, neutral. */
   /** cutscenes: the scenes between events in full, in their short cut, or none (see art/cutscenes.ts). */
-  settings: { sound: boolean; tutorialSeen: boolean; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto'; cutscenes: CutMode; /** The shot menu: columns by intent (defence / neutral / attack) or the plain list. */ shotMenu: 'columns' | 'list' };
+  settings: { sound: boolean; tutorialSeen: boolean; /** The language of the texts (see i18n.ts). */ language: Lang; aim: 'directions' | 'point'; aimPicked?: boolean; timing: 'ring' | 'auto'; cutscenes: CutMode; /** The shot menu: columns by intent (defence / neutral / attack) or the plain list. */ shotMenu: 'columns' | 'list' };
   stats: { played: number; won: number; lost: number };
   profile: Profile;
   /** Unlocked achievement ids and the records behind them (see career/achievements.ts). */
@@ -48,7 +49,7 @@ export interface KeyValueStore {
 const KEY = 'padel-champ-26:save';
 
 export function defaultSave(): SaveData {
-  return { version: 2, settings: { sound: true, tutorialSeen: false, aim: 'point', timing: 'ring', cutscenes: 'full', shotMenu: 'list' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {}, tips: newTips() };
+  return { version: 2, settings: { sound: true, tutorialSeen: false, language: 'en', aim: 'point', timing: 'ring', cutscenes: 'full', shotMenu: 'list' }, stats: { played: 0, won: 0, lost: 0 }, profile: newProfile(), achievements: [], records: emptyRecords(), daily: newDaily(), weekly: newWeekly(), campGoals: newCampGoals(), cuts: {}, tips: newTips() };
 }
 
 function count(v: unknown): number {
@@ -66,6 +67,7 @@ export function parseSave(raw: string | null): SaveData {
       version: 2,
       settings: { sound: typeof p?.settings?.sound === 'boolean' ? p.settings.sound : base.settings.sound,
         tutorialSeen: p?.settings?.tutorialSeen === true,
+        language: parseLang(p?.settings?.language),
         aim: p?.settings?.aimPicked === true && p.settings.aim === 'directions' ? 'directions' : 'point',
         ...(p?.settings?.aimPicked === true ? { aimPicked: true } : {}),
         timing: p?.settings?.timing === 'auto' ? 'auto' : 'ring',
@@ -110,12 +112,16 @@ function defaultStore(): KeyValueStore | null {
 let cache: SaveData | null = null;
 
 export function getSave(store: KeyValueStore | null = defaultStore()): SaveData {
-  if (!cache) cache = parseSave(store?.getItem(KEY) ?? null);
+  if (!cache) {
+    cache = parseSave(store?.getItem(KEY) ?? null);
+    setLang(cache.settings.language);
+  }
   return cache;
 }
 
 export function updateSave(fn: (data: SaveData) => SaveData, store: KeyValueStore | null = defaultStore()): SaveData {
   cache = fn(getSave(store));
+  setLang(cache.settings.language);
   try {
     store?.setItem(KEY, JSON.stringify(cache));
   } catch {
@@ -125,7 +131,9 @@ export function updateSave(fn: (data: SaveData) => SaveData, store: KeyValueStor
 }
 
 export function resetSave(store: KeyValueStore | null = defaultStore()): SaveData {
-  cache = defaultSave();
+  // The language is a choice of the player, not progress: a reset keeps it.
+  const language = getSave(store).settings.language;
+  cache = { ...defaultSave(), settings: { ...defaultSave().settings, language } };
   try {
     store?.removeItem(KEY);
   } catch {

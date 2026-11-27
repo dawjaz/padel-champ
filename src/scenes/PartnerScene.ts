@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { addToonHead } from '../art/toonTexture';
 import { drawIcon, type IconKind } from '../art/icons';
 import { sfx } from '../audio';
@@ -110,8 +111,8 @@ export class PartnerScene extends Phaser.Scene {
       }
       // Name and state.
       text(x + 10, y + 79, def.name.toUpperCase(), 17, TC.navy, 0, true);
-      if (def.nick) text(x + 10, y + 92, `"${def.nick.toUpperCase()}"`, 9, TC.orange, 0);
-      const state = chosen ? 'PLAYING' : owned ? 'OWNED' : lvlOk ? `${def.price}` : `LEVEL ${def.minLevel}`;
+      if (def.nick) text(x + 10, y + 92, `"${T(def.nick.toUpperCase())}"`, 9, TC.orange, 0);
+      const state = chosen ? 'PLAYING' : owned ? 'OWNED' : lvlOk ? `${def.price}` : T('LEVEL {0}', def.minLevel);
       const bw = state.length * 6.5 + 14;
       const sb = add(this.add.graphics());
       sb.fillStyle(chosen ? TC.blue : owned ? TC.track : lvlOk ? TC.gold : TC.track, 1);
@@ -151,7 +152,7 @@ export class PartnerScene extends Phaser.Scene {
     const owned = p.career.partners.includes(def.id);
     const chosen = p.career.partnerId === def.id;
     const lvlOk = level >= def.minLevel;
-    const label = chosen ? 'PLAYING' : owned ? 'SELECT' : lvlOk ? `BUY ${def.price}` : `LEVEL ${def.minLevel}`;
+    const label = chosen ? 'PLAYING' : owned ? 'SELECT' : lvlOk ? T('BUY {0}', def.price) : T('LEVEL {0}', def.minLevel);
     const can = !chosen && (owned || (lvlOk && p.coins >= def.price));
     const act = makeThemeButton(this, 262, 606, 172, 44, `${def.name.toUpperCase()}: ${label}`, () => {
       if (!can) return;

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { showTip } from '../tutorial/tips';
 import { addToon } from '../art/toonTexture';
 import { drawIcon } from '../art/icons';
@@ -83,7 +84,7 @@ export class CharacterScene extends Phaser.Scene {
     badge.lineStyle(2, TC.navy, 1);
     badge.strokeRoundedRect(bx, 74, 56, 22, 11);
     this.dyn.push(badge);
-    this.text(bx + 28, 85, `LVL ${level}`, 12, TC.navy);
+    this.text(bx + 28, 85, T('LVL {0}', level), 12, TC.navy);
     const edit = makeThemeButton(this, 306, 105, 52, 20, 'EDIT', () => this.scene.start('NameEditScene', { back: 'CharacterScene' }), 'secondary', 11);
     this.dyn.push(...(edit.parts as Phaser.GameObjects.GameObject[]));
     (['male', 'female'] as const).forEach((g, i) => {
@@ -110,7 +111,7 @@ export class CharacterScene extends Phaser.Scene {
     ribbon.lineStyle(2, TC.navy, 1);
     ribbon.strokeRoundedRect(12, 168, WIDTH - 24, 24, 12);
     this.dyn.push(ribbon);
-    this.text(WIDTH / 2, 180, free > 0 ? `${free} SKILL POINT${free === 1 ? '' : 'S'} TO SPEND` : 'NO FREE SKILL POINTS', 13, free > 0 ? TC.white : TC.sub);
+    this.text(WIDTH / 2, 180, free > 0 ? T('{0} SKILL POINT{1} TO SPEND', free, free === 1 ? '' : 'S') : 'NO FREE SKILL POINTS', 13, free > 0 ? TC.white : TC.sub);
 
     const cap = statCap(level);
     const withGear = heroPoints(p);
@@ -177,6 +178,6 @@ export class CharacterScene extends Phaser.Scene {
       updateSave((d) => ({ ...d, profile: { ...d.profile, heroSide: side } }));
       this.redraw();
     })) this.dyn.push(...(b.parts as Phaser.GameObjects.GameObject[]));
-    this.text(WIDTH / 2, 557, nextCapLevel(level) ? `SHADED PART UNLOCKS AT LEVEL ${nextCapLevel(level)} · GEAR UP TO ${gearCap(level)}` : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
+    this.text(WIDTH / 2, 557, nextCapLevel(level) ? T('SHADED PART UNLOCKS AT LEVEL {0} · GEAR UP TO {1}', nextCapLevel(level), gearCap(level)) : 'ALL ATTRIBUTES UNLOCKED', 10, TC.sub);
   }
 }

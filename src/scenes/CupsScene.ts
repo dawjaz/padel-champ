@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { CHALLENGES, CUPS, challengeProgress, goldCount, type Cup } from '../career/cups';
 import { divisionById } from '../career/tournament';
@@ -53,7 +54,7 @@ export class CupsScene extends Phaser.Scene {
     const shelf = save.profile.cups;
     screenHeader(this, 'Trophies', { onBack: () => this.scene.start(this.from), coins: save.profile.coins });
     const silvers = CUPS.filter((c) => (shelf[c.id]?.silver ?? 0) > 0 && !(shelf[c.id]?.gold > 0)).length;
-    themeText(this, WIDTH / 2, 76, `${goldCount(shelf)} / ${CUPS.length} GOLD   ·   ${silvers} SILVER`, { size: 12, color: TC.sub, font: 'display' });
+    themeText(this, WIDTH / 2, 76, T('{0} / {1} GOLD   ·   {2} SILVER', goldCount(shelf), CUPS.length, silvers), { size: 12, color: TC.sub, font: 'display' });
     if (this.mode === 'cups') this.renderCups();
     else if (this.mode === 'seasons') this.renderSeasons();
     else this.renderSets();
@@ -115,8 +116,8 @@ export class CupsScene extends Phaser.Scene {
         g.lineStyle(2, 0xffffff, metal ? 0.6 : 0.2).strokeCircle(cx, 36, 22);
         drawIcon(g, 'trophy', cx, 36, 28, metal ? TC.navy : TC.sub);
       });
-      themeText(this, x + CELL_W / 2, y + 76, `SEASON ${n}`, { size: 10, color: rec ? TC.navy : TC.sub, font: 'display' });
-      themeText(this, x + CELL_W / 2, y + 88, rec ? `#${rec.place} IN THE WORLD` : n === current ? 'IN PROGRESS' : 'TO PLAY', { size: 8, color: rec ? TC.orange : TC.sub });
+      themeText(this, x + CELL_W / 2, y + 76, T('SEASON {0}', n), { size: 10, color: rec ? TC.navy : TC.sub, font: 'display' });
+      themeText(this, x + CELL_W / 2, y + 88, rec ? T('#{0} IN THE WORLD', rec.place) : n === current ? 'IN PROGRESS' : 'TO PLAY', { size: 8, color: rec ? TC.orange : TC.sub });
       this.add.zone(x + 3, y, CELL_W - 6, CELL_H - 6).setOrigin(0, 0).setInteractive({ useHandCursor: true }).on('pointerup', () => {
         this.selectedSeason = this.selectedSeason === n ? null : n;
         this.render();
@@ -129,9 +130,9 @@ export class CupsScene extends Phaser.Scene {
       themeText(this, WIDTH / 2, 548, done.length ? 'TAP A TROPHY FOR DETAILS' : 'FINISH A SEASON (24 WEEKS) TO WIN THE FIRST ONE', { size: 12, color: TC.sub, font: 'display', wrap: WIDTH - 48 });
       return;
     }
-    themeText(this, WIDTH / 2, 522, `SEASON ${rec.season}: #${rec.place} IN THE WORLD`, { size: 15, color: TC.navy, font: 'display' });
-    themeText(this, WIDTH / 2, 550, `${rec.points.toLocaleString('en-US')} POINTS  ·  ${rec.events} TOURNAMENTS  ·  ${rec.titles} ${rec.titles === 1 ? 'TITLE' : 'TITLES'}`, { size: 10, color: TC.orange });
-    themeText(this, WIDTH / 2, 578, `${seasonMetal(rec.place).toUpperCase()} TROPHY: TOP 3 GOLD, TOP 10 SILVER, THE REST BRONZE`, { size: 9, color: TC.blue });
+    themeText(this, WIDTH / 2, 522, T('SEASON {0}: #{1} IN THE WORLD', rec.season, rec.place), { size: 15, color: TC.navy, font: 'display' });
+    themeText(this, WIDTH / 2, 550, T('{0} POINTS  ·  {1} TOURNAMENTS  ·  {2} {3}', rec.points.toLocaleString('en-US'), rec.events, rec.titles, T(rec.titles === 1 ? 'TITLE' : 'TITLES')), { size: 10, color: TC.orange });
+    themeText(this, WIDTH / 2, 578, T('{0} TROPHY: TOP 3 GOLD, TOP 10 SILVER, THE REST BRONZE', seasonMetal(rec.place).toUpperCase()), { size: 9, color: TC.blue });
   }
 
   private renderInfo(cup: Cup | undefined): void {
@@ -143,10 +144,10 @@ export class CupsScene extends Phaser.Scene {
       return;
     }
     themeText(this, WIDTH / 2, 522, cup.name.toUpperCase(), { size: 15, color: TC.navy, font: 'display' });
-    const line = rec ? `GOLD x${rec.gold}   ·   SILVER x${rec.silver}   ·   LAST: SEASON ${rec.season}` : 'NOT WON YET: WIN THE TITLE FOR GOLD, REACH THE FINAL FOR SILVER';
+    const line = rec ? T('GOLD x{0}   ·   SILVER x{1}   ·   LAST: SEASON {2}', rec.gold, rec.silver, rec.season) : 'NOT WON YET: WIN THE TITLE FOR GOLD, REACH THE FINAL FOR SILVER';
     themeText(this, WIDTH / 2, 548, line, { size: 10, color: rec ? TC.orange : TC.sub, wrap: WIDTH - 48 });
     const sets = CHALLENGES.filter((c) => (c.divisions?.includes(cup.division) ?? false) || (c.cities?.includes(cup.city) ?? false)).map((c) => c.name);
-    if (sets.length) themeText(this, WIDTH / 2, 578, `PART OF: ${sets.join(', ').toUpperCase()}`, { size: 9, color: TC.blue, wrap: WIDTH - 48 });
+    if (sets.length) themeText(this, WIDTH / 2, 578, T('PART OF: {0}', sets.join(', ').toUpperCase()), { size: 9, color: TC.blue, wrap: WIDTH - 48 });
   }
 
   private renderSets(): void {
@@ -159,11 +160,11 @@ export class CupsScene extends Phaser.Scene {
       drawCard(g, WIDTH - 24, 82, { radius: 14, stroke: done ? TC.orange : TC.navy, fill: done ? 0xfff3d6 : TC.white });
       themeText(this, 24, y + 16, ch.name.toUpperCase(), { size: 14, color: TC.navy, font: 'display', origin: [0, 0.5] });
       themeText(this, WIDTH - 24, y + 16, done ? 'DONE' : `${pr.have}/${pr.need}`, { size: 12, color: done ? TC.green : TC.blue, font: 'display', origin: [1, 0.5] });
-      const what = ch.golds ? `Win ${ch.golds} different cups (gold).` : ch.divisions ? `Win gold in every ${ch.divisions.map((d) => divisionById(d)?.name ?? d).join(" / ")} tournament.` : `Win gold in every cup of ${ch.cities!.join(', ')}.`;
+      const what = ch.golds ? T('Win {0} different cups (gold).', ch.golds) : ch.divisions ? T('Win gold in every {0} tournament.', ch.divisions.map((d) => divisionById(d)?.name ?? d).join(" / ")) : T('Win gold in every cup of {0}.', ch.cities!.join(', '));
       themeText(this, 24, y + 36, what, { size: 10, color: TC.sub, origin: [0, 0.5], wrap: WIDTH - 60 });
       if (!done) drawBar(this.add.graphics(), 24, y + 52, 190, 8, pr.need ? pr.have / pr.need : 0, TC.blue);
-      const packs = Object.entries(ch.packs).map(([id, n]) => `${n} ${id.toUpperCase()} PACK${n > 1 ? 'S' : ''}`).join(' + ');
-      themeText(this, 24, y + 70, `+${ch.coins} COINS  +  ${packs}`, { size: 10, color: TC.orange, origin: [0, 0.5] });
+      const packs = Object.entries(ch.packs).map(([id, n]) => T('{0} {1} PACK{2}', n, id.toUpperCase(), T(n > 1 ? 'S' : ''))).join(' + ');
+      themeText(this, 24, y + 70, T('+{0} COINS  +  {1}', ch.coins, packs), { size: 10, color: TC.orange, origin: [0, 0.5] });
     });
   }
 }

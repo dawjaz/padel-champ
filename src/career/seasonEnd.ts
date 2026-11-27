@@ -1,6 +1,7 @@
 // The end of a season: where the hero finished in the world ranking, what the season paid, and the recap shown once. Pure, tested.
 
 import calendarData from '../data/calendar.json';
+import { T } from '../i18n';
 import { positionOf } from './ranking';
 import { SEASONS_LIMIT, WEEKS, type Career, type SeasonRecap } from './season';
 import type { Profile } from './profile';
@@ -17,7 +18,7 @@ export const SEASON_MIN_EVENTS = R.minEvents;
 /** What a season paid for the final place (the best tier that fits) and the titles; nothing under `SEASON_MIN_EVENTS` tournaments. */
 export function seasonPay(place: number, events: number, titles: number): { label: string; coins: number; packs: Record<string, number>; paid: boolean } {
   const tier = R.tiers.find((t) => place <= t.place) ?? R.tiers[R.tiers.length - 1];
-  if (events < R.minEvents) return { label: `PLAY ${R.minEvents} TOURNAMENTS A SEASON TO EARN REWARDS`, coins: 0, packs: {}, paid: false };
+  if (events < R.minEvents) return { label: T('PLAY {0} TOURNAMENTS A SEASON TO EARN REWARDS', R.minEvents), coins: 0, packs: {}, paid: false };
   return { label: tier.label, coins: tier.coins + R.perTitle * titles, packs: { ...tier.packs }, paid: true };
 }
 

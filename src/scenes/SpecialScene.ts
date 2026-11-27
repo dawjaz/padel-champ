@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { SHOTS, SPECIALS } from '../game/catalog';
 import type { ShotDef } from '../game/types';
@@ -76,11 +77,11 @@ export class SpecialScene extends Phaser.Scene {
       drawEmblem(emb, sp.id, 48, y + 36, open);
       add(themeText(this, 82, y + 22, sp.name.toUpperCase(), { size: 17, font: 'display', color: open ? TC.navy : 0x8d9bb0, origin: [0, 0.5] }));
       const base = SHOTS.find((s) => s.id === sp.base);
-      add(themeText(this, 82, y + 42, `${base ? base.name.toUpperCase() : ''} · COSTS ${sp.cost} G`, { size: 10, color: TC.orange, font: 'display', origin: [0, 0.5] }));
+      add(themeText(this, 82, y + 42, T('{0} · COSTS {1} G', base ? base.name.toUpperCase() : '', sp.cost), { size: 10, color: TC.orange, font: 'display', origin: [0, 0.5] }));
       const desc = (sp as ShotDef & { desc?: string }).desc?.replace(/^Special\. /, '') ?? '';
       add(themeText(this, 24, y + 76, desc, { size: 10, color: open ? TC.navy : 0x8d9bb0, origin: [0, 0.5], wrap: WIDTH - 140, align: 'left' }));
       if (!open) {
-        add(themeText(this, WIDTH - 66, y + 36, `LEVEL ${sp.unlockLevel}`, { size: 13, font: 'display', color: 0x8d9bb0 }));
+        add(themeText(this, WIDTH - 66, y + 36, T('LEVEL {0}', sp.unlockLevel), { size: 13, font: 'display', color: 0x8d9bb0 }));
         add(themeText(this, WIDTH - 66, y + 54, 'LOCKED', { size: 10, color: 0x8d9bb0 }));
       } else {
         add(themeText(this, WIDTH - 66, y + 40, 'YOURS', { size: 14, font: 'display', color: 0xb07700 }));

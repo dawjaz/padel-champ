@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { sfx } from '../audio';
 import { drawGear } from '../art/gearArt';
 import { HEIGHT, WIDTH } from '../config';
@@ -83,7 +84,7 @@ export class PackScene extends Phaser.Scene {
             t(30, cy - 6, d.item.name.toUpperCase(), 17, TC.navy, true);
             const bonus = Object.entries(d.item.bonus).map(([k, v]) => `+${v} ${SHORT[k]}`).join('  ');
             t(30, cy + 16, `${SLOT_LABEL[d.item.slot]}   ${bonus}`, 11, TC.orange, true);
-            t(30, cy + 32, d.duplicate ? `DUPLICATE: +${d.coins} COINS` : `NEW!  NEEDS LEVEL ${d.item.minLevel}`, 11, d.duplicate ? TC.sub : TC.blue, true);
+            t(30, cy + 32, d.duplicate ? T('DUPLICATE: +{0} COINS', d.coins) : T('NEW!  NEEDS LEVEL {0}', d.item.minLevel), 11, d.duplicate ? TC.sub : TC.blue, true);
             const ic = this.add.graphics();
             drawGear(ic, d.item, 306, cy, 56);
             added.push(ic);

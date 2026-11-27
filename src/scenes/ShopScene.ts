@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { boostProblem, buyBoost, buyPack, oddsOf, openStockPack, PACKS, priceOf, RARITIES, type Opened, type PackDef } from '../career/packs';
 import { BRANDS, CONSUMABLES, consumableById, MAX_BOOSTS } from '../career/gear';
@@ -12,7 +13,7 @@ const RARITY_COLOR: Record<string, number> = { common: 0x8d9bb0, rare: TC.blue, 
 
 const describe = (p: PackDef): string => {
   const parts: string[] = [];
-  if (p.items) parts.push(`${p.items} GEAR`);
+  if (p.items) parts.push(T('{0} GEAR', p.items));
   return parts.join(' + ');
 };
 
@@ -74,7 +75,7 @@ export class ShopScene extends Phaser.Scene {
     for (const def of PACKS) {
       const n = p.inventory.packs[def.id] ?? 0;
       if (n <= 0) continue;
-      const b = makeThemeButton(this, WIDTH / 2, y + 17, 336, 34, `OPEN FREE ${def.name.toUpperCase()}  x${n}`, () => this.open(openStockPack(getSave().profile, def.id, Math.random), def.name), 'primary', 14);
+      const b = makeThemeButton(this, WIDTH / 2, y + 17, 336, 34, T('OPEN FREE {0}  x{1}', def.name.toUpperCase(), n), () => this.open(openStockPack(getSave().profile, def.id, Math.random), def.name), 'primary', 14);
       this.dyn.push(...b.parts);
       y += 42;
     }
@@ -93,7 +94,7 @@ export class ShopScene extends Phaser.Scene {
     drawCard(bg, WIDTH - 128, 34, { radius: 12 });
     this.dyn.push(bg);
     this.label(WIDTH / 2, y + 12, names[bi], 14, TC.navy, 0.5, true);
-    this.label(WIDTH / 2, y + 27, this.brand ? `ONLY ${names[bi]} ITEMS  +50% PRICE` : 'PACKS GIVE ITEMS OF ANY BRAND', 9, this.brand ? TC.orange : TC.sub);
+    this.label(WIDTH / 2, y + 27, this.brand ? T('ONLY {0} ITEMS  +50% PRICE', names[bi]) : 'PACKS GIVE ITEMS OF ANY BRAND', 9, this.brand ? TC.orange : TC.sub);
     y += 42;
 
     const cardH = 108;
@@ -124,7 +125,7 @@ export class ShopScene extends Phaser.Scene {
           this.label(x0 + 30, ry, r.toUpperCase(), 10, TC.navy, 0);
           this.label(x0 + 108, ry, `${o.percent}%`, 10, TC.sub, 0);
         });
-        if (def.pity) this.label(x0 + 14, y0 + cardH - 12, `SURE ${def.pity.min.toUpperCase()}+ EVERY ${def.pity.after} PACKS (${p.inventory.pity[def.id] ?? 0}/${def.pity.after - 1})`, 9, TC.blue, 0);
+        if (def.pity) this.label(x0 + 14, y0 + cardH - 12, T('SURE {0}+ EVERY {1} PACKS ({2}/{3})', def.pity.min.toUpperCase(), def.pity.after, p.inventory.pity[def.id] ?? 0, def.pity.after - 1), 9, TC.blue, 0);
       }
       const price = priceOf(def, this.brand ?? undefined);
       const afford = p.coins >= price;
@@ -136,7 +137,7 @@ export class ShopScene extends Phaser.Scene {
 
     // Boosts: bought here, kept in the bag (two at most) and used one per tournament match.
     const boostTop = top + PACKS.length * (cardH + gap) + 2;
-    this.label(WIDTH / 2, boostTop + 8, `BOOSTS  (BAG ${p.inventory.boosts.length}/${MAX_BOOSTS})`, 13, TC.navy, 0.5, true);
+    this.label(WIDTH / 2, boostTop + 8, T('BOOSTS  (BAG {0}/{1})', p.inventory.boosts.length, MAX_BOOSTS), 13, TC.navy, 0.5, true);
     CONSUMABLES.forEach((c, i) => {
       const bx = 97 + (i % 2) * 166;
       const by = boostTop + 40 + Math.floor(i / 2) * 50;
@@ -147,7 +148,7 @@ export class ShopScene extends Phaser.Scene {
           this.note = (boostProblem(getSave().profile, c.id) ?? 'CANNOT BUY').toUpperCase();
         } else {
           updateSave((d) => ({ ...d, profile: next }));
-          this.note = `${c.name.toUpperCase()} IS IN YOUR BAG`;
+          this.note = T('{0} IS IN YOUR BAG', c.name.toUpperCase());
         }
         this.redraw();
       }, problem ? 'secondary' : 'blue', 10);
@@ -166,7 +167,7 @@ export class ShopScene extends Phaser.Scene {
       this.dyn.push(disc, fx, pr, coin);
     });
     const bag = p.inventory.boosts.map((id) => consumableById(id)?.name.toUpperCase() ?? id);
-    this.label(WIDTH / 2, boostTop + 148, `IN YOUR BAG: ${bag.length > 0 ? bag.join(', ') : 'EMPTY'}`, 11, TC.orange);
+    this.label(WIDTH / 2, boostTop + 148, T('IN YOUR BAG: {0}', T(bag.length > 0 ? bag.join(', ') : 'EMPTY')), 11, TC.orange);
     this.label(WIDTH / 2, boostTop + 166, this.note || 'USE ONE BOOST BEFORE EACH TOURNAMENT MATCH', 10, TC.sub);
   }
 }

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { ASSETS, assetUrl } from '../assets';
 import { applyHd } from '../hd';
 import { COLORS, css, FONT, HEIGHT, WIDTH, HD_SCALE } from '../config';
@@ -14,7 +15,7 @@ export class BootScene extends Phaser.Scene {
     const label = this.add
       .text(WIDTH / 2, HEIGHT / 2, 'LOADING...', { fontFamily: FONT, resolution: HD_SCALE, fontSize: '16px', color: css(COLORS.white) })
       .setOrigin(0.5);
-    this.load.on('progress', (p: number) => label.setText(`LOADING ${Math.round(p * 100)}%`));
+    this.load.on('progress', (p: number) => label.setText(T('LOADING {0}%', Math.round(p * 100))));
 
     for (const a of ASSETS.images) this.load.image(a.key, assetUrl(a.path));
     for (const a of ASSETS.audio) this.load.audio(a.key, assetUrl(a.path));

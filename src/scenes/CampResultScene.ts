@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { addTrial } from '../career/campGoals';
 import { dayKey } from '../career/daily';
@@ -52,15 +53,15 @@ export class CampResultScene extends Phaser.Scene {
     drawCard(card, WIDTH - 32, 250, { radius: 16 });
     themeText(this, WIDTH / 2, 118, g.name.toUpperCase(), { size: 18, color: TC.navy, font: 'display' });
     themeText(this, WIDTH / 2, 166, starText(stars), { size: 44, color: stars > 0 ? TC.orange : TC.sub });
-    themeText(this, WIDTH / 2, 212, `SCORE ${this.score}`, { size: 16, color: TC.navy, font: 'display' });
+    themeText(this, WIDTH / 2, 212, T('SCORE {0}', this.score), { size: 16, color: TC.navy, font: 'display' });
     themeText(this, WIDTH / 2, 236, `★ ${g.stars[0]}   ★★ ${g.stars[1]}   ★★★ ${g.stars[2]}`, { size: 10, color: TC.sub });
     if (this.collected) {
       const r = this.collected;
       rewardRow(this, WIDTH / 2, 270, [{ kind: 'coin', text: `+${r.coins}` }], { size: 16 });
       const extra: string[] = [];
-      if (r.boost) extra.push(`BOOST: ${(consumableById(r.boost)?.name ?? r.boost).toUpperCase()}`);
-      if (r.fragments > 0) extra.push(`+${r.fragments} GEAR PACK FRAGMENTS`);
-      if (r.packs > 0) extra.push(`${r.packs} GEAR PACK${r.packs > 1 ? 'S' : ''} COMPLETED!`);
+      if (r.boost) extra.push(T('BOOST: {0}', (consumableById(r.boost)?.name ?? r.boost).toUpperCase()));
+      if (r.fragments > 0) extra.push(T('+{0} GEAR PACK FRAGMENTS', r.fragments));
+      if (r.packs > 0) extra.push(T('{0} GEAR PACK{1} COMPLETED!', r.packs, T(r.packs > 1 ? 'S' : '')));
       if (r.newBest) extra.push('NEW BEST!');
       themeText(this, WIDTH / 2, 306, extra.join('\n'), { size: 11, color: TC.orange, font: 'display', align: 'center' });
       makeThemeButton(this, WIDTH / 2, 396, 300, 50, 'BACK TO CAMP', () => this.scene.start('CampScene'), 'primary', 18);

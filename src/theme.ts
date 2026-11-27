@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from './i18n';
 import { drawIcon, type IconKind } from './art/icons';
 import { sfx } from './audio';
 import { HD_SCALE, HEIGHT, WIDTH } from './config';
@@ -57,7 +58,7 @@ export interface TextOpts {
 }
 
 export function themeText(scene: Phaser.Scene, x: number, y: number, str: string, o: TextOpts = {}): Phaser.GameObjects.Text {
-  const t = scene.add.text(x, y, str, {
+  const t = scene.add.text(x, y, T(str), {
     fontFamily: o.font === 'display' ? DISPLAY : BODY,
     resolution: HD_SCALE,
     fontSize: `${o.size ?? 14}px`,
@@ -288,7 +289,7 @@ export function screenHeader(scene: Phaser.Scene, title: string, o: { onBack?: (
     });
     tx = 62;
   }
-  themeText(scene, tx, 31, title.toUpperCase(), { size: 26, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
+  themeText(scene, tx, 31, T(title).toUpperCase(), { size: 26, color: TC.white, font: 'display', origin: [0, 0.5] }).setDepth(6);
   if (o.coins !== undefined) for (const c of coinPill(scene, WIDTH - 12, 29, o.coins)) (c as Phaser.GameObjects.Graphics).setDepth?.(6);
   return 58;
 }

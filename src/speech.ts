@@ -1,3 +1,4 @@
+import { T } from './i18n';
 import Phaser from 'phaser';
 import type { Appearance } from './game/types';
 import { addToonHead } from './art/toonTexture';
@@ -75,7 +76,7 @@ export function rivalTalk(scene: Phaser.Scene, o: TalkOptions): Talk {
     tail.fillStyle(TC.white, 1).fillTriangle(bx + 2, ty - 9, bx + 2, ty + 9, bx - 12, ty);
     tail.lineStyle(2.5, TC.navy, 1).lineBetween(bx + 1, ty - 9, bx - 12, ty).lineBetween(bx + 1, ty + 9, bx - 12, ty);
   }
-  keep(themeText(scene, bx + pad, by + pad + nameH / 2, (o.name.split(' ')[0] + (o.nick ? ` "${o.nick}"` : '')).toUpperCase(), { size: size - 3, color: TC.orange, font: 'display', origin: [0, 0.5] }));
+  keep(themeText(scene, bx + pad, by + pad + nameH / 2, (o.name.split(' ')[0] + (o.nick ? ` "${T(o.nick.toUpperCase())}"` : '')).toUpperCase(), { size: size - 3, color: TC.orange, font: 'display', origin: [0, 0.5] }));
   const text = keep(themeText(scene, bx + pad, by + pad + nameH, '', { size, origin: [0, 0] }));
   text.setLineSpacing(size * 0.32 - 2);
 

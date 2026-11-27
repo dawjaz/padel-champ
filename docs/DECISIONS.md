@@ -102,3 +102,11 @@ After a point the ball is simulated freely (`buildCoast`); it is visual only.
 Owner asked for a longer progression (power was maxed at level 6). The scale shown to the player is 1-20; the engine keeps 1-10 in
 half steps (`STAT_SCALE` 2), so every tuned formula, the opponents and the partners keep working unchanged. Gear is limited to the level
 cap + `gearHeadroom` so it cannot fill the scale early. Old saves are converted (old point = two new points, fitted to the new caps).
+
+## 2026-11-27: Spanish edition, English stays the source
+- The key of every text is the English text (so the English build is unchanged). Spanish is a dictionary (`src/i18n/es.ts`) read at
+  display time. Code never compares translated text.
+- The padel shot names from Spanish (Bandeja, Víbora, Bajada and the rest, plus the game's special names) stay the same in both
+  languages: they are the names of the shots in padel.
+- The language switch is on the title screen and in Settings; the choice is saved with the game.
+

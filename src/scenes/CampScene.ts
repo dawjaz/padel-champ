@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { showTip } from '../tutorial/tips';
 import { WIDTH } from '../config';
 import { CAMP, CAMP_GAMES, campNow, campOpen, canTry, grantExtraTry, nextMilestone, startTry, type CampGameId } from '../career/camp';
@@ -25,15 +26,15 @@ export class CampScene extends Phaser.Scene {
     const c = campNow(p);
     screenHeader(this, 'Training Camp', { onBack: () => this.scene.start('CalendarScene'), coins: p.coins });
     const open = campOpen(p);
-    themeText(this, WIDTH / 2, 78, open ? `WEEK ${p.career.week}  ·  TRIES LEFT: ${c.triesLeft}` : 'CLOSED WHILE A TOURNAMENT IS ON', { size: 13, color: open ? TC.navy : TC.sub, font: 'display' });
+    themeText(this, WIDTH / 2, 78, open ? T('WEEK {0}  ·  TRIES LEFT: {1}', p.career.week, c.triesLeft) : 'CLOSED WHILE A TOURNAMENT IS ON', { size: 13, color: open ? TC.navy : TC.sub, font: 'display' });
     // fragments towards a Gear Pack, total stars
     const g = this.add.graphics().setPosition(12, 92);
     drawCard(g, WIDTH - 130, 52, { radius: 12 });
-    themeText(this, 24, 106, `GEAR PACK FRAGMENTS  ${c.fragments}/${CAMP.fragmentsPerPack}`, { size: 11, color: TC.navy, font: 'display', origin: [0, 0.5] });
+    themeText(this, 24, 106, T('GEAR PACK FRAGMENTS  {0}/{1}', c.fragments, CAMP.fragmentsPerPack), { size: 11, color: TC.navy, font: 'display', origin: [0, 0.5] });
     drawBar(this.add.graphics(), 24, 120, WIDTH - 250, 8, c.fragments / CAMP.fragmentsPerPack, TC.orange);
     // the stars here are all the stars earned in trials so far (they pay the fragments), not the best stars of the four games below
     const next = nextMilestone(c.totalStars, c.claimed);
-    themeText(this, 24, 136, `${c.totalStars} ★ EARNED  ·  +${next.fragments} FRAGMENTS AT ${next.stars} ★`, { size: 9, color: TC.sub, font: 'body', origin: [0, 0.5] });
+    themeText(this, 24, 136, T('{0} ★ EARNED  ·  +{1} FRAGMENTS AT {2} ★', c.totalStars, next.fragments, next.stars), { size: 9, color: TC.sub, font: 'body', origin: [0, 0.5] });
     const waiting = goalsWaiting(getSave().campGoals, dayKey(new Date()), weekKey(new Date()));
     makeThemeButton(this, WIDTH - 62, 115, 100, 46, 'GOALS', () => this.scene.start('CampGoalsScene'), waiting ? 'primary' : 'blue', 15);
 
@@ -44,7 +45,7 @@ export class CampScene extends Phaser.Scene {
       themeText(this, 24, y + 18, game.name.toUpperCase(), { size: 15, color: TC.navy, font: 'display', origin: [0, 0.5] });
       themeText(this, WIDTH - 24, y + 18, starText(c.best[game.id] ?? 0), { size: 16, color: TC.orange, origin: [1, 0.5] });
       themeText(this, 24, y + 44, game.desc, { size: 11, color: TC.sub, origin: [0, 0.5], wrap: 210 });
-      themeText(this, 24, y + 76, `${game.rounds} ROUNDS  ·  ★ ${game.stars.join(' / ')}`, { size: 9, color: TC.sub, origin: [0, 0.5] });
+      themeText(this, 24, y + 76, T('{0} ROUNDS  ·  ★ {1}', game.rounds, game.stars.join(' / ')), { size: 9, color: TC.sub, origin: [0, 0.5] });
       const can = canTry(p);
       const b = makeThemeButton(this, WIDTH - 70, y + 60, 96, 40, 'PLAY', () => this.play(game.id), can ? 'primary' : 'secondary', 16);
       if (!can) b.text.setAlpha(0.5);

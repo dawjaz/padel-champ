@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { HD_SCALE, HEIGHT, WIDTH } from '../config';
 import { cityAccent, drawCup } from '../art/cupArt';
 import { CUT_FULL_MS, CUT_SHORT_MS, cutDecision, type CutOccasion } from '../art/cutscenes';
@@ -224,9 +225,9 @@ export class CutsceneScene extends Phaser.Scene {
     g.fillStyle(0x0b2a5b, 1).fillRect(0, 142, WIDTH, 24);
     g.x = -WIDTH;
     this.tweens.add({ targets: g, x: 0, duration: 260, ease: 'Cubic.easeOut' });
-    const t = this.add.text(16, 117, title, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '22px', color: '#ffffff' }).setOrigin(0, 0.5).setDepth(51).setAlpha(0);
+    const t = this.add.text(16, 117, T(title), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '22px', color: '#ffffff' }).setOrigin(0, 0.5).setDepth(51).setAlpha(0);
     if (t.width > WIDTH - 32) t.setFontSize(Math.floor((22 * (WIDTH - 32)) / t.width));
-    const s = this.add.text(16, 154, sub, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ffe066' }).setOrigin(0, 0.5).setDepth(51).setAlpha(0);
+    const s = this.add.text(16, 154, T(sub), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: '12px', color: '#ffe066' }).setOrigin(0, 0.5).setDepth(51).setAlpha(0);
     this.tweens.add({ targets: [t, s], alpha: 1, delay: 220, duration: 200 });
   }
 
@@ -287,7 +288,7 @@ export class CutsceneScene extends Phaser.Scene {
           .setAlpha(0);
         this.tweens.add({ targets: vs, scale: 1, alpha: 1, delay: this.at(300), duration: 260, ease: 'Back.easeOut' });
         this.later(320, () => this.cameras.main.shake(140, 0.006));
-        this.caption(c.round ?? 'MATCH', `${names}  vs  ${oppNames}`, '#ffffff', 500);
+        this.caption(c.round ?? 'MATCH', T('{0}  vs  {1}', names, oppNames), '#ffffff', 500);
         sfx('point');
         break;
       }
@@ -408,7 +409,7 @@ export class CutsceneScene extends Phaser.Scene {
         b?.to(HOLD_LOW, 300);
         this.cup(WIDTH / 2, 330, 70, 'gold', c);
         this.confetti(40);
-        this.caption(`${(c.event ?? 'TOURNAMENT').toUpperCase()}`, `CHAMPIONS: ${names}`, '#ffe066', 400);
+        this.caption(`${(c.event ?? 'TOURNAMENT').toUpperCase()}`, T('CHAMPIONS: {0}', names), '#ffe066', 400);
         for (let i = 0; i < 4; i++) this.later(500 + i * 420, () => this.cameras.main.flash(90, 255, 255, 255));
         sfx('win');
         break;

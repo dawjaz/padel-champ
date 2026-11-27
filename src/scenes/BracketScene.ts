@@ -1,4 +1,5 @@
 import { withNick } from '../game/names';
+import { T } from '../i18n';
 import Phaser from 'phaser';
 import { WIDTH } from '../config';
 import { activeBracket, withdraw } from '../career/careerFlow';
@@ -59,8 +60,8 @@ export class BracketScene extends Phaser.Scene {
     const hero = heroFrom(BASE_HERO, profile);
     const heroAvg = STAT_KEYS.reduce((a, k) => a + hero.stats[k], 0) / STAT_KEYS.length;
     const y0 = treeBottom + 12;
-    text(WIDTH / 2, y0 + 8, `NEXT: ${opp.name.toUpperCase()}`, 16, TC.navy, true);
-    text(WIDTH / 2, y0 + 30, `OPPONENT ${shownStat(opp.rating).toFixed(1)}   YOU ${shownStat(heroAvg).toFixed(1)}`, 12, opp.rating > heroAvg + 0.5 ? 0xc62828 : opp.rating < heroAvg - 0.5 ? TC.green : TC.orange, true);
+    text(WIDTH / 2, y0 + 8, T('NEXT: {0}', opp.name.toUpperCase()), 16, TC.navy, true);
+    text(WIDTH / 2, y0 + 30, T('OPPONENT {0}   YOU {1}', shownStat(opp.rating).toFixed(1), shownStat(heroAvg).toFixed(1)), 12, opp.rating > heroAvg + 0.5 ? 0xc62828 : opp.rating < heroAvg - 0.5 ? TC.green : TC.orange, true);
 
     // The side of the court for this match (the default is set on the HERO screen).
     text(86, y0 + 62, 'I PLAY ON THE', 12, TC.navy, true, 0);

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { SPECIALS } from '../game/catalog';
 import { WIDTH } from '../config';
 import { getSave } from '../save';
@@ -66,7 +67,7 @@ export class ResultScene extends Phaser.Scene {
     if (fin?.cup) {
       const cup = fin.cup;
       bakedShape(this, 262, 156, 86, 76, (g) => drawCup(g, 43, 42, 66, cup.division, cup.kind, cityAccent(cup.city), cupOf(cup.id)?.symbol ?? 'star'));
-      themeText(this, 305, 238, `${cup.kind.toUpperCase()} CUP`, { size: 10, color: cup.kind === 'gold' ? TC.goldDark : TC.sub, font: 'display' });
+      themeText(this, 305, 238, T('{0} CUP', cup.kind.toUpperCase()), { size: 10, color: cup.kind === 'gold' ? TC.goldDark : TC.sub, font: 'display' });
     }
     const summary = fin
       ? `${fin.event.toUpperCase()}\n${fin.champion ? 'CHAMPION!' : `OUT AFTER ${fin.roundsWon} ROUND${fin.roundsWon === 1 ? '' : 'S'} WON`}`
@@ -86,10 +87,10 @@ export class ResultScene extends Phaser.Scene {
       rewardRow(this, 118, 325, [
         { kind: 'coin', text: `+${fin.prize.coins}` },
         { kind: 'xp', text: `+${fin.prize.xp}` },
-        { kind: null, text: `+${fin.prize.rank} RANK` },
+        { kind: null, text: T('+{0} RANK', fin.prize.rank) },
         ...(fin.prize.pack ? [{ kind: null, text: '+PACK' }] : []),
       ], { size: 13, left: true, gap: 9 });
-      rowLabel(349, `MATCHES (${matchesPlayed})`);
+      rowLabel(349, T('MATCHES ({0})', matchesPlayed));
       rewardRow(this, 118, 349, [{ kind: 'coin', text: `+${fin.matches.coins}` }, { kind: 'xp', text: `+${fin.matches.xp}` }], { size: 13, left: true, gap: 9 });
       const line = this.add.graphics();
       line.lineStyle(2, TC.track, 1);
@@ -109,7 +110,7 @@ export class ResultScene extends Phaser.Scene {
       // What the matches of the tournament paid (the XP also goes into the bar below).
       if (!fin && rw) rewardRow(this, WIDTH / 2, 342, [{ kind: null, text: 'MATCHES' }, { kind: 'xp', text: `+${rw.xp}` }, { kind: 'coin', text: `+${rw.coins}` }], { size: 14, color: TC.orange });
       this.xpBar(prof.xp, (fin ? fin.prize.xp + fin.matches.xp : (rw?.xp ?? 0)), fin ? 428 : 368);
-      if (this.outcome.packs) text(fin ? 466 : 412, `FREE PACK x${this.outcome.packs}: ${locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP'}`, 11, TC.blue);
+      if (this.outcome.packs) text(fin ? 466 : 412, T('FREE PACK x{0}: {1}', this.outcome.packs, T(locked ? 'OPEN IT AFTER THE TOURNAMENT' : 'OPEN IT IN THE SHOP')), 11, TC.blue);
     }
     // The rival's line (between rounds of a tournament, where the progress block above is empty): his head and a bubble, typed letter by letter.
     if (this.outcome.rival && this.outcome.career && hideProgress && !retired) {
@@ -120,7 +121,7 @@ export class ResultScene extends Phaser.Scene {
     const bonuses = fin?.cupBonuses ?? [];
     if (bonuses.length > 0) {
       const b = bonuses[0];
-      const packs = Object.entries(b.packs).map(([id, n]) => `${n} ${id.toUpperCase()} PACK${n > 1 ? 'S' : ''}`).join(' + ');
+      const packs = Object.entries(b.packs).map(([id, n]) => T('{0} {1} PACK{2}', n, id.toUpperCase(), T(n > 1 ? 'S' : ''))).join(' + ');
       text(257, `CUP SET: ${b.name.toUpperCase()}  +${b.coins} COINS + ${packs}${bonuses.length > 1 ? ` (+${bonuses.length - 1} MORE)` : ''}`, 10, TC.orange);
     }
     const trophies = this.outcome.trophies ?? [];
@@ -180,7 +181,7 @@ export class ResultScene extends Phaser.Scene {
     const xpBefore = Math.max(0, xpAfter - gain);
     const barX = WIDTH / 2 - 100;
     const levelNow = levelOf(xpAfter);
-    const label = (level: number, up: boolean): string => (up ? `LEVEL UP!  LEVEL ${level}` : `LEVEL ${level}`);
+    const label = (level: number, up: boolean): string => (up ? T('LEVEL UP!  LEVEL {0}', level) : T('LEVEL {0}', level));
     const lvlText = themeText(this, WIDTH / 2, y, label(levelOf(xpBefore), false), { size: 14, font: 'display' });
     const bar = this.add.graphics();
     const paint = (xp: number): void => {

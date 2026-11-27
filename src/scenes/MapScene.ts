@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { COURT_THEMES, themeIdOfCity } from '../art/hd/courtThemes';
 import { eventName, eventsOfWeek, WEEKS } from '../career/season';
@@ -51,8 +52,8 @@ export class MapScene extends Phaser.Scene {
     };
     arrow(44, '<', this.week - 1);
     arrow(WIDTH - 44, '>', this.week + 1);
-    add(themeText(this, WIDTH / 2, 298, `WEEK ${this.week}/${WEEKS}`, { size: 17, font: 'display' }));
-    add(themeText(this, WIDTH / 2, 318, this.week === now ? 'THIS WEEK' : this.week < now ? 'ALREADY PLAYED' : `IN ${this.week - now} WEEK${this.week - now === 1 ? '' : 'S'}`, { size: 11, color: this.week === now ? TC.orange : TC.sub, font: 'display' }));
+    add(themeText(this, WIDTH / 2, 298, T('WEEK {0}/{1}', this.week, WEEKS), { size: 17, font: 'display' }));
+    add(themeText(this, WIDTH / 2, 318, this.week === now ? 'THIS WEEK' : this.week < now ? 'ALREADY PLAYED' : T('IN {0} WEEK{1}', this.week - now, this.week - now === 1 ? '' : 'S'), { size: 11, color: this.week === now ? TC.orange : TC.sub, font: 'display' }));
 
     // The tournaments of the week as a list.
     events.forEach((e, i) => {
@@ -67,7 +68,7 @@ export class MapScene extends Phaser.Scene {
       sw.lineStyle(2, TC.navy, 1);
       sw.strokeRoundedRect(22, y + 9, 32, 32, 8);
       add(themeText(this, 64, y + 17, eventName(e).toUpperCase(), { size: 13, font: 'display', origin: [0, 0.5] }));
-      const pairs = add(themeText(this, 64, y + 36, `${div?.draw ?? '?'} PAIRS`, { size: 11, color: TC.sub, origin: [0, 0.5] }));
+      const pairs = add(themeText(this, 64, y + 36, T('{0} PAIRS', div?.draw ?? '?'), { size: 11, color: TC.sub, origin: [0, 0.5] }));
       const fx = 64 + pairs.width + 16;
       add(themeText(this, fx, y + 36, 'ENTRY FEE', { size: 11, color: TC.sub, origin: [0, 0.5] }));
       const fee = add(themeText(this, fx + 66, y + 36, `${div?.fee ?? '?'}`, { size: 13, font: 'display', origin: [0, 0.5] }));

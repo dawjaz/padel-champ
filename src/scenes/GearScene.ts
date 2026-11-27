@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { showTip } from '../tutorial/tips';
 import { addToon } from '../art/toonTexture';
 import { sfx } from '../audio';
@@ -105,7 +106,7 @@ export class GearScene extends Phaser.Scene {
       if (preview) {
         this.label(160, y, delta === 0 ? '' : `${delta > 0 ? '+' : ''}${delta}`, 11, delta > 0 ? TC.green : TC.orange, 0);
       } else if (after[k] > statValue(p, k)) {
-        this.label(160, y, `+${after[k] - statValue(p, k)} gear`, 10, TC.orange, 0);
+        this.label(160, y, T('+{0} gear', after[k] - statValue(p, k)), 10, TC.orange, 0);
       }
       // a small bar: how far the stat is from the top
       const bar = this.add.graphics();
@@ -116,8 +117,8 @@ export class GearScene extends Phaser.Scene {
       this.dyn.push(bar);
     });
     const set = setBonusOf(shown);
-    if (preview && selItem) this.label(WIDTH / 2, 308, `TRYING ON: ${selItem.name.toUpperCase()}`, 10, TC.blue).setWordWrapWidth(210).setAlign('center');
-    else if (set && set.stats.length > 0) this.label(WIDTH / 2, 308, `${set.brand.name.toUpperCase()} SET ${set.pieces}/5 (INCLUDED)`, 10, TC.blue);
+    if (preview && selItem) this.label(WIDTH / 2, 308, T('TRYING ON: {0}', selItem.name.toUpperCase()), 10, TC.blue).setWordWrapWidth(210).setAlign('center');
+    else if (set && set.stats.length > 0) this.label(WIDTH / 2, 308, T('{0} SET {1}/5 (INCLUDED)', set.brand.name.toUpperCase(), set.pieces), 10, TC.blue);
     else if (!Object.values(inv.equipped).some(Boolean)) this.label(WIDTH / 2, 308, 'NOTHING EQUIPPED', 10, TC.sub);
     SLOTS.forEach((s, i) => {
       const left = i < 3;
@@ -172,7 +173,7 @@ export class GearScene extends Phaser.Scene {
       const owned = inv.owned.includes(it.id);
       const usable = owned && level >= it.minLevel;
       const on = inv.equipped[this.slot] === it.id;
-      const status = !owned ? 'NOT OWNED' : level < it.minLevel ? `LEVEL ${it.minLevel}` : on ? 'WORN' : '';
+      const status = !owned ? 'NOT OWNED' : level < it.minLevel ? T('LEVEL {0}', it.minLevel) : on ? 'WORN' : '';
       const picked = this.sel === it.id;
       const g = this.tile(12, y, WIDTH - 24, 50, { stroke: picked ? TC.blue : on ? TC.orange : TC.navy, radius: 14, fill: usable ? TC.white : 0xf1f4f9 }, () => {
         // a tap shows what the model does to the stats; the button on the row wears it

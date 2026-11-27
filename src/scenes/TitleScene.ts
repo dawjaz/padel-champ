@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T, done, getLang, LANG_LABEL, type Lang } from '../i18n';
 import type { IconKind } from '../art/icons';
 import { addToon } from '../art/toonTexture';
 import { heroLook, levelOf, xpToReach } from '../career/profile';
@@ -6,7 +7,7 @@ import { tournamentActive } from '../career/careerFlow';
 import { BUILD_ID, GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, HEIGHT, SHOW_FREE_PRACTICE, WIDTH } from '../config';
 import { dayKey, hasWaiting } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
-import { getSave } from '../save';
+import { getSave, updateSave } from '../save';
 import { applyLightScreen, coinPill, drawBar, drawCard, drawStage, drawXp, iconChip, makeThemeButton, SPORT, TC, themeText } from '../theme';
 
 
@@ -123,7 +124,15 @@ export class TitleScene extends Phaser.Scene {
     practice.push(...makeThemeButton(this, WIDTH / 2, 602, 240, 40, 'BACK', () => { showList(practice, false); showList(tiles, true); }, 'secondary').parts);
     showList(practice, false);
 
-    themeText(this, 16, HEIGHT - 3, `${GAME_TITLE}: ${GAME_SUBTITLE}  v${GAME_VERSION} (${BUILD_ID})`, { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
+    themeText(this, 16, HEIGHT - 3, done(`${T(GAME_TITLE)}: ${T(GAME_SUBTITLE)}  v${GAME_VERSION} (${BUILD_ID})`), { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
+
+    // The language: a small button for the other language (the choice is kept in the save; Settings has it too).
+    const other: Lang = getLang() === 'en' ? 'es' : 'en';
+    const langBtn = makeThemeButton(this, WIDTH - 52, 72, 84, 20, LANG_LABEL[other], () => {
+      updateSave((d) => ({ ...d, settings: { ...d.settings, language: other } }));
+      this.scene.restart();
+    }, 'secondary', 10);
+    langBtn.text.setDepth(8);
   }
 
   /** Name plate at the foot of the stage: name, level badge and the XP bar with numbers. */
@@ -137,14 +146,14 @@ export class TitleScene extends Phaser.Scene {
     g.setPosition(-164, -31);
     const prof = getSave().profile;
     const name = themeText(this, -150, -18, prof.name.toUpperCase(), { size: 22, font: 'display', origin: [0, 0.5] });
-    const nick = themeText(this, -150, -2, `"${prof.nick.toUpperCase()}"`, { size: 10, color: TC.orange, origin: [0, 0.5] });
+    const nick = themeText(this, -150, -2, `"${T(prof.nick.toUpperCase())}"`, { size: 10, color: TC.orange, origin: [0, 0.5] });
     const badge = this.add.graphics();
     const bx = -150 + name.width + 10;
     badge.fillStyle(TC.gold, 1);
     badge.fillRoundedRect(bx, -29, 54, 22, 11);
     badge.lineStyle(2, TC.navy, 1);
     badge.strokeRoundedRect(bx, -29, 54, 22, 11);
-    const lv = themeText(this, bx + 27, -18, `LVL ${level}`, { size: 12, origin: [0.5, 0.5] });
+    const lv = themeText(this, bx + 27, -18, T('LVL {0}', level), { size: 12, origin: [0.5, 0.5] });
     const xpLabel = this.add.graphics();
     drawXp(xpLabel, -142, 15, 8);
     const xb = this.add.graphics();

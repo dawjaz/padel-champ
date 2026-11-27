@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { showTip } from '../tutorial/tips';
 import { WIDTH } from '../config';
 import { activeBracket, enterEvent, entryCheck, skipWeek, tournamentActive } from '../career/careerFlow';
@@ -56,7 +57,7 @@ export class CalendarScene extends Phaser.Scene {
       this.dyn.push(t);
       return t;
     };
-    const a = mk(`${pairs} PAIRS`);
+    const a = mk(T('{0} PAIRS', pairs));
     const b = mk('ENTRY FEE');
     const n = mk(`${fee}`, true);
     const c = mk(status);
@@ -116,13 +117,13 @@ export class CalendarScene extends Phaser.Scene {
     const sc = this.add.graphics().setPosition(12, 68);
     drawCard(sc, WIDTH - 24, 56, { radius: 14 });
     this.dyn.push(sc);
-    this.label(26, 84, `SEASON ${c.season}   WEEK ${c.week}/${WEEKS}`, 16, TC.navy, 0, true);
-    this.label(26, 106, `RANKING ${c.rankPoints}  TITLES ${c.titles}`, 11, TC.sub, 0);
-    this.label(WIDTH - 26, 84, `LEVEL ${level}`, 13, TC.orange, 1, true);
+    this.label(26, 84, T('SEASON {0}   WEEK {1}/{2}', c.season, c.week, WEEKS), 16, TC.navy, 0, true);
+    this.label(26, 106, T('RANKING {0}  TITLES {1}', c.rankPoints, c.titles), 11, TC.sub, 0);
+    this.label(WIDTH - 26, 84, T('LEVEL {0}', level), 13, TC.orange, 1, true);
     const partner = partnerById(c.partnerId);
     // The partner is chosen between tournaments only.
     const lockedPartner = tournamentActive(p);
-    const pText = `WITH ${(partner?.name ?? '-').toUpperCase()}`;
+    const pText = T('WITH {0}', (partner?.name ?? '-').toUpperCase());
     const pw = Math.max(80, pText.length * 7.2 + 16);
     this.button(WIDTH - 26 - pw / 2, 104, pw, 22, pText, 11, lockedPartner ? 'secondary' : 'blue', () => {
       if (!lockedPartner) this.scene.start('PartnerScene');
@@ -147,10 +148,10 @@ export class CalendarScene extends Phaser.Scene {
     if (c.active) {
       const b = activeBracket(p);
       this.label(WIDTH / 2, y, 'TOURNAMENT IN PROGRESS', 13, TC.navy, 0.5, true);
-      this.button(WIDTH / 2, y + 38, 336, 52, `CONTINUE: ${b ? b.division.name.toUpperCase() : ''}`, 16, 'primary', () => this.scene.start('BracketScene'));
+      this.button(WIDTH / 2, y + 38, 336, 52, T('CONTINUE: {0}', b ? b.division.name.toUpperCase() : ''), 16, 'primary', () => this.scene.start('BracketScene'));
       y += 90;
     } else {
-      this.label(WIDTH / 2, y, `THIS WEEK'S EVENTS`, 13, TC.navy, 0.5, true);
+      this.label(WIDTH / 2, y, T('THIS WEEK\'S EVENTS'), 13, TC.navy, 0.5, true);
       y += 12;
       for (const e of eventsOfWeek(c.week)) {
         const problem = entryCheck(p, e);
@@ -174,7 +175,7 @@ export class CalendarScene extends Phaser.Scene {
       }
       // A week without a tournament: the training camp (minigames) or skip it.
       const tries = campNow(p).triesLeft;
-      this.button(WIDTH / 2 - 86, y + 18, 164, 34, `TRAINING CAMP (${tries})`, 12, 'blue', () => this.scene.start('CampScene'));
+      this.button(WIDTH / 2 - 86, y + 18, 164, 34, T('TRAINING CAMP ({0})', tries), 12, 'blue', () => this.scene.start('CampScene'));
       this.button(WIDTH / 2 + 86, y + 18, 164, 34, 'SKIP THIS WEEK', 12, 'secondary', () => {
         this.scene.pause();
         this.scene.launch('ConfirmScene', {
@@ -198,7 +199,7 @@ export class CalendarScene extends Phaser.Scene {
         this.dyn.push(t.rt);
         // a touch shows what it was won for
         const hit = this.add.zone(x - 2, y + 2, 36, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        hit.on('pointerup', () => this.trophyTip(x + 16, y + 4, `${cup.name.toUpperCase()}\nCHAMPION · SEASON ${cup.season}`));
+        hit.on('pointerup', () => this.trophyTip(x + 16, y + 4, T('{0}\nCHAMPION · SEASON {1}', cup.name.toUpperCase(), cup.season)));
         this.dyn.push(hit);
       });
     }

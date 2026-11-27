@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { dismissRecap } from '../career/seasonEnd';
 import { sfx } from '../audio';
@@ -22,14 +23,14 @@ export class SeasonEndScene extends Phaser.Scene {
       this.scene.start('CalendarScene');
       return;
     }
-    screenHeader(this, `Season ${r.season}`, { coins: s.profile.coins });
+    screenHeader(this, T('Season {0}', r.season), { coins: s.profile.coins });
     themeText(this, WIDTH / 2, 88, 'SEASON COMPLETE', { size: 24, color: TC.orange, font: 'display' });
     // the place, big
     const card = this.add.graphics().setPosition(14, 112);
     drawCard(card, WIDTH - 28, 108, { radius: 20, shadow: 5 });
     iconChip(this.add.graphics(), 30, 130, 56, TC.gold, 'trophy');
     themeText(this, 108, 150, `#${r.place}`, { size: 44, color: TC.navy, font: 'display', origin: [0, 0.5] });
-    themeText(this, 108, 192, `IN THE WORLD  ·  ${r.points.toLocaleString('en-US')} POINTS`, { size: 11, color: TC.sub, origin: [0, 0.5] });
+    themeText(this, 108, 192, T('IN THE WORLD  ·  {0} POINTS', r.points.toLocaleString('en-US')), { size: 11, color: TC.sub, origin: [0, 0.5] });
     // the season in numbers
     const rows: Array<[string, string]> = [
       ['TOURNAMENTS PLAYED', String(r.log.events)],
@@ -54,10 +55,10 @@ export class SeasonEndScene extends Phaser.Scene {
       themeText(this, WIDTH / 2, 472, 'ADDED TO YOUR BAG', { size: 10, color: TC.sub });
     }
     themeText(this, WIDTH / 2, 494, 'A SEASON TROPHY WAS ADDED TO YOUR TROPHY CABINET', { size: 10, color: TC.orange, font: 'display' });
-    themeText(this, WIDTH / 2, 524, `SEASON ${r.season + 1} BEGINS WITH ${r.carried.toLocaleString('en-US')} POINTS\n(HALF OF YOUR POINTS CARRY OVER)`, { size: 12, color: TC.sub, align: 'center' });
+    themeText(this, WIDTH / 2, 524, T('SEASON {0} BEGINS WITH {1} POINTS\n(HALF OF YOUR POINTS CARRY OVER)', r.season + 1, r.carried.toLocaleString('en-US')), { size: 12, color: TC.sub, align: 'center' });
     if (r.paid) sfx('win');
     this.time.delayedCall(900, () => showTip(this, 'season'));
-    makeThemeButton(this, WIDTH / 2, 584, 280, 52, `START SEASON ${r.season + 1}`, () => {
+    makeThemeButton(this, WIDTH / 2, 584, 280, 52, T('START SEASON {0}', r.season + 1), () => {
       updateSave((d) => ({ ...d, profile: dismissRecap(d.profile) }));
       this.scene.start('CalendarScene');
     }, 'primary', 22);

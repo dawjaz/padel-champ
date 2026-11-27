@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { BONUS_COINS, bonusReady, claimBonus, claimLogin, claimTask, dayKey, loginReward, loginStatus, STREAK_LENGTH, TASK_COINS, taskViews } from '../career/daily';
 import { weekKey, weeklyWaiting } from '../career/weekly';
@@ -31,7 +32,7 @@ export class DailyScene extends Phaser.Scene {
     const g = this.add.graphics().setPosition(12, 72);
     drawCard(g, WIDTH - 24, 168, { radius: 16 });
     themeText(this, 24, 90, 'DAILY LOGIN', { size: 18, font: 'display', origin: [0, 0.5] });
-    themeText(this, WIDTH - 24, 90, `STREAK ${s.claimable ? (s.streak > 1 ? s.streak - 1 : 0) : s.streak}`, { size: 12, color: TC.orange, font: 'display', origin: [1, 0.5] });
+    themeText(this, WIDTH - 24, 90, T('STREAK {0}', s.claimable ? (s.streak > 1 ? s.streak - 1 : 0) : s.streak), { size: 12, color: TC.orange, font: 'display', origin: [1, 0.5] });
     const claimedDays = s.claimable ? (s.streak > 1 ? s.day - 1 : 0) : s.day;
     for (let i = 1; i <= STREAK_LENGTH; i++) {
       const x = 22 + (i - 1) * 47;
@@ -43,7 +44,7 @@ export class DailyScene extends Phaser.Scene {
       t.fillRoundedRect(x, y, 42, 60, 10);
       t.lineStyle(now ? 3 : 2, now ? TC.orange : TC.navy, 1);
       t.strokeRoundedRect(x, y, 42, 60, 10);
-      themeText(this, x + 21, y + 12, `DAY ${i}`, { size: 9, font: 'display' });
+      themeText(this, x + 21, y + 12, T('DAY {0}', i), { size: 9, font: 'display' });
       const rw = loginReward(i);
       themeText(this, x + 21, y + 30, done ? 'OK' : rw.pack ? 'PACK' : `${rw.coins}`, { size: rw.pack && !done ? 11 : 14, font: 'display', color: done ? TC.navy : TC.orange });
       if (rw.pack) themeText(this, x + 21, y + 49, `+${rw.coins}`, { size: 9, font: 'display', color: TC.sub });
@@ -51,7 +52,7 @@ export class DailyScene extends Phaser.Scene {
     }
     if (s.claimable) {
       const rw = loginReward(s.day);
-      makeThemeButton(this, WIDTH / 2, 205, 270, 44, `CLAIM  +${rw.coins} COINS${rw.pack ? '  +PACK' : ''}`, () => {
+      makeThemeButton(this, WIDTH / 2, 205, 270, 44, T('CLAIM  +{0} COINS{1}', rw.coins, rw.pack ? '  +PACK' : ''), () => {
         updateSave((d) => {
           const r = claimLogin(d.profile, d.daily, today);
           return r ? { ...d, profile: r.profile, daily: r.daily } : d;

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { drawIcon, type IconKind } from '../art/icons';
 import { celebrateSteps, fistSteps, highFiveSteps, loadPose, racketEnds, smashSteps, strokeSteps, tiredSteps } from '../art/rig';
 import { POSES } from '../art/toon/character';
@@ -179,7 +180,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       const i = c % 3;
       const sp = spots[i];
       spots.forEach((p, j) => k.glow(p[0], p[1], 40, 14, j === i ? GREEN : 0xffffff));
-      k.bubble(sp[0] - (i === 2 ? 20 : 0), 52, `SERVE TO ${names[i]}`, { tail: 'down', size: 10, ttl: 3600 });
+      k.bubble(sp[0] - (i === 2 ? 20 : 0), 52, T('SERVE TO {0}', names[i]), { tail: 'down', size: 10, ttl: 3600 });
       k.hero.to(loadPose('fhPrep'), 260);
       const hit = k.head(k.hero, 'fhHit');
       // the ball is dropped from the hand, bounces and is struck on its way down, between knee and hip
@@ -340,7 +341,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       k.at(1350, () => { k.hero.play(smashSteps(560)); k.shout(156, 90, 'SKY ROCKET!', { color: 0xffffff, size: 30 }); k.flash(GOLD); k.burst(156, 120, 0xffffff); k.ball(hit, [214, 100], { apex: 10, ms: 520, after: () => { k.burst(214, 100, 0xffffff); k.hideBall(); } }); });
       // the level chips come after the shot, so they do not hide the ring
       k.at(2400, () => names.forEach(([lv], i) => k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: false, size: 13 })));
-      names.forEach(([lv, nm], i) => k.at(2600 + i * 1350, () => { k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: true, size: 13 }); k.bubble(156, 70, `LEVEL ${lv.slice(1)}: ${nm}`, { tail: 'up', size: 12, ttl: 1200 }); k.burst(46 + i * 74, 22, 0xffffff); }));
+      names.forEach(([lv, nm], i) => k.at(2600 + i * 1350, () => { k.chip(46 + i * 74, 22, 62, lv, { color: TC.gold, on: true, size: 13 }); k.bubble(156, 70, T('LEVEL {0}: {1}', lv.slice(1), nm), { tail: 'up', size: 12, ttl: 1200 }); k.burst(46 + i * 74, 22, 0xffffff); }));
       k.at(2000, () => k.bubble(156, 196, 'COSTLY, AND IT NEVER EXPIRES', { tail: 'up', size: 10, ttl: 5600 }));
       k.at(7300, () => k.bubble(156, 196, 'EARLY OR LATE = A NORMAL SHOT', { tail: 'up', size: 10, ttl: 600 }));
     },
@@ -352,7 +353,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
       const rows: Array<[IconKind, string, number]> = [['power', 'POWER', 50], ['speed', 'SPEED', 100], ['technique', 'TECHNIQUE', 150]];
       rows.forEach(([ic, txt, y], i) => k.at(500 + i * 1100, () => { k.icon(ic, 44, y, 26, TC.navy); k.chip(226, y, 130, `${txt}  +1`, { color: TC.orange, on: true, size: 13 }); k.burst(226, y, 0xffffff); }));
       k.at(4200, () => { k.hero.play(celebrateSteps(false)); k.shout(156, 60, 'LEVEL UP!', { color: GOLD, size: 30 }); k.flash(0xffffff); });
-      k.at(5200, () => k.bubble(156, 196, `${levels.pointsPerLevel} SKILL POINTS EVERY LEVEL`, { tail: 'up', size: 11, ttl: 1700 }));
+      k.at(5200, () => k.bubble(156, 196, T('{0} SKILL POINTS EVERY LEVEL', levels.pointsPerLevel), { tail: 'up', size: 11, ttl: 1700 }));
     },
   },
   gear: {
@@ -379,7 +380,7 @@ const SCRIPTS: Partial<Record<ArtId, Script>> = {
     stage: 'court', period: 7400, cast: 'rally',
     run: (k, c) => {
       const sits = ['A SHORT LOB', 'A POR TRES', 'A RUN OUT'];
-      k.bubble(70, 30, `TRAIN: ${sits[c % 3]}`, { tail: 'down', size: 11 });
+      k.bubble(70, 30, T('TRAIN: {0}', sits[c % 3]), { tail: 'down', size: 11 });
       k.rival?.to(loadPose('fhPrep'), 200);
       k.hero.to(POSES.ready, 200);
       k.at(600, () => { k.rival?.play(strokeSteps('fh')); k.ball([188, 112], [118, 200], { apex: 80, ms: 1100 }); });
@@ -524,7 +525,7 @@ export function buildSlide(scene: Phaser.Scene, id: ArtId, ox: number, oy: numbe
   };
   const text = (x: number, y: number, s: string, size: number, color: number, wrap = 0): Phaser.GameObjects.Text => {
     const [ax, ay] = A(x, y);
-    return track(scene.add.text(ax, ay, s, { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color: tcss(color), align: 'center', ...(wrap ? { wordWrap: { width: wrap } } : {}) }).setOrigin(0.5).setDepth(40));
+    return track(scene.add.text(ax, ay, T(s), { fontFamily: DISPLAY, resolution: HD_SCALE, fontSize: `${size}px`, color: tcss(color), align: 'center', ...(wrap ? { wordWrap: { width: wrap } } : {}) }).setOrigin(0.5).setDepth(40));
   };
 
   let ballObj: Phaser.GameObjects.Arc | null = null;

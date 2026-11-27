@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import playersData from '../data/players.json';
 import { showTip } from '../tutorial/tips';
 import { HD_SCALE, HEIGHT, WIDTH } from '../config';
@@ -176,7 +177,7 @@ export class MinigameScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
-    this.hud.setText(`${campGame(this.gameId).name.toUpperCase()}   ROUND ${Math.min(this.round + 1, this.total)}/${this.total}   SCORE ${this.score}`);
+    this.hud.setText(T('{0}   ROUND {1}/{2}   SCORE {3}', campGame(this.gameId).name.toUpperCase(), Math.min(this.round + 1, this.total), this.total, this.score));
   }
 
   private nextRound(): void {
@@ -367,7 +368,7 @@ export class MinigameScene extends Phaser.Scene {
 
   // ---------- timing ----------
   private timingRound(r: TimingRound): void {
-    this.hint(`${r.kind === 'lob' ? 'A LOB' : r.kind === 'spin' ? 'A CURLING BALL' : 'A FLAT, FAST BALL'}\nTOUCH WHEN THE RING CLOSES ON THE BALL`);
+    this.hint(T('{0}\nTOUCH WHEN THE RING CLOSES ON THE BALL', T(r.kind === 'lob' ? 'A LOB' : r.kind === 'spin' ? 'A CURLING BALL' : 'A FLAT, FAST BALL')));
     // the hero moves to his new spot first, then the ball comes
     this.heroView.runTo(r.hero.x, r.hero.z, 560, () => this.time.delayedCall(180, () => this.timingBall(r)));
   }
@@ -444,7 +445,7 @@ export class MinigameScene extends Phaser.Scene {
   /** The lob's landing spot is shown first; the player picks the smash, then the lob comes and he hits as the ring closes. */
   private smashRound(r: SmashRound): void {
     const lobName = r.lob === 'short' ? 'A SHORT LOB, NEAR THE NET' : r.lob === 'mid' ? 'A LOB TO MID-COURT' : 'A DEEP LOB';
-    this.hint(`${lobName}\nPICK YOUR SMASH`);
+    this.hint(T('{0}\nPICK YOUR SMASH', lobName));
     // where the hero will meet it: a pulsing ring on the floor
     const mark = this.add.graphics().setDepth(4);
     this.layer.push(mark);
@@ -519,7 +520,7 @@ export class MinigameScene extends Phaser.Scene {
       this.playFlight(flight, (e) => {
         if (e === 'out') this.bigCall(kind === 'x3' ? 'POR TRES!' : 'POR CUATRO!');
       }, () => {
-        const label = res.outcome === 'out' ? `+${res.points}` : res.outcome === 'winner' ? `WINNER +${res.points}` : res.outcome === 'glass' ? `BACK IN PLAY +${res.points}` : tapMs < r.closeMs ? 'TOO EARLY' : 'TOO LATE';
+        const label = res.outcome === 'out' ? `+${res.points}` : res.outcome === 'winner' ? T('WINNER +{0}', res.points) : res.outcome === 'glass' ? T('BACK IN PLAY +{0}', res.points) : tapMs < r.closeMs ? 'TOO EARLY' : 'TOO LATE';
         this.smashDone(res.points, label, res.outcome === 'out' || res.outcome === 'winner');
       });
     };
@@ -833,7 +834,7 @@ export class MinigameScene extends Phaser.Scene {
     // does it keep going into the side glass before it reaches him?
     const toGlass = rollOn(from, land, 18.3).wall !== null;
     const name = r.kind === 'kick' ? 'HIGH KICK' : r.kind === 'slice' ? 'LOW SLICE' : 'FAST & FLAT';
-    const big = themeText(this, WIDTH / 2, 432, toGlass ? `${name} · TO THE GLASS` : `${name} · AT YOU`, { size: 18, color: 0xffe066, font: 'display' }).setDepth(9300);
+    const big = themeText(this, WIDTH / 2, 432, toGlass ? T('{0} · TO THE GLASS', name) : T('{0} · AT YOU', name), { size: 18, color: 0xffe066, font: 'display' }).setDepth(9300);
     this.layer.push(big);
     const parts: Phaser.GameObjects.GameObject[] = [];
     const labels: Record<ReturnShot, string> = { lob: 'LOB', chiquita: 'CHIQUITA', drive: 'DRIVE', glass: 'OFF GLASS' };
@@ -906,7 +907,7 @@ export class MinigameScene extends Phaser.Scene {
         this.heroView.stroke(bh ? 'bh' : 'fh', meet.h);
         sfx('hit');
       }
-      const label = res.tier === 'winner' ? `GREAT +${res.points}` : res.tier === 'good' ? `GOOD +${res.points}` : res.tier === 'weak' ? `+${res.points}` : 'MISSED';
+      const label = res.tier === 'winner' ? T('GREAT +{0}', res.points) : res.tier === 'good' ? T('GOOD +{0}', res.points) : res.tier === 'weak' ? `+${res.points}` : 'MISSED';
       const finish = (): void => {
         this.score += res.points;
         this.updateHud();

@@ -1,6 +1,28 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.163)_
+_Last updated: 2026-11-27 (v0.164)_
+
+## v0.164: Spanish edition (owner: we release in Spanish too; Spanish padel shot names stay in both languages)
+- Language is a setting (`settings.language`, default `en`, kept on reset). Switch: TITLE (small button under the coins) and SETTINGS > IDIOMA.
+  Settings restarts the scene so the change shows at once.
+- `src/i18n.ts`: `T(text, ...args)` returns the Spanish text in Spanish mode, the English text otherwise (English is unchanged). The key is
+  the English text, `{0}`, `{1}` are placeholders. `done(text)` marks a composed string that is already final. `N(en, es)` for two-language
+  literals. Dev only: `window.__i18nDev` gives the missing-text list used by the walk test.
+- `src/i18n/es.ts`: the Spanish dictionary (about 600 entries). Translation happens at display sinks (`themeText`, `screenHeader`,
+  MatchScene announcements and labels, CutsceneScene, tutorial text helper, speech bubbles), so code comparisons never see Spanish.
+- Kept in Spanish in both languages (special names of padel shots and game features): CORNER LOCK, SKY ROCKET, VENOM, FREEZE DROP,
+  Bandeja, Víbora, Bajada, Dejada, Chiquita, Rulo, Por Tres, Por Cuatro, Contrapared, Bloqueo.
+- Nicknames from the data (`Thunder`, `Lightning`, `Tank`, `Rocket`, `The Wall`, `Pixie`, `Clutch`) are translated in Spanish. Player-chosen
+  nicknames that happen to match one of them are translated too (a known small edge; say if you want it limited to data nicknames).
+- Walk test (`/home/claude/i18n/walk.py`, `walk2.py`, not in the repo): every screen visited in Spanish; no missing texts except names,
+  brands, numbers and the kept special names. Screenshots checked: title, settings, results, shop, character.
+- Not translated yet (next session): full tutorial lesson texts (`src/tutorial/lessons.ts`, only the first lesson was walked), cutscene
+  bubbles, rival dialogue, the Spanish match announcements during a real rally (only menus and practice were walked), store listing text.
+- `missingTexts` cannot see texts built from parts unless they go through `T`; a static check of all `T('...')` literals was done.
+- Known, not changed (English build): the settings hints start with `DEBUG.` (for example `DEBUG. Directions: Parallel / Middle / Cross.`).
+  It is in the English source. Looks like a leftover; decide before release.
+- Hide Practice before release (owner reminder, see BACKLOG).
+- Tests: `src/i18n.test.ts` (9 tests); the whole suite 508 passing; `npm run typecheck` clean.
 
 ## v0.163: padel rackets at real proportions (owner: they looked like tennis rackets, too cartoonish)
 - `src/art/racketShape.ts` (pure, tested): one racket model in centimetres for every picture. FIP limits: 45.5 cm long, 26 cm wide,

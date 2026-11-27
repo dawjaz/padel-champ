@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { levelOf } from '../career/profile';
 import { ONLINE_SOURCE, positionOf, visibleRows, WORLD_SOURCE, worldRanking, type RankingSource, type RankRow } from '../career/ranking';
@@ -72,8 +73,8 @@ export class RankingScene extends Phaser.Scene {
     const partner = partnerById(c.partnerId);
     const me = `${save.profile.name.toUpperCase()} / ${(partner?.name ?? 'PARTNER').toUpperCase()}`;
     const all = worldRanking(c, me);
-    add(themeText(this, 16, 134, `SEASON ${c.season}   WEEK ${c.week}/${WEEKS}`, { size: 13, font: 'display', origin: [0, 0.5] }));
-    add(themeText(this, WIDTH - 16, 134, `YOUR PLACE  #${positionOf(c)}`, { size: 13, color: TC.orange, font: 'display', origin: [1, 0.5] }));
+    add(themeText(this, 16, 134, T('SEASON {0}   WEEK {1}/{2}', c.season, c.week, WEEKS), { size: 13, font: 'display', origin: [0, 0.5] }));
+    add(themeText(this, WIDTH - 16, 134, T('YOUR PLACE  #{0}', positionOf(c)), { size: 13, color: TC.orange, font: 'display', origin: [1, 0.5] }));
     let y = 152;
     for (const r of visibleRows(all, 8)) {
       if (r === null) {
@@ -84,7 +85,7 @@ export class RankingScene extends Phaser.Scene {
       this.row(add, y, r);
       y += 40;
     }
-    add(themeText(this, WIDTH / 2, 612, `${all.length} PAIRS. HALF OF THE POINTS CARRY OVER TO THE NEXT SEASON.`, { size: 10, color: TC.sub, font: 'display' }));
+    add(themeText(this, WIDTH / 2, 612, T('{0} PAIRS. HALF OF THE POINTS CARRY OVER TO THE NEXT SEASON.', all.length), { size: 10, color: TC.sub, font: 'display' }));
   }
 
   private row(add: <T extends Phaser.GameObjects.GameObject>(o: T) => T, y: number, r: RankRow): void {
@@ -122,8 +123,8 @@ export class RankingScene extends Phaser.Scene {
       const y = 130 + i * 62;
       const g = add(this.add.graphics().setPosition(12, y));
       drawCard(g, WIDTH - 24, 56, { radius: 14, shadow: 2, stroke: s.place <= 3 ? TC.orange : TC.navy });
-      add(themeText(this, 26, y + 18, `SEASON ${s.season}`, { size: 15, font: 'display', origin: [0, 0.5] }));
-      add(themeText(this, 26, y + 39, `${s.events} TOURNAMENTS  ·  ${s.titles} ${s.titles === 1 ? 'TITLE' : 'TITLES'}  ·  ${s.points.toLocaleString('en-US')} PTS`, { size: 10, color: TC.sub, origin: [0, 0.5] }));
+      add(themeText(this, 26, y + 18, T('SEASON {0}', s.season), { size: 15, font: 'display', origin: [0, 0.5] }));
+      add(themeText(this, 26, y + 39, T('{0} TOURNAMENTS  ·  {1} {2}  ·  {3} PTS', s.events, s.titles, T(s.titles === 1 ? 'TITLE' : 'TITLES'), s.points.toLocaleString('en-US')), { size: 10, color: TC.sub, origin: [0, 0.5] }));
       add(themeText(this, WIDTH - 26, y + 28, `#${s.place}`, { size: 26, color: s.place <= 3 ? TC.orange : TC.navy, font: 'display', origin: [1, 0.5] }));
     });
   }

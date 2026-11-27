@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { getSave, updateSave } from '../save';
 import { FIRST_RUN, LESSONS, newTips, setTipsOff, type LessonGroup } from '../tutorial/lessons';
@@ -65,7 +66,7 @@ export class TutorialScene extends Phaser.Scene {
       updateSave((d) => ({ ...d, tips: { ...newTips(), off: false } }));
       this.render();
     }, 'secondary', 12);
-    const tipsLabel = (): string => `TIPS DURING PLAY: ${getSave().tips.off ? 'OFF' : 'ON'}`;
+    const tipsLabel = (): string => T('TIPS DURING PLAY: {0}', T(getSave().tips.off ? 'OFF' : 'ON'));
     const t = makeThemeButton(this, WIDTH / 2, 600, 290, 40, tipsLabel(), () => {
       updateSave((d) => ({ ...d, tips: setTipsOff(d.tips, !d.tips.off) }));
       t.text.setText(tipsLabel());

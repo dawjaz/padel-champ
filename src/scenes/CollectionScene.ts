@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { T } from '../i18n';
 import { WIDTH } from '../config';
 import { BRANDS, GEAR, itemsOfBrand, ownedOfBrand, setBonusOf, SET_BONUS, SET_PIECES, SLOT_LABEL, SLOTS, type Rarity } from '../career/gear';
 import { drawGear, shade } from '../art/gearArt';
@@ -53,11 +54,11 @@ export class CollectionScene extends Phaser.Scene {
     const b = FULL[br.set[1]];
     const line = (n: number, y: number, text: string): void => {
       const on = pieces >= n;
-      themeText(this, 16, y, `${n} PIECES`, { size: 11, font: 'display', color: on ? TC.orange : TC.navy, origin: [0, 0.5] });
+      themeText(this, 16, y, T('{0} PIECES', n), { size: 11, font: 'display', color: on ? TC.orange : TC.navy, origin: [0, 0.5] });
       themeText(this, 92, y, text, { size: 11, color: on ? TC.orange : TC.sub, weight: '700', origin: [0, 0.5] });
       themeText(this, WIDTH - 16, y, on ? 'ACTIVE' : '', { size: 11, font: 'display', color: TC.orange, origin: [1, 0.5] });
     };
-    themeText(this, 16, 128, `SET BONUS  (WORN ${pieces}/5)`, { size: 12, font: 'display', origin: [0, 0.5] });
+    themeText(this, 16, 128, T('SET BONUS  (WORN {0}/5)', pieces), { size: 12, font: 'display', origin: [0, 0.5] });
     line(SET_PIECES[0], 146, `+${SET_BONUS} ${a}`);
     line(SET_PIECES[1], 162, `+${SET_BONUS} ${a}  +${SET_BONUS} ${b}`);
 
@@ -95,12 +96,12 @@ export class CollectionScene extends Phaser.Scene {
             themeText(this, x + 29, y + 1, 'WORN', { size: 8, font: 'display', color: TC.white });
           }
         } else {
-          themeText(this, x + 29, y + 62, `LVL ${it.minLevel}`, { size: 9, font: 'display', color: 0x8896ad });
+          themeText(this, x + 29, y + 62, T('LVL {0}', it.minLevel), { size: 9, font: 'display', color: 0x8896ad });
         }
       });
     });
     const total = GEAR.filter((g) => inv.owned.includes(g.id)).length;
-    themeText(this, WIDTH / 2, 606, `COLLECTION  ${total} / ${GEAR.length}`, { size: 14, font: 'display' });
+    themeText(this, WIDTH / 2, 606, T('COLLECTION  {0} / {1}', total, GEAR.length), { size: 14, font: 'display' });
     themeText(this, WIDTH / 2, 626, 'GET MORE IN THE SHOP: PACKS CAN BE BOUGHT PER BRAND', { size: 10, color: TC.sub });
     void STAT_KEYS;
   }
