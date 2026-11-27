@@ -1,6 +1,16 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.160)_
+_Last updated: 2026-11-27 (v0.161)_
+
+## v0.161: Settings trimmed (debug mode keeps AIM / TIMING / SHOT MENU); QUIT in the tutorial
+- Owner: remove AIM, TIMING and SHOT MENU from Settings but keep them for debugging. New `src/debug.ts`: `DEBUG` = dev server or
+  `?debug` in the address; `playSettings()` = the saved choices in debug mode, otherwise `PLAY_DEFAULTS` (tap the spot, ring,
+  list). MatchScene reads aim / timing / shot menu through it. Settings lays its rows out top to bottom (no fixed y), the three
+  rows only in debug mode (marked DEBUG). Fixed on the way: the SHOT MENU toggle wrote `settings.menu` (it never switched).
+- TipScene (lessons, first-run tutorial, HOW TO PLAY, tips): a QUIT button at the card's top right asks "SKIP THE TUTORIAL?" (or
+  "SKIP THIS LESSON?" for a single one): YES, SKIP closes the lessons as if finished (first run: tutorialSeen, on to the title);
+  KEEP WATCHING restarts the page. Unseen lessons stay unseen, so their tips still come in play.
+
 
 ## v0.160: timing rings judge the moment the finger landed; Smash Show takes a touch anywhere
 - Owner: in Smash Show (Por Tres / Por Cuatro) a touch when the ring was green or at the ball gave MISSED or TOO LATE.

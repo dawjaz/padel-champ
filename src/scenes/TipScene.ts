@@ -33,6 +33,7 @@ export class TipScene extends Phaser.Scene {
   private body: Phaser.GameObjects.GameObject[] = [];
   private inQueue = 0;
   private closing = false;
+  private asking = false;
 
   constructor() {
     super('TipScene');
@@ -42,6 +43,7 @@ export class TipScene extends Phaser.Scene {
     this.d = data;
     this.inQueue = 0;
     this.closing = false;
+    this.asking = false;
     this.page = 0;
     this.lesson = lessonById(data.queue[0])!;
     this.body = [];
@@ -55,6 +57,7 @@ export class TipScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    if (this.asking) return;
     this.slide?.update(time, delta);
   }
 
@@ -88,6 +91,9 @@ export class TipScene extends Phaser.Scene {
       dot.fillStyle(i === this.page ? TC.orange : TC.sky, 1).fillCircle(WIDTH / 2 + (i - (n - 1) / 2) * 18, 460, 5);
       dot.lineStyle(1.5, TC.navy, 1).strokeCircle(WIDTH / 2 + (i - (n - 1) / 2) * 18, 460, 5);
     }
+    // QUIT: leave the lessons at any moment (asks first)
+    const quit = makeThemeButton(this, WIDTH - 52, 66, 60, 24, 'QUIT', () => this.askQuit(), 'secondary', 11);
+    this.body.push(...(quit.parts as Phaser.GameObjects.GameObject[]));
     const last = this.page === n - 1;
     const more = this.inQueue < this.d.queue.length - 1;
     const label = !last ? 'NEXT' : more ? 'NEXT LESSON' : 'GOT IT';
@@ -108,6 +114,54 @@ export class TipScene extends Phaser.Scene {
     return { hero: heroLook(p), mate: makeAppearance(seededRng(11), p.gender === 'male'), rival: makeAppearance(seededRng(5), p.gender !== 'male') };
   }
 
+  /** Confirmation over the lesson: skip the rest of the tutorial, or keep watching. */
+  private askQuit(): void {
+    if (this.closing) return;
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    // the drawing goes while he decides (its labels would show through), and starts again if he stays
+    this.asking = true;
+    this.slide?.destroy();
+    this.slide = null;
+    const close = (): void => {
+      for (const o of parts) o.destroy();
+      this.asking = false;
+    };
+    const stay = (): void => {
+      close();
+      this.render();
+    };
+    parts.push(this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, TC.navyDark, 0.7).setDepth(9000).setInteractive().on('pointerdown', () => undefined));
+    const card = this.add.graphics().setPosition(36, 218).setDepth(9001);
+    drawCard(card, WIDTH - 72, 204, { radius: 20, shadow: 5 });
+    parts.push(card);
+    const many = this.d.queue.length > 1;
+    parts.push(themeText(this, WIDTH / 2, 252, many ? 'SKIP THE TUTORIAL?' : 'SKIP THIS LESSON?', { size: 19, color: TC.orange, font: 'display' }).setDepth(9002));
+    parts.push(
+      themeText(this, WIDTH / 2, 292, 'You can watch every lesson later\nin Settings > HOW TO PLAY.', { size: 12, color: TC.navy, align: 'center', weight: '700' }).setDepth(9002),
+    );
+    const yes = makeThemeButton(this, WIDTH / 2, 346, 220, 42, 'YES, SKIP', () => {
+      close();
+      this.leave();
+    }, 'primary', 18);
+    const no = makeThemeButton(this, WIDTH / 2, 394, 220, 32, 'KEEP WATCHING', stay, 'secondary', 13);
+    for (const o of [...(yes.parts as Phaser.GameObjects.GameObject[]), ...(no.parts as Phaser.GameObjects.GameObject[])]) {
+      (o as unknown as Phaser.GameObjects.Components.Depth).setDepth?.(9002);
+      parts.push(o);
+    }
+  }
+
+  /** Closes the lessons and goes back to the scene underneath (the rest of the queue is left unseen: tips still come in play). */
+  private leave(): void {
+    if (this.closing) return;
+    this.closing = true;
+    const { under, done } = this.d;
+    this.slide?.destroy();
+    this.slide = null;
+    this.scene.stop();
+    this.scene.resume(under);
+    done?.();
+  }
+
   private advance(): void {
     if (this.closing) return;
     if (this.page < this.lesson.pages.length - 1) {
@@ -123,12 +177,6 @@ export class TipScene extends Phaser.Scene {
       this.render();
       return;
     }
-    this.closing = true;
-    const { under, done } = this.d;
-    this.slide?.destroy();
-    this.slide = null;
-    this.scene.stop();
-    this.scene.resume(under);
-    done?.();
+    this.leave();
   }
 }

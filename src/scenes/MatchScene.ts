@@ -20,6 +20,7 @@ import { HEIGHT, WIDTH, HD_SCALE } from '../config';
 import playersData from '../data/players.json';
 import { applyHd } from '../hd';
 import { eventStamp, touchTime } from '../touchTime';
+import { playSettings } from '../debug';
 import { DISPLAY, BODY, bakedShape, drawCard, makeSideSwitch, makeThemeButton, TC, themeText } from '../theme';
 import { pickStarReceiver, pickHit, pickReceive, pickServe } from '../game/ai';
 import { baseId, DIRECTIONS, shotsOfKind, SPECIALS } from '../game/catalog';
@@ -2151,7 +2152,7 @@ export class MatchScene extends Phaser.Scene {
       return sh.menuLabel ? `${sh.menuLabel} [${sh.cost}]${tired}` : `${sh.name}\n[${sh.cost}]${tired}`;
     };
     // Only the shots that can be played now are offered.
-    const columns = getSave().settings.shotMenu === 'columns';
+    const columns = playSettings().shotMenu === 'columns';
     const items: ButtonSpec[] = playableShots(shotsOfKind(kind), st).map((sh) => {
       const f = FAMILY_OF[sh.id];
       const tired = this.guts[hitter.id] < sh.cost;
@@ -2208,7 +2209,7 @@ export class MatchScene extends Phaser.Scene {
       return;
     }
     // Settings > AIM: TAP THE SPOT: the player chooses the landing point on the heat map instead of a direction (shots with a fixed target excepted).
-    if (aim !== undefined && getSave().settings.aim === 'point') {
+    if (aim !== undefined && playSettings().aim === 'point') {
       this.showTargetMenu(shot, aim);
       return;
     }
@@ -2369,7 +2370,7 @@ export class MatchScene extends Phaser.Scene {
     this.hideHeight();
     const st = this.point;
     // your own serve with the timing ring: the ball is dropped, bounces, and you touch as the ring closes on it
-    if (opts?.timing === undefined && shot.timed === true && this.isHuman(st.servingSide, st.serverIdx) && getSave().settings.timing !== 'auto') {
+    if (opts?.timing === undefined && shot.timed === true && this.isHuman(st.servingSide, st.serverIdx) && playSettings().timing !== 'auto') {
       this.timingRing('serve', TEAMS[st.servingSide][st.serverIdx], (q) => this.performServe(shot, receive, { ...opts, timing: q }));
       return;
     }
@@ -2413,7 +2414,7 @@ export class MatchScene extends Phaser.Scene {
     this.hideHeight();
     const st = this.point;
     // your own smash, vibora or bandeja with the timing ring: the ball comes down and you touch as the ring closes on it
-    if (options?.timing === undefined && shot.timed === true && this.isHuman(st.holder, st.hitterIdx) && getSave().settings.timing !== 'auto') {
+    if (options?.timing === undefined && shot.timed === true && this.isHuman(st.holder, st.hitterIdx) && playSettings().timing !== 'auto') {
       this.timingRing('high', TEAMS[st.holder][st.hitterIdx], (q) => this.performHit(shot, direction, prefer, { ...options, timing: q }));
       return;
     }
@@ -3007,7 +3008,7 @@ export class MatchScene extends Phaser.Scene {
       this.stopCoast();
       this.ball.setVisible(true);
       const pathAt = (ms: number): { x: number; z: number; h: number } => posAt(lead + ms);
-      if (human && getSave().settings.timing !== 'auto') this.timingRing('out', runner, (q) => resolve(q), pathAt);
+      if (human && playSettings().timing !== 'auto') this.timingRing('out', runner, (q) => resolve(q), pathAt);
       else {
         this.tweens.addCounter({
           from: 0,
