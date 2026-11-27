@@ -1416,7 +1416,9 @@ export class MatchScene extends Phaser.Scene {
     }
     // four rows of compact buttons (10-12: the specials on top of a long list) are a little flatter, to stay on the screen
     const tight = items.length > 9;
-    const baseW = dirs ? 108 : compact ? 112 : 160;
+    // Corner menu (two corners + BACK): LEFT on the left, RIGHT on the right (wide, for muscle memory), BACK alone below.
+    const corner = dirs && items.length === 3 && items[2].label === 'BACK';
+    const baseW = corner ? 156 : dirs ? 108 : compact ? 112 : 160;
     const baseH = dirs ? 56 : tight ? 40 : compact ? 44 : 48;
     const gapY = tight ? 46 : compact ? 52 : 58;
     const y0 = dirs ? 490 : tight ? 470 : compact ? 478 : 485;
@@ -1424,8 +1426,8 @@ export class MatchScene extends Phaser.Scene {
       const pl = place.get(item);
       const w = pl ? pl.w : baseW;
       const h = pl ? pl.h : baseH;
-      const x = pl ? pl.x : dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
-      const y = pl ? pl.y : dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
+      const x = pl ? pl.x : corner ? (i === 0 ? 98 : i === 1 ? 262 : WIDTH / 2) : dirs ? (i < 3 ? 66 + i * 114 : WIDTH / 2) : compact ? 62 + (i % cols) * 118 : 95 + (i % cols) * 170;
+      const y = pl ? pl.y : corner ? (i < 2 ? y0 : y0 + 66) : dirs ? (i < 3 ? y0 : y0 + 66) : y0 + Math.floor(i / cols) * gapY;
       const paint = (hover: boolean, pressed: boolean) => (g: Phaser.GameObjects.Graphics): void =>
         drawCard(g, w, h, { fill: item.fam ? FAM_FILL[item.fam] : TONE_FILL[item.tone], stroke: item.fam && (item.tone === 'normal' || item.tone === 'special') ? FAM_STROKE[item.fam] : TONE_STROKE[item.tone], radius: 12, shadow: hover ? 2 : 3, pressed });
       const baked = bakedShape(this, x - w / 2, y - h / 2, w, h, paint(false, false));

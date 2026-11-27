@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.167)_
+_Last updated: 2026-11-27 (v0.168)_
+
+## v0.168: studio mark (Turbo), Corner Lock buttons
+- Owner chose the "Turbo" studio mark: a heavy forward-leaning D with a small j cut out (square dot). `src/art/studioMark.ts` draws it
+  (Canvas2D, white on transparent); `StudioScene` glides it in from the left with the name `DAVJ STUDIO` below, then fades out.
+- Corner Lock menu: LEFT CORNER on the left, RIGHT CORNER on the right (wide buttons), BACK alone below (`showButtons`, `corner` layout).
+- Owner report: a flat return from deep after a lob "wins 100% of points". Not reproduced: `scripts/simFlatDeep.ts` shows the flat is never
+  a direct winner (winnerMargin 60) and wins about as many points as any other shot (me 4 v 4: 45%; me 8 v opp 4: about 70% with a flat,
+  chiquita or lob alike), so a strong hero against weak rivals wins most points whatever he plays. If it still looks wrong in play, get the
+  hero's level, the opponents' division and the aim point, then compare with the sim.
 
 ## v0.167: loading screen and studio board
 - `BootScene`: the loading text was drawn small in a corner because `applyHd` ran only in `create()`; it now runs first in `preload()`.
