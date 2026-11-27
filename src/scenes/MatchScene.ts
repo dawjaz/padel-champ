@@ -2189,6 +2189,23 @@ export class MatchScene extends Phaser.Scene {
     const order: Direction[] = st.hitterIdx === 0 ? ['parallel', 'middle', 'cross'] : ['cross', 'middle', 'parallel'];
     // Where each way takes the ball and how far that is from the opponents (their reach): green = a gap, orange = right at them.
     const aim = shot.overFence === true || shot.wall === 'fence' ? undefined : this.reachMap(shot, st.hitterIdx);
+    // A corner shot (Corner Lock) has only two targets: the left or the right back corner (in either aiming mode).
+    if (shot.edgeX !== undefined && aim !== undefined) {
+      const left: Direction = st.hitterIdx === 0 ? 'parallel' : 'cross';
+      const right: Direction = left === 'parallel' ? 'cross' : 'parallel';
+      const tone = (d: Direction): Tone => (aim[d].factor < 0.75 ? 'good' : aim[d].factor >= 0.97 ? 'poor' : 'normal');
+      this.showButtons(
+        `${hitter.name}: ${shot.name}, which corner?`,
+        [
+          { label: `LEFT CORNER\n-> ${targetName[left]}`, tone: tone(left), onPick: () => this.performHit(shot, left) },
+          { label: `RIGHT CORNER\n-> ${targetName[right]}`, tone: tone(right), onPick: () => this.performHit(shot, right) },
+          { label: 'BACK', tone: 'normal', onPick: () => this.showShotMenu() },
+        ],
+        'directions',
+      );
+      this.drawReach(shot, aim, true, [left, right]);
+      return;
+    }
     // Settings > AIM: TAP THE SPOT: the player chooses the landing point on the heat map instead of a direction (shots with a fixed target excepted).
     if (aim !== undefined && getSave().settings.aim === 'point') {
       this.showTargetMenu(shot, aim);
@@ -2296,7 +2313,9 @@ export class MatchScene extends Phaser.Scene {
     const formation = this.point.formation[1];
     const out = {} as Record<Direction, { x: number; z: number; factor: number }>;
     for (const d of DIRECTION_ORDER) {
-      const x = landingX(d, d === 'cross' ? 1 - hitterIdx : hitterIdx);
+      const lane = d === 'cross' ? 1 - hitterIdx : hitterIdx;
+      // a corner shot (Corner Lock) lands in the back corner on that player's side
+      const x = shot.edgeX !== undefined ? laneSign(lane) * shot.edgeX : landingX(d, lane);
       out[d] = { x, z: landingZ(1, shot.landDepth), factor: reachAgainst(defenders, 1, formation, shot, x, shot.landDepth, this.reachPositions()) };
     }
     return out;
@@ -2307,7 +2326,7 @@ export class MatchScene extends Phaser.Scene {
    * the opponents keep against a ball that comes down there (green = a gap, yellow = stretched, red = right at them), with a marker
    * where each direction lands. It is painted once into a texture and removed with the menu.
    */
-  private drawReach(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>, markers = true): void {
+  private drawReach(shot: ShotDef, aim: Record<Direction, { x: number; z: number; factor: number }>, markers = true, only: readonly Direction[] = DIRECTION_ORDER): void {
     const defenders: [PlayerDef, PlayerDef] = [TEAMS[1][0], TEAMS[1][1]];
     const formation = this.point.formation[1];
     const lerp = (a: number, b: number, t: number): number => Math.round(a + (b - a) * t);
@@ -2335,7 +2354,7 @@ export class MatchScene extends Phaser.Scene {
     this.menu.push(heat.rt);
     if (!markers) return;
     const g = this.add.graphics().setDepth(3);
-    for (const d of DIRECTION_ORDER) {
+    for (const d of only) {
       const a = aim[d];
       const p = project(a.x, a.z);
       const color = a.factor < 0.75 ? 0x4ade80 : a.factor >= 0.97 ? 0xff9f1c : 0xffe066;

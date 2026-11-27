@@ -105,4 +105,20 @@ describe('special shots', () => {
     expect(cpuSpecial({ ...base, stats: flat(SPECIAL_MIN_RATING - 1) })).toBeUndefined();
     expect(withSpecial({ ...base, specials: ['sp_freeze'] }).specials).toEqual(['sp_freeze']);
   });
+
+  it('Corner Lock always goes into a back corner: the left one at the left-hand player, the right one at the right-hand player', () => {
+    const teams: Teams = [[you[0], you[1]], [cpu[0], cpu[1]]];
+    const rng = seededRng(9);
+    for (let i = 0; i < 200; i++) {
+      const st = at(teams, 'mid_lob');
+      for (const d of ['parallel', 'cross'] as const) {
+        const step = stepHit(teams, st, shot('sp_cornerlock'), d, rng, undefined, { ignoreRequires: true }).step;
+        if (step.landX === undefined) continue;
+        expect(Math.abs(step.landX)).toBeCloseTo(shot('sp_cornerlock').edgeX!);
+        const lane = d === 'parallel' ? st.hitterIdx : 1 - st.hitterIdx;
+        expect(Math.sign(step.landX)).toBe(lane === 0 ? -1 : 1);
+      }
+    }
+  });
 });
+

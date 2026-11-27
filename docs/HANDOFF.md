@@ -1,6 +1,15 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.158)_
+_Last updated: 2026-11-27 (v0.159)_
+
+## v0.159 (small): Corner Lock aims at a corner, not anywhere on the court
+- Owner: Corner Lock is a bandeja that dies in a back corner, so the player should choose the left or the right corner, not a spot.
+- MatchScene.showDirectionMenu: for a shot with `edgeX` (Corner Lock) the menu is LEFT CORNER / RIGHT CORNER (-> the player on that
+  side; button tone from the reach), in both aiming modes; the heat map shows only the two corner markers (`drawReach(..., only)`).
+  `reachMap` measures such a shot at the corners.
+- point.stepHit: an `edgeX` shot lands at laneSign(target) x edgeX (before: anywhere in the aimed lane, or the tapped spot; the corner
+  was only drawn). Corner Lock winners in CPU play 70-74% -> about 68% (noise level). Test added.
+
 
 ## v0.158 (small): the flat drive puts half the pressure on the next player
 - Owner: three flats from the back into the deep middle against a pair at the net, three points. Simulation (thousands of such

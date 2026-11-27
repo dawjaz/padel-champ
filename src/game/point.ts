@@ -1,5 +1,5 @@
 import { baseId, DIRECTIONS, SPECIALS } from './catalog';
-import { aimDepth, aimX, defenderIndex, flightTime, indexOfLane, landingZ, NET_Z, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, REACH_MIN, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread, trackGap } from './court';
+import { aimDepth, aimX, defenderIndex, laneSign, flightTime, indexOfLane, landingZ, NET_Z, REACH_DEFAULT_RUN, REACH_LOB_MIN, REACH_LOB_TIME_MAX, REACH_MIN, reachFactor, reachGap, reachRadius, reachTimeFactor, restPos, serveLane, targetLanding, targetSpread, trackGap } from './court';
 import { fatigued, STAT_KEYS } from './attributes';
 import { LOB_APEX, MAX_PRESSURE, resolveHit, resolveServe, SECOND_SERVE_RETURN, spendGuts, WINNER_MARGIN, type HitOutcome } from './engine';
 import type { AimPreference, BallState, CourtPos, Direction, ErrorKind, Formation, Height, LaneSign, LobQuality, Zone, PlayerDef, ReceiveMode, Rng, ShotDef, SideIndex } from './types';
@@ -682,7 +682,8 @@ export function stepHit(
   const fixedAim = shot.overFence === true || shot.wall === 'fence';
   const tgt = !fixedAim && options?.target ? targetLanding(options.target, rng, targetSpreadFor(hitter, state, shot)) : undefined;
   const fixDepth = tgt?.depth;
-  const landX = fixedAim ? undefined : tgt ? tgt.x : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
+  // A corner shot (Corner Lock: `edgeX`) goes into the back corner on the side of the player it is aimed at, never anywhere else.
+  const landX = fixedAim ? undefined : tgt ? tgt.x : shot.edgeX !== undefined ? laneSign(targetIdx) * shot.edgeX : aimX(direction, targetIdx, rng, prefer?.x, attacker.stats.accuracy);
   // A ball exactly on the centre line goes to the player it was aimed at (random for a middle ball), not always to the right-hand one.
   const defIdx = landX === undefined || Math.abs(landX) < 1e-6 ? targetIdx : landX < 0 ? 0 : 1;
   const defender = fatigued(teams[defSide][defIdx], state.guts[teams[defSide][defIdx].id]);
