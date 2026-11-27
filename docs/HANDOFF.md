@@ -1,6 +1,13 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.166)_
+_Last updated: 2026-11-27 (v0.167)_
+
+## v0.167: loading screen and studio board
+- `BootScene`: the loading text was drawn small in a corner because `applyHd` ran only in `create()`; it now runs first in `preload()`.
+  New loader in the app palette: night gradient, a hopping ball with a squashing shadow, a rounded orange progress bar, `LOADING n%`.
+- `StudioScene` (new, between Boot and Splash): black screen, `DAVJ STUDIO` fades up to pure white, holds, fades out; a touch skips it.
+  The studio icon is not in yet: the owner is choosing between three proposals (A slash D, B hexagon signet, C pixel D); sheet in
+  `/home/claude/studio/sheet.svg` (not in the repo). Once chosen, draw it above the name in `StudioScene`.
 
 ## v0.166: camp tasks, tutorial, privacy button, division names, living start screen
 - **Camp:** smash show star thresholds are now 250 / 450 / 600 (`camp.json`). A finished trial counts for daily and weekly tasks

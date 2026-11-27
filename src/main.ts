@@ -40,6 +40,7 @@ import { SeasonEndScene } from './scenes/SeasonEndScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { TitleScene } from './scenes/TitleScene';
 import { SplashScene } from './scenes/SplashScene';
+import { StudioScene } from './scenes/StudioScene';
 import { StartScene } from './scenes/StartScene';
 
 // Portrait layout (360x640 logical), drawn on a canvas HD_SCALE times bigger and scaled to fit any screen.
@@ -58,7 +59,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // The first scene in the list starts automatically.
-  scene: [BootScene, SplashScene, StartScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, SeasonEndScene, CutsceneScene],
+  scene: [BootScene, StudioScene, SplashScene, StartScene, TitleScene, SettingsScene, CharacterScene, SpecialScene, GearScene, ShopScene, PackScene, CalendarScene, BracketScene, PartnerScene, MatchScene, ResultScene, AchievementsScene, CupsScene, CampScene, MinigameScene, CampResultScene, CampGoalsScene, DailyScene, WeeklyScene, MapScene, RankingScene, ConfirmScene, NameEditScene, CollectionScene, TutorialScene, TipScene, SeasonEndScene, CutsceneScene],
 });
 
 
