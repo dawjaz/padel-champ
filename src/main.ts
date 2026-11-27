@@ -9,6 +9,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import '@fontsource/anton/latin-400.css';
 import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
+import { initNative } from './native';
 import { BootScene } from './scenes/BootScene';
 import { CharacterScene } from './scenes/CharacterScene';
 import { SpecialScene } from './scenes/SpecialScene';
@@ -70,4 +71,6 @@ const game = new Phaser.Game({
 
 // Dev server only: lets screenshot scripts jump to a scene.
 // Development builds only: handles for automated checks (the game and the shot list).
+initNative(() => game.scene.getScenes(true)[0]?.scene.key);
+
 if (import.meta.env.DEV) Object.assign(window as unknown as Record<string, unknown>, { __game: game, __shots: SHOTS, __players: playersData });

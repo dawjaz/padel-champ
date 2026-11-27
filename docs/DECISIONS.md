@@ -110,3 +110,9 @@ cap + `gearHeadroom` so it cannot fill the scale early. Old saves are converted 
   languages: they are the names of the shots in padel.
 - The language switch is on the title screen and in Settings; the choice is saved with the game.
 
+
+## 2026-11-27: Capacitor added (v0.169)
+- Added early (before sounds and store accounts) because it is only a shell around `dist/`: game changes need just `npm run build && npx cap sync`.
+  It surfaces phone-only problems (audio unlock, storage, back button, safe areas) while there is time to fix them.
+- appId `studio.davj.portres` (owner approved). Plugins: app, browser (privacy page), splash-screen. Status bar plugin installed but not configured (default, no overlay).
+- Build steps and signing notes: `docs/APP.md`.

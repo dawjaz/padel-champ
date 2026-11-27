@@ -10,7 +10,7 @@ Runs in the browser first; Android and iOS builds come later via Capacitor.
 ## Stack
 - Phaser 3 + TypeScript (strict) + Vite
 - Vitest for unit tests (game logic only; scenes are not unit-tested)
-- Capacitor for Android/iOS (not added yet, see docs/DECISIONS.md)
+- Capacitor for Android/iOS (added in v0.169, see docs/APP.md)
 
 ## Commands
 - `npm install`

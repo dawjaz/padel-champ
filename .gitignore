@@ -18,3 +18,8 @@ android/app/build/
 android/.gradle/
 ios/App/Pods/
 ios/App/build/
+android/local.properties
+android/app/release/
+android/capacitor-cordova-android-plugins/build/
+ios/App/App/public/
+android/app/src/main/assets/public/

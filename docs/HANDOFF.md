@@ -1,6 +1,11 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.168)_
+_Last updated: 2026-11-27 (v0.169)_
+
+## v0.169: Capacitor
+- `capacitor.config.ts`, `android/`, `ios/` (projects added, icons from `design/brand/`), `src/native.ts` (system browser for the privacy page, Android back button, splash hide).
+  How to build and sign: `docs/APP.md`. The APK was NOT built here (no Android SDK or Gradle download in this workspace), so the first build on the owner's machine is untested.
+- Next: owner builds the debug APK and tests on the phone (sound after first tap, saves, back button, notch, privacy link).
 
 ## v0.168: studio mark (Turbo), Corner Lock buttons
 - Owner chose the "Turbo" studio mark: a heavy forward-leaning D with a small j cut out (square dot). `src/art/studioMark.ts` draws it

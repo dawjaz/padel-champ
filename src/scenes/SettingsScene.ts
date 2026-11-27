@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { openUrl } from '../native';
 import { WIDTH } from '../config';
 import { DEBUG } from '../debug';
 import { getSave, resetSave, updateSave } from '../save';
@@ -76,7 +77,7 @@ export class SettingsScene extends Phaser.Scene {
 
     // The privacy policy lives on the game's web page (it opens in the browser; the Spanish page for the Spanish edition).
     makeThemeButton(this, WIDTH / 2, y, 260, BTN, 'PRIVACY POLICY', () => {
-      window.open(PRIVACY_URL + (getLang() === 'es' ? '#es' : ''), '_blank', 'noopener');
+      openUrl(PRIVACY_URL + (getLang() === 'es' ? '#es' : ''));
     }, 'blue', 19);
     y += BTN + 14;
 
