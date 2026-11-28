@@ -50,7 +50,7 @@ Funciona sin conexión. No necesitas cuenta.
 **Tags (elegir en Play Console):** Deportes, Deportes de raqueta, Táctica, Un jugador, Sin conexión, Estilizado
 **Content rating:** rellenar el cuestionario IARC (sin violencia, sin apuestas, sin contenido de usuarios, sin datos compartidos: PEGI 3 / Todos previsto)
 **Contact email:** _(obligatorio, por rellenar)_
-**Privacy policy URL:** https://dawjaz.github.io/padel-champ/privacy.html#es
+**Privacy policy URL:** https://portresgame.com/privacy.html#es
 
 ---
 
@@ -73,7 +73,7 @@ _El mismo texto que la descripción completa de Google Play de arriba._
 
 **Primary category:** Juegos — subcategorías Deportes, Estrategia
 **Age rating:** rellenar el cuestionario (4+ previsto)
-**Privacy policy URL:** https://dawjaz.github.io/padel-champ/privacy.html#es
+**Privacy policy URL:** https://portresgame.com/privacy.html#es
 **App privacy ("nutrition label"):** Datos no recopilados (cierto en esta versión: ver `store/privacy-policy-es.md`)
 
 ---

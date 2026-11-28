@@ -49,7 +49,7 @@ Plays offline. No account needed.
 **Tags (choose in Play Console):** Sports, Racket sports, Tactics, Single player, Offline, Stylized
 **Content rating:** fill in the IARC questionnaire (no violence, no gambling, no user content, no data shared: expected PEGI 3 / Everyone)
 **Contact email:** _(required, to be filled in)_
-**Privacy policy URL:** https://dawjaz.github.io/padel-champ/privacy.html
+**Privacy policy URL:** https://portresgame.com/privacy.html
 
 **Graphics**
 - App icon 512 × 512: `design/brand/play-store-512.png`
@@ -78,7 +78,7 @@ _Same text as the Google Play full description above._
 **Primary category:** Games — subcategories Sports, Strategy
 **Age rating:** fill in the questionnaire (expected 4+)
 **Support URL:** _(required: a page or the repository's README with a contact email, to be filled in)_
-**Privacy policy URL:** https://dawjaz.github.io/padel-champ/privacy.html
+**Privacy policy URL:** https://portresgame.com/privacy.html
 **App privacy ("nutrition label"):** Data Not Collected (true for this version: see `store/privacy-policy.md`)
 
 **Screenshots**

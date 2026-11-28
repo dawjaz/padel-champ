@@ -10,7 +10,7 @@ import { getLang, LANG_LABEL, T, type Lang } from '../i18n';
 const pair = (name: string, value: string): string => `${T(name)}: ${T(value)}`;
 
 /** The published privacy policy (public/privacy.html on the game's site). */
-export const PRIVACY_URL = 'https://dawjaz.github.io/padel-champ/privacy.html';
+export const PRIVACY_URL = 'https://portresgame.com/privacy.html';
 
 export class SettingsScene extends Phaser.Scene {
   constructor() {

@@ -1,7 +1,7 @@
 # Privacy Policy — PorTres: Padel Career
 
 _Draft. Fill in the two fields in square brackets before publishing. The hosted copy is `public/privacy.html`
-(https://dawjaz.github.io/padel-champ/privacy.html); keep both in step._
+(https://portresgame.com/privacy.html); keep both in step._
 
 **Effective date:** [date of release]
 
@@ -19,9 +19,20 @@ device. You can delete them at any time with Settings › RESET SAVE, by uninsta
 clearing the site's data.
 
 ## Network
-The installed app works offline. The web version is hosted on GitHub Pages: when you open it, your browser downloads the
-game's files from GitHub's servers, and GitHub may record technical data such as your IP address for security and
-operation, as described in the GitHub Privacy Statement (https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
+The installed app works offline.
+
+The game's website, **portresgame.com**, runs on a server we rent from Contabo in the European Union (Germany). Visits
+pass through Cloudflare, which protects the site against attacks and delivers it faster. To do this, Cloudflare and our
+server necessarily process your IP address and basic technical data about each request (such as its time and your
+browser type). We do this on the basis of our legitimate interest in running a secure website (Art. 6(1)(f) GDPR). Our
+server does not keep a log of visits, and we do not use this data to identify you. Cloudflare describes its own
+processing in its privacy policy (https://www.cloudflare.com/privacypolicy/). The website sets no cookies of its own and
+uses no analytics or trackers; Cloudflare may set a strictly necessary security cookie to tell people from bots. Links
+to our social media profiles take you to those services, where their own privacy policies apply.
+
+The web version of the game is hosted on GitHub Pages: when you open it, your browser downloads the game's files from
+GitHub's servers, and GitHub may record technical data such as your IP address for security and operation, as described
+in the GitHub Privacy Statement (https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 We do not receive those records.
 
 ## Permissions

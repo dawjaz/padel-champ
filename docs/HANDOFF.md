@@ -1,6 +1,21 @@
 # Handoff
 
-_Last updated: 2026-11-27 (v0.169)_
+_Last updated: 2026-11-28 (v0.171)_
+
+## v0.171: website on portresgame.com (own server)
+- The owner bought **portresgame.com** (Cloudflare) and runs a Contabo VPS (Germany) with **Coolify**; Cloudflare proxies the domain
+  (SSL Full strict). Server notes live in the owner's project doc `claude/portres-serwer.md`, not in the repo.
+- **`site/`**: `Dockerfile` (nginx) + `nginx.conf` serve `public/landing/` as the site root and `public/privacy.html` at `/privacy.html`.
+  The files stay in `public/` so GitHub Pages still publishes them under `/landing/`. `.dockerignore` keeps the Docker context to
+  those files. nginx keeps no access log (the privacy policy says so). Checked locally with nginx: pages, media and 404 work.
+  Coolify setup: build pack "Dockerfile", base directory `/`, Dockerfile `/site/Dockerfile`, port 80, domains
+  `https://portresgame.com,https://www.portresgame.com`.
+- **Privacy policy** (html + both store md files): the Network section now describes the website (Contabo server in the EU, Cloudflare,
+  legitimate interest, no visit log, no own cookies, a possible Cloudflare security cookie); the GitHub Pages paragraph stays for the web game.
+- **Privacy URL is now `https://portresgame.com/privacy.html`** (Settings button `PRIVACY_URL`, store listings, store README).
+- Landing: "Play the web version" now links to `https://dawjaz.github.io/padel-champ/` (the owner keeps the link for now); the privacy
+  link stays `../privacy.html`, which works both at the domain root and under `/landing/`.
+- Email signup form is still a placeholder (`action="#"`).
 
 ## v0.169: Capacitor
 - `capacitor.config.ts`, `android/`, `ios/` (projects added, icons from `design/brand/`), `src/native.ts` (system browser for the privacy page, Android back button, splash hide).

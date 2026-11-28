@@ -1,0 +1,5 @@
+# Only the website (site/Dockerfile) is built with Docker; keep the build context small.
+*
+!site/
+!public/landing/
+!public/privacy.html

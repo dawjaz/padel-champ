@@ -1,7 +1,7 @@
 # Política de privacidad — PorTres: Padel Career
 
 _Borrador. Rellena los campos entre corchetes antes de publicar. La copia alojada es `public/privacy.html`
-(https://dawjaz.github.io/padel-champ/privacy.html#es); mantén ambas versiones y `privacy-policy.md` al día._
+(https://portresgame.com/privacy.html#es); mantén ambas versiones y `privacy-policy.md` al día._
 
 **Fecha de entrada en vigor:** [fecha de lanzamiento]
 
@@ -19,10 +19,22 @@ Nunca salen de tu dispositivo. Puedes borrarlos en cualquier momento con Ajustes
 o, en un navegador, borrando los datos del sitio.
 
 ## Red
-La aplicación instalada funciona sin conexión. La versión web está alojada en GitHub Pages: al abrirla, tu navegador descarga
-los archivos del juego de los servidores de GitHub, y GitHub puede registrar datos técnicos como tu dirección IP por
-seguridad y funcionamiento, tal como describe la Declaración de privacidad de GitHub
-(https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement). Nosotros no recibimos esos registros.
+La aplicación instalada funciona sin conexión.
+
+El sitio web del juego, **portresgame.com**, funciona en un servidor que alquilamos a Contabo en la Unión Europea
+(Alemania). Las visitas pasan por Cloudflare, que protege el sitio contra ataques y lo sirve más rápido. Para ello,
+Cloudflare y nuestro servidor tratan necesariamente tu dirección IP y datos técnicos básicos de cada solicitud (como la
+hora y el tipo de navegador). Lo hacemos sobre la base de nuestro interés legítimo en mantener un sitio web seguro (art.
+6.1.f del RGPD). Nuestro servidor no guarda un registro de visitas y no usamos estos datos para identificarte.
+Cloudflare describe su propio tratamiento en su política de privacidad (https://www.cloudflare.com/privacypolicy/). El
+sitio no instala cookies propias ni usa analítica ni rastreadores; Cloudflare puede instalar una cookie de seguridad
+estrictamente necesaria para distinguir personas de bots. Los enlaces a nuestros perfiles en redes sociales te llevan a
+esos servicios, donde se aplican sus propias políticas de privacidad.
+
+La versión web del juego está alojada en GitHub Pages: al abrirla, tu navegador descarga los archivos del juego de los
+servidores de GitHub, y GitHub puede registrar datos técnicos como tu dirección IP por seguridad y funcionamiento, tal
+como describe la Declaración de privacidad de GitHub (https://docs.github.com/site-policy/privacy-policies/github-
+general-privacy-statement). Nosotros no recibimos esos registros.
 
 ## Permisos
 El juego no pide ningún permiso (ni cámara, micrófono, ubicación, contactos o archivos).
