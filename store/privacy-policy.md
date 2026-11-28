@@ -1,12 +1,12 @@
 # Privacy Policy — PorTres: Padel Career
 
-_Draft. Fill in the two fields in square brackets before publishing. The hosted copy is `public/privacy.html`
+_Draft. Fill in the effective date (in square brackets) before publishing. The hosted copy is `public/privacy.html`
 (https://portresgame.com/privacy.html); keep both in step._
 
 **Effective date:** [date of release]
 
 PorTres: Padel Career ("the game") is made by Dawid Jaz, who is responsible for this policy.
-Contact: [contact email].
+Contact: portresgame@gmail.com. Website: https://portresgame.com.
 
 ## In short
 The game does not collect any personal data. There is no account, no sign-in, no analytics, no advertising and no

@@ -13,8 +13,10 @@ _Last updated: 2026-11-28 (v0.171)_
 - **Privacy policy** (html + both store md files): the Network section now describes the website (Contabo server in the EU, Cloudflare,
   legitimate interest, no visit log, no own cookies, a possible Cloudflare security cookie); the GitHub Pages paragraph stays for the web game.
 - **Privacy URL is now `https://portresgame.com/privacy.html`** (Settings button `PRIVACY_URL`, store listings, store README).
-- Landing: "Play the web version" now links to `https://dawjaz.github.io/padel-champ/` (the owner keeps the link for now); the privacy
+- Landing: the "Play the web version" link is **removed** (owner, 28.11: the test build must not be offered on the site); the privacy
   link stays `../privacy.html`, which works both at the domain root and under `/landing/`.
+- Privacy policy: contact `portresgame@gmail.com` and website `https://portresgame.com` filled in (html, both md files); only the
+  effective date is still a placeholder. Store listings: contact email filled in, Support URL `https://portresgame.com`.
 - Email signup form is still a placeholder (`action="#"`).
 - **Live** at https://portresgame.com since 2026-11-28 (Coolify app from this repo, Ports Exposes 80; the first try gave Bad Gateway
   because Coolify's default port was 3000). Updates are manual for now: press Redeploy in Coolify after pushing (no webhook yet).

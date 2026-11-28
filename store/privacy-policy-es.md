@@ -1,12 +1,12 @@
 # Política de privacidad — PorTres: Padel Career
 
-_Borrador. Rellena los campos entre corchetes antes de publicar. La copia alojada es `public/privacy.html`
+_Borrador. Rellena la fecha de entrada en vigor (entre corchetes) antes de publicar. La copia alojada es `public/privacy.html`
 (https://portresgame.com/privacy.html#es); mantén ambas versiones y `privacy-policy.md` al día._
 
 **Fecha de entrada en vigor:** [fecha de lanzamiento]
 
 PorTres: Padel Career («el juego») está creado por Dawid Jaz, responsable de esta política.
-Contacto: [correo de contacto].
+Contacto: portresgame@gmail.com. Sitio web: https://portresgame.com.
 
 ## En resumen
 El juego no recopila ningún dato personal. No hay cuenta, ni inicio de sesión, ni analítica, ni publicidad, ni compras

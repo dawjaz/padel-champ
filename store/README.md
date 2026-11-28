@@ -3,7 +3,7 @@
 - `listing-en.md`, `listing-es.md`: Google Play and App Store texts (English, Spanish), with the fields each store asks for and the checks before submitting.
   `python3 store/check.py` checks the character limits.
 - `privacy-policy.md`, `privacy-policy-es.md`: the privacy policy (source, English and Spanish; the hosted page has both, `#es` opens the Spanish one). The hosted copy is `public/privacy.html`, served at https://portresgame.com/privacy.html (site/, Coolify) and also published with the game at
-  https://dawjaz.github.io/padel-champ/privacy.html. Fill in the developer's name, contact email and the date in both.
+  https://dawjaz.github.io/padel-champ/privacy.html. Developer name, contact email (portresgame@gmail.com) and website are filled in; only the effective date is left (both files).
 - `screenshots/play/` (1080 x 1920) and `screenshots/ios-6.9/` (1320 x 2868): captioned screenshots, 8 each.
 - `graphics/feature-graphic-1024x500.png`: Google Play feature graphic. The 512 px icon is `design/brand/play-store-512.png`.
 - `raw/`: the game captures (720 x 1280 canvas snapshots) the screenshots are made from; `compose.py` rebuilds everything

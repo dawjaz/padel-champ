@@ -49,7 +49,7 @@ Funciona sin conexión. No necesitas cuenta.
 **Category:** Juegos › Deportes
 **Tags (elegir en Play Console):** Deportes, Deportes de raqueta, Táctica, Un jugador, Sin conexión, Estilizado
 **Content rating:** rellenar el cuestionario IARC (sin violencia, sin apuestas, sin contenido de usuarios, sin datos compartidos: PEGI 3 / Todos previsto)
-**Contact email:** _(obligatorio, por rellenar)_
+**Contact email:** portresgame@gmail.com
 **Privacy policy URL:** https://portresgame.com/privacy.html#es
 
 ---
