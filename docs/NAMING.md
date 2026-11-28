@@ -7,6 +7,18 @@ Writing: PorTres (logo, store, social), POR TRES (in-game UI, all capitals), "Po
 No game, app or brand named PorTres / Por Tres was found. Results for "tres" are card games and dice games (other category, no conflict).
 This is NOT a trademark search. The databases below were not queried.
 
+## Name check 2026-11-28 (web search only, still NOT a trademark search)
+- No game, app or brand named PorTres / Por Tres found again (App Store, trademark listings, web). Neighbouring results are unrelated (e.g. "Tres Amigos", "Cero a Tres").
+- **"Por tres" is a padel term**: the "remate por 3", a smash that bounces off the back glass and leaves over the 3 m side wall (also written x3; "por 4" leaves over the back wall).
+  Padel dictionaries and coaching sites use it freely. Consequences: (1) great for padel players, who will recognise it at once, and for search in Spanish;
+  (2) as a *padel* word it may be judged descriptive or weak for sports goods and training content, so a trademark in classes 9/41/28 could be harder to get or enforce;
+  ask an attorney, and keep the full title "PorTres: Padel Career" together with the logo. (3) Googling "por tres padel" returns lots of technique articles: the
+  brand will take effort to rank (use "PorTres" as one word plus the game name).
+- Competition (all found 2026-11-28): Red Bull Padel: Court Legends (Premier Padel licence, launched 28 May 2026, free-to-play online), Padel Clash, Padel Pro Clash Game,
+  Simply Padel (Steam, Early Access), Padel Pro World Tour (Switch, 2 Jul 2026), padel academy management games on Steam. None uses PorTres. Our angle (a 2D career game
+  with command-based duels, specials, camp, offline) differs from the licensed realistic ones. Avoid the real brands "Premier Padel", "FIP", "Red Bull" in any text
+  (the divisions were renamed in v0.166 for this reason).
+
 ## To do by hand (owner, about an hour)
 1. **Trademark.** Search PORTRES and POR TRES (and the spelling variants PORTRESS, PORTRE) in
    - TMview (EUIPO, covers the EU and national offices incl. Poland): https://www.tmdn.org/tmview
