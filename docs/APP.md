@@ -5,8 +5,8 @@ The apps are only a shell around the web build (`dist/`); the game code is the s
 (system browser for the privacy page, Android back button, splash hide); in a browser it does nothing.
 
 ## Every time the game changed
-    npm run build
-    npx cap sync          # copies dist/ into android/ and ios/
+    npm run build:app     # build without the marketing page (public/landing), then cap sync
+    # (build:app already ran cap sync; run `npx cap sync` alone only after a plain npm run build)
 
 ## Android (needs Android Studio or the Android SDK + JDK 21)
     npx cap open android  # then Run on a phone with USB debugging, or Build > Build APK(s)

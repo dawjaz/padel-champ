@@ -38,6 +38,12 @@
   .lang button { padding:8px 14px; min-height:40px; border-radius:10px; background:var(--card); color:var(--text); font-size:.9rem; }
   .lang button.on { background:var(--orange); }
   .links { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .links.left { justify-content:flex-start; }
+  .btn2 { background:var(--card); border:2px solid #243080; border-radius:12px; color:var(--text) !important; text-decoration:none; font-weight:700; }
+  .social a { border:1px solid #243080; border-radius:10px; text-decoration:none; }
+  .clips { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media (min-width:720px){ .clips { grid-template-columns:repeat(4,1fr); } }
+  .clips video { max-width:none; aspect-ratio:9/16; }
   .links a { display:inline-block; padding:12px 14px; min-height:44px; }
   footer { text-align:center; font-size:.9rem; opacity:.75; border-top:1px solid #1b2460; }
 </style>
@@ -65,6 +71,16 @@
 </section>
 
 <section>
+  <h2 data-i18n="h_clips">Gameplay</h2>
+  <div class="clips">
+    <video src="clips/1_sky_rocket.mp4" poster="clips/1_sky_rocket.jpg" controls muted loop playsinline preload="none"></video>
+    <video src="clips/2_use_the_glass.mp4" poster="clips/2_use_the_glass.jpg" controls muted loop playsinline preload="none"></video>
+    <video src="clips/3_time_the_smash.mp4" poster="clips/3_time_the_smash.jpg" controls muted loop playsinline preload="none"></video>
+    <video src="clips/4_corner_lock.mp4" poster="clips/4_corner_lock.jpg" controls muted loop playsinline preload="none"></video>
+  </div>
+</section>
+
+<section>
   <h2 data-i18n="h_shots">Screenshots</h2>
   <div class="shots">
     <img src="01-tactical-padel.jpg" alt="Tactical padel match" loading="lazy">
@@ -83,6 +99,13 @@
     <button type="submit" data-i18n="btn">NOTIFY ME</button>
   </form>
   <p class="note" id="msg" data-i18n="note">One email at launch, nothing else. No spam.</p>
+</section>
+
+<section>
+  <h2 data-i18n="h_contact">Press and contact</h2>
+  <p><span data-i18n="contact_t">Questions, press or testing? Write to</span> <a href="mailto:portresgame@gmail.com">portresgame@gmail.com</a>.</p>
+  <p class="links left"><a class="btn2" href="portres-press-kit.zip" download data-i18n="presskit">Download the press kit (clips, screenshots, logo)</a></p>
+  <p class="links left social"><a href="https://www.youtube.com/@portresgame" rel="noopener">YouTube</a><a href="https://www.instagram.com/portresgame" rel="noopener">Instagram</a><a href="https://www.tiktok.com/@portresgame" rel="noopener">TikTok</a><a href="https://x.com/portresgame" rel="noopener">X</a></p>
 </section>
 
 <footer>
@@ -105,6 +128,10 @@ var T = {
  f3:{en:'Build up guts and unleash Sky Rocket, Venom, Corner Lock and Freeze at the right moment.',pl:'Zbieraj energię i odpal Sky Rocket, Venom, Corner Lock i Freeze w odpowiednim momencie.',es:'Acumula energía y lanza Sky Rocket, Venom, Corner Lock y Freeze en el momento justo.'},
  f4t:{en:'A real career',pl:'Prawdziwa kariera',es:'Una carrera de verdad'},
  f4:{en:'Level up, spend skill points, collect gear, enter cups and chase the ranking.',pl:'Zdobywaj poziomy, rozdawaj punkty umiejętności, zbieraj sprzęt, graj w pucharach i goń ranking.',es:'Sube de nivel, reparte puntos de habilidad, colecciona equipo, juega copas y persigue el ranking.'},
+ h_clips:{en:'Gameplay',pl:'Rozgrywka',es:'Juego'},
+ h_contact:{en:'Press and contact',pl:'Prasa i kontakt',es:'Prensa y contacto'},
+ contact_t:{en:'Questions, press or testing? Write to',pl:'Pytania, prasa albo testy? Napisz na',es:'¿Preguntas, prensa o pruebas? Escribe a'},
+ presskit:{en:'Download the press kit (clips, screenshots, logo)',pl:'Pobierz zestaw prasowy (klipy, zrzuty, logo)',es:'Descarga el kit de prensa (clips, capturas, logo)'},
  h_shots:{en:'Screenshots',pl:'Zrzuty ekranu',es:'Capturas'},
  h_notify:{en:'Get notified at launch',pl:'Powiadom mnie o premierze',es:'Avísame del lanzamiento'},
  btn:{en:'NOTIFY ME',pl:'POWIADOM MNIE',es:'AVÍSAME'},
