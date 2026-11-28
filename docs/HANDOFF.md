@@ -1364,3 +1364,8 @@ Test reports (4 testers, EN+ES, 17 sizes) were in `/home/claude/devtest/A-D` (no
 - Title bottom row moved up a few px, version line 10 px.
 - NOT verified on real devices (URL bar, real insets, real touch): test on one iPhone and one Android before release. After `npm run build` run `npx cap sync` so the native apps get the new web files.
 - Still open from the device test (low): hard seam between light scenes and the dark letterbox bars; Result scene sparse; Match top bar flat grey. Landing page: trim the empty lower half of the video, 2x screenshots, bigger footer links.
+
+## Social clips: smooth recording (2026-11-28)
+- `scripts/recordFrames.py` (needs the dev server on :5199 and `/home/claude/store_shots/common.py`): steps the Phaser game by a fixed 1/30 s (`game.loop.sleep()` + `game.step`) and saves every canvas frame, so clips are smooth whatever the speed of the machine (Playwright video lagged under software rendering). It overrides `performance.now` with the virtual clock; the bot clicks the timing ring about 10 ms before it closes. Usage: `python3 recordFrames.py NAME SECONDS mix|specials|glass 10`.
+- The bot answers the serve-return choice (AFTER BOUNCE / WAIT FOR THE GLASS) at once. Known flaw: when the bot itself serves ("Hard glass" and similar) it logs MISTIMED/FAULT, so pick clip windows without its own serves.
+- Frames to clip: ffmpeg `-framerate 30 -start_number N -i frames/%05d.jpg`, crop `720:1160:0:0`, scale to 972x1566 on the 1080x1920 branded background (`brand.py` outside the repo).
