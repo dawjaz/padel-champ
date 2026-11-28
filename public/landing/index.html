@@ -20,43 +20,52 @@
   h1 span { color:var(--orange); }
   .tag { color:var(--gold); font-weight:700; font-size:1.2rem; margin:0 0 14px; }
   h2 { font-size:1.5rem; color:var(--gold); margin:0 0 16px; }
-  video { width:100%; max-width:300px; border-radius:18px; border:2px solid #243080; background:#000; justify-self:center; }
+  video { width:100%; max-width:300px; aspect-ratio:720/1160; border-radius:18px; border:2px solid #243080; background:#000; justify-self:center; }
   .badge { display:inline-block; background:var(--lime); color:#10200a; font-weight:800; border-radius:999px; padding:6px 16px; font-size:.9rem; margin-bottom:16px; }
-  .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .features { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (min-width:720px){ .features { grid-template-columns:repeat(4,1fr); } }
+  @media (max-width:420px){ .features { grid-template-columns:1fr; } }
   .features div { background:var(--card); border-radius:14px; padding:16px 18px; }
   .features b { color:var(--lime); display:block; margin-bottom:4px; }
+  .features span { font-size:.95rem; }
   .shots { display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; scroll-snap-type:x mandatory; }
-  .shots img { height:420px; border-radius:14px; scroll-snap-align:start; border:1px solid #243080; }
+  .shots img { height:420px; width:auto; border-radius:14px; scroll-snap-align:start; border:1px solid #243080; }
   form { display:flex; flex-wrap:wrap; gap:10px; }
   input[type=email] { flex:1 1 240px; padding:14px 16px; border-radius:12px; border:2px solid #243080; background:var(--card); color:var(--text); font-size:1rem; }
   button { padding:14px 22px; border:0; border-radius:12px; background:var(--orange); color:#fff; font-weight:800; font-size:1rem; cursor:pointer; }
   .note { font-size:.85rem; opacity:.7; margin-top:8px; }
+  .lang { max-width:960px; margin:0 auto; padding:14px 20px 0; display:flex; gap:6px; justify-content:flex-end; }
+  .lang button { padding:8px 14px; min-height:40px; border-radius:10px; background:var(--card); color:var(--text); font-size:.9rem; }
+  .lang button.on { background:var(--orange); }
+  .links { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .links a { display:inline-block; padding:12px 14px; min-height:44px; }
   footer { text-align:center; font-size:.9rem; opacity:.75; border-top:1px solid #1b2460; }
 </style>
 </head>
 <body>
+<nav class="lang" aria-label="Language"><button data-l="en">EN</button><button data-l="pl">PL</button><button data-l="es">ES</button></nav>
 <header class="hero">
   <div>
-    <span class="badge">COMING SOON · ANDROID &amp; iOS</span>
+    <span class="badge" data-i18n="badge">COMING SOON · ANDROID &amp; iOS</span>
     <h1>Por<span>Tres</span><br>Padel Career</h1>
-    <p class="tag">Call every shot. Climb the ranks.</p>
-    <p>A tactical padel game for your phone. Pick the shot, aim at the gap, time your swing and use the glass. Build your player, win cups and work your way from the club courts to the big finals. Plays offline, no ads, no accounts.</p>
+    <p class="tag" data-i18n="tag">Call every shot. Climb the ranks.</p>
+    <p data-i18n="intro">A tactical padel game for your phone. Pick the shot, aim at the gap, time your swing and use the glass. Build your player, win cups and work your way from the club courts to the big finals. Plays offline, no ads, no accounts.</p>
   </div>
   <video src="gameplay.mp4" poster="poster.jpg" autoplay muted loop playsinline controls></video>
 </header>
 
 <section>
-  <h2>How it plays</h2>
+  <h2 data-i18n="h_how">How it plays</h2>
   <div class="features">
-    <div><b>Command duels</b>Choose the shot and the target, then time the swing. Every rally is a small chess game.</div>
-    <div><b>Use the glass</b>Walls are part of the court. Wait for the rebound or hit before the bounce.</div>
-    <div><b>Special moves</b>Build up guts and unleash Sky Rocket, Venom, Corner Lock and Freeze at the right moment.</div>
-    <div><b>A real career</b>Level up, spend skill points, collect gear, enter cups and chase the ranking.</div>
+    <div><b data-i18n="f1t">Command duels</b><span data-i18n="f1">Choose the shot and the target, then time the swing. Every rally is a small chess game.</span></div>
+    <div><b data-i18n="f2t">Use the glass</b><span data-i18n="f2">Walls are part of the court. Wait for the rebound or hit before the bounce.</span></div>
+    <div><b data-i18n="f3t">Special moves</b><span data-i18n="f3">Build up guts and unleash Sky Rocket, Venom, Corner Lock and Freeze at the right moment.</span></div>
+    <div><b data-i18n="f4t">A real career</b><span data-i18n="f4">Level up, spend skill points, collect gear, enter cups and chase the ranking.</span></div>
   </div>
 </section>
 
 <section>
-  <h2>Screenshots</h2>
+  <h2 data-i18n="h_shots">Screenshots</h2>
   <div class="shots">
     <img src="01-tactical-padel.jpg" alt="Tactical padel match" loading="lazy">
     <img src="02-call-every-shot.jpg" alt="Choosing a shot" loading="lazy">
@@ -67,17 +76,53 @@
 </section>
 
 <section>
-  <h2>Get notified at launch</h2>
+  <h2 data-i18n="h_notify">Get notified at launch</h2>
   <!-- TODO(owner): pick a mail service (Buttondown, Formspree, MailerLite...) and put its form URL in action. -->
-  <form action="#" method="post" onsubmit="event.preventDefault(); document.getElementById('msg').textContent='Signup is not connected yet. Check back soon!';">
+  <form action="#" method="post" onsubmit="event.preventDefault(); document.getElementById('msg').textContent=T.nosignup[LANG];">
     <input type="email" name="email" placeholder="your@email.com" required aria-label="Email">
-    <button type="submit">NOTIFY ME</button>
+    <button type="submit" data-i18n="btn">NOTIFY ME</button>
   </form>
-  <p class="note" id="msg">One email at launch, nothing else. No spam.</p>
+  <p class="note" id="msg" data-i18n="note">One email at launch, nothing else. No spam.</p>
 </section>
 
 <footer>
-  <p>Made by Dawid Jaz · DAVJ STUDIO · <a href="../privacy.html">Privacy policy</a> · <a href="../">Play the web version</a></p>
+  <p><span data-i18n="made">Made by</span> Dawid Jaz · DAVJ STUDIO</p>
+  <p class="links"><a href="../privacy.html" data-i18n="priv">Privacy policy</a><a href="../" data-i18n="play">Play the web version</a></p>
 </footer>
+<script>
+var T = {
+ badge:{en:'COMING SOON · ANDROID & iOS',pl:'WKRÓTCE · ANDROID i iOS',es:'PRÓXIMAMENTE · ANDROID E iOS'},
+ tag:{en:'Call every shot. Climb the ranks.',pl:'Wybieraj każde uderzenie. Wspinaj się w rankingu.',es:'Elige cada golpe. Sube en el ranking.'},
+ intro:{en:'A tactical padel game for your phone. Pick the shot, aim at the gap, time your swing and use the glass. Build your player, win cups and work your way from the club courts to the big finals. Plays offline, no ads, no accounts.',
+        pl:'Taktyczna gra w padla na telefon. Wybierz uderzenie, wyceluj w lukę, trafiaj w timing i wykorzystuj szyby. Rozwijaj zawodnika, wygrywaj puchary i przejdź drogę od klubowych kortów do wielkich finałów. Działa offline, bez reklam i bez kont.',
+        es:'Un juego táctico de pádel para tu móvil. Elige el golpe, apunta al hueco, calcula el momento y aprovecha los cristales. Mejora a tu jugador, gana copas y sube desde las pistas del club hasta las grandes finales. Funciona sin conexión, sin anuncios y sin cuentas.'},
+ h_how:{en:'How it plays',pl:'Jak się gra',es:'Cómo se juega'},
+ f1t:{en:'Command duels',pl:'Pojedynki komendami',es:'Duelos por órdenes'},
+ f1:{en:'Choose the shot and the target, then time the swing. Every rally is a small chess game.',pl:'Wybierasz uderzenie i cel, potem łapiesz timing. Każda wymiana to mała partia szachów.',es:'Elige el golpe y el objetivo, luego calcula el momento. Cada rally es una pequeña partida de ajedrez.'},
+ f2t:{en:'Use the glass',pl:'Szyby w grze',es:'Usa el cristal'},
+ f2:{en:'Walls are part of the court. Wait for the rebound or hit before the bounce.',pl:'Ściany to część kortu. Poczekaj na odbicie albo uderz przed odbiciem od ziemi.',es:'Las paredes son parte de la pista. Espera el rebote o golpea antes del bote.'},
+ f3t:{en:'Special moves',pl:'Zagrania specjalne',es:'Golpes especiales'},
+ f3:{en:'Build up guts and unleash Sky Rocket, Venom, Corner Lock and Freeze at the right moment.',pl:'Zbieraj energię i odpal Sky Rocket, Venom, Corner Lock i Freeze w odpowiednim momencie.',es:'Acumula energía y lanza Sky Rocket, Venom, Corner Lock y Freeze en el momento justo.'},
+ f4t:{en:'A real career',pl:'Prawdziwa kariera',es:'Una carrera de verdad'},
+ f4:{en:'Level up, spend skill points, collect gear, enter cups and chase the ranking.',pl:'Zdobywaj poziomy, rozdawaj punkty umiejętności, zbieraj sprzęt, graj w pucharach i goń ranking.',es:'Sube de nivel, reparte puntos de habilidad, colecciona equipo, juega copas y persigue el ranking.'},
+ h_shots:{en:'Screenshots',pl:'Zrzuty ekranu',es:'Capturas'},
+ h_notify:{en:'Get notified at launch',pl:'Powiadom mnie o premierze',es:'Avísame del lanzamiento'},
+ btn:{en:'NOTIFY ME',pl:'POWIADOM MNIE',es:'AVÍSAME'},
+ note:{en:'One email at launch, nothing else. No spam.',pl:'Jeden e-mail w dniu premiery, nic więcej. Bez spamu.',es:'Un correo el día del lanzamiento, nada más. Sin spam.'},
+ nosignup:{en:'Signup is not connected yet. Check back soon!',pl:'Zapis jeszcze nie działa. Wróć wkrótce!',es:'El registro aún no está activo. ¡Vuelve pronto!'},
+ made:{en:'Made by',pl:'Autor:',es:'Creado por'},
+ priv:{en:'Privacy policy',pl:'Polityka prywatności',es:'Política de privacidad'},
+ play:{en:'Play the web version',pl:'Zagraj w wersję webową',es:'Juega la versión web'}
+};
+var LANG='en';
+function setLang(l){ LANG=l; document.documentElement.lang=l;
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ var v=T[el.getAttribute('data-i18n')]; if(v) el.textContent=v[l]; });
+  document.querySelectorAll('.lang button').forEach(function(b){ b.classList.toggle('on', b.dataset.l===l); });
+  try{ localStorage.setItem('lang',l); }catch(e){} }
+document.querySelectorAll('.lang button').forEach(function(b){ b.addEventListener('click',function(){ setLang(b.dataset.l); }); });
+var q=(location.search.match(/lang=(en|pl|es)/)||[])[1], st; try{ st=localStorage.getItem('lang'); }catch(e){}
+var nav=(navigator.language||'en').slice(0,2);
+setLang(q||st||(['pl','es'].indexOf(nav)>=0?nav:'en'));
+</script>
 </body>
 </html>
