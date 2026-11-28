@@ -16,6 +16,10 @@ _Last updated: 2026-11-28 (v0.171)_
 - Landing: "Play the web version" now links to `https://dawjaz.github.io/padel-champ/` (the owner keeps the link for now); the privacy
   link stays `../privacy.html`, which works both at the domain root and under `/landing/`.
 - Email signup form is still a placeholder (`action="#"`).
+- **Live** at https://portresgame.com since 2026-11-28 (Coolify app from this repo, Ports Exposes 80; the first try gave Bad Gateway
+  because Coolify's default port was 3000). Updates are manual for now: press Redeploy in Coolify after pushing (no webhook yet).
+- Favicons: the landing (`../icons/...`) and `privacy.html` (`icons/...`) link `public/icons/` (16, 32, apple-touch); the Dockerfile copies
+  `public/icons/` to `/icons/` on the site.
 
 ## v0.169: Capacitor
 - `capacitor.config.ts`, `android/`, `ios/` (projects added, icons from `design/brand/`), `src/native.ts` (system browser for the privacy page, Android back button, splash hide).

@@ -5,4 +5,5 @@ FROM nginx:1.27-alpine
 COPY site/nginx.conf /etc/nginx/conf.d/default.conf
 COPY public/landing/ /usr/share/nginx/html/
 COPY public/privacy.html /usr/share/nginx/html/privacy.html
+COPY public/icons/ /usr/share/nginx/html/icons/
 EXPOSE 80
