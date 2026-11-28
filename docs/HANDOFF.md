@@ -1347,3 +1347,8 @@ title -> match -> result -> rematch once.
 ## Owner
 Chats in Polish. Wants: Android + iPhone release, browser build for testing, everything kept in GitHub so
 the project can move between Claude accounts.
+
+## Landing page + clips (2026-11-28, no version bump)
+- `public/landing/index.html` (live at `/landing/` after deploy): name, pitch, gameplay video, screenshots, email-signup PLACEHOLDER (form not connected; owner picks a mail service and sets `action`). Move to site root when a domain exists.
+- Social clips: recorded with Playwright (`scripts/recordClips.py`, needs dev server on :5199 and `/home/claude/store_shots/common.py`). NOTE: Playwright video ignores device scale factor, so crop `360:640` from the top-left and upscale to 720x1280 with ffmpeg.
+- Name check written to `docs/NAMING.md` ("por tres" is a padel term; no PorTres conflict found; not a formal trademark search).

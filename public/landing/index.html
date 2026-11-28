@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PorTres: Padel Career</title>
+<meta name="description" content="A tactical padel career game. Call every shot, find the gap, unleash specials and climb from the club courts to the big finals. Coming soon to Android and iOS." />
+<meta property="og:title" content="PorTres: Padel Career" />
+<meta property="og:description" content="Call every shot. Climb the padel ranks. Coming soon to Android and iOS." />
+<meta property="og:image" content="poster.jpg" />
+<style>
+  :root { --navy:#0a0f2e; --card:#141b4a; --lime:#c6f23a; --orange:#ff5a1f; --gold:#ffc21f; --text:#e8eefc; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--navy); color:var(--text); font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color:#8fc1ff; }
+  header, section, footer { max-width:960px; margin:0 auto; padding:40px 20px; }
+  .hero { display:grid; grid-template-columns:1fr; gap:28px; align-items:center; text-align:center; padding-top:56px; }
+  @media (min-width:760px){ .hero { grid-template-columns:1.1fr .9fr; text-align:left; } }
+  h1 { font-size:clamp(2.2rem,7vw,3.6rem); line-height:1.05; margin:0 0 8px; letter-spacing:-.02em; font-style:italic; }
+  h1 span { color:var(--orange); }
+  .tag { color:var(--gold); font-weight:700; font-size:1.2rem; margin:0 0 14px; }
+  h2 { font-size:1.5rem; color:var(--gold); margin:0 0 16px; }
+  video { width:100%; max-width:300px; border-radius:18px; border:2px solid #243080; background:#000; justify-self:center; }
+  .badge { display:inline-block; background:var(--lime); color:#10200a; font-weight:800; border-radius:999px; padding:6px 16px; font-size:.9rem; margin-bottom:16px; }
+  .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .features div { background:var(--card); border-radius:14px; padding:16px 18px; }
+  .features b { color:var(--lime); display:block; margin-bottom:4px; }
+  .shots { display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; scroll-snap-type:x mandatory; }
+  .shots img { height:420px; border-radius:14px; scroll-snap-align:start; border:1px solid #243080; }
+  form { display:flex; flex-wrap:wrap; gap:10px; }
+  input[type=email] { flex:1 1 240px; padding:14px 16px; border-radius:12px; border:2px solid #243080; background:var(--card); color:var(--text); font-size:1rem; }
+  button { padding:14px 22px; border:0; border-radius:12px; background:var(--orange); color:#fff; font-weight:800; font-size:1rem; cursor:pointer; }
+  .note { font-size:.85rem; opacity:.7; margin-top:8px; }
+  footer { text-align:center; font-size:.9rem; opacity:.75; border-top:1px solid #1b2460; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div>
+    <span class="badge">COMING SOON · ANDROID &amp; iOS</span>
+    <h1>Por<span>Tres</span><br>Padel Career</h1>
+    <p class="tag">Call every shot. Climb the ranks.</p>
+    <p>A tactical padel game for your phone. Pick the shot, aim at the gap, time your swing and use the glass. Build your player, win cups and work your way from the club courts to the big finals. Plays offline, no ads, no accounts.</p>
+  </div>
+  <video src="gameplay.mp4" poster="poster.jpg" autoplay muted loop playsinline controls></video>
+</header>
+
+<section>
+  <h2>How it plays</h2>
+  <div class="features">
+    <div><b>Command duels</b>Choose the shot and the target, then time the swing. Every rally is a small chess game.</div>
+    <div><b>Use the glass</b>Walls are part of the court. Wait for the rebound or hit before the bounce.</div>
+    <div><b>Special moves</b>Build up guts and unleash Sky Rocket, Venom, Corner Lock and Freeze at the right moment.</div>
+    <div><b>A real career</b>Level up, spend skill points, collect gear, enter cups and chase the ranking.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Screenshots</h2>
+  <div class="shots">
+    <img src="01-tactical-padel.jpg" alt="Tactical padel match" loading="lazy">
+    <img src="02-call-every-shot.jpg" alt="Choosing a shot" loading="lazy">
+    <img src="04-unleash-specials.jpg" alt="Special moves" loading="lazy">
+    <img src="07-build-your-player.jpg" alt="Building your player" loading="lazy">
+    <img src="08-your-padel-career.jpg" alt="Padel career" loading="lazy">
+  </div>
+</section>
+
+<section>
+  <h2>Get notified at launch</h2>
+  <!-- TODO(owner): pick a mail service (Buttondown, Formspree, MailerLite...) and put its form URL in action. -->
+  <form action="#" method="post" onsubmit="event.preventDefault(); document.getElementById('msg').textContent='Signup is not connected yet. Check back soon!';">
+    <input type="email" name="email" placeholder="your@email.com" required aria-label="Email">
+    <button type="submit">NOTIFY ME</button>
+  </form>
+  <p class="note" id="msg">One email at launch, nothing else. No spam.</p>
+</section>
+
+<footer>
+  <p>Made by Dawid Jaz · DAVJ STUDIO · <a href="../privacy.html">Privacy policy</a> · <a href="../">Play the web version</a></p>
+</footer>
+</body>
+</html>
