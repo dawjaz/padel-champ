@@ -62,7 +62,10 @@ export class CalendarScene extends Phaser.Scene {
     const n = mk(`${fee}`, true);
     const c = mk(status);
     const coin = 8;
-    const total = a.width + 14 + b.width + 6 + coin * 2 + 3 + n.width + 14 + c.width;
+    const widths = (): number => a.width + 14 + b.width + 6 + coin * 2 + 3 + n.width + 14 + c.width;
+    // Longer languages: shrink the row to the smallest text size so it clears the radio dot and the edge.
+    if (widths() > 292) for (const t of [a, b, n, c]) t.setFontSize(10);
+    const total = widths();
     let x = WIDTH / 2 - total / 2;
     a.x = x;
     x += a.width + 14;

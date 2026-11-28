@@ -57,11 +57,14 @@ export interface TextOpts {
   wrap?: number;
 }
 
+/** Smallest text size in logical px (about 10 CSS px on a phone). */
+export const MIN_FONT = 10;
+
 export function themeText(scene: Phaser.Scene, x: number, y: number, str: string, o: TextOpts = {}): Phaser.GameObjects.Text {
   const t = scene.add.text(x, y, T(str), {
     fontFamily: o.font === 'display' ? DISPLAY : BODY,
     resolution: HD_SCALE,
-    fontSize: `${o.size ?? 14}px`,
+    fontSize: `${Math.max(MIN_FONT, o.size ?? 14)}px`,
     fontStyle: o.weight ?? '800',
     color: tcss(o.color ?? TC.navy),
     align: o.align ?? (o.wrap ? 'center' : 'left'),

@@ -9,6 +9,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import '@fontsource/anton/latin-400.css';
 import { COLORS, css, HD_SCALE, HEIGHT, WIDTH } from './config';
+import { enforceMinHitArea } from './hitArea';
 import { initNative } from './native';
 import { BootScene } from './scenes/BootScene';
 import { CharacterScene } from './scenes/CharacterScene';
@@ -43,6 +44,8 @@ import { TitleScene } from './scenes/TitleScene';
 import { SplashScene } from './scenes/SplashScene';
 import { StudioScene } from './scenes/StudioScene';
 import { StartScene } from './scenes/StartScene';
+
+enforceMinHitArea();
 
 // Portrait layout (360x640 logical), drawn on a canvas HD_SCALE times bigger and scaled to fit any screen.
 const game = new Phaser.Game({

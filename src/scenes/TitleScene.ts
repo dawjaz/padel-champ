@@ -107,11 +107,11 @@ export class TitleScene extends Phaser.Scene {
     });
 
     // Practice Court, Collection and Settings: small buttons in a row at the bottom.
-    const prc = makeThemeButton(this, WIDTH / 2 - 104, 614, 92, 24, 'PRACTICE', () => this.scene.start('MatchScene', { practice: 'court', career: null }), 'secondary', 13);
+    const prc = makeThemeButton(this, WIDTH / 2 - 104, 610, 92, 24, 'PRACTICE', () => this.scene.start('MatchScene', { practice: 'court', career: null }), 'secondary', 13);
     tiles.push(...prc.parts);
-    const col = makeThemeButton(this, WIDTH / 2, 614, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
+    const col = makeThemeButton(this, WIDTH / 2, 610, 106, 24, 'COLLECTION', () => this.scene.start('CollectionScene'), 'secondary', 13);
     tiles.push(...col.parts);
-    const set = makeThemeButton(this, WIDTH / 2 + 104, 614, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
+    const set = makeThemeButton(this, WIDTH / 2 + 104, 610, 92, 24, 'SETTINGS', () => this.scene.start('SettingsScene'), 'secondary', 13);
     tiles.push(...set.parts);
 
     // Free Practice stays in the game but hidden (SHOW_FREE_PRACTICE in config.ts brings it back).
@@ -124,7 +124,7 @@ export class TitleScene extends Phaser.Scene {
     practice.push(...makeThemeButton(this, WIDTH / 2, 602, 240, 40, 'BACK', () => { showList(practice, false); showList(tiles, true); }, 'secondary').parts);
     showList(practice, false);
 
-    themeText(this, 16, HEIGHT - 3, done(`${T(GAME_TITLE)}: ${T(GAME_SUBTITLE)}  v${GAME_VERSION} (${BUILD_ID})`), { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
+    themeText(this, 16, HEIGHT - 4, done(`${T(GAME_TITLE)}: ${T(GAME_SUBTITLE)}  v${GAME_VERSION} (${BUILD_ID})`), { size: 8, color: TC.sub, weight: '600', origin: [0, 1] }).setAlpha(0.8);
 
     // The language: a small button for the other language (the choice is kept in the save; Settings has it too).
     const other: Lang = getLang() === 'en' ? 'es' : 'en';

@@ -26,3 +26,6 @@ App icons come from `design/brand/` (already copied into `android/app/src/main/r
 - Never built here: this workspace has no Android SDK or Gradle download (blocked), so the first APK build is untested. Expect small fixes.
 - Check: sound after the first tap, save data kept after closing the app, Android back button on the start screen, notch and status bar,
   the PRIVACY POLICY button opens the system browser.
+
+## Orientation
+The game is portrait only. Android: `screenOrientation="portrait"` in `AndroidManifest.xml`. iOS: only `UIInterfaceOrientationPortrait` in `Info.plist` (iPhone and iPad) plus `UIRequiresFullScreen`. If `npx cap add` is ever re-run, re-apply both.

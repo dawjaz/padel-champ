@@ -22,9 +22,10 @@ export class SettingsScene extends Phaser.Scene {
     screenHeader(this, 'Settings', { onBack: () => this.scene.start('TitleScene') });
 
     // Rows top to bottom; AIM, TIMING and SHOT MENU only in debug mode (dev server or ?debug), kept for testing changes.
-    let y = 96;
-    const BTN = 42;
-    const gapAfter = (lines: number): number => BTN / 2 + 8 + lines * 13 + 14;
+    let y = DEBUG ? 88 : 96;
+    const BTN = DEBUG ? 34 : 42; // the debug rows need the room
+    const GAP = DEBUG ? 8 : 14;
+    const gapAfter = (lines: number): number => BTN / 2 + 6 + lines * 12 + GAP;
     const row = (label: () => string, toggle: () => void, note?: string): void => {
       const b = makeThemeButton(this, WIDTH / 2, y, 260, BTN, label(), () => {
         toggle();
@@ -33,7 +34,7 @@ export class SettingsScene extends Phaser.Scene {
       if (note) {
         themeText(this, WIDTH / 2, y + BTN / 2 + 8, note, { size: 10, color: TC.sub, align: 'center' }).setOrigin(0.5, 0);
         y += gapAfter(note.split('\n').length) + BTN / 2;
-      } else y += BTN + 14;
+      } else y += BTN + GAP;
     };
 
     row(() => pair('SOUND', getSave().settings.sound ? 'ON' : 'OFF'), () => updateSave((d) => ({ ...d, settings: { ...d.settings, sound: !d.settings.sound } })));
@@ -64,7 +65,7 @@ export class SettingsScene extends Phaser.Scene {
     );
 
     makeThemeButton(this, WIDTH / 2, y, 260, BTN, 'HOW TO PLAY', () => this.scene.start('TutorialScene', { next: 'SettingsScene' }), 'blue', 19);
-    y += BTN + 14;
+    y += BTN + GAP;
 
     // The language: the button shows the current one; a tap switches and redraws the screen.
     const lang = (): string => pair('LANGUAGE', LANG_LABEL[getLang()]);
@@ -73,13 +74,13 @@ export class SettingsScene extends Phaser.Scene {
       updateSave((d) => ({ ...d, settings: { ...d.settings, language: next } }));
       this.scene.restart();
     }, 'blue', 19);
-    y += BTN + 14;
+    y += BTN + GAP;
 
     // The privacy policy lives on the game's web page (it opens in the browser; the Spanish page for the Spanish edition).
     makeThemeButton(this, WIDTH / 2, y, 260, BTN, 'PRIVACY POLICY', () => {
       openUrl(PRIVACY_URL + (getLang() === 'es' ? '#es' : ''));
     }, 'blue', 19);
-    y += BTN + 14;
+    y += BTN + GAP;
 
     let armed = false;
     const reset = makeThemeButton(this, WIDTH / 2, y, 260, BTN, 'RESET SAVE', () => {

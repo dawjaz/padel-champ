@@ -1352,3 +1352,15 @@ the project can move between Claude accounts.
 - `public/landing/index.html` (live at `/landing/` after deploy): name, pitch, gameplay video, screenshots, email-signup PLACEHOLDER (form not connected; owner picks a mail service and sets `action`). Move to site root when a domain exists.
 - Social clips: recorded with Playwright (`scripts/recordClips.py`, needs dev server on :5199 and `/home/claude/store_shots/common.py`). NOTE: Playwright video ignores device scale factor, so crop `360:640` from the top-left and upscale to 720x1280 with ffmpeg.
 - Name check written to `docs/NAMING.md` ("por tres" is a padel term; no PorTres conflict found; not a formal trademark search).
+
+## v0.170: layout fixes from the 17-viewport device test (2026-11-28)
+Test reports (4 testers, EN+ES, 17 sizes) were in `/home/claude/devtest/A-D` (not in the repo). Fixed:
+- **Portrait only.** `AndroidManifest.xml` `screenOrientation="portrait"`; iOS `Info.plist` portrait only (iPhone and iPad, `UIRequiresFullScreen` so iPad may skip rotation); web manifest already portrait; `lockPortrait()` in `src/native.ts` (Screen Orientation API, best effort); `index.html` covers touch phones in landscape with a rotate hint (`#rotate`, not shown on desktop or tablets).
+- **Tap targets:** `src/hitArea.ts` `enforceMinHitArea()` (called in `main.ts`) grows every rectangular hit area to at least 40x40 logical px, art unchanged.
+- **Text:** `themeText` now has a minimum size `MIN_FONT = 10` (was 7-9 in places).
+- **Spanish:** shorter ES strings (Entrenamiento, +N eq., consejos, paquetes), missing tutorial bubble translated, Calendar event rows shrink to 10 px when long.
+- **Settings:** production layout already fit; debug rows are now compact so RESET SAVE is reachable in dev too.
+- **index.html:** `100dvh` with `100vh` fallback; rotate overlay respects safe-area insets.
+- Title bottom row moved up a few px, version line 10 px.
+- NOT verified on real devices (URL bar, real insets, real touch): test on one iPhone and one Android before release. After `npm run build` run `npx cap sync` so the native apps get the new web files.
+- Still open from the device test (low): hard seam between light scenes and the dark letterbox bars; Result scene sparse; Match top bar flat grey. Landing page: trim the empty lower half of the video, 2x screenshots, bigger footer links.
