@@ -5,7 +5,7 @@ _Draft. Fill in the two fields in square brackets before publishing. The hosted 
 
 **Effective date:** [date of release]
 
-PorTres: Padel Career ("the game") is made by [developer's name], who is responsible for this policy.
+PorTres: Padel Career ("the game") is made by Dawid Jaz, who is responsible for this policy.
 Contact: [contact email].
 
 ## In short

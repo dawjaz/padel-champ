@@ -5,7 +5,7 @@ _Borrador. Rellena los campos entre corchetes antes de publicar. La copia alojad
 
 **Fecha de entrada en vigor:** [fecha de lanzamiento]
 
-PorTres: Padel Career («el juego») está creado por [nombre del desarrollador], responsable de esta política.
+PorTres: Padel Career («el juego») está creado por Dawid Jaz, responsable de esta política.
 Contacto: [correo de contacto].
 
 ## En resumen

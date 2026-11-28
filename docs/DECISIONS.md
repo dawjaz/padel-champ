@@ -116,3 +116,11 @@ cap + `gearHeadroom` so it cannot fill the scale early. Old saves are converted 
   It surfaces phone-only problems (audio unlock, storage, back button, safe areas) while there is time to fix them.
 - appId `studio.davj.portres` (owner approved). Plugins: app, browser (privacy page), splash-screen. Status bar plugin installed but not configured (default, no overlay).
 - Build steps and signing notes: `docs/APP.md`.
+
+## 2026-11-28: publishing identity
+- Owner publishes under his own legal name, **Dawid Jaz**, in both stores (Apple requires the legal name as seller for a sole proprietor;
+  Google developer name can differ). Taxes go through his Polish JDG (sole proprietorship), to be agreed with his accountant.
+- Google Play: organization account only if a D-U-N-S number can be obtained for the JDG (free, up to 30 days); otherwise a personal account
+  with the closed test (12 testers, 14 days). Apple: individual enrollment. EU "trader" contact data (address, phone, e-mail) will be public
+  on both stores: use a business address and a separate phone number.
+- The privacy policy now names Dawid Jaz; contact e-mail and release date are still placeholders (ask the owner before release).
